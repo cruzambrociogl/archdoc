@@ -1,0 +1,24 @@
+# Binaries
+/archdoc
+/dist/
+*.exe
+
+# Go
+*.test
+*.out
+/vendor/
+
+# Frontend — built assets are generated, never committed.
+# A placeholder index.html is tracked so //go:embed always compiles.
+/web/node_modules/
+/web/dist/*
+!/web/dist/.gitkeep
+!/web/dist/index.html
+
+# archdoc's own output, if it is ever pointed at this repository
+/.archdoc/
+
+# Local
+.DS_Store
+*.local
+.env
