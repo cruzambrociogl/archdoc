@@ -6,6 +6,19 @@
 > `product-definition.md` (what), `stack-decision.md` (with what) and
 > `survey-test-subjects.md` (the evidence).
 
+> ### ⚠ This document has published mirrors
+>
+> **This file is the source of truth. When it changes, the mirrors must be updated or they
+> become confidently wrong in front of a supervisor.**
+>
+> | Mirror | Purpose | Update by |
+> |---|---|---|
+> | [Google Sheet](https://docs.google.com/spreadsheets/d/1Oww6pPHneW_KQmUZ-D7qXBrFHuELsR00YziVmCSmmYg/edit) | The submitted schedule deliverable | Regenerate the CSV and create a new Sheet — the Drive connector can set a file's title and location but **cannot rewrite its contents** |
+> | [Artifact page](https://claude.ai/code/artifact/1bff2613-a2a6-4e3e-8d30-1ae30e4ff4a8) | Presentation view — Gantt, sprint cards | Republish the same file path to keep the URL |
+>
+> A superseded first-revision Sheet also exists in Drive
+> (`1gy3L8PcC9UzzVEBSlkenmJ8MzgBrLhmJgvcw2Ma9H8A`) and should be trashed.
+
 ---
 
 ## 1. Where we are
