@@ -49,7 +49,8 @@ raised, not quietly promoted over it.
       stack leans on `profiles:` and `!reset` — **relevant to the O-8 spike**
 - [ ] Rewrite `README.md` once there is something to show. Open with §0's problem statement —
       AI writes the code, the understanding never forms — not with installation instructions
-- [ ] Consider branch protection on `main`, so it advances only by merge from `develop`
+- [→ CLAUDE.md] Branch protection — kept as convention rather than a GitHub ruleset. No
+      enforcement exists, so the discipline lives in the context file — 2026-08-25
 
 ---
 

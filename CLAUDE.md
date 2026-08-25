@@ -85,10 +85,19 @@ coupling earns them a package of their own.
 **Build:** contributors need Node; users do not. `web/dist` is built before the binary and
 embedded. A `dev` build tag proxies to the frontend dev server instead.
 
-**Git.** Work happens on `develop`; `main` advances only by merge. Remote is
-`git@github-edu:cruzambrociogl/archdoc.git` — the alias matters, it selects the right SSH key.
-Commit identity is **repo-local** (`cruz.ambrocio@galileo.edu`), deliberately different from
-the global config. Module path: `github.com/cruzambrociogl/archdoc`.
+**Git.** Remote is `git@github-edu:cruzambrociogl/archdoc.git` — the alias matters, it selects
+the right SSH key. Commit identity is **repo-local** (`cruz.ambrocio@galileo.edu`),
+deliberately different from the global config. Module path:
+`github.com/cruzambrociogl/archdoc`.
+
+**Branch discipline — convention, not enforced.** There is no ruleset on `main`; nothing on
+GitHub will stop a mistaken push. Honour it anyway:
+
+- All work happens on `develop`. **Never commit or push to `main` directly.**
+- `main` advances only by pull request from `develop` — which also leaves a titled, dated
+  record of what landed, useful evidence of process for a graded project.
+- **Never force-push either branch.** Rewriting published history is only acceptable on a
+  branch that has not left this machine.
 
 ---
 
