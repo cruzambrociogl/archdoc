@@ -67,6 +67,14 @@ and `Version` propagate into every signature and into `model.json`, which is a *
 deliverable*. O-8's answer gates this — it decides whether a `Fact` carries one source
 position or two.
 
+**2026-08-25 — Repository name: `archdoc`, lowercase**
+Renamed from `ArchDoc`. Everywhere else the name is already lowercase — the binary, the CLI
+verbs, `internal/archdoc`, and all running text in `docs/`. Go package names must be lowercase
+regardless, so capitals in the repository name made it the outlier rather than the standard.
+Concretely, an uppercase module path is escaped as `!arch!doc` in the module cache for the
+life of the project. The display name stays **ArchDoc** in the README title and in prose.
+Module path: `github.com/cruzambrociogl/archdoc`.
+
 **2026-08-24 — Delivery: R1.a complete, committed for 9 Oct**
 Scope tiered by what each piece is *limited* by, not by volume. Implementation-bound work
 (parsers, model, renderers, web app) compresses heavily under AI assistance;
