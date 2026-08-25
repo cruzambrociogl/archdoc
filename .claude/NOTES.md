@@ -49,14 +49,15 @@ raised, not quietly promoted over it.
       stack leans on `profiles:` and `!reset` — **relevant to the O-8 spike**
 - [ ] Rewrite `README.md` once there is something to show. Open with §0's problem statement —
       AI writes the code, the understanding never forms — not with installation instructions
-- [→ CLAUDE.md] Branch protection — kept as convention rather than a GitHub ruleset. No
-      enforcement exists, so the discipline lives in the context file — 2026-08-25
 
 ---
 
 ## Recently resolved
 
-*(cleared each checkpoint after one cycle — promoted items do not accumulate here)*
+Staging, not an archive. An item lands here when it is resolved, and is deleted at the
+**next** checkpoint after that. Nothing stays under *Open* once it has a marker.
 
-- [x] First commit split — two commits, docs then scaffolding. `go.mod` deferred to Wednesday
-      so the module path lands after the naming decision — 2026-08-25
+- [→ CLAUDE.md] Branch protection — convention rather than a GitHub ruleset; no enforcement
+      exists, so the discipline lives in the context file — 2026-08-25
+- [→ docs/delivery-schedule.md] The schedule's published mirrors — Sheet and artifact URLs
+      recorded so a future edit does not silently leave them stale — 2026-08-25

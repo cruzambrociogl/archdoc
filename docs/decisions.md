@@ -89,6 +89,15 @@ are not browsed. `.claude/NOTES.md` hidden because it is a private working inbox
 artifact, not tooling config. Rule: root is what a visitor should see, `.claude/` is what only
 the tooling needs.
 
+**2026-08-25 — Branch discipline by convention, not by GitHub ruleset**
+`main` is left unprotected on GitHub. Rulesets are gated behind paid plans for private
+repositories, and the alternative — making the repository public purely to unlock a setting —
+is a poor reason to publish before there is anything to show. The discipline is written into
+`CLAUDE.md` instead, where a session will actually read it: work on `develop`, `main` advances
+only by pull request, never force-push a published branch. **Nothing enforces this**, which is
+stated explicitly so no session assumes the platform is guarding it. Revisit if the repository
+goes public. The PR trail is kept deliberately — it doubles as a dated record of what landed.
+
 **2026-08-25 — Repository name: `archdoc`, lowercase**
 Renamed from `ArchDoc`. Everywhere else the name is already lowercase — the binary, the CLI
 verbs, `internal/archdoc`, and all running text in `docs/`. Go package names must be lowercase

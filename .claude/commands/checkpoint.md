@@ -29,13 +29,19 @@ anything now false in an auto-loaded file.
 `.claude/NOTES.md` is the capture inbox for anything unplanned. Every open item gets one of four
 outcomes; nothing sits there indefinitely.
 
-1. **Promote** — route it by the table above, then mark the line `[→ path]`
-2. **Close** — mark `[x]` if it needed nothing further
-3. **Drop** — mark `[-]` and keep the reason on the line
-4. **Leave open** — only if it is still genuinely undecided
+1. **Promote** — route it by the table above, mark the line `[→ path]`, and **move it to
+   *Recently resolved***
+2. **Close** — mark `[x]`, **move it**
+3. **Drop** — mark `[-]` with the reason, **move it**
+4. **Leave open** — only if it is still genuinely undecided. It stays under *Open* unmarked
 
-Then clear any `[→ …]`, `[x]` and `[-]` lines that have already survived one cycle in
-*Recently resolved*. That section is a staging area, not an archive.
+**Nothing marked stays under *Open*.** A marked line there means the last drain was
+incomplete. Then delete anything already sitting in *Recently resolved* from a previous
+cycle — it is staging, not an archive.
+
+**Route the decision too.** Promoting a note to `CLAUDE.md` or a `docs/` file records *what*
+was decided; if there was a real choice between alternatives, `docs/decisions.md` still needs
+the *why*. A note can produce two writes.
 
 If a note contradicts `docs/product-definition.md`, **raise it — do not promote over it.**
 
