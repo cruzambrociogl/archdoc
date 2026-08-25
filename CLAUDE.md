@@ -9,6 +9,28 @@ web app, one static binary.
 
 ---
 
+## New to this repository?
+
+Read in this order. It is about forty minutes and it replaces asking anyone.
+
+1. **`docs/product-definition.md` §0–§3** — the problem, the two governing principles, and
+   what R1 actually covers. Everything else assumes this.
+2. **`docs/survey-test-subjects.md` §3** — the synthesis. Why extraction is harder than it
+   looks, and what two real repositories proved.
+3. **`docs/stack-decision.md` §1–§2** — what it is built with, in plain words.
+4. **`PROGRESS.md`** — where the work stands.
+5. **`docs/decisions.md`** — skim it before proposing anything that feels obvious. Most
+   obvious things were already considered and have a recorded reason.
+
+Then read the rest of this file. Do **not** read the documents end to end — see the load
+table below.
+
+**Working on the test subjects?** Clone them yourself, pinned to the revisions in
+`docs/survey-test-subjects.md` §Method — every claim in that survey is anchored to those
+SHAs. Keep them outside this repository; they are other people's code, not fixtures.
+
+---
+
 ## Read this before anything else
 
 **Document precedence.** Where `docs/stack-decision.md` and `docs/product-definition.md`
@@ -85,10 +107,13 @@ coupling earns them a package of their own.
 **Build:** contributors need Node; users do not. `web/dist` is built before the binary and
 embedded. A `dev` build tag proxies to the frontend dev server instead.
 
-**Git.** Remote is `git@github-edu:cruzambrociogl/archdoc.git` — the alias matters, it selects
-the right SSH key. Commit identity is **repo-local** (`cruz.ambrocio@galileo.edu`),
-deliberately different from the global config. Module path:
-`github.com/cruzambrociogl/archdoc`.
+**Module path:** `github.com/cruzambrociogl/archdoc`.
+
+**Local setup is per-person, not project fact.** The repository lives at
+`github.com/cruzambrociogl/archdoc`; how you reach it is yours. One contributor uses an SSH
+host alias (`git@github-edu:…`) to select a non-default key, and sets a **repo-local** commit
+identity so it differs from their global config. Neither is required — clone however you
+normally would. `.git/config` is not tracked, so nothing here overrides your setup.
 
 **Branch discipline — convention, not enforced.** There is no ruleset on `main`; nothing on
 GitHub will stop a mistaken push. Honour it anyway:
