@@ -107,13 +107,8 @@ coupling earns them a package of their own.
 **Build:** contributors need Node; users do not. `web/dist` is built before the binary and
 embedded. A `dev` build tag proxies to the frontend dev server instead.
 
-**Module path:** `github.com/cruzambrociogl/archdoc`.
-
-**Local setup is per-person, not project fact.** The repository lives at
-`github.com/cruzambrociogl/archdoc`; how you reach it is yours. One contributor uses an SSH
-host alias (`git@github-edu:…`) to select a non-default key, and sets a **repo-local** commit
-identity so it differs from their global config. Neither is required — clone however you
-normally would. `.git/config` is not tracked, so nothing here overrides your setup.
+**Module path:** `github.com/cruzambrociogl/archdoc`. Clone and configure git however you
+normally would — `.git/config` is untracked, so nothing here touches your setup.
 
 **Branch discipline — convention, not enforced.** There is no ruleset on `main`; nothing on
 GitHub will stop a mistaken push. Honour it anyway:
