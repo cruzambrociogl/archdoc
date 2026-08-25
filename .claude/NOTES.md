@@ -41,13 +41,15 @@ raised, not quietly promoted over it.
 
 ## Open
 
-- [ ] Decide the first commit's contents — scaffolding only, or scaffolding plus `go.mod`?
 - [ ] `web/dist/index.html` is a tracked placeholder; confirm the real build overwrites it
       cleanly rather than colliding with the `.gitignore` exception
 - [ ] Third test subject (O-7) — look for a repo with real declared infrastructure that is
       neither a photo app nor a BaaS. Something in a different shape would test discovery harder
 - [ ] Worth checking whether `compose-go` exposes profile resolution, since Immich's dev
-      stack leans on `profiles:` and `!reset`
+      stack leans on `profiles:` and `!reset` — **relevant to the O-8 spike**
+- [ ] Rewrite `README.md` once there is something to show. Open with §0's problem statement —
+      AI writes the code, the understanding never forms — not with installation instructions
+- [ ] Consider branch protection on `main`, so it advances only by merge from `develop`
 
 ---
 
@@ -55,6 +57,5 @@ raised, not quietly promoted over it.
 
 *(cleared each checkpoint after one cycle — promoted items do not accumulate here)*
 
-- [→ docs/decisions.md] Packages follow seams, not catalog chapters — 2026-08-24
-- [→ docs/stack-decision.md §3] Build needs Node for contributors, not for users — 2026-08-24
-- [x] Move the ideation notes somewhere durable — now `docs/origin/` — 2026-08-25
+- [x] First commit split — two commits, docs then scaffolding. `go.mod` deferred to Wednesday
+      so the module path lands after the naming decision — 2026-08-25

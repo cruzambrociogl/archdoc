@@ -67,6 +67,28 @@ and `Version` propagate into every signature and into `model.json`, which is a *
 deliverable*. O-8's answer gates this — it decides whether a `Fact` carries one source
 position or two.
 
+**2026-08-25 — Context system: three layers, adapted rather than adopted**
+A five-layer scheme from another workspace was considered. Its workspace spine, project table
+and cross-project TODO tagging solve multi-repo problems this project does not have, and its
+machine-local memory layer contradicts its own "repo over memory" principle. Kept: token
+discipline, load-on-demand, the vocabulary table, announce-before-writing, and `/checkpoint`.
+Added what it lacked — a **pruning rule**, since routing without deletion makes auto-loaded
+context grow without bound, which is the failure the token discipline exists to prevent.
+
+**2026-08-25 — No `TODO.md`. `PROGRESS.md` for planned work, `NOTES.md` for the rest**
+The capability catalog is already the work breakdown, so a free-form todo list would drift
+from it immediately. But planned work is not everything: unplanned ideas, reminders and
+questions had no home, and a note that costs effort to file does not get written down.
+`.claude/NOTES.md` is the low-friction inbox; `/checkpoint` drains it. "add a TODO" routes
+there, so the habit does not need retraining.
+
+**2026-08-25 — Meta files placed by audience, not by type**
+`PROGRESS.md` at the root because it answers the question a supervisor asks and hidden folders
+are not browsed. `.claude/NOTES.md` hidden because it is a private working inbox.
+`docs/decisions.md` moved *out* of `.claude/` — an architecture decision record is a project
+artifact, not tooling config. Rule: root is what a visitor should see, `.claude/` is what only
+the tooling needs.
+
 **2026-08-25 — Repository name: `archdoc`, lowercase**
 Renamed from `ArchDoc`. Everywhere else the name is already lowercase — the binary, the CLI
 verbs, `internal/archdoc`, and all running text in `docs/`. Go package names must be lowercase
