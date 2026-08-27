@@ -1,10 +1,13 @@
 // Package archdoc holds the core types shared across the engine.
 //
-// The types that matter — Fact, Provenance, FactSet, Node, Edge, Model and Version — are
-// deliberately not defined yet. Their shape depends on O-8: whether file-and-line provenance
-// survives the Compose merge, which decides if a Fact carries one source position or two.
-// They also propagate into model.json, a committed deliverable, so the shape is close to
-// permanent. See docs/decisions.md, 2026-08-24.
+// The types that matter — Fact, Provenance, FactSet, Node, Edge, Model and Version — are not
+// defined yet, but their shape is now settled. O-8 established that compose-go discards source
+// positions, so extraction runs two passes: compose-go for correct merge and interpolation
+// semantics, and gopkg.in/yaml.v3 for file and line, reconciled by key path. A Fact therefore
+// carries exactly one Provenance — the file that won the merge — not two.
+//
+// These types propagate into model.json, which is a committed deliverable, so their shape is
+// close to permanent. See docs/decisions.md, 2026-08-26.
 package archdoc
 
 import "runtime/debug"

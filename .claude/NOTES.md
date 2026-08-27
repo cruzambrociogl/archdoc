@@ -45,8 +45,8 @@ raised, not quietly promoted over it.
       cleanly rather than colliding with the `.gitignore` exception
 - [ ] Third test subject (O-7) — look for a repo with real declared infrastructure that is
       neither a photo app nor a BaaS. Something in a different shape would test discovery harder
-- [ ] Worth checking whether `compose-go` exposes profile resolution, since Immich's dev
-      stack leans on `profiles:` and `!reset` — **relevant to the O-8 spike**
+- [ ] Fixtures: the O-8 spike used the real subject repos on disk. Decide what goes in
+      `testdata/` — trimmed copies of the hard compose files, kept small and pinned
 - [ ] Rewrite `README.md` once there is something to show. Open with §0's problem statement —
       AI writes the code, the understanding never forms — not with installation instructions
 
@@ -61,3 +61,6 @@ Staging, not an archive. An item lands here when it is resolved, and is deleted 
       exists, so the discipline lives in the context file — 2026-08-25
 - [→ docs/delivery-schedule.md] The schedule's published mirrors — Sheet and artifact URLs
       recorded so a future edit does not silently leave them stale — 2026-08-25
+- [→ docs/decisions.md] `compose-go` profile resolution — answered by the O-8 spike:
+      `!reset []` empties `profiles` correctly, and `!override` replaces lists rather than
+      appending — 2026-08-26

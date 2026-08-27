@@ -67,6 +67,33 @@ and `Version` propagate into every signature and into `model.json`, which is a *
 deliverable*. O-8's answer gates this — it decides whether a `Fact` carries one source
 position or two.
 
+**2026-08-26 — O-8 closed: provenance does NOT survive the Compose merge. Extraction is two passes.**
+Tested against the two hardest files the survey found, at the pinned revisions:
+`supabase/docker/docker-compose.kong.yml` (`!override` across a merge) and
+`immich/.devcontainer/server/container-compose-overrides.yml` (`!reset`, plus two expansions
+concatenated in one value).
+
+*What works.* `compose-go` v2.14.0 gets the semantics right. `!override` replaced api-gw's
+ports rather than appending them (8000, 8443 — exactly two), and swapped the image to Kong.
+`!reset []` emptied `profiles`. The concatenated expansion
+`${UPLOAD_LOCATION:-default}${UPLOAD_LOCATION:+/photos}` resolved correctly both ways —
+`upload-devcontainer-volume` when unset, `/mnt/photos/photos` when set. The library earns its
+place; this was the argument the stack decision rested on and it holds.
+
+*What does not.* `types.ServiceConfig` has **100 fields and none carries a source position** —
+no Line, Column, or File. `types.Project` exposes `ComposeFiles`, but that is which files
+contributed to the project, not where any single fact came from. Nowhere near PRV-01.
+
+*The fallback is proven, not assumed.* A raw `gopkg.in/yaml.v3` parse recovers positions and
+they are addressable by key path — `services.api-gw.image` resolves to line 72 in the base
+file and line 14 in the overlay. **The last file in which a key appears is the one that won
+the merge**, which is exactly the provenance PRV-01 needs.
+
+**Consequence:** extraction runs `compose-go` for semantics and `yaml.v3` for positions,
+reconciled by key path. More work, no more risk, and the same would be required in any
+language. It also settles the core type: a **`Fact` carries one source position** — the file
+that won — not two.
+
 **2026-08-25 — Context system: three layers, adapted rather than adopted**
 A five-layer scheme from another workspace was considered. Its workspace spine, project table
 and cross-project TODO tagging solve multi-repo problems this project does not have, and its
