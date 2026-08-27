@@ -30,8 +30,13 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name:    "an unknown command is an error",
-			args:    []string{"scan"},
+			args:    []string{"render"},
 			wantErr: true,
+		},
+		{
+			name:      "scan reports when a path holds no compose file",
+			args:      []string{"scan", t.TempDir()},
+			wantMatch: "No deployable Compose file found",
 		},
 	}
 

@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-08-26
+Last updated: 2026-08-27
 
 ---
 
@@ -22,7 +22,7 @@ constantly, not just at a review.
 | AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | · |
 | AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | · |
 | AC-6 | Drift detection | 100% of synthetic drift set | **yes** | · |
-| AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | · |
+| AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ~ **holds on the walking skeleton** — 5 identical runs on Supabase, covered by a test |
 | AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | · |
 | AC-9 | Performance | NFR-1 and NFR-2 met on Supabase | no | · |
 
@@ -37,13 +37,13 @@ constantly, not just at a review.
 
 | Group | What it covers | Count | Done | Gate |
 |---|---|---|---|---|
-| `DSC` | Discovery — which files are the architecture | 4 | 0 | — |
-| `EXT` | Extraction — parsers, provenance, the FactSet | 15 | 0 | AC-7 |
+| `DSC` | Discovery — which files are the architecture | 4 | ~2 | — |
+| `EXT` | Extraction — parsers, provenance, the FactSet | 15 | ~3 | AC-7 |
 | `MDL` | Model construction — nodes, edges, boundaries, identity | 17 | 0 | — |
 | `VAL` | Validation | 8 | 0 | AC-4 |
 | `RUL` | Rules — `rules.yaml` | 6 | 0 | AC-5 |
 | `SEM` | Semantic layer — the LLM | 10 | 0 | — |
-| `PRV` | Provenance | 6 | 0 | AC-1 |
+| `PRV` | Provenance | 6 | ~1 | AC-1 |
 | `MEM` | Memory and diff | 8 | 0 | AC-6 |
 | `VIE` | Views and rendering | 10 | 0 | AC-2 |
 | `SUR` | Surfaces — CLI and web app | 15 | 0 | AC-8 |

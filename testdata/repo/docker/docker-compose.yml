@@ -1,0 +1,12 @@
+name: fixture
+
+services:
+  web:
+    image: nginx:1.27
+    ports:
+      - '8080:80'
+    depends_on:
+      - cache
+
+  cache:
+    image: redis:7

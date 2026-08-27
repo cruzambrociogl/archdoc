@@ -1,0 +1,6 @@
+services:
+  web:
+    image: nginx:dev
+    profiles: !reset []
+  cache:
+    image: redis:7

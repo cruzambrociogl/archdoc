@@ -1,0 +1,6 @@
+# A fragment: these are not deployable services, they are snippets pulled in via extends.
+services:
+  cpu: {}
+  cuda:
+    devices:
+      - /dev/dri:/dev/dri
