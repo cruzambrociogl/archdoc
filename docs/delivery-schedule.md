@@ -87,8 +87,9 @@ Stated so they can be corrected rather than silently relied on.
 4. **Go is being learned while building — but not written by hand.** This affects how fast
    generated code can be *reviewed and understood*, not how fast it is produced. Week 0 is
    light for that reason, not because implementation is slow.
-5. **Test subject #3 may stay unresolved.** Immich and Supabase satisfy every acceptance
-   criterion; a third strengthens the result but does not gate it.
+5. ~~Test subject #3 may stay unresolved.~~ **Closed 26 Aug — Mastodon**, chosen because
+   neither other subject declares a `networks:` block or references a genuine external
+   managed service (O-7, `decisions.md`).
 
 ---
 
