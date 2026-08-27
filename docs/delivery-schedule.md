@@ -120,6 +120,19 @@ that arc is the point of the sequencing, not just a way to divide the work.
 The walking skeleton is a stretch rather than a commitment — not because it is much work, but
 because Friday is four days out and a broken demo is worse than none. If it lands, show it.
 
+> ### ✅ Week 0 outcome — recorded 27 Aug
+>
+> **Gate met, and the stretch item landed.** Both open questions closed on evidence: O-8 with a
+> negative result that reshaped the extractor, O-7 against a measured criterion that ruled out
+> three candidates. Go 1.27, module, CLI, CI including an import check that enforces the
+> network boundary, and `archdoc scan` working on both subjects — Immich 4 services from 10
+> candidates, Supabase 11 from 15. Five consecutive scans byte-identical.
+>
+> **How far ahead this puts us: less than it looks.** The skeleton is a thin slice — roughly
+> `DSC` 2 of 4, `EXT` 3 of 15, `PRV` 1 of 6. It extracts a name, an image and a line, and
+> nothing else: no ports, volumes, networks, `depends_on`, or environment-derived references.
+> Call it two days into Sprint 1's Week A, plus a stretch item banked. Not a week.
+
 ### Sprint 1 · Aug 31 – Sep 11 · It reads real repositories
 
 The half of the product that cannot be faked, end to end.
@@ -195,6 +208,24 @@ is the central claim made visible.
 
 **Delivery, Fri Oct 9 — the claim:** *"Here is the result, measured against criteria written
 before the code existed."*
+
+### Where a lead goes — and where it does not
+
+Being ahead does not move the delivery date. **The reviews are fixed** — 11 Sep, 25 Sep,
+9 Oct — so time gained early cannot be spent by finishing sooner. It can only be spent on
+scope or on risk, and deciding which in advance is what stops it being absorbed invisibly.
+
+Pulling dates forward is explicitly **not** the answer: it manufactures slack that then
+disappears into whatever the current task happens to be.
+
+| Priority | Where it goes | Why |
+|---|---|---|
+| 1 | **Raise the current sprint's ambition** rather than end it early | Sprint 1's gate is AC-7, AC-4 and AC-5; AC-7 already holds on the walking skeleton. Edges (`MDL`) were Week B work — with the foundation in place, a first rendered diagram inside Sprint 1 becomes plausible |
+| 2 | **The web app's canvas and inspector** | Currently in the deferred tier. The two views that carry the click-to-source story |
+| 3 | **A clustering prototype against fixtures** | The only item that de-risks a phase not yet scheduled. O-6 argues for trying it early precisely because it is unsolved |
+| 4 | Remaining gateway parsers, exports, the deployment view | In the order §5 gives up |
+
+*Test subject #3 was on this list and is now closed — Mastodon, O-7.*
 
 ### Mid-sprint self-checks
 
@@ -285,10 +316,15 @@ keys first. It compiles, it passes casual testing, and it silently breaks AC-7.
    Compose merge produces a *silently wrong* model, so the reference implementation belongs
    on the fact path.
 4. **This schedule**, including the tiering in §2 and the AC-3 prediction in §7.
-5. **O-8's answer**, if Tuesday's spike lands — a research finding, which fits the phase.
+5. **O-8's answer** — a research finding, which fits the phase: provenance does *not* survive
+   the Compose merge, so extraction is two passes.
+6. **A live demo.** `archdoc scan` on both subjects, and `--explain` showing discovery reject
+   the hwaccel fragments while finding the two `.devcontainer` files a filename glob misses —
+   including the glob written for the survey itself.
 
-**What not to promise.** A working `scan` command. Four days from zero Go to parsing real
-repositories risks a broken demo, and the honest account is stronger without it.
+**What not to over-claim.** The scan reports a name, an image and a line. There are no edges,
+no model and no diagram. Say that plainly — it is four boxes and their sources, and it is the
+part everything else rests on.
 
 **The framing.** Four weeks produced a specification, an empirical survey and a technology
 decision; two weeks were lost to examinations; construction starts now against a schedule
