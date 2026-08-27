@@ -43,8 +43,8 @@ raised, not quietly promoted over it.
 
 - [ ] `web/dist/index.html` is a tracked placeholder; confirm the real build overwrites it
       cleanly rather than colliding with the `.gitignore` exception
-- [ ] Third test subject (O-7) — look for a repo with real declared infrastructure that is
-      neither a photo app nor a BaaS. Something in a different shape would test discovery harder
+- [ ] Clone Mastodon into `subjects/` at the pinned revision and run `scan` against it — the
+      third subject is chosen but has never actually been read by the tool
 - [ ] Fixtures: the O-8 spike used the real subject repos on disk. Decide what goes in
       `testdata/` — trimmed copies of the hard compose files, kept small and pinned
 
