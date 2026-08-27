@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Cancel a superseded run rather than letting queued jobs pile up on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt'd:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      # -count=1 disables the test cache, so a green run always means the tests
+      # actually executed. -race is affordable while the suite is small.
+      - name: Test
+        run: go test -race -count=1 ./...
+
+  # AC-8 requires that a structure-only run transmits zero file contents. Making the network
+  # boundary structural — only internal/semantic may reach outward — turns that from a manual
+  # audit into a check. The rule is enforced from the first commit so it never has to be
+  # retrofitted across a codebase that has already drifted.
+  network-boundary:
+    name: Network boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Only internal/semantic may import an outbound HTTP client
+        run: |
+          set -euo pipefail
+
+          offenders=""
+          for pkg in $(go list ./...); do
+            case "$pkg" in
+              */internal/semantic*) continue ;;
+              */internal/serve*)    continue ;;  # serves localhost; inbound, not egress
+            esac
+
+            imports=$(go list -f '{{join .Imports "\n"}}' "$pkg")
+            if echo "$imports" | grep -qx 'net/http'; then
+              offenders="$offenders$pkg\n"
+            fi
+          done
+
+          if [ -n "$offenders" ]; then
+            echo "Packages outside internal/semantic import net/http:"
+            printf "%b" "$offenders"
+            echo
+            echo "Only internal/semantic may make outbound calls — see CLAUDE.md, Hard rules."
+            exit 1
+          fi
+
+          echo "Network boundary holds."
