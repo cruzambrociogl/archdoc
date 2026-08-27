@@ -13,12 +13,15 @@
 >
 > | Mirror | Purpose | Update by |
 > |---|---|---|
-> | [Google Sheet](https://docs.google.com/spreadsheets/d/1mJX3I9gDrN-C0WUzNdTx5MtSuKuyF5M4HD5D7tc4PHE/edit) | The submitted schedule deliverable | Regenerate the CSV and create a new Sheet — the Drive connector can set a file's title and location but **cannot rewrite its contents**, so every update produces a new file and the old one should be trashed |
+> | [Google Sheet](https://docs.google.com/spreadsheets/d/1Oww6pPHneW_KQmUZ-D7qXBrFHuELsR00YziVmCSmmYg/edit) | The submitted schedule deliverable | Regenerate the CSV and create a new Sheet — the Drive connector can set a file's title and location but **cannot rewrite its contents**, so every update produces a new file and the old one should be trashed |
 > | [Artifact page](https://claude.ai/code/artifact/1bff2613-a2a6-4e3e-8d30-1ae30e4ff4a8) | Presentation view — Gantt, sprint cards | Republish the same file path to keep the URL |
 >
-> Two superseded Sheets remain in Drive and should be trashed:
-> `1gy3L8PcC9UzzVEBSlkenmJ8MzgBrLhmJgvcw2Ma9H8A` (rev 1) and
-> `1Oww6pPHneW_KQmUZ-D7qXBrFHuELsR00YziVmCSmmYg` (rev 2).
+> **Update the Sheet by pasting, not by replacing it.** The Drive connector cannot rewrite a
+> Sheet's contents, so a regenerated CSV arrives as a *new* file. Copying the table into the
+> existing Sheet keeps this URL stable — which matters, because the link is what gets shared.
+> Two now-redundant Sheets remain in Drive and should be trashed:
+> `1gy3L8PcC9UzzVEBSlkenmJ8MzgBrLhmJgvcw2Ma9H8A` and
+> `1mJX3I9gDrN-C0WUzNdTx5MtSuKuyF5M4HD5D7tc4PHE`.
 
 ---
 
