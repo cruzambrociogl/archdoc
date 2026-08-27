@@ -31,11 +31,13 @@ contracts — not inferable from source. A pure code analyser would have produce
 diagram than the handwritten prompt did.
 
 **Test subjects** are self-hosted Immich (simple), self-hosted Supabase (complex, close to
-the system that motivated this), and this project itself. All public or ours, and none need
-to be *run* — only cloned. A read-only survey of the first two — what config actually
-exists, in what dialects, and what breaks a naive parser — is recorded in
-**`survey-test-subjects.md`**, cited below as *the survey*. Several decisions in §13 rest on
-it.
+the system that motivated this), and self-hosted **Mastodon** — added because neither of the
+other two declares a `networks:` block or references a genuine external managed service, so
+boundaries and referenced evidence would otherwise go untested (O-7, `docs/decisions.md`).
+All public, and none need to be *run* — only cloned. A read-only survey of the first two —
+what config actually exists, in what dialects, and what breaks a naive parser — is recorded
+in **`survey-test-subjects.md`**, cited below as *the survey*. Several decisions in §13 rest
+on it.
 
 **Read §13 early.** It separates what is settled from what is still open, so settled
 decisions don't get relitigated and open ones aren't assumed closed.

@@ -83,7 +83,7 @@ items are ticked.
 
 | | Question | Blocks | Status |
 |---|---|---|---|
-| O-7 | Test subject #3 | Nothing — Immich and Supabase satisfy every criterion | open — decide or defer by 28 Aug |
+| O-7 | Test subject #3 | — | ✓ **closed 26 Aug — Mastodon**, pinned `47ac677`. Chosen to cover `MDL-09`/`MDL-11`/`MDL-16`/`EXT-09`, which the other two leave untested |
 | O-8 | Does `file:line` provenance survive the Compose merge? | — | ✓ **closed 26 Aug — no.** Extraction is two passes; a `Fact` carries one position. See `docs/decisions.md` |
 | O-6 | R1.b sequencing — analysis before clustering? | R1.b only | deferred by design, decide with a working spine |
 

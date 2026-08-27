@@ -67,6 +67,27 @@ and `Version` propagate into every signature and into `model.json`, which is a *
 deliverable*. O-8's answer gates this — it decides whether a `Fact` carries one source
 position or two.
 
+**2026-08-26 — O-7 closed: test subject #3 is Mastodon, not archdoc itself**
+Chosen against a criterion rather than by preference. Measured what the existing two subjects
+leave untested: **neither Immich nor Supabase declares a single top-level `networks:`**, and
+neither references a genuine external managed dependency — Supabase's `SMTP_HOST=supabase-mail`
+points at an internal service. So `MDL-09` (network boundaries), `MDL-11` (declared trust
+boundaries), `MDL-15`/`MDL-16` (evidence kinds, external-system nodes) and `EXT-09` had
+effectively **zero coverage**.
+
+Mastodon fills exactly that gap. Its compose declares two networks with
+`internal_network: {internal: true}`; `db` and `redis` sit only on the internal one while
+`web`, `streaming` and `sidekiq` span both — a real trust boundary, declared. Its
+`.env.production.sample` carries `S3_BUCKET=files.example.com`, `SMTP_SERVER` and `ES_HOST`,
+which is **§3's worked example for referenced evidence, occurring naturally**. Five services
+places it between Immich's four and Supabase's eleven.
+
+Pinned at `47ac677a9b9392833d7cecab8fccbce34c738b83`. Candidates rejected on the same measure:
+Outline, Paperless-ngx and Sentry self-hosted all declare zero networks.
+
+*Replaces* the original intent of documenting archdoc itself, which §3's own vantage-point
+argument predicted would be weak — a CLI tool with no declared services yields roughly one box.
+
 **2026-08-26 — O-8 closed: provenance does NOT survive the Compose merge. Extraction is two passes.**
 Tested against the two hardest files the survey found, at the pinned revisions:
 `supabase/docker/docker-compose.kong.yml` (`!override` across a merge) and
