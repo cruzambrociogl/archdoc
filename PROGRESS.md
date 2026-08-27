@@ -72,7 +72,7 @@ items are ticked.
 
 | | Ends | Gate | Status |
 |---|---|---|---|
-| Week 0 | 28 Aug | O-8 answered; `go test ./...` green in CI | ~ repo, docs and context system in place; Go not yet installed |
+| Week 0 | 28 Aug | O-8 answered; `go test ./...` green in CI | ~ Go 1.27, module, CLI skeleton and CI in place; tests green locally. **O-8 outstanding** |
 | Sprint 1 | 11 Sep | AC-7, AC-4, AC-5 | · |
 | Sprint 2 | 25 Sep | AC-2, AC-6, AC-8 — **the thesis, demonstrated** | · |
 | Sprint 3 | 9 Oct | All nine evaluated and written up | · |
