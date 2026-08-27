@@ -49,7 +49,7 @@ constantly, not just at a review.
 | `SUR` | Surfaces — CLI and web app | 15 | 0 | AC-8 |
 | `OUT` | Output and deliverables | 10 | 0 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **0** | |
+| | **Total** | **116** | **~6** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 

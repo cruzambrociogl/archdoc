@@ -67,6 +67,26 @@ and `Version` propagate into every signature and into `model.json`, which is a *
 deliverable*. O-8's answer gates this — it decides whether a `Fact` carries one source
 position or two.
 
+**2026-08-27 — Discovery: sniff for recall, reject fragments for precision**
+The walking skeleton forced the discovery rule to be settled. A filename glob is not enough —
+Immich keeps two real Compose files at `.devcontainer/server/container-compose-overrides.yml`,
+matching no conventional pattern, and the glob written for the survey missed both. But
+content-sniffing alone admits `docker/hwaccel.ml.yml`, whose services are named `cpu`, `armnn`
+and `rknn` and are hardware snippets rather than anything deployable.
+
+**Rule: sniff every YAML for a top-level `services:` key, then reject any file where no service
+declares an image or a build.** Recall from the sniff, precision from the fragment test. On
+Immich that yields 10 candidates, 7 deployable, 3 fragments.
+
+Selection between deployables prefers the declared answer over convention: `COMPOSE_FILE` in a
+neighbouring `.env` or `.env.example` is a native Compose variable holding a colon-separated
+list, base file first — Supabase's own `run.sh` maintains it, so reading it is standards-based
+rather than a guess. Only when absent does convention decide: unsuffixed name beats suffixed,
+shallower path beats deeper, and `.devcontainer`/`e2e`/`test` paths are penalised.
+
+`--explain` prints every candidate and the reason for its verdict. A tool whose premise is
+traceability cannot answer "which file did you use?" with "trust me".
+
 **2026-08-26 — O-7 closed: test subject #3 is Mastodon, not archdoc itself**
 Chosen against a criterion rather than by preference. Measured what the existing two subjects
 leave untested: **neither Immich nor Supabase declares a single top-level `networks:`**, and
