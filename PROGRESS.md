@@ -72,7 +72,7 @@ items are ticked.
 
 | | Ends | Gate | Status |
 |---|---|---|---|
-| Week 0 | 28 Aug | O-8 answered; `go test ./...` green in CI | ~ **half met.** O-8 and O-7 closed on evidence; tests green **locally**. The CI workflow has never executed — it sits in unpushed commits, so "green in CI" is unverified |
+| Week 0 | 28 Aug | O-8 answered; `go test ./...` green in CI | ✓ **met, verified.** O-8 and O-7 closed on evidence. CI green on `a96fc1d` — both jobs, including the import check that enforces the network boundary |
 | Sprint 1 | 11 Sep | AC-7, AC-4, AC-5 | · |
 | Sprint 2 | 25 Sep | AC-2, AC-6, AC-8 — **the thesis, demonstrated** | · |
 | Sprint 3 | 9 Oct | All nine evaluated and written up | · |
