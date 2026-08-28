@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
 ---
 
@@ -22,7 +22,7 @@ constantly, not just at a review.
 | AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | · |
 | AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | · |
 | AC-6 | Drift detection | 100% of synthetic drift set | **yes** | · |
-| AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ~ **holds on the walking skeleton** — 5 identical runs on Supabase, covered by a test |
+| AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ~ **holds on the walking skeleton** — 5 identical runs on all three subjects, covered by a test |
 | AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | · |
 | AC-9 | Performance | NFR-1 and NFR-2 met on Supabase | no | · |
 

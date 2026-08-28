@@ -43,8 +43,6 @@ raised, not quietly promoted over it.
 
 - [ ] `web/dist/index.html` is a tracked placeholder; confirm the real build overwrites it
       cleanly rather than colliding with the `.gitignore` exception
-- [ ] Clone Mastodon into `subjects/` at the pinned revision and run `scan` against it — the
-      third subject is chosen but has never actually been read by the tool
 - [ ] Fixtures: the O-8 spike used the real subject repos on disk. Decide what goes in
       `testdata/` — trimmed copies of the hard compose files, kept small and pinned
 
@@ -61,6 +59,9 @@ Staging, not an archive. An item lands here when it is resolved, and is deleted 
       recorded so a future edit does not silently leave them stale — 2026-08-25
 - [x] Rewrite `README.md` — opens with §0's problem statement, leads with the --explain
       output rather than a description of it — 2026-08-27
+- [x] Mastodon cloned at `47ac677` and scanned — 5 services, deterministic, no code changes
+      needed. Discovery correctly preferred `docker-compose.yml` over `.devcontainer/compose.yaml`,
+      a name a `docker-compose*` glob would miss — 2026-08-28
 - [→ docs/decisions.md] `compose-go` profile resolution — answered by the O-8 spike:
       `!reset []` empties `profiles` correctly, and `!override` replaces lists rather than
       appending — 2026-08-26
