@@ -33,9 +33,6 @@
 > **One direction at a time.** There is no merge — whichever side is written last wins. Decide
 > where a change originates before making it.
 
-> **Update the Sheet by pasting, not by replacing it.** The Drive connector cannot rewrite a
-> Sheet's contents, so a regenerated CSV arrives as a *new* file. Copying the table into the
-> existing Sheet keeps this URL stable — which matters, because the link is what gets shared.
 > Two now-redundant Sheets remain in Drive and should be trashed:
 > `1gy3L8PcC9UzzVEBSlkenmJ8MzgBrLhmJgvcw2Ma9H8A` and
 > `1mJX3I9gDrN-C0WUzNdTx5MtSuKuyF5M4HD5D7tc4PHE`.
