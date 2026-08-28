@@ -1,0 +1,50 @@
+Phase,Work item,Type,Tier,Start,End,Days,Deliverable,Gate / acceptance,Status
+0. Inception,"Idea definition — problem, principles, release structure",Phase,Done,2026-07-31,2026-08-07,8,product-definition.md §0-§2,Two governing principles stated and defended,Complete
+0. Inception,"Specification — 109 capabilities, acceptance criteria",Phase,Done,2026-08-07,2026-08-14,8,product-definition.md §3-§12,Every capability classified by dependency,Complete
+0. Inception,Review 1 — not held,Review,—,2026-08-14,2026-08-14,1,—,Midterm preparation,Not held
+0. Inception,Midterm examinations — no project work,Break,—,2026-08-17,2026-08-21,5,—,—,Complete
+1. R&D,"Empirical survey of test subjects (Immich, Supabase)",Phase,Done,2026-08-24,2026-08-24,1,survey-test-subjects.md,O-4 and O-5 answered on evidence,Complete
+1. R&D,Technology selection and stack definition,Phase,Done,2026-08-24,2026-08-24,1,stack-decision.md,"O-2, O-3 closed; alternatives documented",Complete
+1. R&D,Delivery planning,Phase,Done,2026-08-24,2026-08-24,1,delivery-schedule.md,Schedule agreed with supervisor,Complete
+2. Week 0,Repository scaffolding — packages by architectural seam,Task,Committed,2026-08-25,2026-08-25,1,Repository structure,Six packages each justified by a seam,Complete
+2. Week 0,Context system for AI-assisted development,Task,Committed,2026-08-25,2026-08-25,1,"CLAUDE.md, PROGRESS.md, NOTES.md, checkpoint, decisions","420 lines pointing at 3,900 — token discipline",Complete
+2. Week 0,"Install Go 1.27, initialise module",Task,Committed,2026-08-26,2026-08-26,1,Working toolchain,go build runs,Complete
+2. Week 0,"CLI entry point, tests, CI pipeline",Task,Committed,2026-08-26,2026-08-26,1,Repository initialised,gofmt / vet / build / test -race green,Complete
+2. Week 0,CI enforcement of the network boundary,Task,Committed,2026-08-26,2026-08-26,1,Import-check CI job,AC-8 made testable rather than audited,Complete
+2. Week 0,O-8 spike — provenance through the Compose merge,Task,Committed,2026-08-26,2026-08-26,1,Finding recorded in decisions.md,Answered NO — extraction is two passes,Complete
+2. Week 0,O-7 — test subject #3,Task,Committed,2026-08-26,2026-08-26,1,Decision recorded,"Closed — Mastodon, chosen on measured coverage gaps",Complete
+2. Week 0,Walking skeleton — archdoc scan with provenance,Task,Stretch,2026-08-27,2026-08-27,1,Working command,"Immich 4/10, Supabase 11/15; 5 runs byte-identical",Complete
+2. Week 0,Review preparation,Task,Committed,2026-08-27,2026-08-27,1,Demo and notes,—,In progress
+2. Week 0,REVIEW 1 — planning R&D and first working command,Review,—,2026-08-28,2026-08-28,1,4 documents + repository + live demo,Milestone,Planned
+3. Sprint 1,Discovery (DSC) — project shape and overlay merging,Task,Committed,2026-08-31,2026-09-01,2,Discovery stage,2 of 4 done in Week 0; remainder here,Planned
+3. Sprint 1,Extraction (EXT) — ports/volumes/networks/depends_on,Task,Committed,2026-09-01,2026-09-03,3,Extraction stage,3 of 15 done in Week 0; every fact carries file and line,Planned
+3. Sprint 1,Identity registry (MDL),Task,Committed,2026-09-03,2026-09-04,2,Canonical identity + aliases,Supabase realtime resolves correctly,Planned
+3. Sprint 1,Edges (MDL) — depends_on and env-derived references,Task,Committed,2026-09-04,2026-09-07,4,Edge extraction,Supabase gateway edges found,Planned
+3. Sprint 1,Self-check against sprint gate,Check,—,2026-09-04,2026-09-04,1,—,"10 minutes, not a meeting",Planned
+3. Sprint 1,Hand-drawn Immich reference architecture (manual),Task,Committed,2026-08-31,2026-09-11,12,AC-3 answer key,Verification-bound — does not compress,Planned
+3. Sprint 1,"Model construction, boundaries, evidence kinds",Task,Committed,2026-09-07,2026-09-08,2,Model stage,External systems represented,Planned
+3. Sprint 1,Validator (VAL),Task,Committed,2026-09-08,2026-09-09,2,Validation stage,AC-4 — 100% of fault-injection suite rejected,Planned
+3. Sprint 1,"SQLite storage, versioning, model.json",Task,Committed,2026-09-09,2026-09-09,1,Persistence,Model cannot persist in invalid state,Planned
+3. Sprint 1,Rules (RUL) — rules.yaml applied,Task,Committed,2026-09-10,2026-09-10,1,Refinement layer,AC-5 — 10 rules survive regeneration,Planned
+3. Sprint 1,Architectural diff (MEM) between two commits,Task,Committed,2026-09-10,2026-09-11,2,archdoc diff,Container-level change report,Planned
+3. Sprint 1,Review preparation,Task,Committed,2026-09-10,2026-09-10,1,Demo and notes,—,Planned
+3. Sprint 1,REVIEW 2 — it reads real repositories,Review,—,2026-09-11,2026-09-11,1,"Live demo, three subjects","AC-4, AC-5, AC-7 passed",Planned
+4. Sprint 2,Layout and persisted positions (VIE-03/04),Task,Committed,2026-09-14,2026-09-15,2,Deterministic layout,Positions stable across regeneration,Planned
+4. Sprint 2,"C4 SVG renderer — ours, from stored coordinates",Task,Committed,2026-09-15,2026-09-17,3,SVG diagrams,"Boundaries, external systems, protocol labels",Planned
+4. Sprint 2,Mermaid export,Task,Committed,2026-09-17,2026-09-17,1,Portable diagrams,Renders natively on GitHub,Planned
+4. Sprint 2,arc42 output and file-ownership boundary (OUT),Task,Committed,2026-09-17,2026-09-18,2,Generated documentation,Human files never written or read,Planned
+4. Sprint 2,Self-check against sprint gate,Check,—,2026-09-18,2026-09-18,1,—,"10 minutes, not a meeting",Planned
+4. Sprint 2,Semantic layer (SEM) via Claude API,Task,Committed,2026-09-21,2026-09-22,2,"Names, descriptions, groupings",Strict tool schemas validate,Planned
+4. Sprint 2,Egress reporting and structure-only mode,Task,Committed,2026-09-22,2026-09-22,1,Egress log,AC-8 — zero file contents transmitted,Planned
+4. Sprint 2,"Web app — 7 views (canvas, inspector, timeline, rules, docs, completeness, reporting)",Task,Committed,2026-09-21,2026-09-25,5,archdoc serve,Click box to source file,Planned
+4. Sprint 2,Review preparation,Task,Committed,2026-09-24,2026-09-24,1,Demo and notes,—,Planned
+4. Sprint 2,REVIEW 3 — it produces documentation without an LLM,Review,—,2026-09-25,2026-09-25,1,"Generated docs, all subjects","AC-2, AC-6, AC-8 passed — THE THESIS",Planned
+5. Sprint 3,Gateway parsers — Envoy / Kong,Task,Committed,2026-09-28,2026-09-29,2,Proxy extraction,7 gateway edges found in Supabase,Planned
+5. Sprint 3,Carry-over and hardening,Task,Committed,2026-09-29,2026-09-30,2,Stabilised build,Sprint 2 remainder absorbed,Planned
+5. Sprint 3,R1.c — three write surfaces (one safety design),Task,Stretch,2026-09-30,2026-10-01,2,Write surfaces,"Hashing, conflict refusal, never-during-generation",Planned
+5. Sprint 3,R1.b — static analysis of application source,Task,Stretch,2026-10-01,2026-10-02,2,Intra-service graph,Implementation-bound,Planned
+5. Sprint 3,R1.b — semantic clustering prototype on fixtures,Task,Not committed,2026-10-02,2026-10-02,1,Prototype only,Research-bound — no delivery date,Planned
+5. Sprint 3,CODE FREEZE,Milestone,—,2026-10-02,2026-10-02,1,R1.a feature-complete,No new capability after this date,Planned
+5. Sprint 3,"Acceptance measurement — AC-1, AC-3, AC-9",Task,Committed,2026-10-05,2026-10-07,3,Measured results,All nine criteria evaluated,Planned
+5. Sprint 3,"R1.a report — results, limitations, findings",Task,Committed,2026-10-07,2026-10-08,2,Written report,Failures reported as findings,Planned
+5. Sprint 3,DELIVERY — R1.a presented,Review,—,2026-10-09,2026-10-09,1,R1.a + report,Milestone,Planned

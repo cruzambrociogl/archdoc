@@ -13,9 +13,26 @@
 >
 > | Mirror | Purpose | Update by |
 > |---|---|---|
-> | [Google Sheet](https://docs.google.com/spreadsheets/d/1Oww6pPHneW_KQmUZ-D7qXBrFHuELsR00YziVmCSmmYg/edit) | The submitted schedule deliverable | Regenerate the CSV and create a new Sheet — the Drive connector can set a file's title and location but **cannot rewrite its contents**, so every update produces a new file and the old one should be trashed |
+> | [`schedule.csv`](schedule.csv) | **The calendar's source of truth.** Version-controlled, ISO dates | Edit directly, commit |
+> | [Google Sheet](https://docs.google.com/spreadsheets/d/1Oww6pPHneW_KQmUZ-D7qXBrFHuELsR00YziVmCSmmYg/edit) | The submitted deliverable — a mirror of the CSV | Paste the CSV in. Never replace the file: the connector cannot rewrite contents, so regenerating mints a new URL |
 > | [Artifact page](https://claude.ai/code/artifact/1bff2613-a2a6-4e3e-8d30-1ae30e4ff4a8) | Presentation view — Gantt, sprint cards | Republish the same file path to keep the URL |
 >
+> ### Keeping the calendar in sync
+>
+> `docs/schedule.csv` is authoritative for **dates and rows**; this document is authoritative
+> for **scope and reasoning**. If they disagree, one of them is wrong — say so rather than
+> picking silently.
+>
+> **Local → Sheet.** Open the CSV, copy, paste over the Sheet's range. Sheets re-parses the
+> ISO dates into real dates on paste.
+>
+> **Sheet → local.** After editing the Sheet by hand, ask Claude to read it and update the CSV.
+> Sheets renders dates in locale form (`8/7/2026`); they are converted back to ISO on the way
+> in, so the committed file stays sortable and diffable.
+>
+> **One direction at a time.** There is no merge — whichever side is written last wins. Decide
+> where a change originates before making it.
+
 > **Update the Sheet by pasting, not by replacing it.** The Drive connector cannot rewrite a
 > Sheet's contents, so a regenerated CSV arrives as a *new* file. Copying the table into the
 > existing Sheet keeps this URL stable — which matters, because the link is what gets shared.
