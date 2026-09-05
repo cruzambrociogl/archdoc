@@ -1,0 +1,1083 @@
+# tactiq.io free youtube transcript
+# The C4 Model - Beyond The Basics • Simon Brown • YOW! 2025
+# https://www.youtube.com/watch/FqTL-_tLf6I
+
+00:00:02.800 Good morning. Thank you very much for
+00:00:03.600 joining me today. This is C4 model
+00:00:05.200 beyond the basics.
+00:00:07.000 I have a book about the C4 model, uh,
+00:00:08.800 which is on Leanpub. As a token of my
+00:00:10.880 appreciation for coming along, feel free
+00:00:12.880 to use this code, uh, to grab a copy for
+00:00:15.040 free.
+00:00:16.320 I'll just wait until the cameras come
+00:00:17.320 out. I will show the slide, uh, again at
+00:00:19.360 the end.
+00:00:22.520 There is a caveat, though.
+00:00:24.920 You need to be quick. So, this book, uh,
+00:00:27.400 is disappearing off Leanpub at the end
+00:00:29.920 of the year, because I'm pleased to say
+00:00:32.200 I'm publishing it with O'Reilly.
+00:00:34.000 So, I signed a contract earlier in the
+00:00:35.000 summer. Uh, the book's about half done,
+00:00:36.720 and this will be coming out in about
+00:00:38.560 July 26th.
+00:00:40.200 And I thought it was going to be a lift
+00:00:41.320 and shift from Leanpub, but it turns out
+00:00:42.920 I'm actually rewriting a whole bunch of
+00:00:44.240 things. Some of those things are in this
+00:00:46.520 talk, essentially.
+00:00:48.800 So, who who's using C4 here? Quick show
+00:00:51.160 of hands.
+00:00:53.040 That's like 20%. Awesome. So, there's a
+00:00:55.520 whole bunch of you I've not got to yet.
+00:00:56.800 Perfect. So, I'm going to do a quick
+00:00:58.520 intro to C4, and then we'll get to the
+00:01:00.320 beyond the basics things.
+00:01:02.760 So, architecture diagrams are
+00:01:04.160 historically very, very bad. I'm sure
+00:01:06.040 you've seen examples of these in your
+00:01:07.640 own organizations.
+00:01:09.200 And the C4 model is really a way to
+00:01:10.760 bring some structure to those
+00:01:12.160 traditional boxes and arrows diagrams in
+00:01:14.720 a post-UML era.
+00:01:17.600 There are a set of four abstractions
+00:01:19.280 that sit behind C4. Software systems,
+00:01:22.360 containers, components, and code.
+00:01:25.920 And C4 is actually named after the
+00:01:28.160 static structure diagrams, the four
+00:01:29.800 levels of static structure diagrams,
+00:01:31.640 which are context, so system context,
+00:01:34.280 containers, components, and code. I'm
+00:01:36.000 going to show you some examples of these
+00:01:37.200 in a second. But, essentially, what
+00:01:38.640 we're doing is we're starting at the big
+00:01:39.920 picture, and we're doing the Google Maps
+00:01:42.040 pinch and zoom thing to drop down to
+00:01:43.680 each layer in turn. So, we're narrowing
+00:01:45.800 our focus, reducing the scope.
+00:01:48.640 The concept here is diagrams as maps.
+00:01:50.440 So, as you can tell from my accent, I'm
+00:01:51.720 not from around here. I live in Jersey
+00:01:53.320 in the Channel Islands. If you open up
+00:01:54.960 Google Maps, and you do a search for
+00:01:56.560 Jersey, you're likely going to get this
+00:01:58.800 picture.
+00:02:00.200 Now, this is great if you want to know
+00:02:01.480 where the airport is and where the main
+00:02:02.800 town is and how to get from one to the
+00:02:04.280 other. If you've never heard of Jersey
+00:02:05.640 before, it's too much information.
+00:02:07.720 You've zoomed in too quickly.
+00:02:09.840 How do you fix this with Google Maps?
+00:02:11.120 You pinch to zoom out. Zoom out a little
+00:02:13.120 bit and this is the coast of France.
+00:02:15.280 This is Guernsey, our neighboring
+00:02:16.720 island. We don't talk about them.
+00:02:19.720 Funny story. So, Jersey and Guernsey are
+00:02:21.840 about 160, 170,000 people in total.
+00:02:25.560 My wife and I were in the hotel in the
+00:02:26.959 lift this morning chatting to some
+00:02:28.680 locals and they said, &quot;Where are you
+00:02:29.920 from?&quot; We said, &quot;Jersey.&quot; The lady in
+00:02:32.080 the lift turns around and says, &quot;Oh, I'm
+00:02:33.280 from Guernsey.&quot;
+00:02:34.480 Amazing, huh? Come all this way and meet
+00:02:36.200 someone from from Guernsey.
+00:02:37.800 So, yeah, if you zoom out a little bit,
+00:02:39.520 Jersey and Guernsey get smaller but you
+00:02:41.000 get some context. Zoom out even further
+00:02:43.160 and Jersey disappears entirely cuz it's
+00:02:45.120 only 9 mi by 5, 15 K by 10.
+00:02:47.920 On the flip side, you can keep zooming
+00:02:49.800 and zooming and zooming and eventually
+00:02:51.720 drop into Google Street View, which is a
+00:02:53.480 one-to-one mapping with the real world
+00:02:55.160 when the photos were taken. And I
+00:02:56.840 essentially want to do the same thing
+00:02:58.000 with software architecture diagrams. I
+00:02:59.360 want different levels of zoom that allow
+00:03:00.760 me to tell different stories to
+00:03:02.200 different audiences. The high-level
+00:03:04.000 diagrams are suitable for literally
+00:03:05.640 everybody. As you progress into the
+00:03:07.600 layers, you get more and more technical.
+00:03:10.607 >> [sighs]
+00:03:11.680 >> The C4 model is notation independent.
+00:03:15.000 Some of you may have seen my previous
+00:03:16.440 diagrams with blue and gray boxes. You
+00:03:18.480 don't have to use blue and gray boxes.
+00:03:20.120 You can use any shapes, any colors. Uh
+00:03:22.200 that is worth pointing out and I have a
+00:03:24.040 number of new example diagrams that I'm
+00:03:25.640 about to show you very briefly.
+00:03:27.840 So, this is an example system context
+00:03:29.519 diagram. This is from the C4 model
+00:03:31.080 website. This is showing you an internet
+00:03:33.840 banking system. That's the thing we are
+00:03:35.519 documenting, the thing we are
+00:03:36.640 describing.
+00:03:37.800 It is used by a single type of user. In
+00:03:39.840 this case, it's a personal banking
+00:03:41.040 customer. They are using the internet
+00:03:43.160 banking system to do things online, view
+00:03:45.280 their account balances, and make
+00:03:46.440 payments. The internet banking system
+00:03:48.480 itself uses a core banking system to get
+00:03:51.519 data and present it to our customers via
+00:03:53.840 the web and we send emails via Amazon
+00:03:56.560 Web Services simple email service.
+00:03:58.960 So, that's an example of a system
+00:04:00.000 context diagram. It's showing you the
+00:04:01.360 system we are describing and the world
+00:04:03.800 around it in terms of users, roles,
+00:04:06.000 actors, personas, and other
+00:04:07.680 system-to-system integration points.
+00:04:10.480 Now, we can take that internet banking
+00:04:12.040 system, the blue box, pinch to zoom,
+00:04:14.240 drop down to level two, and we can draw
+00:04:15.880 a container diagram.
+00:04:17.560 A C4 container diagram essentially shows
+00:04:19.640 applications and data stores. So, these
+00:04:21.760 are things as developers that we build
+00:04:23.720 and essentially run our system.
+00:04:26.560 In this case, we have a single-page app,
+00:04:29.280 uh JavaScript and Angular UI, that is
+00:04:32.440 delivered from a bunch of static
+00:04:33.840 content. In this case, it's a folder of
+00:04:35.320 HTML, CSS, and JavaScript. The UI uses a
+00:04:39.160 Java Spring Boot backend, so there's a
+00:04:41.320 JSON over HTTPS API endpoint or one or
+00:04:44.480 more endpoints.
+00:04:45.720 The backend in turn uses a MySQL
+00:04:47.360 database schema for storing lots of data
+00:04:49.800 and an Amazon S3 bucket for storing uh
+00:04:52.560 pre-built PDF statements.
+00:04:55.600 Some tech choices, we've got some
+00:04:57.080 protocols on the arrows. So, this is a
+00:04:58.560 nice at-a-glance view of the how the
+00:05:00.919 internals of the system work, but still
+00:05:02.640 at a high level.
+00:05:04.360 We take the backend in this case, we
+00:05:06.320 pinch to zoom. Now, we can open up uh
+00:05:08.600 the backend's application and show the
+00:05:10.560 components that sit inside it. And it's
+00:05:12.360 really the same sort of thing. Now,
+00:05:13.600 we're showing the high-level concepts
+00:05:15.160 that exist inside that application.
+00:05:16.960 We'll talk more about what these are in
+00:05:18.160 a second.
+00:05:19.280 And for completeness, we can take a
+00:05:20.600 single component, open it up, zoom in,
+00:05:23.120 and show code. Once you get down to the
+00:05:25.400 code level, if you're using another
+00:05:27.080 language, you can just use UML.
+00:05:31.919 Although C4 defines four levels of
+00:05:34.240 static structure diagrams, you don't
+00:05:35.520 need to use all of them.
+00:05:37.040 Most organizations only use the top two.
+00:05:39.640 Quick to create, don't change rapidly.
+00:05:42.040 That doesn't mean there's not value in
+00:05:43.280 the bottom two levels, uh but you need
+00:05:45.480 to look at things like automatic
+00:05:46.520 generation if you want to use them.
+00:05:50.560 Naming's hard. We probably heard this
+00:05:53.120 already today.
+00:05:54.480 C4 actually defines seven diagram types.
+00:05:57.320 Sorry.
+00:05:58.760 There is a dynamic diagram that allows
+00:06:00.720 you to show how an individual feature
+00:06:03.120 works at runtime. There is a sequence
+00:06:04.920 diagram version.
+00:06:06.920 There's a UML collaboration style
+00:06:08.680 version if you like that in instead. So
+00:06:10.520 this is you showing you how a collection
+00:06:12.440 of C4 things interact at runtime
+00:06:15.000 following the numbered ordered arrows.
+00:06:17.000 Let me do that instead. There we go.
+00:06:19.320 So that tells you a story.
+00:06:21.320 There is a deployment diagram that shows
+00:06:23.120 the mapping between C4 containers onto
+00:06:25.200 things in the infrastructure.
+00:06:26.919 And you can do your fancy cloud
+00:06:28.320 architecture diagrams if you want to
+00:06:29.480 with all the nice icons.
+00:06:31.240 And there's a system landscape diagram
+00:06:32.640 as you'll see later.
+00:06:34.160 So, beyond the basics.
+00:06:37.400 Containers.
+00:06:40.400 I see a lot of confusion about the C4
+00:06:42.200 container concept.
+00:06:43.919 And also we have that clash of naming
+00:06:45.440 with Docker. I keep making this joke
+00:06:47.400 that I got the name first.
+00:06:49.080 Which is true by the way.
+00:06:50.800 But I kind of wanted to prove it. So
+00:06:52.720 there's a post going on to the C4 model
+00:06:55.040 website soon. And what I've done is I've
+00:06:57.520 gone through my old slides from
+00:06:59.040 conference talks and I've tried to find
+00:07:00.480 when the container name popped up. And
+00:07:02.760 it turns out it was March 2010.
+00:07:05.120 So in March 2010 I have a presentation
+00:07:07.040 and the word container was used in one
+00:07:09.480 of the slides. Docker came out what, 3
+00:07:11.960 years later? So I got the name first.
+00:07:14.240 You heard it here first.
+00:07:15.840 Uh so C4 containers. What is What is a
+00:07:17.640 C4 container? It's an application or a
+00:07:19.080 data store.
+00:07:20.280 So it's a single page app in a browser,
+00:07:22.280 a mobile app, a server side app, a batch
+00:07:25.120 process. That's what I mean by
+00:07:26.400 application. Data store is a database
+00:07:28.680 schema, Amazon S3 bucket, Azure blob
+00:07:31.520 storage container, bunch of folders,
+00:07:34.160 etc. etc.
+00:07:35.885 >> [sighs]
+00:07:37.080 >> So in the simplest case, a UI talking to
+00:07:39.680 a database is a C4 container diagram.
+00:07:43.840 Now,
+00:07:45.480 technology choices are important.
+00:07:48.480 I ran my my diagramming workshop a few
+00:07:51.000 weeks ago, and somebody crafted this
+00:07:53.160 diagram.
+00:07:55.640 And I said, &quot;Right, are you going to put
+00:07:57.480 some tech choices on this?&quot; And they
+00:07:58.880 said, &quot;No, because we're solution
+00:08:00.240 architects, and we don't want to tell
+00:08:01.680 developers what to do.&quot;
+00:08:04.160 Right, but I I kind of pressed them to
+00:08:07.000 add some tech choices to the diagrams,
+00:08:08.920 because I wanted to check whether this
+00:08:11.200 going to work. And you might be
+00:08:12.720 thinking, &quot;Well, yeah, of course it's
+00:08:14.040 going to work. It's a UI talking to a
+00:08:15.520 database. It's a very, very common,
+00:08:16.960 simple pattern.&quot;
+00:08:18.440 So, I pressed them for tech choices, and
+00:08:20.040 they said, &quot;Okay, we're going to have an
+00:08:21.960 Angular front end talking to a MySQL
+00:08:24.880 back end.&quot;
+00:08:27.000 Anybody see the problem with this?
+00:08:28.760 It's not going to work for a whole bunch
+00:08:30.280 of interesting security reasons. So,
+00:08:32.320 this is why it's really important to
+00:08:34.080 make sure your C4 container diagrams,
+00:08:36.400 particularly, includes technology
+00:08:38.440 choices.
+00:08:39.599 So, this is not going to work. This one
+00:08:41.400 here with a server-side application will
+00:08:43.240 work.
+00:08:44.240 So,
+00:08:45.400 by adding the technology choices, we
+00:08:47.320 could already start to evaluate and
+00:08:49.240 review and critique the potential
+00:08:51.520 solution here.
+00:08:53.831 >> [gasps]
+00:08:54.720 >> If you're still struggling with the
+00:08:55.680 concept with the concept of containers,
+00:08:57.880 you can think of it as an operating
+00:09:00.200 system process boundary.
+00:09:03.839 Now, there's a a number of specific
+00:09:05.600 reasons I didn't use the term process
+00:09:08.200 when I came up with the C4 set of
+00:09:09.680 abstractions, and and I'll explain that
+00:09:12.280 in a second.
+00:09:14.280 So, what's the implication here? If you
+00:09:15.600 consider a container to be a process,
+00:09:17.800 then container-to-container
+00:09:19.600 interactions are out of process,
+00:09:22.720 typically using a a network connection
+00:09:25.200 between them. So, JSON over HTTPS or
+00:09:27.160 maybe GRPC.
+00:09:29.760 The further implication here is when you
+00:09:31.400 zoom into the boundary of a container,
+00:09:33.120 an application, component-to-component
+00:09:36.000 interaction is typically in process.
+00:09:40.280 And this is true of many languages. If
+00:09:41.960 you're building a C# app and you have a
+00:09:43.920 number of C# components, component A
+00:09:46.600 will talk to component B in process,
+00:09:49.280 typically via
+00:09:51.280 a
+00:09:52.080 a method call or function call. That's
+00:09:53.640 how most component to component
+00:09:54.880 interactions work. That does not mean
+00:09:57.280 that component A can't send a message
+00:09:59.200 out of process, and component B can
+00:10:01.360 subscribe to that out process, but
+00:10:02.840 typically, in most cases, component to
+00:10:05.600 component interaction is in process.
+00:10:09.156 >> [gasps]
+00:10:09.840 >> So, does the process analogy work? Yeah,
+00:10:12.440 if you have two applications two Java
+00:10:14.720 applications,
+00:10:16.200 if you look at these things running,
+00:10:18.200 you've got two Java virtual machines,
+00:10:19.960 those are the processes, and so
+00:10:21.720 therefore, as I said, container to
+00:10:23.560 container interactions are out process.
+00:10:26.480 Like code in app one can't talk to code
+00:10:29.160 in app two without going out process.
+00:10:32.737 >> [sighs]
+00:10:33.280 >> So, why didn't I use the term process?
+00:10:36.120 Well, imagine we have two Java EE web
+00:10:38.400 applications, the same thing is probably
+00:10:40.920 true of um ASP.NET applications.
+00:10:44.160 So, you have two Java EE applications
+00:10:46.280 running on a single Apache Tomcat web
+00:10:48.920 server.
+00:10:50.080 So, the process now, the operating
+00:10:52.120 system process, is actually still the
+00:10:53.920 Java virtual machine, but there's only
+00:10:55.240 one of them, but we have two
+00:10:57.000 applications.
+00:10:58.480 But it turns out
+00:11:00.280 that application to application
+00:11:02.480 communication still must happen out of
+00:11:05.000 process. Why? Because Apache Tomcat is
+00:11:08.120 using some very funky clever class
+00:11:10.160 loading stuff, and essentially, it loads
+00:11:12.240 both applications into their own
+00:11:14.440 space, and provides some degree of
+00:11:16.920 isolation. Um I haven't done .NET for a
+00:11:19.480 while, but in the IIS world, when I used
+00:11:21.480 to do .NET, I think the term was app
+00:11:23.320 domains. So, it's a similar sort of
+00:11:24.839 concept. There's a boundary of isolation
+00:11:26.520 around those applications. So, you can't
+00:11:28.440 call functions across them.
+00:11:31.640 So, maybe an isolation boundary is a
+00:11:34.640 better term,
+00:11:36.800 but it just sounds a bit clunky. Uh so,
+00:11:39.200 hence I used the term container.
+00:11:42.320 So, now with this knowledge, we can
+00:11:44.120 start to critique some diagrams. I'm not
+00:11:46.760 going to do a show of hands cuz some of
+00:11:48.120 you might be think I'm tricking you
+00:11:49.200 here, but if you ever see a C4 container
+00:11:51.240 diagram and it says we have a service
+00:11:53.280 and it's Java and MySQL,
+00:11:55.880 that's wrong.
+00:11:57.840 Why? Because Java and MySQL cannot run
+00:12:00.240 in the same process.
+00:12:02.120 They're two separate things, aren't
+00:12:03.520 they? You have a Java application in a
+00:12:04.880 JVM and a MySQL database server running
+00:12:07.680 somewhere. So, this is incorrect.
+00:12:11.120 This could be correct. So, H2 is a
+00:12:14.600 database written in Java.
+00:12:16.800 It can be run as a standalone server, so
+00:12:19.560 out of process, or you can actually run
+00:12:21.600 it in process. If H2 is running in
+00:12:23.960 process, it's actually the code in your
+00:12:26.360 application and H2 are running in the
+00:12:28.080 same JVM, so therefore, this could be
+00:12:30.480 correct.
+00:12:32.600 So, C4 containers are separately
+00:12:34.280 deployable things, separately deployable
+00:12:36.320 applications,
+00:12:39.040 but my recommendation here is that the
+00:12:40.800 C4 container diagrams themselves should
+00:12:43.400 not show deployment concepts.
+00:12:47.280 And this piece of advice sometimes
+00:12:48.760 confuses people as well.
+00:12:51.720 I've seen a bunch of diagrams that look
+00:12:52.880 like this. We have service A and the
+00:12:54.160 container is Docker.
+00:12:56.960 Docker is a deployment thing.
+00:13:01.640 What's the real thing we're trying to
+00:13:03.720 see here? Well, what's running inside
+00:13:05.520 the Docker container? That's the C4
+00:13:08.720 container that we're kind of hunting
+00:13:09.920 for. So, whenever you see Docker as a
+00:13:11.720 technology on a C4 container diagram,
+00:13:13.520 that's typically wrong as well.
+00:13:15.839 Similarly, this.
+00:13:17.720 Amazon EC2 is a is a way to run stuff on
+00:13:20.200 the cloud.
+00:13:21.440 That's a deployment thing.
+00:13:23.040 And similarly, Amazon Web Services
+00:13:24.280 Fargate. Fargate is a containers as a
+00:13:26.160 service service.
+00:13:28.480 So, that raises the question, where
+00:13:29.640 where do you show these concepts? And
+00:13:31.200 the answer is on your deployment
+00:13:32.240 diagrams. So, here's one of the example
+00:13:34.920 diagrams from the C4 model website.
+00:13:37.840 And you'll see we have a Java Spring
+00:13:39.760 Boot backend here. This is the C4
+00:13:41.960 container. It's the application.
+00:13:44.360 The separate deployments diagram shows
+00:13:46.440 how that thing runs on, in this case,
+00:13:48.360 Amazon's infrastructure. So, we have the
+00:13:50.600 backend.
+00:13:52.200 It's running in a Java virtual machine
+00:13:54.240 inside a Docker container
+00:13:56.280 inside Amazon Web Services Fargate.
+00:14:01.880 API Gateways
+00:14:04.400 I sometimes see API Gateways modeled as
+00:14:07.240 C4 containers. And again, this is
+00:14:09.360 typically wrong.
+00:14:11.880 What do most API Gateways do?
+00:14:14.640 Authentication, logging, routing or
+00:14:17.360 routing, depending on which country
+00:14:18.600 you're in.
+00:14:21.334 >> [laughter]
+00:14:22.800 >> We got it eventually. Um
+00:14:25.160 And most times you don't need the API
+00:14:27.800 Gateway in your dev environment.
+00:14:30.920 Most API Gateways are really just in the
+00:14:32.960 production environment to do
+00:14:34.880 all of these things in the production
+00:14:36.960 environment only.
+00:14:38.280 So, therefore, modeling the API Gateway
+00:14:41.240 in a C4 container diagram is kind of
+00:14:43.040 unnecessary.
+00:14:45.080 So, the other way to think about the C4
+00:14:46.280 container diagram is that it's showing
+00:14:48.320 the subset of all of the things exist
+00:14:50.760 across all deployment environments.
+00:14:53.240 Dev, test, staging, prod.
+00:14:59.000 If any of you have seen the example
+00:15:00.240 diagrams on the C4 website, you'll
+00:15:02.040 notice there's an Amazon S3 bucket on
+00:15:04.560 the container diagram, which is modeled
+00:15:06.000 as a container, and you have an Amazon
+00:15:08.240 SES, Simple Email Service, which is
+00:15:10.280 modeled as a software system.
+00:15:12.480 So, one Amazon thing is a container, one
+00:15:14.600 Amazon thing is a software system. Why?
+00:15:18.120 Here's your answer. This is the example
+00:15:19.440 container diagram.
+00:15:22.440 There's SES.
+00:15:24.000 So, that's modeled as a software system.
+00:15:26.320 And here is the S3 bucket. It's modeled
+00:15:28.720 as a container inside our software
+00:15:30.400 system boundary.
+00:15:33.840 How do you think about this? What's the
+00:15:35.720 heuristic you use to decide whether
+00:15:37.760 something is a system or a container?
+00:15:41.080 I like this.
+00:15:42.560 When you're talking about the difference
+00:15:43.520 between libraries and frameworks, you
+00:15:45.840 use a library and a framework uses you.
+00:15:47.800 The framework calls your code. So, when
+00:15:50.080 you use a framework, your code is much
+00:15:51.760 more tightly coupled to the framework.
+00:15:54.200 You know, libraries you can often switch
+00:15:55.400 out quite easily.
+00:15:56.680 And the same thing is true of the
+00:15:59.040 software system versus container debate.
+00:16:02.280 And what you have to ask yourself is
+00:16:03.280 what is the type and strength of the
+00:16:04.760 dependency that we have here.
+00:16:06.800 Amazon SES
+00:16:08.200 is a service we're using.
+00:16:10.320 So, we write some code. It makes use of
+00:16:12.520 the Amazon SES API to send emails to our
+00:16:15.800 customers.
+00:16:17.280 It's an opaque box. We can't see inside
+00:16:20.080 it. We're just using it as a service. We
+00:16:22.480 could switch it to something else if it
+00:16:23.760 had the same API.
+00:16:25.480 We have a dependency, sure, but it's
+00:16:27.400 quite a weak dependency compared to S3.
+00:16:31.560 The S3 bucket, although it's running on
+00:16:33.360 Amazon infrastructure, it's hosted by
+00:16:35.960 Amazon Web Services.
+00:16:37.640 When we provision a bucket, that bucket
+00:16:40.440 is ours.
+00:16:41.960 We have complete control and
+00:16:43.040 responsibility over what goes in that
+00:16:44.560 bucket, the objects, the data formats.
+00:16:47.480 The S3 bucket is an integral part of our
+00:16:49.800 software system. We can't do anything
+00:16:51.240 without it.
+00:16:52.520 So, therefore, it's a much tighter
+00:16:54.760 coupling, a much tighter relationship.
+00:16:56.480 So, therefore, I've modeled it as a as a
+00:16:58.480 sequel container inside my software
+00:17:00.000 system boundary.
+00:17:03.120 So, that's thing one, a long discussion
+00:17:05.400 on containers.
+00:17:07.920 Thing two, perspectives.
+00:17:10.520 I get a lot of questions like this. How
+00:17:11.880 do we model like ownership and security
+00:17:14.400 and levels of technical debt and and
+00:17:16.040 maybe size and complexity on top of
+00:17:17.760 these architecture diagrams without
+00:17:19.280 making them super cluttered.
+00:17:21.920 And the answer is to use perspectives.
+00:17:23.760 So, there's a great book on software
+00:17:24.839 architecture by Owen Woods and Nick
+00:17:27.000 Rozanski. It's called Software Systems
+00:17:28.439 Architecture. And in that book, they
+00:17:30.520 talk about perspectives.
+00:17:33.240 And all a perspective is is rather than
+00:17:34.840 defining a new diagram type, a new view
+00:17:37.560 type,
+00:17:38.640 we have additional levels or layers of
+00:17:40.760 information and data on top of these
+00:17:42.320 diagrams.
+00:17:43.760 And it's a really, really powerful
+00:17:45.240 concept.
+00:17:46.960 So, we can just do that. So, here's an
+00:17:48.440 exist an example system landscape
+00:17:50.640 diagram, again from the C4 model
+00:17:52.160 website. Imagine we want to figure out
+00:17:54.480 who is the owner of all of these
+00:17:55.880 different systems. So, this is a nice,
+00:17:58.080 simple diagram. We could start adding
+00:18:00.120 more information about team names and
+00:18:01.960 things on this diagram, but it would
+00:18:03.200 start to get cluttered quite quickly.
+00:18:05.440 So, what we can do is we can add some
+00:18:06.960 metadata to the things in this diagram,
+00:18:10.080 an ownership perspective, and then we
+00:18:12.280 can toggle that on and off.
+00:18:13.840 So, now we're only seeing the items that
+00:18:15.800 have a perspective associated with them.
+00:18:18.680 And you kind of have some interactive
+00:18:20.160 thing in your tooling, and it says, &quot;Oh,
+00:18:21.680 that's owned by team C.&quot;
+00:18:23.960 So, tooling supports this. So, you've
+00:18:25.480 got monitoring tools that support this.
+00:18:26.800 You've got diagramming tools. You can
+00:18:27.760 have layers on top. There's a whole
+00:18:28.760 number of ways you can do the kind of
+00:18:29.840 layering and perspectives thing.
+00:18:31.960 Security example, imagine we've got that
+00:18:33.680 statement store, the Amazon S3 buckets,
+00:18:35.480 and we want to ask questions like,
+00:18:37.600 &quot;Well, how is the data secured? Is it
+00:18:39.600 encrypted on the server, for example?&quot;
+00:18:41.840 Yeah, we just add a security perspective
+00:18:43.680 and add that metadata uh next to that
+00:18:46.120 object somehow.
+00:18:48.040 So, this is a nice way to add additional
+00:18:49.800 metadata. Requires your diagrams to be
+00:18:51.920 interactive, but it it reduces the
+00:18:54.200 clutter on the diagrams.
+00:18:57.840 Number three, message-driven
+00:18:59.520 architectures. This always gets people.
+00:19:02.000 Uh it's very tempting to draw a diagram
+00:19:03.760 like that.
+00:19:05.520 So, imagine you're modeling a uh
+00:19:07.160 service-based architecture. You have a
+00:19:08.680 bunch of services on the left-hand side
+00:19:10.280 that are producing messages, and a bunch
+00:19:11.840 of services on the on the right-hand
+00:19:13.560 side that are consuming messages, it's
+00:19:15.960 very tempting to draw the message bus as
+00:19:18.320 a C4 container.
+00:19:20.120 This is true, this is factual, this is
+00:19:21.840 accurate, but the problem here is
+00:19:24.120 everything looks like a hub and spoke
+00:19:25.280 architecture.
+00:19:27.480 So, we're missing the couplings
+00:19:30.400 dependencies between the individual
+00:19:31.920 services. It's all hidden in that fan in
+00:19:34.200 fan out architecture.
+00:19:36.040 So, how do we fix this issue?
+00:19:38.160 Don't model the message bus as a C4
+00:19:40.720 container, model the individual queues
+00:19:42.800 and topics as C4 containers.
+00:19:45.160 So, now in this particular example, we
+00:19:46.680 can see there is a point-to-point
+00:19:48.240 coupling, a one-to-one dependency
+00:19:49.960 between services A and C via a queue
+00:19:52.960 called X, and there's a a similar but
+00:19:55.240 different uh point-to-point coupling
+00:19:57.200 between B and D via a separate queue.
+00:20:00.200 So, modeling the queues here as C4
+00:20:02.600 containers
+00:20:04.800 and this is nice because a queue is a
+00:20:06.040 bucket.
+00:20:07.640 It's a data store. Some processes put
+00:20:09.800 messages into the buckets, others pull
+00:20:12.160 the messages out of the buckets.
+00:20:14.600 This doesn't tell me anything about
+00:20:15.920 deployment either. So, in my dev
+00:20:18.000 environment on my laptop, I could have
+00:20:19.640 both these queues running on a sim
+00:20:21.240 single RabbitMQ bus.
+00:20:24.520 My live environment might be one bus for
+00:20:27.160 QX and one for QY because they're super
+00:20:29.720 super high scale or throughput
+00:20:30.960 something.
+00:20:32.160 So, again, the having the queues as
+00:20:34.760 containers gives me the flexibility to
+00:20:36.440 talk about deployment separately, which
+00:20:37.600 I quite like.
+00:20:39.600 Arrows go from left to right.
+00:20:42.800 If you have a one-to-one mapping between
+00:20:44.680 two services via a queue or topic, you
+00:20:46.800 could argue that that box in the middle
+00:20:48.240 doesn't really add much.
+00:20:49.920 Agreed. You have options.
+00:20:52.120 Just remove it.
+00:20:53.840 So, now we can see there is a a coupling
+00:20:55.880 a dependency between the services, and
+00:20:57.360 what I've done here is I've said via QX
+00:21:00.440 on the arrow.
+00:21:02.000 This is much visually simpler.
+00:21:04.560 The trade-off here, and it's all
+00:21:06.080 trade-offs of course, is that some
+00:21:07.840 people might miss that there's a queue
+00:21:09.880 in between the two things.
+00:21:12.360 But you have some options. Try both, see
+00:21:14.360 which one you like.
+00:21:15.880 If I go back a second, again, arrows go
+00:21:17.840 from left to right. Similarly with this
+00:21:19.840 one here.
+00:21:21.160 You could also experiment with flipping
+00:21:22.640 the arrows around and changing the text
+00:21:25.880 to tell a slightly different version of
+00:21:27.440 essentially the same story.
+00:21:29.040 So now we can see that service A is
+00:21:31.040 publishing messages
+00:21:34.640 to the queue, and service C is
+00:21:37.600 subscribing to messages from the queue.
+00:21:41.040 So we've got each pointing to the queue
+00:21:42.680 now.
+00:21:43.680 I think this works well when you have,
+00:21:45.280 like I have at the bottom here, you've
+00:21:46.360 got a one-to-many relationship.
+00:21:48.240 So I think it works really well with
+00:21:49.720 pub/sub type architectures.
+00:21:52.000 So that's how you model message-driven
+00:21:53.160 architectures essentially. You have a
+00:21:54.520 bunch of options, but treat the the
+00:21:56.200 queues and topics as containers.
+00:22:00.480 Number four, abstraction versus
+00:22:02.040 organization. When C4 diagrams start to
+00:22:05.000 become big and complicated, people look
+00:22:07.280 to add more abstractions to reduce the
+00:22:09.680 complexity and therefore create simpler
+00:22:11.400 diagrams.
+00:22:12.600 Is that a good idea?
+00:22:14.200 Probably not.
+00:22:15.760 So what are my thoughts on modeling
+00:22:16.880 addition additional levels of
+00:22:19.080 abstraction, essentially?
+00:22:21.040 I think a lot of the things people want
+00:22:22.680 to describe and model are actually not
+00:22:25.160 abstractions in their own right. They're
+00:22:26.800 just groupings of the additional
+00:22:28.600 abstractions.
+00:22:31.160 So organizations, groups, or departments
+00:22:34.520 is a good example.
+00:22:35.920 Imagine we have this system landscape
+00:22:37.480 diagram from before. We have a number of
+00:22:39.480 different systems.
+00:22:42.080 But where does each system sit?
+00:22:44.520 Is it internal to our organization or
+00:22:47.080 external? You can't really see that from
+00:22:49.040 this diagram. So what you can do is just
+00:22:50.360 add a bunch of dash boundaries
+00:22:51.920 representing the organizational
+00:22:53.080 boundaries.
+00:22:54.920 So now we can see that all of these
+00:22:55.960 things here, including the internal
+00:22:57.640 staff, sit in the context of the bank.
+00:23:00.520 And Amazon Web Services includes SES.
+00:23:04.200 You could add nested things to show us
+00:23:06.360 smaller groups and departments. So,
+00:23:07.680 yeah, entirely up to you.
+00:23:10.400 Architectural layers. Imagine you have a
+00:23:12.480 C4 component diagram that has a number
+00:23:14.880 of controllers, some services, and some
+00:23:17.120 repository components.
+00:23:19.080 And maybe you think
+00:23:20.880 you want to draw this diagram instead.
+00:23:23.960 I've drawn many of these diagrams during
+00:23:25.400 my career.
+00:23:26.800 Are they useful? Arguably not. Doesn't
+00:23:28.640 really tell you much. All the complexity
+00:23:29.960 is hidden inside the the layer boxes.
+00:23:32.440 But nonetheless, what if you want to
+00:23:33.760 show architectural layers on your
+00:23:34.960 diagrams?
+00:23:36.560 Again, you just take the same approach.
+00:23:38.520 So, here we have our components, and
+00:23:40.760 I've drawn a dashed boundary around the
+00:23:42.600 components say, this is the controller
+00:23:43.960 layer.
+00:23:44.840 This is the service layer, and this is
+00:23:46.640 the repository layer.
+00:23:49.080 If you have particular module boundaries
+00:23:51.840 or DLLs or JAR files that your uh
+00:23:55.280 components are coming from, you could do
+00:23:56.600 the same thing. So, here we've said that
+00:23:58.400 the controllers are coming from an app-
+00:24:00.040 {dash} controller.jar file. So, yeah,
+00:24:01.920 feel free to add additional uh
+00:24:03.600 organizational groupings on your
+00:24:05.440 existing C4 model diagrams.
+00:24:09.160 Ditto bounded context. People ask me,
+00:24:11.000 how do you model bounded contexts in C4?
+00:24:13.280 Hopefully, you have a bounded context
+00:24:15.240 and it nicely and neatly includes some
+00:24:17.360 C4 things, in this case uh software
+00:24:19.200 systems. But yeah, just add some dashed
+00:24:21.200 boundaries uh representing each of the
+00:24:23.000 bounded contexts. I know in the real
+00:24:24.480 world that bounded contexts slice
+00:24:26.120 systems in half, but that's a different
+00:24:28.280 problem, I guess.
+00:24:30.880 Microservices.
+00:24:32.920 This always gets people, too.
+00:24:35.600 So, how do you model microservices?
+00:24:38.400 You have two options.
+00:24:40.160 But very simply, microservices should
+00:24:41.960 either be modeled as a software system
+00:24:44.160 or grouping of containers. That's it.
+00:24:47.680 I'm going to walk you through a
+00:24:48.720 scenario, and then we can see if these
+00:24:50.280 things in turn. So, imagine we're a
+00:24:51.960 small startup, we have no money, and we
+00:24:53.960 want to build something quickly to get
+00:24:55.840 some money in and deliver features to
+00:24:57.400 some potential customers.
+00:25:00.000 Because we're sensible, we're going to
+00:25:00.960 stick with a monolithic architecture.
+00:25:03.560 So, we are going to build software
+00:25:04.560 system X and it's going to
+00:25:07.440 expose features A, B, and C to some type
+00:25:10.200 of user.
+00:25:11.960 So, that's our C4 system context
+00:25:13.560 diagram, nice and simple.
+00:25:15.600 When we pinch to zoom
+00:25:17.640 onto the software system, we're going to
+00:25:19.040 use a server-side rendered web
+00:25:20.960 application
+00:25:22.160 monolithic approach, business logic and
+00:25:24.880 UI for features A, B, and C, and we're
+00:25:27.960 going to store everything in a single
+00:25:29.760 MySQL database schema.
+00:25:32.240 That's our C4 container diagram showing
+00:25:34.080 a monolithic architecture.
+00:25:37.480 Stage two of our company's journey,
+00:25:39.280 we're now hiring more people, we're
+00:25:41.280 starting to change the same parts of the
+00:25:43.640 code base, and we're starting to get
+00:25:45.560 merge conflicts, and things are just
+00:25:47.360 getting a bit awkward because we're
+00:25:48.800 increasing in scale.
+00:25:50.520 So, we want to go from monoliths to
+00:25:52.320 microservices. So, now I have to answer
+00:25:54.840 the tricky question of, well, what is a
+00:25:56.280 microservice?
+00:25:57.800 I'm going to do this by going back to
+00:25:59.160 the original James Lewis Martin Fowler
+00:26:01.320 blog post on Martin Fowler's website.
+00:26:04.720 And they say this,
+00:26:06.640 &quot;In short, the microservice
+00:26:08.200 architectural style is an approach to
+00:26:10.120 developing a single application as a
+00:26:12.080 suite of small services, each running in
+00:26:14.320 its own process and communicating with
+00:26:16.840 lightweight mechanisms.&quot;
+00:26:19.223 >> [sighs and gasps]
+00:26:19.800 >> Now, I like this, but I want to make it
+00:26:21.680 more C4-ish, so I'm going to change the
+00:26:24.240 word application to software system.
+00:26:27.840 So, what I'm doing here is I'm saying,
+00:26:28.920 well, a microservices architecture is
+00:26:30.280 we're defining a single software system
+00:26:32.400 as a collection of small services.
+00:26:35.240 So, now with this,
+00:26:37.560 we can draw some diagrams. Our context
+00:26:39.520 diagram is the same.
+00:26:41.280 We're one big team, we're building a
+00:26:43.160 single system as one big team.
+00:26:45.880 It's the same diagram.
+00:26:47.560 Once we pinch to zoom,
+00:26:49.680 now we can see we've broken up the
+00:26:52.240 business logic and the data into three
+00:26:55.280 separate services, one for A, one for B,
+00:26:57.160 one for C.
+00:26:58.760 Because we don't want to get into micro
+00:27:00.120 front ends quite yet, we're going to
+00:27:01.600 stick with the original server side
+00:27:03.120 rendered UI.
+00:27:04.360 So now we have a collection of
+00:27:06.120 microservices, there are three of them.
+00:27:08.400 What I've done here
+00:27:09.840 is I've used color coding to denote the
+00:27:12.240 pairings of the API thing and the
+00:27:14.800 database schema thing. But it's not
+00:27:17.720 explicit.
+00:27:19.440 So how do we fix that problem? How do we
+00:27:20.840 make those pairings explicit?
+00:27:23.360 I already told you the answer. Just add
+00:27:24.880 a add a grouping.
+00:27:26.240 So here we have a a dash boundary and
+00:27:28.760 now we can see that the API thing and
+00:27:30.720 the database schema thing are service A.
+00:27:33.440 Repeat for services B and C.
+00:27:36.040 So in this case we have three
+00:27:37.240 microservices, each microservice is a
+00:27:39.360 group, a pair of containers.
+00:27:42.200 Imagine we add feature D. Feature D is
+00:27:44.640 going to be implemented by a stateless
+00:27:47.080 AWS
+00:27:48.520 lambda written in Python. We can just
+00:27:50.640 add that to the bottom of our diagram.
+00:27:52.920 There we go.
+00:27:54.520 But the same thing applies. Service D is
+00:27:56.400 a collection, a group of containers, but
+00:27:58.720 that number is now just one.
+00:28:03.000 Now imagine we've got tons of cash
+00:28:04.120 coming in. We're growing really quick,
+00:28:05.840 we're going startup to scale up
+00:28:08.360 and this one big team is not it's not
+00:28:10.880 going anywhere fast. It's just slowing
+00:28:12.840 us down. So we're going to break into
+00:28:14.280 separate teams and do the Conway's law
+00:28:15.880 thing.
+00:28:16.960 So I'm going to stick with team X
+00:28:19.400 building that original software system
+00:28:21.160 called X.
+00:28:22.200 And all of you lovely folks are going to
+00:28:23.480 disburse onto separate teams. We're
+00:28:24.600 going to carve up the Git repo.
+00:28:26.520 You folks here are going to be team A
+00:28:27.800 looking after service A,
+00:28:29.600 B, C, and D.
+00:28:32.240 Now we have to draw our architecture
+00:28:34.040 diagrams from our perspective only.
+00:28:37.840 And here's my context diagram.
+00:28:40.320 So I'm working on team X building
+00:28:42.040 software system X. My context diagram
+00:28:44.800 now looks like this because I have a
+00:28:46.360 dependency on all of your services.
+00:28:49.640 So, what I've done here is I've promoted
+00:28:51.520 your services to be software systems
+00:28:53.760 rather than groupings of containers.
+00:28:55.640 Why? Because I can't see your code
+00:28:57.440 anymore.
+00:28:58.720 It's all completely out of my context. I
+00:29:01.080 can't see your implementation details,
+00:29:03.000 you can't see mine. So, I'm treating
+00:29:05.080 your services as opaque boxes.
+00:29:07.800 When I pinch to zoom in,
+00:29:10.360 my container diagram is really
+00:29:12.240 straightforward. It's that.
+00:29:14.840 It's really just the original
+00:29:16.240 server-side web app. Again, talking to
+00:29:19.400 all of your services as software
+00:29:21.440 systems.
+00:29:23.240 So, that's my view on the world.
+00:29:26.360 Team A's view on the world over there.
+00:29:28.120 This is your context diagram. So, you
+00:29:30.320 are building service A and you have an
+00:29:32.280 inbound dependency for my thing called
+00:29:34.200 X. When we pinch to zoom on your
+00:29:36.440 software system, now we can see the pair
+00:29:38.120 of the API thing and the database schema
+00:29:39.880 thing. Repeat for B,
+00:29:42.440 C, for D,
+00:29:44.040 and we're happy.
+00:29:45.400 So, that's my thoughts on modeling
+00:29:46.600 microservices. If you own those things,
+00:29:49.200 then treat them as internal to your
+00:29:50.600 system boundary. If you don't and you've
+00:29:52.280 got like a Conway's Law thing going on,
+00:29:53.960 treat them as external software systems
+00:29:55.840 from your perspective.
+00:29:58.650 >> [sighs]
+00:29:59.040 >> What about doing that?
+00:30:00.760 Showing that a container in my world
+00:30:02.720 talks to a container in your world, but
+00:30:04.720 we're two separate teams.
+00:30:06.440 My advice is don't do that because it's
+00:30:08.320 a form of coupling. It shows that I know
+00:30:10.600 something about your internal
+00:30:11.880 implementation details and vice versa.
+00:30:14.680 If I If I finally do the server-side
+00:30:17.520 render rendered web app to
+00:30:19.040 micro-frontends thing, and you have this
+00:30:21.240 diagram in your repos, your diagrams are
+00:30:22.960 now wrong, you have to change it.
+00:30:24.880 So, it's volatile, it's a form of
+00:30:26.760 coupling. So, I don't recommend doing
+00:30:28.200 that.
+00:30:30.720 Number six, the C4 model at scale.
+00:30:34.640 So, adding the additional levels of
+00:30:36.680 abstraction is one of the techniques
+00:30:38.600 people try to use to scale C4, uh but I
+00:30:42.440 have some other options for you.
+00:30:44.720 So, imagine we have a
+00:30:46.120 single software system that in this case
+00:30:47.800 is comprised of eight microservices.
+00:30:50.640 They're all different colors, same thing
+00:30:52.040 as before, a service is an API thing and
+00:30:53.840 a database thing.
+00:30:55.480 This diagram is essentially showing you
+00:30:57.920 the entirety of the software system
+00:31:00.200 boundary. They're showing you all of the
+00:31:02.040 containers inside the software system
+00:31:03.600 boundary. This diagram works now, but as
+00:31:06.720 we add more services, this diagram will
+00:31:08.560 start to get quite complicated,
+00:31:10.240 especially the arrows between things.
+00:31:12.720 So, rather than having one diagram
+00:31:14.160 showing eight services, you could draw
+00:31:15.920 eight diagrams showing one service each.
+00:31:18.520 And that's a very valid approach. So,
+00:31:20.600 here is a C4 container diagram showing
+00:31:23.720 the internals of that same software
+00:31:25.240 system, but we're only showing service
+00:31:27.560 one, which is that pair, things coming
+00:31:30.120 into service one, and things leaving
+00:31:32.720 service one. So, the inbounds and the
+00:31:35.080 outbounds dependencies, the afferent and
+00:31:37.400 the efferent couplings.
+00:31:38.920 Uh if you've used my Structurizr as a
+00:31:40.240 tooling, that's
+00:31:41.680 how you do it.
+00:31:43.080 You say, include service one, things
+00:31:44.960 coming in, things going out, nice and
+00:31:46.520 simple.
+00:31:47.840 You can't do this so easily with tool
+00:31:49.840 like Visio, because you have to copy and
+00:31:51.360 paste all the boxes across all the
+00:31:52.520 different diagrams and keep things up to
+00:31:53.760 date. So, if you take this approach, you
+00:31:55.760 really need to drop into using a
+00:31:56.960 modeling tool.
+00:31:58.160 The service two version is exactly the
+00:31:59.760 same, include service two, inbound and
+00:32:02.360 outbound dependencies, service three,
+00:32:04.200 you get the idea. So, that's option one,
+00:32:06.280 craft a smaller number of diagrams
+00:32:08.040 focusing on a single slice of the thing.
+00:32:11.760 The trade-off here, again, it's all
+00:32:13.160 trade-offs, is you lose the big picture.
+00:32:15.640 You've got the detail, but you lose the
+00:32:17.200 entirety of the big picture.
+00:32:18.960 So, option two is to use a different
+00:32:20.600 visualization.
+00:32:22.400 This is a screenshot of a nice
+00:32:24.760 interactive D3.js force-directed graph.
+00:32:27.480 It All the small bubbles are C4
+00:32:29.360 containers. So, this view is uh showing
+00:32:31.680 you the same thing as that all
+00:32:33.480 containers diagram,
+00:32:35.280 but everything's very small now.
+00:32:37.400 And it's interactive. So you can drag
+00:32:39.120 things around, move things around. We
+00:32:41.000 can click on something to show its
+00:32:42.960 nearest neighbors.
+00:32:45.440 This is really useful because many of
+00:32:46.960 the times we draw architecture diagrams,
+00:32:49.320 we're doing it to answer questions. If
+00:32:51.280 this changes, what's the impact of
+00:32:52.960 change? So using a different
+00:32:55.320 visualization allows you to explore that
+00:32:57.880 question much more easily. And again,
+00:32:59.720 you can have metadata and have tooltips.
+00:33:01.440 So yeah, maybe think about different
+00:33:03.200 visualizations. And here's another one
+00:33:05.200 for you.
+00:33:06.360 So my tooling doesn't export to the Isla
+00:33:08.760 graph tooling, which again, this is a
+00:33:10.880 static screenshot of a very nice kind of
+00:33:13.520 interactive tool.
+00:33:15.000 It shows you everything and you can
+00:33:16.320 click and zoom in and show nearest
+00:33:18.080 neighbors and all that sort of thing. So
+00:33:19.720 different visualizations of a bigger
+00:33:21.400 data set allow you to
+00:33:23.720 showcase and explore your model in
+00:33:25.520 different ways.
+00:33:28.920 And finally, number seven. How do you
+00:33:30.480 make this work in enterprise?
+00:33:32.880 Imagine you have a bunch of teams and
+00:33:34.280 they're all using C4 and they're
+00:33:35.760 producing some nice diagrams.
+00:33:38.200 This works well, but maybe your
+00:33:39.680 enterprise architects come along say,
+00:33:40.960 well,
+00:33:43.040 we want a big picture.
+00:33:44.880 Like we want to see all the things
+00:33:46.160 talking to all the things. We want a
+00:33:47.600 top-down view of our entire
+00:33:49.560 organization, but all the teams are
+00:33:52.200 managing their diagrams and models in a
+00:33:54.000 decentralized fashion. So how do we make
+00:33:55.560 that work?
+00:33:59.240 These pictures show what the individual
+00:34:01.000 teams see.
+00:34:03.200 If we rearrange the boxes so they kind
+00:34:05.640 of look the same,
+00:34:07.160 what we want to do is we want to get
+00:34:08.600 that view on the right-hand side. So we
+00:34:10.280 want that the aggregation of everything.
+00:34:12.960 So how do you do that?
+00:34:14.560 Very simply, you have some sort of a
+00:34:15.879 system catalog. This could be in my
+00:34:17.760 tooling or backstage or some other
+00:34:19.960 tooling. You define all the things in
+00:34:22.000 the environment. You have that as a
+00:34:23.639 single dictionary, a single definition.
+00:34:26.360 You ask all your teams to push their
+00:34:28.399 definition to some sort of an
+00:34:29.679 architectural repository so you can find
+00:34:31.280 them easily. This could be just a file
+00:34:33.000 system or some tooling, doesn't really
+00:34:34.080 matter.
+00:34:34.960 And then you write some code to
+00:34:36.040 basically start with the system catalog,
+00:34:38.719 and then you aggregate all of the
+00:34:40.159 relationships between all of the systems
+00:34:42.239 from the team-based models.
+00:34:45.199 And essentially that gives you this sort
+00:34:46.560 of picture down here on the right-hand
+00:34:47.960 side.
+00:34:49.080 So, does this work in the real world?
+00:34:50.480 Yeah, I've got many clients who are
+00:34:51.840 doing this sort of thing, and it's
+00:34:52.840 really nice because their teams can
+00:34:54.440 model things in a decentralized way,
+00:34:56.520 have all their diagrams checked into
+00:34:57.840 their own Git repos, but the EAs are
+00:34:59.920 happy because they can get a top-down
+00:35:01.360 view of everything, track dependencies,
+00:35:03.600 etc., etc.
+00:35:06.040 A final note, I've been working with a
+00:35:07.400 number of clients recently to improve
+00:35:09.160 their software architecture diagramming,
+00:35:11.480 and I came up with this maturity model
+00:35:12.800 thing.
+00:35:13.960 Level one is where half the industry is,
+00:35:16.360 they're not doing anything, which is
+00:35:17.960 awkward.
+00:35:19.000 Uh level two is where we have some
+00:35:21.080 degree of diagrams, but they're ad hoc
+00:35:22.680 boxes and arrows.
+00:35:24.000 Just using C4 gets you to level three.
+00:35:26.600 So, now we have defined things in a in a
+00:35:29.120 structured way.
+00:35:31.040 To get to level four, you have to switch
+00:35:32.280 from diagramming to modeling. Once you
+00:35:33.920 switch to modeling, a whole number of
+00:35:35.360 different opportunities open up to you.
+00:35:37.760 And to get up to level five, where
+00:35:39.320 you're sharing models across
+00:35:40.480 organizational departments and groups
+00:35:42.400 and teams, and you're reverse
+00:35:44.000 engineering your uh observat- uh uh
+00:35:46.760 uh
+00:35:47.360 observability logs and your source code
+00:35:49.480 to kind of generate these models,
+00:35:51.120 there's tons of really cool stuff you
+00:35:52.360 can do there.
+00:35:54.320 So, that's all I have to say. Uh again,
+00:35:55.960 that's the uh code if you want to grab
+00:35:58.160 the book. Thank you very much.
+00:36:00.869 >> [applause]

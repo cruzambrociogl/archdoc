@@ -107,6 +107,7 @@ go install ./cmd/archdoc
 
 | | |
 |---|---|
+| [`docs/how-it-works.md`](docs/how-it-works.md) | **The pipeline on one screen** — start here |
 | [`docs/product-definition.md`](docs/product-definition.md) | What the product is — 109 capabilities, the output contract, nine acceptance criteria. Technology-free by design |
 | [`docs/stack-decision.md`](docs/stack-decision.md) | What it is built with, and why, including the rejected alternatives |
 | [`docs/survey-test-subjects.md`](docs/survey-test-subjects.md) | The evidence both rest on |

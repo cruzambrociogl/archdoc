@@ -18,8 +18,9 @@ Read in this order. It is about forty minutes and it replaces asking anyone.
 2. **`docs/survey-test-subjects.md` §3** — the synthesis. Why extraction is harder than it
    looks, and what two real repositories proved.
 3. **`docs/stack-decision.md` §1–§2** — what it is built with, in plain words.
-4. **`PROGRESS.md`** — where the work stands.
-5. **`docs/decisions.md`** — skim it before proposing anything that feels obvious. Most
+4. **`docs/how-it-works.md`** — the pipeline on one screen. Two minutes.
+5. **`PROGRESS.md`** — where the work stands.
+6. **`docs/decisions.md`** — skim it before proposing anything that feels obvious. Most
    obvious things were already considered and have a recorded reason.
 
 Then read the rest of this file. Do **not** read the documents end to end — see the load
@@ -50,6 +51,7 @@ section for the task at hand and nothing else.
 | `docs/stack-decision.md` §2.3 | Using one of the five libraries |
 | `docs/stack-decision.md` §3 | Questions about layout, packages, or the build |
 | `docs/survey-test-subjects.md` §1–2 | Writing or fixing a parser — real dialects, real failures |
+| `docs/how-it-works.md` | Orienting — the pipeline on one screen, and which stage lives in which package |
 | `docs/delivery-schedule.md` | Planning or scoping. **Not** while building |
 | `PROGRESS.md` | Starting work — what is done, what gate is next |
 | `.claude/NOTES.md` | Starting or ending a session — the inbox of unplanned items |
