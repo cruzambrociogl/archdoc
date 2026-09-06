@@ -22,3 +22,8 @@
 .DS_Store
 *.local
 .env
+
+# ...except under testdata, where a .env is not ours. Fixtures stand in for other people's
+# repositories, and archdoc reads their .env to resolve interpolation — a fixture without one
+# cannot exercise the two-pass reconciliation.
+!testdata/**/.env

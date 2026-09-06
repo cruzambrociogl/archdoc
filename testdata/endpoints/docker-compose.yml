@@ -1,0 +1,37 @@
+# A fixture for fact extraction, as opposed to discovery. Every service here exists to exercise
+# one rule, and the traps are real ones — each was found in a test subject before it was copied
+# in here. See docs/survey-test-subjects.md.
+
+name: endpoints
+
+services:
+  api:
+    image: example/api:1.0
+    ports:
+      - '8080:80'
+      - '9000'
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://apiuser:hunter2@db:5432/app
+      CACHE_HOST: cache
+      CACHE_PORT: '6379'
+      S3_ENDPOINT: https://s3.example.com
+      SMTP_HOST: ${SMTP_HOST}
+      SELF_HOST: 'true'
+      SOCKET_HOST: /var/run/postgresql
+      BIND_HOSTNAME: 0.0.0.0
+      PUBLIC_URL: http://localhost:8080
+      SECRET_KEY: hunter2
+
+  db:
+    image: postgres:16
+    environment:
+      - 'POSTGRES_HOST_AUTH_METHOD=trust'
+      - 'POSTGRES_PASSWORD=hunter2'
+
+  cache:
+    image: redis:7

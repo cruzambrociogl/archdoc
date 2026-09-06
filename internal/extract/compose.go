@@ -12,7 +12,6 @@ import (
 	"github.com/compose-spec/compose-go/v2/loader"
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 )
@@ -91,7 +90,7 @@ func extractServices(root, rel string) ([]archdoc.Service, error) {
 	}
 
 	// Pass 2 — positions. The raw document, addressable by key path.
-	positions := servicePositions(content, rel)
+	positions := readPositions(content, rel)
 
 	raw, _ := model["services"].(map[string]any)
 	services := make([]archdoc.Service, 0, len(raw))
@@ -99,12 +98,16 @@ func extractServices(root, rel string) ([]archdoc.Service, error) {
 	for name, v := range raw {
 		svc, _ := v.(map[string]any)
 		image, _ := svc["image"].(string)
+		pos := positions[name]
 
 		services = append(services, archdoc.Service{
-			Name:     name,
-			Image:    image,
-			Evidence: archdoc.Declared,
-			Prov:     positions[name],
+			Name:      name,
+			Image:     image,
+			Evidence:  archdoc.Declared,
+			Prov:      pos.Decl,
+			DependsOn: dependencies(svc["depends_on"], pos),
+			Ports:     ports(svc["ports"], pos),
+			Endpoints: endpoints(envValues(svc["environment"]), pos),
 		})
 	}
 
@@ -141,28 +144,6 @@ func loadModel(path string, content []byte, workdir string) (map[string]any, err
 		o.SkipNormalization = true
 		o.ResolvePaths = false
 	})
-}
-
-// servicePositions maps each service name to the line where it is declared.
-func servicePositions(content []byte, rel string) map[string]archdoc.Provenance {
-	out := map[string]archdoc.Provenance{}
-
-	var doc yaml.Node
-	if err := yaml.Unmarshal(stripComposeTags(content), &doc); err != nil {
-		return out
-	}
-
-	services := lookup(&doc, "services")
-	if services == nil || services.Kind != yaml.MappingNode {
-		return out
-	}
-
-	for i := 0; i+1 < len(services.Content); i += 2 {
-		key := services.Content[i]
-		out[key.Value] = archdoc.Provenance{File: rel, Line: key.Line, Column: key.Column}
-	}
-
-	return out
 }
 
 // stripComposeTags removes Compose's custom YAML tags so a stock decoder will parse the
