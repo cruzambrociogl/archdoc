@@ -43,8 +43,8 @@ raised, not quietly promoted over it.
 
 - [ ] `web/dist/index.html` is a tracked placeholder; confirm the real build overwrites it
       cleanly rather than colliding with the `.gitignore` exception
-- [ ] Fixtures: the O-8 spike used the real subject repos on disk. Decide what goes in
-      `testdata/` — trimmed copies of the hard compose files, kept small and pinned
+- [ ] `docs/architecture/` output has no provenance for catalog facts — a node's technology
+      comes from the image table and nothing records that. Blocks AC-1; `PRV-02` is the fix
 
 ---
 
@@ -53,15 +53,6 @@ raised, not quietly promoted over it.
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
 
-- [→ CLAUDE.md] Branch protection — convention rather than a GitHub ruleset; no enforcement
-      exists, so the discipline lives in the context file — 2026-08-25
-- [→ docs/delivery-schedule.md] The schedule's published mirrors — Sheet and artifact URLs
-      recorded so a future edit does not silently leave them stale — 2026-08-25
-- [x] Rewrite `README.md` — opens with §0's problem statement, leads with the --explain
-      output rather than a description of it — 2026-08-27
-- [x] Mastodon cloned at `47ac677` and scanned — 5 services, deterministic, no code changes
-      needed. Discovery correctly preferred `docker-compose.yml` over `.devcontainer/compose.yaml`,
-      a name a `docker-compose*` glob would miss — 2026-08-28
-- [→ docs/decisions.md] `compose-go` profile resolution — answered by the O-8 spike:
-      `!reset []` empties `profiles` correctly, and `!override` replaces lists rather than
-      appending — 2026-08-26
+- [→ docs/decisions.md] Fixtures: decided against trimmed copies of the subjects' compose
+      files. `testdata/endpoints/` is written by hand so each service exercises one rule, and
+      every trap in it was found in a subject first — 2026-09-06

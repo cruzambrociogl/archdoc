@@ -282,3 +282,81 @@ The visual metaphors are drawn from the subject rather than from the category: *
 because C4's own framing is maps and zoom, and **citation**, because every element carries the
 line that proves it. Both beat the generic architecture imagery of blueprints and gears.
 
+
+**2026-09-06 — Derivation gets its own package**
+`internal/extract` reads files; `internal/render` draws. Turning facts into a graph is neither,
+and it is the seam the two workstreams meet at, so it became `internal/model` rather than
+hiding inside one side of the boundary it defines.
+
+The alternative was putting it in `internal/archdoc` beside the types. Rejected: that package
+is the vocabulary both tracks import, and giving it behaviour would make every change to
+derivation a change to the shared contract.
+
+**2026-09-06 — The FactSet carries parsed endpoints, never the raw environment**
+Compose environments hold passwords, JWT secrets and API keys — all four sit in plain sight in
+two of the three subjects — and the FactSet is written to disk as `model.json`.
+
+So extraction reads the environment and keeps only what parses as a network location. Nothing
+downstream has to remember to redact, because there is nothing left to redact; `url.Hostname()`
+drops the credential even when the URL that named the host carried one. A test asserts the
+fixture's password reaches no output.
+
+Two shapes are recognised: a value containing a URL, and a value in a variable whose name says
+it holds a host. Nothing is guessed from a value alone — that is what keeps `MDL-04`
+deterministic rather than a heuristic.
+
+**2026-09-06 — Edges record whether traffic flows, and the bridge requires it**
+Found by reading real output rather than by testing. Supabase's container diagram claimed
+*"User reaches studio"* and *"functions connects to studio"*. Both were bridged through
+`api-gw`, and both hops came from `depends_on`.
+
+`depends_on` is start-up order, not routing. A gateway that waits for an admin console to be
+healthy does not thereby route users to it. Edges now carry `Traffic`, set by endpoints and
+published ports and not by `depends_on`, and a bridge across an excluded proxy requires it at
+both hops. Two false arrows disappeared.
+
+The same flag decides which label survives a merge: where `depends_on` and a configured URL
+describe one pair, *"connects to postgres"* beats *"depends on"* — the stronger evidence names
+the relationship.
+
+Where a route is now missing, it is declared in the gateway's own configuration. That is
+`MDL-03`, a source archdoc does not read yet, and the generated document says so.
+
+**2026-09-06 — Mermaid flowchart, not Mermaid's C4 syntax**
+Mermaid does provide `C4Context` and `C4Container`. They are still marked experimental, and
+GitHub's renderer lags upstream — §8 already flagged the risk.
+
+A diagram that does not draw is the one failure a reader cannot work around, so the C4
+vocabulary lives in the labels, where it is visible and cannot break. `[Container: PostgreSQL
+14]`, `[External System]`, `[Person]`. Revisit when the syntax stabilises; the model is
+unaffected either way, which is the whole point of one model and many views.
+
+**2026-09-06 — The image catalog matches exact names, never substrings**
+`supabase/postgres-meta` is an application that manages a database, and `darthsim/imgproxy`
+transforms images rather than proxying them. Any rule loose enough to catch `postgres` inside
+the first also misfiles the second.
+
+So: strip registry, namespace, tag and digest, then match the remaining name exactly. An image
+not in the table is an **application with no technology** — empty says *"not known from
+configuration"*, which is honest and is precisely the case `MDL-08` hands to the semantic layer.
+Inventing a stack for an unknown image would put a guess on a diagram that claims not to guess.
+
+**2026-09-06 — Fixtures are written by hand, not trimmed from the subjects**
+Closes the open note asking what goes in `testdata/`. Trimmed copies of real compose files
+looked cheaper and are worse: they carry irrelevant detail, they go stale against pinned
+revisions, and a reader cannot tell which line the test is actually about.
+
+`testdata/endpoints/` is instead written so every service exercises one rule, and every trap in
+it was found in a subject first — a unix socket in `POSTGRES_HOST`, a `0.0.0.0` bind address, a
+flag named `SELF_HOST`, a `localhost` URL naming the reader's own machine. The subjects stay
+what they are: evidence, read at pinned revisions, never vendored.
+
+**2026-09-06 — Friday shows a live preview, and the hand-drawn reference leaves the calendar**
+The sprint 1 gate said *"rendering on GitHub"*. Rendering on GitHub was never the requirement —
+the requirement is that the output reads with archdoc absent and with no build step, and a
+markdown preview in the editor demonstrates that as well as GitHub does. It also sidesteps the
+awkwardness that the worked examples live in clones of other people's repositories.
+
+Separately, the hand-drawn Immich reference architecture comes off the schedule at Cruz's
+request. It stays in `PROGRESS.md` under manual work, with an owner and no date, because it is
+the answer key for AC-3 — dropping it from the plan entirely would quietly drop the criterion.

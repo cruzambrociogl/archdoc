@@ -40,7 +40,7 @@ disagree, **the definition wins**. The definition is what the product *is*; the 
 decision is what it is built with. `docs/survey-test-subjects.md` is evidence, never
 instruction.
 
-**Token discipline.** `docs/` totals ~3,900 lines. Never load a document whole. Load the named
+**Token discipline.** `docs/` totals ~4,650 lines. Never load a document whole. Load the named
 section for the task at hand and nothing else.
 
 | Load this | When |
@@ -70,9 +70,10 @@ acceptance criterion.
 1. **Sort map keys before iterating** whenever the result reaches output. Go randomises map
    iteration; unsorted output silently breaks AC-7 (five runs, byte-identical). This is the
    single most likely defect in generated Go here.
-2. **Never write to human-owned files. Never read them either.** Only `*.generated.md` is
-   written, and it is overwritten wholesale. Human sections are *linked*, not parsed —
-   `OUT-02` / `OUT-03`. A documentation generator that eats someone's writing gets
+2. **Never write to human-owned files. Never read them either.** The write set is closed and
+   named in `cmd/archdoc/generate.go`: `docs/architecture/*.generated.md`, the `.mmd` beside
+   them, and `.archdoc/`. Each is overwritten wholesale. Human sections are *linked*, not
+   parsed — `OUT-02` / `OUT-03`. A documentation generator that eats someone's writing gets
    uninstalled once.
 3. **Only `internal/semantic` may make outbound network calls.** This is what makes AC-8
    provable by an import test rather than a manual audit. No other package imports an HTTP
