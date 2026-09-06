@@ -67,6 +67,48 @@ and `Version` propagate into every signature and into `model.json`, which is a *
 deliverable*. O-8's answer gates this — it decides whether a `Fact` carries one source
 position or two.
 
+**2026-09-06 — C4: transparent intermediaries stay in the model, leave the container view**
+Compose describes *deployment*; a C4 container diagram must not show deployment concepts, and
+Brown is explicit that gateways are *"typically wrong"* on one — most exist only in production.
+The live cases are Supabase's `api-gw` (Envoy/Kong) and `supavisor`, a connection pooler.
+
+Both are separately deployable applications, so the literal definition would admit them. They
+are excluded anyway because they are **transparent**: applications talk *through* them without
+depending on them semantically. Drawing them turns `auth → db` into `auth → supavisor → db`,
+which hides the real coupling behind an intermediary — Brown's own complaint about modelling a
+message bus as one box: *"everything looks like a hub and spoke architecture... we're missing
+the couplings between the individual services."*
+
+**Rule: a Compose service becomes a C4 container when it is an application or a data store.
+Proxies, gateways, poolers and sidecars remain in the model with `kind` recorded, and the
+container view omits them — annotating the edge they mediate, `auth → db (via supavisor)`.**
+That annotation is Brown's suggested treatment for a queue between two services. Nothing is
+lost: the intermediary is still in `model.json`, and `rules.yaml` can force it back in.
+
+Consequence: Supabase renders 9–10 containers rather than 11, and its real service-to-service
+edges become visible for the first time. `Docker` never appears as a technology on a container
+diagram — the technology is what runs *inside*, which is what the catalog is for.
+
+**2026-09-06 — Actors are derived from published ports, not invented**
+C4's context level needs people and external callers. Nothing in a Compose file says a person
+exists, and §3 forbids inferred nodes in R1 — so an actor guessed by the model would be
+inadmissible.
+
+**A published port is declared evidence that something outside reaches in.** `immich-server`
+exposes `2283:2283` at `docker-compose.yml:26`; Supabase's `api-gw` exposes `8000`. That is a
+fact at a line, not a guess. What it does not say is *who* — a person, a mobile client, another
+service.
+
+So the actor is built in three steps, each staying inside the evidence rule: extraction emits a
+generic **External client** node carrying the port's provenance; the semantic layer **names** it
+more usefully (*"Photographer"*, *"Mobile app"*) — labelling a node that already exists rather
+than inventing one; `rules.yaml` corrects it when the guess is wrong.
+
+Mastodon is the case that proves the rule is doing real work: `web` binds `127.0.0.1:3000:3000`,
+localhost only. Honestly read, that declares *"expects a reverse proxy in front"* rather than
+*"a person talks to this directly"* — a distinction only available by reading what the file
+actually says.
+
 **2026-08-27 — Discovery: sniff for recall, reject fragments for precision**
 The walking skeleton forced the discovery rule to be settled. A filename glob is not enough —
 Immich keeps two real Compose files at `.devcontainer/server/container-compose-overrides.yml`,
