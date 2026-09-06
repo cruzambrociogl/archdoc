@@ -48,6 +48,45 @@ type Service struct {
 	Image    string       `json:"image"` // empty when the service is built rather than pulled
 	Evidence EvidenceKind `json:"evidence"`
 	Prov     Provenance   `json:"provenance"`
+
+	// DependsOn is every service this one names as a dependency (EXT/MDL-02).
+	DependsOn []Dependency `json:"depends_on,omitempty"`
+
+	// Ports are the published ones only. An unpublished port is internal plumbing; a
+	// published one is declared evidence that something outside reaches in, which is where
+	// actors come from.
+	Ports []Port `json:"ports,omitempty"`
+
+	// Endpoints are network locations named in this service's environment (MDL-04).
+	Endpoints []Endpoint `json:"endpoints,omitempty"`
+}
+
+// Dependency is one entry of a service's depends_on.
+type Dependency struct {
+	Service string     `json:"service"`
+	Prov    Provenance `json:"provenance"`
+}
+
+// Port is a published port mapping: the host side is what makes it reachable from outside.
+type Port struct {
+	Published string     `json:"published"` // string, because Compose allows ranges and "8080"
+	Target    int        `json:"target"`
+	Protocol  string     `json:"protocol,omitempty"` // tcp when unstated
+	Prov      Provenance `json:"provenance"`
+}
+
+// Endpoint is a network location named by an environment value — REDIS_URL, S3_ENDPOINT,
+// DATABASE_HOST. It is how a repository points at something it does not itself declare.
+//
+// Only the location is kept. The raw environment map is deliberately not carried in the
+// FactSet: Compose environments hold credentials, and the FactSet is written to disk. Carrying
+// only parsed locations means there is nothing to redact later.
+type Endpoint struct {
+	Var    string     `json:"var"`              // the variable that named it
+	Scheme string     `json:"scheme,omitempty"` // postgres, redis, https, s3 — "" when bare host
+	Host   string     `json:"host"`
+	Port   int        `json:"port,omitempty"`
+	Prov   Provenance `json:"provenance"`
 }
 
 // FactSet is everything extraction found, and the contract between the deterministic half of
