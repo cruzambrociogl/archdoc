@@ -31,21 +31,41 @@ Two rules govern the design:
 
 ## Status
 
-**Early.** Release R1.a is in progress, targeted at 9 October 2026. One command works today:
+**Early.** Release R1.a is in progress, targeted at 9 October 2026. It draws:
 
 ```console
-$ archdoc scan ./immich
+$ archdoc generate ./immich
 
-database                 ghcr.io/immich-app/postgres:14-vectorchord0.4.3…   docker/docker-compose.yml:57
-immich-machine-learning  ghcr.io/immich-app/immich-machine-learning:v3      docker/docker-compose.yml:34
-immich-server            ghcr.io/immich-app/immich-server:v3                docker/docker-compose.yml:13
-redis                    docker.io/valkey/valkey:9@sha256:3acc0687f2a2e10…  docker/docker-compose.yml:50
+wrote ./immich/docs/architecture/architecture.generated.md
+wrote ./immich/docs/architecture/context.mmd
+wrote ./immich/docs/architecture/container.mmd
+wrote ./immich/.archdoc/model.json
 
-4 services from docker/docker-compose.yml · 10 compose file(s) considered, 7 deployable
+5 elements, 3 relationships, from docker/docker-compose.yml
 ```
 
-No edges, no model, no diagram yet — four services and the lines that prove them. That is the
-part everything else rests on.
+The generated markdown holds a **system context** diagram, a **container** diagram, and the
+evidence for both:
+
+| Element | Type | Technology | Evidence | Declared at |
+|---|---|---|---|---|
+| User | Person | — | declared | `docker/docker-compose.yml:26` |
+| immich-machine-learning | Container | — | declared | `docker/docker-compose.yml:34` |
+| immich-server | Container | — | declared | `docker/docker-compose.yml:13` |
+| database | Container (data store) | PostgreSQL 14 | declared | `docker/docker-compose.yml:57` |
+| redis | Container (data store) | Valkey 9 | declared | `docker/docker-compose.yml:50` |
+
+Open any of those lines and the fact is there. That is the whole claim.
+
+Note what is *absent*: `immich-machine-learning` appears as a box and takes part in no
+relationship at all. Immich reaches it over a URL assembled at runtime, so its own
+configuration never declares the link. The diagram is right to leave the arrow out, and saying
+so plainly is more useful than drawing a line nothing supports.
+
+**No language model is involved in any of the above**, and none will be: labels come from a
+lookup table, and an image the table does not know gets an empty technology rather than a
+guess. The model's job, when it arrives, is to make those labels read well — never to produce
+them.
 
 ### Why discovery is harder than a glob
 
@@ -100,8 +120,82 @@ Requires Go 1.27. Contributors need Node for the web frontend; users do not.
 git clone https://github.com/cruzambrociogl/archdoc.git
 cd archdoc
 go test ./...
-go install ./cmd/archdoc
+go build -o ./archdoc ./cmd/archdoc
 ```
+
+The built binary is git-ignored, so it can sit in the working copy.
+
+## Running it on the test subjects
+
+The three subjects are **not** in this repository — they are other people's code. Clone them
+yourself, at the revisions pinned in
+[`docs/survey-test-subjects.md`](docs/survey-test-subjects.md) §Method, and keep them beside
+this directory rather than inside it:
+
+```
+University/SP2/
+├── archdoc/          this repository
+└── subjects/
+    ├── immich/
+    ├── mastodon/
+    └── supabase/
+```
+
+**Look before writing.** `--stdout` prints the whole document and touches nothing:
+
+```console
+./archdoc generate ../subjects/immich   --stdout
+./archdoc generate ../subjects/mastodon --stdout
+./archdoc generate ../subjects/supabase --stdout
+```
+
+**Then write it in,** which is what a real user would run. Four files land in the subject:
+`docs/architecture/architecture.generated.md`, two `.mmd` files beside it, and
+`.archdoc/model.json`.
+
+```console
+./archdoc generate ../subjects/supabase
+```
+
+To see the diagrams, open the generated markdown in VS Code and press `⇧⌘V` — Mermaid renders
+natively, with no build step and no site generator. That is the point of emitting Mermaid:
+GitHub renders it the same way.
+
+**Start with Supabase.** It is the only subject with an external system, the only one with an
+excluded gateway, and the only one where the distinction between "declares a dependency" and
+"declares that traffic flows" is visible.
+
+### Checking it rather than trusting it
+
+```console
+./archdoc scan ../subjects/immich --explain   # why that file, and not the other nine
+./archdoc scan ../subjects/supabase --json    # the raw FactSet, every fact with its line
+```
+
+Pick any citation from an evidence table and open it. Supabase's
+`docker/docker-compose.yml:166` reads `GOTRUE_SMTP_HOST: ${SMTP_HOST}` — the diagram shows
+`supabase-mail`, resolved from `.env`, and the citation still lands on text a person can read.
+That is the two-pass extractor working: one pass knows what is true, the other knows where it
+was written.
+
+**Determinism** — five runs must be byte-identical (AC-7):
+
+```console
+for i in 1 2 3 4 5; do ./archdoc generate ../subjects/supabase --stdout | md5; done | sort -u
+```
+
+One line of output means five identical runs.
+
+### What each subject shows
+
+| | What to look for |
+|---|---|
+| **Immich** | `immich-machine-learning` has **no edges at all**. Every service reaches it over a URL built at runtime, so configuration never declares the link. Correct, and the finding the whole survey turns on |
+| **Mastodon** | A clean five-container diagram, and an empty context diagram. Its external dependencies are real and live in `.env.production.sample`, which the compose file references and which is not in the repository |
+| **Supabase** | `api-gw` excluded as infrastructure and named under *Not shown*; `supabase-mail` as a referenced external system; relationships labelled `connects to [postgres]` where a URL knew the protocol and `depends_on` did not |
+
+One line covers all three: **the container view is as good as the compose file, and the context
+view is as good as the environment — which is usually somewhere else.**
 
 ## Documentation
 
