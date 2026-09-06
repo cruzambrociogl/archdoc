@@ -26,6 +26,9 @@ Phase,Work item,Type,Tier,Start,End,Days,Deliverable,Gate / acceptance,Status
 3. Sprint 1,Commit generated output into all three subjects as worked examples,Task,Committed,2026-09-06,2026-09-06,1,Three repositories documented by the tool,Every element traceable to file and line,Complete
 3. Sprint 1,Report outline and first branding,Task,Committed,2026-09-07,2026-09-11,5,"Report document started, sections mapped to sources; initial visual identity","Started, not finished",Planned
 3. Sprint 1,REVIEW 1 — it draws,Review,—,2026-09-11,2026-09-11,1,"Diagrams + docs for three subjects, previewed live",Milestone,Planned
+4. Sprint 2,Validator — every rule traceable to a failure seen in the draw.io experiment,Task,Committed,2026-09-14,2026-09-16,3,"A model is rejected with the offending operations named, never written partially",AC-4 — 100% of the fault-injection suite rejected,Planned
+4. Sprint 2,SQLite storage and versioning — one version per scan,Task,Committed,2026-09-16,2026-09-18,3,model.json plus history; every past version kept,"Rerunning answers what changed, not only what is",Planned
+4. Sprint 2,Rules — rules.yaml corrections that survive regeneration,Task,Committed,2026-09-21,2026-09-23,3,Hand corrections reapplied on every run rather than overwritten,AC-5 — 10 rules survive regeneration,Planned
 4. Sprint 2,Layout — compute positions once in the engine and store them per version,Task,Committed,2026-09-14,2026-09-15,2,Coordinates saved with each version so diagrams do not reshuffle,Positions stable across regeneration,Planned
 4. Sprint 2,C4 renderer — our own SVG drawn from the stored coordinates,Task,Committed,2026-09-15,2026-09-17,3,"C4 container diagram: boundaries, greyed external systems, protocol labels","Boundaries, external systems, protocol labels",Planned
 4. Sprint 2,Mermaid export — a portable diagram that needs no build step,Task,Committed,2026-09-06,2026-09-06,1,".mmd files alongside the markdown, for portability and diffing",Renders in a markdown preview,Complete
@@ -34,14 +37,17 @@ Phase,Work item,Type,Tier,Start,End,Days,Deliverable,Gate / acceptance,Status
 4. Sprint 2,Semantic layer — ask the model for labels and prose on top of facts it did not produce,Task,Committed,2026-09-21,2026-09-22,2,"Friendly names, one-line responsibilities, logical groupings, arc42 prose",Strict tool schemas validate,Planned
 4. Sprint 2,Egress reporting — account for every byte that leaves the machine,Task,Committed,2026-09-22,2026-09-22,1,Run log listing exactly what was transmitted; structure-only mode,AC-8 — zero file contents transmitted,Planned
 4. Sprint 2,"Web app — canvas, inspector, timeline, rules, docs preview, completeness, run reporting",Task,Committed,2026-09-21,2026-09-25,5,archdoc serve on localhost; clicking a box opens the file that proves it,Click box to source file,Planned
+4. Sprint 2,Report first draft and branding applied,Task,Committed,2026-09-14,2026-09-25,10,Draft sections written from brief.md's source map; visual identity applied,"Draft, not final",Planned
 4. Sprint 2,Review preparation,Task,Committed,2026-09-24,2026-09-24,1,Demo sequence and talking points,—,Planned
-4. Sprint 2,REVIEW 2 — it produces documentation without a language model,Review,—,2026-09-25,2026-09-25,1,"Generated docs for all subjects, shown with the model on and off","AC-2, AC-6, AC-8 passed — THE THESIS",Planned
+4. Sprint 2,REVIEW 2 — it produces documentation without a language model,Review,—,2026-09-25,2026-09-25,1,"Generated docs for all subjects, shown with the model on and off","AC-2, AC-4, AC-5 passed — THE THESIS",Planned
 5. Sprint 3,Gateway parsers — read Envoy and Kong routing tables as edges,Task,Committed,2026-09-28,2026-09-29,2,Gateway-to-service routes with their ports,7 gateway edges found in Supabase,Planned
 5. Sprint 3,Carry-over and hardening,Task,Committed,2026-09-29,2026-09-30,2,Sprint 2 remainder absorbed; known defects fixed,Buffer week — using it is not failure,Planned
+5. Sprint 3,Architectural diff between two commits,Task,Committed,2026-09-30,2026-10-01,2,"What appeared, what was removed and what changed between two revisions",AC-6 — 100% of the synthetic drift set,Planned
 5. Sprint 3,R1.c — three write surfaces sharing one write-safety design,Task,Stretch,2026-09-30,2026-10-01,2,"Chat refinement, editable canvas, answer surface","Hashing, conflict refusal, never-during-generation",Planned
 5. Sprint 3,R1.b — static analysis of application source,Task,Stretch,2026-10-01,2026-10-02,2,Intra-service call graph from source rather than config,Implementation-bound,Planned
 5. Sprint 3,R1.b — semantic clustering prototype against hand-built fixtures,Task,Not committed,2026-10-02,2026-10-02,1,Evidence about whether clustering is tractable; no shipped capability,Research-bound — no delivery date,Planned
 5. Sprint 3,CODE FREEZE,Milestone,—,2026-10-02,2026-10-02,1,R1.a feature-complete,No new capability after this date,Planned
 5. Sprint 3,Acceptance measurement — score all nine criteria against the three subjects,Task,Committed,2026-10-05,2026-10-07,3,A number for each criterion — including the ones that fall short,All nine criteria evaluated,Planned
 5. Sprint 3,"R1.a report — what was built, what each criterion scored, what was missed and why",Task,Committed,2026-10-07,2026-10-08,2,Written report treating shortfalls as findings rather than defects,Failures reported as findings,Planned
+5. Sprint 3,Presentation slides — built from the report rather than written fresh,Task,Committed,2026-10-08,2026-10-09,2,"Delivery deck, sourced from the report",Deck complete,Planned
 5. Sprint 3,REVIEW 3 + DELIVERY — R1.a presented,Review,—,2026-10-09,2026-10-09,1,Working tool + measured results + report,Milestone,Planned
