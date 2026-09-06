@@ -242,3 +242,43 @@ Mastodon is the case that proves the rule is doing real work: `web` binds `127.0
 localhost only. Honestly read, that declares *"expects a reverse proxy in front"* rather than
 *"a person talks to this directly"* — a distinction only available by reading what the file
 actually says.
+
+**2026-09-06 — Adviser feedback: bring visible output forward, add a second workstream**
+Five changes follow from a review conversation.
+
+*Scope may grow, but not this week.* The adviser confirmed AI-assisted implementation means
+scope can expand. Correct for the project; wrong for the next five days, where one finished
+visible artifact beats three partial ones.
+
+*Tangible output moves to the front.* A terminal table does not communicate what this project
+is. The cheapest path to a picture is **Mermaid**: text output, no layout engine, and GitHub
+renders it natively inside markdown. SVG, layout and stored coordinates stay where they were.
+The Friday target is a generated markdown file — diagram plus provenance table — committed into
+each test subject as a worked example.
+
+*The report and the presentation are graded deliverables*, and had no time allocated anywhere.
+They now have a workstream and an entry point, `brief.md`.
+
+*Two people, two tracks.* The split follows the package seams and meets at the FactSet — which
+§11 already defines as the contract between the deterministic and probabilistic halves. Using
+it as the contract between two people costs nothing, and lets the drawing side build against a
+fixture before real data exists.
+
+*The LLM waits.* The adviser asked for it; it is still deferred past Friday. The stronger
+demonstration is the diagram produced with **no model involved** — that is AC-2, the central
+claim — followed by the labelling layer afterwards. A half-wired API call would weaken the
+argument it was meant to strengthen.
+
+**2026-09-06 — One entry point per workstream, not one per audience**
+`brief.md` is to the design and report work what `CLAUDE.md` is to the code: a map, not a
+library. One file rather than separate brand and report documents, because two files means two
+things to keep current and two things to read.
+
+It carries only **identity** (name, tone, audience, metaphors — which rarely change) and
+**pointers** (where each fact already lives). No counts, dates or measured results, so there is
+never a second copy to drift. Rot resistance comes from the structure, not from discipline.
+
+The visual metaphors are drawn from the subject rather than from the category: **cartography**,
+because C4's own framing is maps and zoom, and **citation**, because every element carries the
+line that proves it. Both beat the generic architecture imagery of blueprints and gears.
+

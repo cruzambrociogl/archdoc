@@ -20,6 +20,7 @@ anything now false in an auto-loaded file.
 | New invariant — a rule that must hold in every session | `CLAUDE.md`, Hard rules. **Only if not derivable from the code** |
 | Orientation fact — where something lives, what loads when | `CLAUDE.md`. Keep it a pointer, never an explanation |
 | Technical note, gotcha, dialect discovered in a real repo | `docs/survey-test-subjects.md` if it is evidence about a subject; otherwise a `docs/` file |
+| Identity, tone, report structure, branding | `docs/brief.md` — identity and pointers only. A count, date or measured result belongs in the file that owns it |
 | Scope or schedule change | `docs/delivery-schedule.md` — **and flag its published mirrors**, listed at the top of that file. They do not update themselves, and a stale schedule shown to a supervisor is worse than none |
 | Product decision that changes what archdoc *is* | `docs/product-definition.md` — rare, and say so explicitly |
 | Open question raised or closed | `PROGRESS.md`, open questions table |

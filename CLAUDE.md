@@ -57,6 +57,7 @@ section for the task at hand and nothing else.
 | `.claude/NOTES.md` | Starting or ending a session — the inbox of unplanned items |
 | `docs/origin/` | Asking *why* the project is shaped this way, or "did we consider X?" — the ideation record, including discarded alternatives |
 | `docs/decisions.md` | Before revisiting anything that looks already-settled |
+| `docs/brief.md` | Working on the report, the presentation, or branding — **that workstream's entry point, not this file** |
 
 ---
 
