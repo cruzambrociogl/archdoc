@@ -164,7 +164,7 @@ hand-made FactSet fixture. Both tracks are then unblocked and neither waits.
 
 *Track B — output*
 - **Mermaid emitter** — the cheapest path to a visible diagram. Text, no layout engine, and
-  GitHub renders it natively inside markdown
+  any markdown preview renders it — VS Code's included
 - Generated markdown: the diagram plus a provenance table
 - **Both views** — container *and* context. Context is a projection over the same model, so it
   costs little once `evidence` is carried
@@ -173,7 +173,9 @@ hand-made FactSet fixture. Both tracks are then unblocked and neither waits.
 *Track B also starts the deliverables:* report outline and branding, from `brief.md`.
 
 > **Gate:** `archdoc generate` produces a container **and** a context diagram for all three
-> subjects, rendering on GitHub, every element traceable to a file and line.
+> subjects, rendering in a markdown preview, every element traceable to a file and line.
+>
+> **Met, 6 Sep.** All three subjects generated; five runs byte-identical on each.
 
 **Review 1, Fri 11 Sep — the claim:** *"It reads real production repositories and draws them,
 and every element points at the line that proves it."*
@@ -318,15 +320,20 @@ than deepening what it does for those it already serves.
 
 **What to show.**
 
-1. **`archdoc generate` on all three subjects** — container and context diagrams, generated,
-   committed, rendering on GitHub. Click from a box to the line that declares it.
-2. **Mastodon as the lead example.** It is the only subject with real external systems, so it is
-   the only one whose context diagram says anything.
+1. **`archdoc generate` on all three subjects** — container and context diagrams, generated
+   into each repository and previewed live in the editor. Read a citation off the table, open
+   that line, and the fact is there.
+2. **Supabase as the lead example.** It is the only subject with an external system, the only
+   one with an excluded gateway, and the only one where the difference between *declares a
+   dependency* and *declares that traffic flows* is visible. Mastodon was predicted to be the
+   interesting one and is not — its external systems are declared in a file the repository does
+   not contain, which is itself worth saying out loud.
 3. **`--explain`** — ten Compose files in Immich, four different systems, two that a filename
    glob misses. Discovery is a decision, and the tool shows its reasoning.
 4. **The report outline and first branding**, from `brief.md`.
-5. **The C4 mapping decisions** — why Supabase renders nine or ten containers rather than
-   eleven, and why the gateway is excluded.
+5. **The C4 mapping decisions** — why Supabase renders ten containers rather than eleven, why
+   the gateway is excluded, and why two arrows that a naive tool would draw through it are
+   absent: `depends_on` is start-up order, not routing.
 
 **What not to over-claim.** No validator, no stored versions, no diff, no language model. The
 diagram is produced from configuration alone — which is the point, not a shortfall.

@@ -95,4 +95,4 @@ Verification-bound items that AI assistance does not accelerate.
 
 | | Needed for | Status |
 |---|---|---|
-| Hand-drawn Immich reference architecture | AC-3 — it is the answer key | · scheduled 31 Aug – 11 Sep |
+| Hand-drawn Immich reference architecture | AC-3 — it is the answer key | · not on the calendar, by decision. Owned by Cruz, no date |
