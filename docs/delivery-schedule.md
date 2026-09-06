@@ -95,163 +95,136 @@ Immich and Supabase, results written up honestly including any criterion not met
 
 ## 3. Assumptions
 
-Stated so they can be corrected rather than silently relied on.
-
-1. **Reviews are fortnightly Fridays:** Aug 28 · Sep 11 · Sep 25 · Oct 9.
-2. **Claude Code writes the implementation.** The human work is deciding, directing,
-   reviewing and verifying — see §6.
-3. **Roughly two to three working sessions a week.** If the real budget differs materially,
-   the tier boundaries in §2 move before the dates do.
-4. **Go is being learned while building — but not written by hand.** This affects how fast
-   generated code can be *reviewed and understood*, not how fast it is produced. Week 0 is
-   light for that reason, not because implementation is slow.
-5. ~~Test subject #3 may stay unresolved.~~ **Closed 26 Aug — Mastodon**, chosen because
-   neither other subject declares a `networks:` block or references a genuine external
-   managed service (O-7, `decisions.md`).
+1. **Three graded checkpoints: 11 Sep · 25 Sep · 9 Oct.** All three are shown to the adviser.
+   The first is where the project has to stop being a terminal command and become something you
+   can look at.
+2. **Two people, one calendar.** Two tracks meeting at the FactSet; the schedule stays single so
+   neither drifts. See §4.1.
+3. **Implementation is not the constraint.** Claude Code writes it; the human work is deciding,
+   directing, reviewing and verifying. Estimates in this plan are set by decisions and review,
+   not by typing.
+4. **The report and the presentation are graded deliverables**, not by-products, and have their
+   own workstream. Entry point: `brief.md`.
+5. **9 October may not be the end.** The adviser has signalled a possible extension to late
+   November if progress is judged good. So 9 October optimises for **demonstrated capability**
+   rather than completeness, and §7 carries what would fill the extension.
 
 ---
 
 ## 4. The plan
 
-Four days, then three two-week sprints. **Each review makes a stronger claim than the last** —
-that arc is the point of the sequencing, not just a way to divide the work.
+Three two-week sprints, each ending at a **graded** checkpoint. Each review makes a stronger
+claim than the last, and the first has to be *visible*.
 
 ```
- Aug 24─28         Aug 31────Sep 11        Sep 14────Sep 25        Sep 28─────Oct 9
-  foundations        sprint 1                sprint 2                sprint 3
-       ▲REVIEW 1          ▲REVIEW 2               ▲REVIEW 3              ▲DELIVERY
-  "we know what      "it reads real          "it produces            "it is measured
-   we're building"    repositories"           documentation"          against all nine"
+ Aug 31────Sep 11        Sep 14────Sep 25        Sep 28─────Oct 9
+   sprint 1                sprint 2                sprint 3
+        ▲REVIEW 1               ▲REVIEW 2              ▲REVIEW 3 + DELIVERY
+   "it draws"              "it documents —         "measured, and
+                            without an LLM"         presented"
 ```
 
-### Week 0 · Aug 24 – 28 · Foundations
+### 4.1 Two tracks, one calendar
 
-| Day | Work |
-|---|---|
-| **Mon 24** | Agree this schedule. Install Go, `go mod init`. An hour or two on the language — enough to read what gets written |
-| **Tue 25** | **O-8 spike** — does file-and-line provenance survive the Compose merge? Load `docker-compose.kong.yml` and `container-compose-overrides.yml` through `compose-go` and inspect. Decides whether extraction is one pass or two |
-| **Wed 26** | Repository skeleton: package layout, CLI entry point, tests in CI. **O-7** decided or deferred |
-| **Thu 27** | *Stretch:* walking skeleton — `archdoc scan` printing Immich's services with provenance. Review preparation |
-| **Fri 28** | **Review 1** |
+The split follows the package seams and meets at the **FactSet** — which §11 already defines as
+the contract between the deterministic and probabilistic halves. Using it as the contract
+between two *people* costs nothing extra, and lets the drawing side build against a fixture
+before real data exists.
 
-> **Gate:** O-8 answered with evidence; `go test ./...` green in CI.
+```
+   TRACK A — FACTS                    TRACK B — OUTPUT + DELIVERABLES
+   internal/extract                   internal/render
+   internal/archdoc                   arc42 emitter · web app
+   edges · kinds · identity           report · slides · branding
+                    ↘   FactSet   ↙
+                     agreed first, mocked immediately
+```
 
-The walking skeleton is a stretch rather than a commitment — not because it is much work, but
-because Friday is four days out and a broken demo is worse than none. If it lands, show it.
+**Rules that stop this becoming two projects.** Neither track edits the other's packages.
+Changes to `internal/archdoc` — the shared types — are agreed before being made, since they
+break both sides. Both work on `develop`; merge often enough that conflicts stay small.
 
-> ### ✅ Week 0 outcome — recorded 27 Aug
->
-> **Gate met, and the stretch item landed.** Both open questions closed on evidence: O-8 with a
-> negative result that reshaped the extractor, O-7 against a measured criterion that ruled out
-> three candidates. Go 1.27, module, CLI, CI including an import check that enforces the
-> network boundary, and `archdoc scan` working on both subjects — Immich 4 services from 10
-> candidates, Supabase 11 from 15. Five consecutive scans byte-identical.
->
-> **How far ahead this puts us: less than it looks.** The skeleton is a thin slice — roughly
-> `DSC` 2 of 4, `EXT` 3 of 15, `PRV` 1 of 6. It extracts a name, an image and a line, and
-> nothing else: no ports, volumes, networks, `depends_on`, or environment-derived references.
-> Call it two days into Sprint 1's Week A, plus a stretch item banked. Not a week.
+Track ownership is not recorded per row. The calendar stays single; who takes a row is decided
+weekly.
 
-### Sprint 1 · Aug 31 – Sep 11 · It reads real repositories
+### 4.2 Sprint 1 · Aug 31 – Sep 11 · **It draws**
 
-The half of the product that cannot be faked, end to end.
+**The goal is a picture**, committed into a real repository, where every box cites the line that
+declares it.
 
-*Week A — extraction*
-- Discovery (`DSC`) — the multi-file problem the survey found: eight compose files in Immich,
-  fifteen in Supabase, `COMPOSE_FILE` in `.env` as the resolver
-- Compose and `.env` extraction via `compose-go`, carrying file and line
-- Identity registry (`MDL`) — service name vs `container_name` vs alias, which Supabase's
-  `realtime` proves is not optional
-- FactSet emitted as JSON, snapshot-tested
+*First, together:* settle `Node`, `Edge` and `kind` in `internal/archdoc`, and write one
+hand-made FactSet fixture. Both tracks are then unblocked and neither waits.
 
-*Week B — model and memory*
-- Model construction, boundaries, external systems by evidence kind
-- Validator (`VAL`), every rule traceable to a failure seen in the draw.io experiment
+*Track A — facts*
+- Edges from `depends_on` **and** from environment values carrying URLs
+- Node kinds, applying the derivation rule: applications and data stores become containers;
+  proxies, gateways and poolers stay in the model but leave the container view
+- Actors from published ports — declared evidence that something outside reaches in
+- Evidence kinds: declared versus referenced, which *is* the C4 system boundary
+
+*Track B — output*
+- **Mermaid emitter** — the cheapest path to a visible diagram. Text, no layout engine, and
+  GitHub renders it natively inside markdown
+- Generated markdown: the diagram plus a provenance table
+- **Both views** — container *and* context. Context is a projection over the same model, so it
+  costs little once `evidence` is carried
+- Committed into all three subjects as worked examples
+
+*Track B also starts the deliverables:* report outline and branding, from `brief.md`.
+
+> **Gate:** `archdoc generate` produces a container **and** a context diagram for all three
+> subjects, rendering on GitHub, every element traceable to a file and line.
+
+**Review 1, Fri 11 Sep — the claim:** *"It reads real production repositories and draws them,
+and every element points at the line that proves it."*
+
+*Deliberately not this sprint:* the LLM, SVG, layout, storage, the validator, the web app.
+
+### 4.3 Sprint 2 · Sep 14 – 25 · **It documents, and does so without an LLM**
+
+*Track A — trust*
+- Validator, every rule traceable to a failure seen in the draw.io experiment
 - SQLite storage and versioning; `model.json`
-- Rules (`RUL`) — load-bearing, since O-4 made them the primary mechanism for contract attachment
-- Architectural diff (`MEM`) between two commits
-- Thu 10: review preparation
+- Rules — `rules.yaml` corrections that survive regeneration
 
-> **Gates:** AC-7 — five consecutive scans of Supabase produce byte-identical FactSets.
+*Track B — polish and meaning*
+- Layout via `go-graphviz`, positions persisted per version; the C4 SVG renderer
+- Full arc42: twelve sections, the generated/human ownership boundary enforced
+- **Semantic layer** via the Anthropic API — names, responsibilities, groupings, prose
+- Report: first draft sections. Branding applied
+
+> **Gates:** **AC-2** — a container diagram renders and validates with the LLM **disabled**.
 > AC-4 — validator rejects 100% of a fault-injection suite. AC-5 — ten rules survive
-> regeneration from scratch.
+> regeneration.
 
-**Review 2, Fri Sep 11 — the claim:** *"It reads real production repositories, every fact
-points at the line that proves it, and it can tell you what changed between two commits."*
+**Review 2, Fri 25 Sep — the claim:** *"Here is the documentation with the language model on,
+and here is the same diagram with it switched off."*
 
-*In parallel, and not code:* **hand-draw the Immich reference architecture** — AC-3's answer
-key. Verification-bound work, so it does not compress. Scheduled now because nothing blocks
-it and it is otherwise remembered in October.
+That side-by-side **is** the thesis. It is the single most important demonstration in the
+project, and the honest answer to *"you used AI to build this."*
 
-### Sprint 2 · Sep 14 – 25 · It produces documentation
+### 4.4 Sprint 3 · Sep 28 – Oct 9 · **Measured, and presented**
 
-*Week A — rendering and output*
-- Layout via `go-graphviz`, positions persisted per version
-- The C4 SVG renderer — ours, drawing from stored coordinates — plus Mermaid export
-- arc42 output: twelve sections, fact-backed ones filled, the rest stubbed with contextual
-  questions; the generated/human file-ownership boundary enforced
-
-*Week B — meaning and the workbench*
-- Semantic layer (`SEM`) via `anthropic-sdk-go` with strict tool schemas — names,
-  descriptions, groupings, arc42 prose
-- Egress reporting and `structure-only` mode
-- **The web app** — canvas, inspector, version timeline, rules viewer, docs preview,
-  completeness view. Implementation-bound, and thin by design: it renders persisted
-  coordinates and holds no logic
-- Thu 24: review preparation
-
-> **Gates:** AC-2 — a container diagram renders and validates **with the LLM disabled**.
-> AC-6 — 100% of a synthetic drift set detected and classified. AC-8 — `structure-only`
-> transmits zero file contents.
-
-**Review 3, Fri Sep 25 — the claim:** *"It produces real architecture documentation, and it
-does so without a language model."* **This is the review that demonstrates the thesis** — AC-2
-is the central claim made visible.
-
-### Sprint 3 · Sep 28 – Oct 9 · It is measured, and it goes further
-
-*Week A — to code freeze, Fri 2 Oct*
-- Remaining gateway parsers; anything carried from sprint 2
-- **Stretch, in this order:** R1.c's three write surfaces (one shared safety design — content
-  hashing, conflict refusal, never-during-generation) → R1.b static analysis → a **clustering
-  prototype against hand-built fixtures**, which O-6 argues for doing early precisely because
-  it is unsolved
+*Track A — evidence*
+- Architectural diff between two commits
+- Acceptance measurement: nine criteria, three subjects
 - **Code freeze Friday 2 October**
 
-*Week B — measurement*
-- AC-1 provenance coverage · AC-3 against the hand-drawn reference · AC-9 performance
-- The R1.a report: what was built, what each criterion scored, what was missed and why
+*Track B — deliverables*
+- Report finalised: results, limitations, findings
+- Presentation slides, built from the report rather than written fresh
 
-> **Gate:** all nine criteria evaluated and written up. A criterion that failed is a finding,
-> not a hidden defect.
+> **Gate:** nine criteria evaluated and written up. A criterion that failed is a finding, not a
+> hidden defect.
 
-**Delivery, Fri Oct 9 — the claim:** *"Here is the result, measured against criteria written
-before the code existed."*
+**Review 3, Fri 9 Oct — the claim:** *"Measured against criteria written before the code
+existed — including what it cannot do, and why."*
 
-### Where a lead goes — and where it does not
+### 4.5 Mid-sprint self-checks
 
-Being ahead does not move the delivery date. **The reviews are fixed** — 11 Sep, 25 Sep,
-9 Oct — so time gained early cannot be spent by finishing sooner. It can only be spent on
-scope or on risk, and deciding which in advance is what stops it being absorbed invisibly.
-
-Pulling dates forward is explicitly **not** the answer: it manufactures slack that then
-disappears into whatever the current task happens to be.
-
-| Priority | Where it goes | Why |
-|---|---|---|
-| 1 | **Raise the current sprint's ambition** rather than end it early | Sprint 1's gate is AC-7, AC-4 and AC-5; AC-7 already holds on the walking skeleton. Edges (`MDL`) were Week B work — with the foundation in place, a first rendered diagram inside Sprint 1 becomes plausible |
-| 2 | **The web app's canvas and inspector** | Currently in the deferred tier. The two views that carry the click-to-source story |
-| 3 | **A clustering prototype against fixtures** | The only item that de-risks a phase not yet scheduled. O-6 argues for trying it early precisely because it is unsolved |
-| 4 | Remaining gateway parsers, exports, the deployment view | In the order §5 gives up |
-
-*Test subject #3 was on this list and is now closed — Mastodon, O-7.*
-
-### Mid-sprint self-checks
-
-Fortnightly reviews mean twice the room to drift before anyone notices. On the off Fridays —
-**Sep 4, Sep 18, Oct 2** — ten minutes against that sprint's gate. Not a meeting. AC-2, AC-4,
-AC-6 and AC-7 need no human judgement and no external subjects, so they answer *"is this
-actually working?"* at any moment without waiting for a review.
+On the off Fridays — **18 Sep, 2 Oct** — ten minutes against that sprint's gate. Not a meeting.
+AC-2, AC-4, AC-6 and AC-7 need no human judgement, so they answer *"is this actually working?"*
+at any moment.
 
 ---
 
@@ -301,7 +274,27 @@ keys first. It compiles, it passes casual testing, and it silently breaks AC-7.
 
 ---
 
-## 7. Risks
+## 7. If the extension happens — the November plan
+
+Written now and presented as **trajectory**, not as a request. Having it ready is part of what
+earns the extension.
+
+Roughly seven additional weeks would go, in priority order:
+
+| | Work | Why this order |
+|---|---|---|
+| 1 | **Build-manifest extraction** — `pom.xml`, `Cargo.toml`, `go.work`, workspaces | The largest reach for the least risk. Declared structure, language-agnostic, no clustering. Opens every Java, Rust and Node project that has no Compose file |
+| 2 | **R1.c — the three write surfaces** | One shared safety design; implementation-bound |
+| 3 | **Orchestrator manifests** — Kubernetes, Helm | Currently out of scope for want of a test subject. Would also make a real deployment diagram worth drawing |
+| 4 | **R1.b static analysis** | Per-language cost, so it starts with one ecosystem |
+| 5 | **Clustering prototype** | Research. Prototype against fixtures; no delivery date, ever |
+
+Item 1 is the strongest candidate: it is the only one that widens who can *use* the tool rather
+than deepening what it does for those it already serves.
+
+---
+
+## 8. Risks
 
 | Risk | Likelihood | Response |
 |---|---|---|
@@ -321,31 +314,22 @@ keys first. It compiles, it passes casual testing, and it silently breaks AC-7.
 
 ---
 
-## 8. This Friday, 28 August
+## 9. This Friday, 11 September
 
-**What to present.**
+**What to show.**
 
-1. **The three documents** — definition, survey, stack decision.
-2. **The research result.** Two production repositories read and measured. The findings that
-   a paper design would have missed: Immich declares none of its service connections in
-   configuration; Compose files need a specification-grade parser (`!override`, seven
-   variable forms, nesting); a naive file glob misses real config files — demonstrated by
-   the glob written for the survey missing two.
-3. **The stack decision**, with its rejected alternatives and the reason: a mishandled
-   Compose merge produces a *silently wrong* model, so the reference implementation belongs
-   on the fact path.
-4. **This schedule**, including the tiering in §2 and the AC-3 prediction in §7.
-5. **O-8's answer** — a research finding, which fits the phase: provenance does *not* survive
-   the Compose merge, so extraction is two passes.
-6. **A live demo.** `archdoc scan` on both subjects, and `--explain` showing discovery reject
-   the hwaccel fragments while finding the two `.devcontainer` files a filename glob misses —
-   including the glob written for the survey itself.
+1. **`archdoc generate` on all three subjects** — container and context diagrams, generated,
+   committed, rendering on GitHub. Click from a box to the line that declares it.
+2. **Mastodon as the lead example.** It is the only subject with real external systems, so it is
+   the only one whose context diagram says anything.
+3. **`--explain`** — ten Compose files in Immich, four different systems, two that a filename
+   glob misses. Discovery is a decision, and the tool shows its reasoning.
+4. **The report outline and first branding**, from `brief.md`.
+5. **The C4 mapping decisions** — why Supabase renders nine or ten containers rather than
+   eleven, and why the gateway is excluded.
 
-**What not to over-claim.** The scan reports a name, an image and a line. There are no edges,
-no model and no diagram. Say that plainly — it is four boxes and their sources, and it is the
-part everything else rests on.
+**What not to over-claim.** No validator, no stored versions, no diff, no language model. The
+diagram is produced from configuration alone — which is the point, not a shortfall.
 
-**The framing.** Four weeks produced a specification, an empirical survey and a technology
-decision; two weeks were lost to examinations; construction starts now against a schedule
-with named gates. That is a better account than four weeks of code without a plan — and it
-is what actually happened.
+**The line worth landing:** *"Every box on this diagram cites the file and line that proves it
+exists. Nothing here was inferred, and no model was involved in producing it."*
