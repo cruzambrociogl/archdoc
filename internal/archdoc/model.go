@@ -32,6 +32,28 @@ func (k Kind) container() bool {
 	return k == Application || k == Datastore || k == Queue
 }
 
+// rank orders kinds for output. Not alphabetical: a diagram reads better outside-in, and a
+// provenance table reads better the same way — who uses the system, what it is made of, what it
+// depends on. Alphabetical would put externals in the middle for no reason.
+func (k Kind) rank() int {
+	switch k {
+	case Actor:
+		return 0
+	case Application:
+		return 1
+	case Datastore:
+		return 2
+	case Queue:
+		return 3
+	case Proxy:
+		return 4
+	case External:
+		return 5
+	default:
+		return 6
+	}
+}
+
 // Node is one element of the model. Every node carries the line that proves it exists — a node
 // without known provenance must not be emitted (P1).
 type Node struct {
@@ -83,6 +105,18 @@ type Model struct {
 
 	Nodes []Node `json:"nodes"`
 	Edges []Edge `json:"edges"`
+}
+
+// Normalise puts a freshly built model into the shape every view expects: one edge per pair of
+// endpoints with its citations unioned, no self-edges, and a deterministic order throughout.
+//
+// A model is built by appending, so the same relationship can arrive twice — once from
+// depends_on and once from an environment URL naming the same host. Those are one relationship
+// with two citations.
+func (m Model) Normalise() Model {
+	m.Edges = dedupe(dropSelfEdges(m.Edges))
+	sortNodes(m.Nodes)
+	return m
 }
 
 // Node returns the node with the given ID.
@@ -299,7 +333,7 @@ func less(a, b Provenance) bool {
 func sortNodes(ns []Node) {
 	sort.Slice(ns, func(i, j int) bool {
 		if ns[i].Kind != ns[j].Kind {
-			return ns[i].Kind < ns[j].Kind
+			return ns[i].Kind.rank() < ns[j].Kind.rank()
 		}
 		return ns[i].ID < ns[j].ID
 	})

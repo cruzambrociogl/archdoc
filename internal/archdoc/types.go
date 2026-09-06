@@ -95,6 +95,11 @@ type Endpoint struct {
 type FactSet struct {
 	Root string `json:"root"` // absolute path to the repository that was scanned
 
+	// Name is the system being documented — Compose's own project name where the file
+	// declares one, and the repository's directory otherwise. It is what the context view
+	// puts on the box that everything declared collapses into.
+	Name string `json:"name"`
+
 	// Source is the compose file discovery selected, repository-relative.
 	Source string `json:"source"`
 

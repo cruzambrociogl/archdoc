@@ -49,7 +49,7 @@ func Scan(root string) (*archdoc.FactSet, error) {
 		return nil, fmt.Errorf("discovery: %w", err)
 	}
 
-	fs := &archdoc.FactSet{Root: abs, Considered: candidates}
+	fs := &archdoc.FactSet{Root: abs, Name: filepath.Base(abs), Considered: candidates}
 
 	chosen := ""
 	for _, c := range candidates {
@@ -65,28 +65,34 @@ func Scan(root string) (*archdoc.FactSet, error) {
 
 	fs.Source = chosen
 
-	services, err := extractServices(abs, chosen)
+	services, name, err := extractServices(abs, chosen)
 	if err != nil {
 		return nil, fmt.Errorf("extracting %s: %w", chosen, err)
 	}
 	fs.Services = services
 
+	// Compose's own project name beats the directory: it is declared rather than incidental.
+	if name != "" {
+		fs.Name = name
+	}
+
 	return fs, nil
 }
 
-// extractServices runs both passes over one Compose file and reconciles them.
-func extractServices(root, rel string) ([]archdoc.Service, error) {
+// extractServices runs both passes over one Compose file and reconciles them. It also returns
+// the project name the file declares, if any.
+func extractServices(root, rel string) ([]archdoc.Service, string, error) {
 	path := filepath.Join(root, rel)
 
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// Pass 1 — semantics. compose-go applies interpolation and the Compose merge rules.
 	model, err := loadModel(path, content, filepath.Dir(path))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	// Pass 2 — positions. The raw document, addressable by key path.
@@ -115,7 +121,9 @@ func extractServices(root, rel string) ([]archdoc.Service, error) {
 	// consecutive scans to produce byte-identical output.
 	sort.Slice(services, func(i, j int) bool { return services[i].Name < services[j].Name })
 
-	return services, nil
+	name, _ := model["name"].(string)
+
+	return services, name, nil
 }
 
 // loadModel runs compose-go's merge and interpolation and returns the merged document as a
