@@ -18,24 +18,28 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │  1  DISCOVER   which file is the architecture?   │ ✅
    │                10 candidates → 1 chosen          │
    │                                                  │
-   │  2  EXTRACT    read it, twice                    │ 🟡
+   │  2  EXTRACT    read it, twice                    │ ✅
    │                compose-go → what is true         │
    │                yaml.v3    → what line said it    │
    │                          ↓                       │
    │                      FACTSET                     │
-   │            services · edges · file:line          │
+   │       services · depends_on · ports · endpoints  │
+   │              every one with file:line            │
    │        ── everything below is derived ──         │
    │                                                  │
-   │  3  REFINE     your rules.yaml corrections       │ ⬜
+   │  3  DERIVE     facts → one graph                 │ ✅
+   │                kinds · edges · actors · external │
    │                                                  │
-   │  4  LABEL      ← the LLM, and only here          │ ⬜
+   │  4  REFINE     your rules.yaml corrections       │ ⬜
+   │                                                  │
+   │  5  LABEL      ← the LLM, and only here          │ ⬜
    │                names, descriptions, groupings    │
    │                                                  │
-   │  5  VALIDATE   reject contradictions             │ ⬜
+   │  6  VALIDATE   reject contradictions             │ ⬜
    │                                                  │
-   │  6  STORE      one version per scan  (SQLite)    │ ⬜
+   │  7  STORE      one version per scan  (SQLite)    │ ⬜
    │                                                  │
-   │  7  RENDER     positions once, then draw         │ ⬜
+   │  8  RENDER     Mermaid ✅ · SVG + layout ⬜      │ 🟡
    └──────────────────────────────────────────────────┘
                           │
                           ▼
@@ -55,7 +59,7 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
 
 ## Three properties the shape encodes
 
-**Only step 4 touches the network.** Everything else is local computation. Remove the model
+**Only step 5 touches the network.** Everything else is local computation. Remove the model
 entirely and you still get a correct, complete, traceable diagram — just with duller labels.
 This is enforced rather than promised: CI fails if any package outside `internal/semantic`
 imports an HTTP client.
@@ -64,7 +68,7 @@ imports an HTTP client.
 from a file and carries the line that declared it. Below it, everything is derived *from* those
 facts. Nothing invents a box.
 
-**It stays true.** Step 6 keeps every past version, so running it again after new commits
+**It stays true.** Step 7 keeps every past version, so running it again after new commits
 answers *"this service appeared, this connection is new"* rather than producing a fresh
 picture with no memory.
 
@@ -118,7 +122,7 @@ existence.
 differently:
 
 ```
-node.kind      application | datastore | queue | proxy | external | actor
+node.kind      application | datastore | queue | proxy | external | actor | system
 node.evidence  declared | referenced
 node.parent    which container it lives inside   (empty until level 3)
 ```
@@ -151,17 +155,37 @@ Two consequences worth knowing:
   technology choice is what the catalog is for
 - **Excluding the gateway reveals the real edges.** With everything routed through a proxy, a
   diagram looks hub-and-spoke and hides the actual couplings
+- **But only where the evidence says traffic flows.** Relationships through an excluded proxy
+  are reconnected to their real endpoints and cite both hops — unless both hops came from
+  `depends_on`, which records start-up order and not routing. Supabase makes the difference
+  visible: `api-gw` waits for `studio` to be healthy, and reading that as "users reach studio"
+  would draw an arrow the file never declared. The real routes are in the gateway's own
+  configuration, which is `MDL-03` and a source archdoc does not read yet
 
 ### What that means for the three test subjects
 
 | | Services | Containers | Notes |
 |---|---|---|---|
 | **Immich** | 4 | **4** | Nothing excluded. Boxes gain technology labels instead of image digests |
-| **Mastodon** | 5 | **5** | Plus three *referenced* external systems — S3, mail, Elasticsearch — so it is the only subject with a meaningful **context** diagram |
-| **Supabase** | 11 | **9–10** | `api-gw` excluded as a proxy. `supavisor`, a connection pooler, is a genuine judgement call — exactly the case `rules.yaml` exists to settle |
+| **Mastodon** | 5 | **5** | Nothing excluded |
+| **Supabase** | 11 | **10** | `api-gw` excluded as a proxy. `supavisor`, a connection pooler, is a genuine judgement call — exactly the case `rules.yaml` exists to settle, and it is currently drawn as a container |
 
-Immich and Supabase produce a nearly empty context diagram: their own box, alone. That is
-honest — neither declares a real external dependency.
+**Measured, 6 Sep.** The prediction above was right about containers and wrong about which
+subject has a context diagram worth looking at:
+
+- **Supabase** is the only one with an external system — `supabase-mail`, from
+  `GOTRUE_SMTP_HOST`. It is also the only subject that puts its environment *in* the Compose
+  file
+- **Mastodon** was expected to be the interesting one, for S3, mail and Elasticsearch. Those are
+  real, and they are declared in `.env.production.sample` — a file the compose file references
+  through `env_file` and which does not exist in the repository. Not a modelling failure: the
+  evidence is in a source archdoc does not yet read
+- **Immich** is the same case, and additionally its `immich-machine-learning` service has **no
+  edges at all**. Every service reaches it over a URL built at runtime. That is §3's finding
+  drawn as a picture: configuration declares what exists, not what talks to what
+
+The pattern is one line: **the container view is as good as the compose file; the context view
+is as good as the environment**, and the environment is usually somewhere else.
 
 ---
 
@@ -171,11 +195,12 @@ honest — neither declares a real external dependency.
 |---|---|---|
 | 1 Discover | `internal/extract` | Content-sniff for recall, reject fragments for precision |
 | 2 Extract | `internal/extract` | Two passes — O-8 established that positions do not survive the merge |
-| 3 Refine | *not yet* | `rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment |
-| 4 Label | `internal/semantic` | The only package permitted outbound calls |
-| 5 Validate | *not yet* | Every rule traceable to a failure seen in the draw.io experiment |
-| 6 Store | `internal/store` | SQLite behind a driver interface |
-| 7 Render | `internal/render` | Layout once in the engine, stored per version; the web canvas draws saved coordinates |
+| 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws |
+| 4 Refine | *not yet* | `rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment |
+| 5 Label | `internal/semantic` | The only package permitted outbound calls |
+| 6 Validate | *not yet* | Every rule traceable to a failure seen in the draw.io experiment |
+| 7 Store | `internal/store` | SQLite behind a driver interface |
+| 8 Render | `internal/render` | Mermaid today. Layout and SVG come with sprint 2 |
 
 ## Two ways in, one engine
 
@@ -188,6 +213,9 @@ The web app holds no logic — it renders what the engine already computed. That
 the two surfaces from drifting into two implementations.
 
 ---
+
+**Try it:** `archdoc generate <path-to-a-repo>` writes both diagrams and their evidence into
+`docs/architecture/` in that repository.
 
 **Read next:** `product-definition.md` §11 for the pipeline in full, §8 for what lands on disk,
 and `stack-decision.md` §2.3 for what each library does.

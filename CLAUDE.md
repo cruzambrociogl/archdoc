@@ -4,7 +4,8 @@ Reads an existing codebase and produces the architecture documentation it should
 accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
 web app, one static binary.
 
-**Phase:** R1.a, pre-construction. No implementation code yet.
+**Phase:** R1.a, sprint 1. `archdoc generate` draws a context and a container diagram for any
+repository with a Compose file, every element citing the line that declares it.
 **Target:** feature-complete 2 Oct 2026, delivered 9 Oct 2026.
 
 ---
@@ -96,8 +97,9 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 
 | Package | Seam |
 |---|---|
-| `internal/archdoc` | Core types — `Fact`, `Provenance`, `FactSet`, `Node`, `Edge`, `Model`, `Version` |
+| `internal/archdoc` | Core types, and the view projections over them |
 | `internal/extract` | Discovery + the parser registry |
+| `internal/model` | Facts → graph. Kinds, edges, actors, the image catalog |
 | `internal/store` | Storage interface + SQLite driver |
 | `internal/semantic` | The network boundary |
 | `internal/render` | Layout, SVG, Mermaid |
