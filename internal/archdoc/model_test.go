@@ -25,10 +25,10 @@ func fixture() Model {
 			{ID: "ext:s3.amazonaws.com", Name: "s3.amazonaws.com", Kind: External, Evidence: Referenced, Prov: at(14)},
 		},
 		Edges: []Edge{
-			{From: "actor:user", To: "svc:gateway", Label: "visits", Prov: []Provenance{at(20)}},
-			{From: "svc:gateway", To: "svc:api", Label: "routes to", Prov: []Provenance{at(5)}},
-			{From: "svc:api", To: "svc:db", Label: "reads from", Technology: "postgres", Prov: []Provenance{at(11)}},
-			{From: "svc:api", To: "ext:s3.amazonaws.com", Label: "stores in", Technology: "https", Prov: []Provenance{at(14)}},
+			{From: "actor:user", To: "svc:gateway", Label: "visits", Traffic: true, Prov: []Provenance{at(20)}},
+			{From: "svc:gateway", To: "svc:api", Label: "routes to", Traffic: true, Prov: []Provenance{at(5)}},
+			{From: "svc:api", To: "svc:db", Label: "reads from", Technology: "postgres", Traffic: true, Prov: []Provenance{at(11)}},
+			{From: "svc:api", To: "ext:s3.amazonaws.com", Label: "stores in", Technology: "https", Traffic: true, Prov: []Provenance{at(14)}},
 		},
 	}
 }
@@ -74,6 +74,27 @@ func TestContainerViewBridgesThroughProxy(t *testing.T) {
 		}
 		if len(e.Prov) != 2 {
 			t.Fatalf("bridged edge should cite both hops, got %v", e.Prov)
+		}
+	}
+}
+
+// The bridge needs evidence that traffic flows, not merely that one service starts before
+// another. This is the case Supabase produces: a gateway that depends_on an admin console does
+// not thereby route users to it, and drawing that arrow would claim something the file never
+// said. Where the evidence stops, so does the arrow — the route lives in the gateway's own
+// configuration, which is MDL-03 and not a source archdoc reads yet.
+func TestBridgeRefusesStartOrderEvidence(t *testing.T) {
+	m := fixture()
+	for i := range m.Edges {
+		if m.Edges[i].From == "svc:gateway" {
+			m.Edges[i].Traffic = false // depends_on, not a configured upstream
+			m.Edges[i].Label = "depends on"
+		}
+	}
+
+	for _, e := range m.Container().Edges {
+		if e.From == "actor:user" && e.To == "svc:api" {
+			t.Fatal("bridged a route across start-order evidence")
 		}
 	}
 }

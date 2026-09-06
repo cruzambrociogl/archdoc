@@ -82,6 +82,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 				To:         to,
 				Label:      "connects to",
 				Technology: e.Scheme,
+				Traffic:    true,
 				Prov:       []archdoc.Provenance{e.Prov},
 			})
 		}
@@ -99,10 +100,11 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 				}
 			}
 			m.Edges = append(m.Edges, archdoc.Edge{
-				From:  actorID,
-				To:    from,
-				Label: "reaches",
-				Prov:  []archdoc.Provenance{p.Prov},
+				From:    actorID,
+				To:      from,
+				Label:   "reaches",
+				Traffic: true,
+				Prov:    []archdoc.Provenance{p.Prov},
 			})
 		}
 	}

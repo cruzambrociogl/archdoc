@@ -20,6 +20,9 @@ const (
 	Proxy Kind = "proxy"
 	// External is a system this repository points at but does not define.
 	External Kind = "external"
+	// System is the whole thing under documentation, collapsed into one box. It exists only
+	// in the context view, where everything declared becomes a single element.
+	System Kind = "system"
 	// Actor is a person or system outside the boundary that reaches in.
 	Actor Kind = "actor"
 )
@@ -39,7 +42,7 @@ func (k Kind) rank() int {
 	switch k {
 	case Actor:
 		return 0
-	case Application:
+	case System, Application:
 		return 1
 	case Datastore:
 		return 2
@@ -86,6 +89,15 @@ type Edge struct {
 
 	// Technology is how, when the configuration says so — a URL scheme, a known port.
 	Technology string `json:"technology,omitempty"`
+
+	// Traffic distinguishes two kinds of evidence that look alike and are not.
+	//
+	// An endpoint or a published port says something *flows*: a host was configured, so it is
+	// reached. depends_on says only that one service starts before another. Both are worth
+	// drawing, but only the first justifies reasoning about a path — bridging a route through
+	// an excluded gateway on start-order evidence invents a relationship the file never
+	// declared.
+	Traffic bool `json:"traffic,omitempty"`
 
 	// Prov is plural because one relationship can be attested more than once: declared in
 	// depends_on *and* named by an environment URL. It also lets an edge derived by bridging
@@ -156,7 +168,7 @@ func (m Model) Context() Model {
 	system := Node{
 		ID:       "system",
 		Name:     m.Name,
-		Kind:     Application,
+		Kind:     System,
 		Evidence: Declared,
 	}
 
@@ -240,19 +252,28 @@ func bridge(edges []Edge, keep map[string]bool) []Edge {
 	}
 
 	// Then, for every dropped node, join what reaches it to what it reaches.
+	//
+	// Both hops must carry traffic. A path made of start-order evidence is not a path: a
+	// gateway that depends_on an admin console does not thereby route users to it, and
+	// bridging on that evidence would draw a relationship the file never declared. Routes
+	// live in the gateway's own configuration, which is MDL-03 and a source archdoc does not
+	// yet read — so where the evidence stops, so does the arrow.
 	for _, a := range edges {
-		if keep[a.To] {
+		if keep[a.To] || !a.Traffic {
 			continue
 		}
 		for _, b := range edges {
-			if b.From != a.To || !keep[b.To] || !keep[a.From] {
+			if b.From != a.To || !keep[b.To] || !keep[a.From] || !b.Traffic {
 				continue
 			}
+			// The label is the first hop's: this is a's relationship, extended past the
+			// infrastructure in the way rather than b's relationship re-attributed.
 			out = append(out, Edge{
 				From:       a.From,
 				To:         b.To,
-				Label:      b.Label,
-				Technology: b.Technology,
+				Label:      firstNonEmpty(a.Label, b.Label),
+				Technology: firstNonEmpty(b.Technology, a.Technology),
+				Traffic:    true,
 				Prov:       append(append([]Provenance{}, a.Prov...), b.Prov...),
 			})
 		}
@@ -286,12 +307,17 @@ func dedupe(edges []Edge) []Edge {
 			continue
 		}
 		out[i].Prov = append(out[i].Prov, e.Prov...)
-		if out[i].Label == "" {
+		out[i].Technology = firstNonEmpty(out[i].Technology, e.Technology)
+
+		// The stronger evidence names the relationship. Where depends_on and a configured
+		// endpoint describe the same pair, "connects to postgres" is what the reader needs;
+		// "depends on" would be true and would waste the better fact.
+		if e.Traffic && !out[i].Traffic {
+			out[i].Label = e.Label
+		} else if out[i].Label == "" {
 			out[i].Label = e.Label
 		}
-		if out[i].Technology == "" {
-			out[i].Technology = e.Technology
-		}
+		out[i].Traffic = out[i].Traffic || e.Traffic
 	}
 
 	for i := range out {
@@ -319,6 +345,13 @@ func dedupeProv(ps []Provenance) []Provenance {
 	}
 	sort.Slice(out, func(i, j int) bool { return less(out[i], out[j]) })
 	return out
+}
+
+func firstNonEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }
 
 func less(a, b Provenance) bool {

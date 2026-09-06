@@ -25,6 +25,11 @@ func facts() *archdoc.FactSet {
 				Name: "gateway", Image: "nginx:1.27", Evidence: archdoc.Declared, Prov: at(3),
 				Ports:     []archdoc.Port{{Published: "80", Target: 80, Prov: at(5)}},
 				DependsOn: []archdoc.Dependency{{Service: "api", Prov: at(7)}},
+				// The gateway is configured with an upstream, so there is evidence that
+				// traffic flows through it and not merely that it starts second.
+				Endpoints: []archdoc.Endpoint{
+					{Var: "UPSTREAM_URL", Scheme: "http", Host: "api", Port: 8080, Prov: at(8)},
+				},
 			},
 			{
 				Name: "api", Image: "example/api:2.1", Evidence: archdoc.Declared, Prov: at(10),

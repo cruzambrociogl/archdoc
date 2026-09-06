@@ -24,12 +24,16 @@ usage:
   archdoc <command> [flags]
 
 commands:
-  scan <path>    extract services from a repository's configuration
-  version        print build information
+  scan <path>      extract services from a repository's configuration
+  generate <path>  write C4 diagrams and their evidence into the repository
+  version          print build information
 
 flags for scan:
-  --json         emit the FactSet as JSON instead of a table
-  --explain      show every file discovery considered, and why
+  --json           emit the FactSet as JSON instead of a table
+  --explain        show every file discovery considered, and why
+
+flags for generate:
+  --stdout         print the document instead of writing files
 `
 
 func main() {
@@ -48,6 +52,9 @@ func run(args []string, out io.Writer) error {
 	switch cmd := args[0]; cmd {
 	case "scan":
 		return scan(args[1:], out)
+
+	case "generate":
+		return generate(args[1:], out)
 
 	case "version":
 		fmt.Fprintln(out, archdoc.Build())
