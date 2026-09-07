@@ -37,9 +37,22 @@ func Mermaid(m archdoc.Model, group bool) string {
 
 	if len(inside) > 0 {
 		fmt.Fprintf(&b, "\n    subgraph boundary[%q]\n", m.Name)
-		for _, n := range inside {
-			fmt.Fprintf(&b, "        %s\n", node(ids[n.ID], n))
+
+		if groups := boundaries(m, inside); groups != nil {
+			// Networks nest, so the boundary does too: the reader sees which containers a
+			// declared network can and cannot reach.
+			for _, n := range ungrouped(inside) {
+				fmt.Fprintf(&b, "        %s\n", node(ids[n.ID], n))
+			}
+			for _, g := range groups {
+				writeGroup(&b, g, ids, 2)
+			}
+		} else {
+			for _, n := range inside {
+				fmt.Fprintf(&b, "        %s\n", node(ids[n.ID], n))
+			}
 		}
+
 		b.WriteString("    end\n")
 	}
 
@@ -61,6 +74,34 @@ func Mermaid(m archdoc.Model, group bool) string {
 	b.WriteString(styles(m, ids))
 
 	return b.String()
+}
+
+// writeGroup renders one network boundary and everything nested inside it.
+//
+// An empty group is skipped rather than drawn: two networks with identical membership put every
+// node in one of them, and an empty box on a diagram reads as a missing element.
+func writeGroup(b *strings.Builder, g *group, ids map[string]string, depth int) {
+	if len(g.Nodes) == 0 && len(g.Children) == 0 {
+		return
+	}
+
+	pad := strings.Repeat("    ", depth)
+
+	label := escape(g.Name)
+	if g.Internal {
+		// Compose's own `internal: true`. Worth saying on the diagram, because it is the one
+		// reachability claim the configuration makes rather than implies.
+		label += "<br/>[no external connectivity]"
+	}
+
+	fmt.Fprintf(b, "%ssubgraph net_%s[%q]\n", pad, sanitise(g.Name), label)
+	for _, n := range g.Nodes {
+		fmt.Fprintf(b, "%s    %s\n", pad, node(ids[n.ID], n))
+	}
+	for _, child := range g.Children {
+		writeGroup(b, child, ids, depth+1)
+	}
+	fmt.Fprintf(b, "%send\n", pad)
 }
 
 // partition splits nodes into those inside the system boundary and those outside it. Actors and

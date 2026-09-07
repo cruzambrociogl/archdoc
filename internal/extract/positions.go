@@ -20,6 +20,7 @@ type servicePos struct {
 	Decl      archdoc.Provenance
 	DependsOn map[string]archdoc.Provenance
 	Env       map[string]archdoc.Provenance
+	Nets      map[string]archdoc.Provenance
 	Ports     []archdoc.Provenance
 }
 
@@ -39,6 +40,7 @@ func (s servicePos) at(m map[string]archdoc.Provenance, key string) archdoc.Prov
 
 func (s servicePos) dependency(name string) archdoc.Provenance { return s.at(s.DependsOn, name) }
 func (s servicePos) env(name string) archdoc.Provenance        { return s.at(s.Env, name) }
+func (s servicePos) network(name string) archdoc.Provenance    { return s.at(s.Nets, name) }
 
 func (s servicePos) port(i int) archdoc.Provenance {
 	if i < len(s.Ports) && s.Ports[i].Known() {
@@ -68,6 +70,7 @@ func readPositions(content []byte, rel string) map[string]servicePos {
 			Decl:      provOf(rel, key),
 			DependsOn: map[string]archdoc.Provenance{},
 			Env:       map[string]archdoc.Provenance{},
+			Nets:      map[string]archdoc.Provenance{},
 		}
 
 		if body.Kind == yaml.MappingNode {
@@ -75,6 +78,7 @@ func readPositions(content []byte, rel string) map[string]servicePos {
 			// scalars, or a mapping. Compose accepts both, so both must be located.
 			readNames(rel, lookup(body, "depends_on"), pos.DependsOn)
 			readNames(rel, lookup(body, "environment"), pos.Env)
+			readNames(rel, lookup(body, "networks"), pos.Nets)
 			pos.Ports = readSequence(rel, lookup(body, "ports"))
 		}
 

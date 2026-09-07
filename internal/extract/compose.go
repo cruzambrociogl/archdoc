@@ -12,6 +12,7 @@ import (
 	"github.com/compose-spec/compose-go/v2/loader"
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 )
@@ -65,11 +66,12 @@ func Scan(root string) (*archdoc.FactSet, error) {
 
 	fs.Source = chosen
 
-	services, name, err := extractServices(abs, chosen)
+	services, name, nets, err := extractServices(abs, chosen)
 	if err != nil {
 		return nil, fmt.Errorf("extracting %s: %w", chosen, err)
 	}
 	fs.Services = services
+	fs.Networks = nets
 
 	// Compose's own project name beats the directory: it is declared rather than incidental.
 	if name != "" {
@@ -80,19 +82,19 @@ func Scan(root string) (*archdoc.FactSet, error) {
 }
 
 // extractServices runs both passes over one Compose file and reconciles them. It also returns
-// the project name the file declares, if any.
-func extractServices(root, rel string) ([]archdoc.Service, string, error) {
+// the project name the file declares, if any, and the networks it declares.
+func extractServices(root, rel string) ([]archdoc.Service, string, []archdoc.Network, error) {
 	path := filepath.Join(root, rel)
 
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, err
 	}
 
 	// Pass 1 — semantics. compose-go applies interpolation and the Compose merge rules.
 	model, err := loadModel(path, content, filepath.Dir(path))
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, err
 	}
 
 	// Pass 2 — positions. The raw document, addressable by key path.
@@ -113,7 +115,8 @@ func extractServices(root, rel string) ([]archdoc.Service, string, error) {
 			Prov:      pos.Decl,
 			DependsOn: dependencies(svc["depends_on"], pos),
 			Ports:     ports(svc["ports"], pos),
-			Endpoints: endpoints(envValues(svc["environment"]), pos),
+			Endpoints: endpoints(serviceEnv(svc, pos, root, rel)),
+			Networks:  networks(svc["networks"], pos),
 		})
 	}
 
@@ -123,7 +126,41 @@ func extractServices(root, rel string) ([]archdoc.Service, string, error) {
 
 	name, _ := model["name"].(string)
 
-	return services, name, nil
+	return services, name, declaredNetworks(model["networks"], content, rel), nil
+}
+
+// declaredNetworks reads the top-level networks block.
+//
+// Compose's own `internal: true` is the one trust boundary a configuration file states outright
+// rather than implies — a network with no outbound external connectivity. MDL-11 records
+// declared boundaries only, and this is what "declared" looks like.
+func declaredNetworks(v any, content []byte, rel string) []archdoc.Network {
+	nets, ok := v.(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	positions := map[string]archdoc.Provenance{}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(stripComposeTags(content), &doc); err == nil {
+		readNames(rel, lookup(&doc, "networks"), positions)
+	}
+
+	names := make([]string, 0, len(nets))
+	for k := range nets {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+
+	out := make([]archdoc.Network, 0, len(names))
+	for _, n := range names {
+		net := archdoc.Network{Name: n, Prov: positions[n]}
+		if cfg, ok := nets[n].(map[string]any); ok {
+			net.Internal, _ = cfg["internal"].(bool)
+		}
+		out = append(out, net)
+	}
+	return out
 }
 
 // loadModel runs compose-go's merge and interpolation and returns the merged document as a

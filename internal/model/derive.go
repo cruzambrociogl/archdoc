@@ -19,7 +19,7 @@ const actorID = "actor:user"
 // Derive builds the model from a FactSet. One model — the C4 levels are projections over it,
 // not separate derivations.
 func Derive(f *archdoc.FactSet) archdoc.Model {
-	m := archdoc.Model{Name: f.Name, Source: f.Source}
+	m := archdoc.Model{Name: f.Name, Source: f.Source, Networks: f.Networks}
 
 	declared := make(map[string]bool, len(f.Services))
 	for _, s := range f.Services {
@@ -28,12 +28,19 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 
 	for _, s := range f.Services {
 		kind, tech := classify(s.Image)
+
+		nets := make([]string, 0, len(s.Networks))
+		for _, n := range s.Networks {
+			nets = append(nets, n.Name)
+		}
+
 		m.Nodes = append(m.Nodes, archdoc.Node{
 			ID:         serviceID(s.Name),
 			Name:       s.Name,
 			Kind:       kind,
 			Technology: tech,
 			Evidence:   archdoc.Declared,
+			Networks:   nets,
 			Prov:       s.Prov,
 		})
 	}

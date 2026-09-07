@@ -1,0 +1,33 @@
+# A fixture for network boundaries. The shape is Mastodon's: one network that every service
+# joins, and a second that only the externally-reachable ones join, so the memberships nest.
+# `orphan` joins neither, which a file is allowed to do.
+
+name: networks
+
+services:
+  web:
+    image: example/web:1.0
+    ports:
+      - '80:80'
+    networks:
+      - frontend
+      - backend
+
+  worker:
+    image: example/worker:1.0
+    networks:
+      - frontend
+      - backend
+
+  db:
+    image: postgres:16
+    networks:
+      - backend
+
+  orphan:
+    image: example/orphan:1.0
+
+networks:
+  frontend:
+  backend:
+    internal: true

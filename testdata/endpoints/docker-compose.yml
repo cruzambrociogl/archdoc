@@ -33,5 +33,12 @@ services:
       - 'POSTGRES_HOST_AUTH_METHOD=trust'
       - 'POSTGRES_PASSWORD=hunter2'
 
+  worker:
+    image: example/worker:1.0
+    env_file:
+      - worker.env
+    environment:
+      SEARCH_HOST: overridden-by-compose
+
   cache:
     image: redis:7

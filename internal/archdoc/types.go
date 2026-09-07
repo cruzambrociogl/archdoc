@@ -59,6 +59,28 @@ type Service struct {
 
 	// Endpoints are network locations named in this service's environment (MDL-04).
 	Endpoints []Endpoint `json:"endpoints,omitempty"`
+
+	// Networks this service is attached to (MDL-09). Membership is a declared boundary: two
+	// services on no common network cannot reach each other, whatever else the file says.
+	Networks []NetworkRef `json:"networks,omitempty"`
+}
+
+// NetworkRef is one service's membership of one network.
+type NetworkRef struct {
+	Name string     `json:"name"`
+	Prov Provenance `json:"provenance"`
+}
+
+// Network is a network the file declares, and what it declares about it.
+type Network struct {
+	Name string `json:"name"`
+
+	// Internal is Compose's own `internal: true` — the network has no outbound external
+	// connectivity. It is the one trust boundary configuration states outright, so MDL-11
+	// can record it without inferring anything.
+	Internal bool `json:"internal,omitempty"`
+
+	Prov Provenance `json:"provenance"`
 }
 
 // Dependency is one entry of a service's depends_on.
@@ -108,6 +130,9 @@ type FactSet struct {
 	Considered []Candidate `json:"considered"`
 
 	Services []Service `json:"services"`
+
+	// Networks the file declares at the top level, in name order.
+	Networks []Network `json:"networks,omitempty"`
 }
 
 // Candidate is a file discovery looked at, and what it decided about it.

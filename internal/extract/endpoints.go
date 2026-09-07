@@ -26,7 +26,7 @@ var notAHost = map[string]bool{
 // This is the only part of the environment that survives into the FactSet. Everything else —
 // passwords, JWT secrets, API keys, all four of which sit in plain sight in the subjects — is
 // read and discarded here, so nothing downstream has to remember to redact it.
-func endpoints(env map[string]any, pos servicePos) []archdoc.Endpoint {
+func endpoints(env map[string]envEntry) []archdoc.Endpoint {
 	names := make([]string, 0, len(env))
 	for k := range env {
 		names = append(names, k)
@@ -35,7 +35,9 @@ func endpoints(env map[string]any, pos servicePos) []archdoc.Endpoint {
 
 	out := make([]archdoc.Endpoint, 0, len(names))
 	for _, name := range names {
-		value, ok := env[name].(string)
+		entry := env[name]
+
+		value, ok := entry.Value.(string)
 		if !ok {
 			continue // a number or a bool is not a location
 		}
@@ -45,7 +47,9 @@ func endpoints(env map[string]any, pos servicePos) []archdoc.Endpoint {
 			continue
 		}
 
-		ep.Prov = pos.env(name)
+		// The line that set this value, which is not always the compose file: an env_file
+		// entry cites the dotenv file it came from.
+		ep.Prov = entry.Prov
 		out = append(out, ep)
 	}
 
@@ -58,7 +62,7 @@ func endpoints(env map[string]any, pos servicePos) []archdoc.Endpoint {
 // Nothing else is inspected. A value could be a hostname without either signal, but guessing
 // from the value alone would produce edges the repository never declared — and MDL-04 is a
 // deterministic capability precisely because it does not guess.
-func parseEndpoint(name, value string, env map[string]any) (archdoc.Endpoint, bool) {
+func parseEndpoint(name, value string, env map[string]envEntry) (archdoc.Endpoint, bool) {
 	value = strings.TrimSpace(value)
 
 	if strings.Contains(value, "://") {
@@ -90,7 +94,7 @@ func parseURL(name, value string) (archdoc.Endpoint, bool) {
 	return ep, true
 }
 
-func parseHost(name, value string, env map[string]any) (archdoc.Endpoint, bool) {
+func parseHost(name, value string, env map[string]envEntry) (archdoc.Endpoint, bool) {
 	if value == "" || notAHost[value] {
 		return archdoc.Endpoint{}, false
 	}
@@ -129,10 +133,10 @@ func isHostVar(name string) bool {
 }
 
 // siblingPort finds the port that goes with a host variable: DB_HOST is answered by DB_PORT.
-func siblingPort(name string, env map[string]any) (int, bool) {
+func siblingPort(name string, env map[string]envEntry) (int, bool) {
 	base := strings.TrimSuffix(strings.TrimSuffix(name, "NAME"), "HOST")
 
-	switch v := env[base+"PORT"].(type) {
+	switch v := env[base+"PORT"].Value.(type) {
 	case string:
 		p, err := strconv.Atoi(strings.TrimSpace(v))
 		return p, err == nil
@@ -196,6 +200,30 @@ func dependencies(v any, pos servicePos) []archdoc.Dependency {
 	out := make([]archdoc.Dependency, 0, len(names))
 	for _, n := range names {
 		out = append(out, archdoc.Dependency{Service: n, Prov: pos.dependency(n)})
+	}
+	return out
+}
+
+// networks reads a service's network memberships. compose-go canonicalises the list form into
+// a mapping before this sees it.
+//
+// Membership is the one boundary Compose states rather than implies: two services sharing no
+// network cannot reach each other, whatever the rest of the file says.
+func networks(v any, pos servicePos) []archdoc.NetworkRef {
+	nets, ok := v.(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	names := make([]string, 0, len(nets))
+	for k := range nets {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+
+	out := make([]archdoc.NetworkRef, 0, len(names))
+	for _, n := range names {
+		out = append(out, archdoc.NetworkRef{Name: n, Prov: pos.network(n)})
 	}
 	return out
 }

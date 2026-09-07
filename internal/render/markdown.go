@@ -36,6 +36,7 @@ func Document(m archdoc.Model) string {
 	b.WriteString(elementTable(container))
 	b.WriteString("\n")
 	b.WriteString(relationshipTable(container))
+	b.WriteString(networkTable(m, container))
 
 	b.WriteString(excluded(m, container))
 
@@ -90,6 +91,43 @@ func relationshipTable(m archdoc.Model) string {
 
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s |\n",
 			from.Name, to.Name, dash(e.Label), dash(e.Technology), strings.Join(cites, ", "))
+	}
+
+	return b.String()
+}
+
+// networkTable is the evidence for the boundaries drawn on the diagram.
+//
+// A network is the one reachability claim configuration makes outright: two containers sharing
+// no network cannot reach each other. Compose's own `internal: true` goes further and says the
+// network has no route out at all. Both are declared, so both can be cited.
+func networkTable(full, view archdoc.Model) string {
+	if len(full.Networks) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("\n### Networks\n\n")
+	b.WriteString("| Network | Reachability | Containers | Declared at |\n")
+	b.WriteString("|---|---|---|---|\n")
+
+	for _, net := range full.Networks {
+		var members []string
+		for _, n := range view.Nodes {
+			for _, name := range n.Networks {
+				if name == net.Name {
+					members = append(members, n.Name)
+				}
+			}
+		}
+
+		reach := "reachable from outside"
+		if net.Internal {
+			reach = "**no external connectivity**"
+		}
+
+		fmt.Fprintf(&b, "| %s | %s | %s | `%s` |\n",
+			net.Name, reach, dash(strings.Join(members, ", ")), net.Prov)
 	}
 
 	return b.String()

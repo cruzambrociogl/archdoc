@@ -75,6 +75,9 @@ type Node struct {
 	// exists so level 3 is a filter over the same model rather than a second one.
 	Parent string `json:"parent,omitempty"`
 
+	// Networks this node is attached to, in name order (MDL-09).
+	Networks []string `json:"networks,omitempty"`
+
 	Prov Provenance `json:"provenance"`
 }
 
@@ -117,6 +120,10 @@ type Model struct {
 
 	Nodes []Node `json:"nodes"`
 	Edges []Edge `json:"edges"`
+
+	// Networks carries what the file declared about each network, so a view can name a
+	// boundary and cite the line that created it.
+	Networks []Network `json:"networks,omitempty"`
 }
 
 // Normalise puts a freshly built model into the shape every view expects: one edge per pair of
@@ -206,7 +213,7 @@ func (m Model) Context() Model {
 // rewritten by remap — either onto a replacement node, or bridged through the dropped one when
 // remap is nil.
 func (m Model) project(keep map[string]bool, remap func(string) string) Model {
-	view := Model{Name: m.Name, Source: m.Source}
+	view := Model{Name: m.Name, Source: m.Source, Networks: m.Networks}
 
 	for _, n := range m.Nodes {
 		if keep[n.ID] {
