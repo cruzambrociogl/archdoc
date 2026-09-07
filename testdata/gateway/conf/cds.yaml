@@ -1,0 +1,29 @@
+resources:
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: api
+    load_assignment:
+      cluster_name: api
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: api
+                    port_value: 8080
+  - '@type': type.googleapis.com/envoy.config.cluster.v3.Cluster
+    name: admin
+    load_assignment:
+      cluster_name: admin
+      endpoints:
+        - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: admin-console.internal
+                    port_value: 9000
+  - '@type': type.googleapis.com/envoy.config.listener.v3.Listener
+    name: ingress
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 8000

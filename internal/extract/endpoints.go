@@ -228,6 +228,41 @@ func networks(v any, pos servicePos) []archdoc.NetworkRef {
 	return out
 }
 
+// aliases collects the other hostnames a service answers to: its container_name, and any
+// aliases declared on the networks it joins.
+func aliases(svc map[string]any) []string {
+	seen := map[string]bool{}
+
+	if name := asString(svc["container_name"]); name != "" {
+		seen[name] = true
+	}
+
+	if nets, ok := svc["networks"].(map[string]any); ok {
+		for _, cfg := range nets {
+			c, ok := cfg.(map[string]any)
+			if !ok {
+				continue
+			}
+			list, ok := c["aliases"].([]any)
+			if !ok {
+				continue
+			}
+			for _, a := range list {
+				if s := asString(a); s != "" {
+					seen[s] = true
+				}
+			}
+		}
+	}
+
+	out := make([]string, 0, len(seen))
+	for a := range seen {
+		out = append(out, a)
+	}
+	sort.Strings(out) // Go randomises map iteration; AC-7
+	return out
+}
+
 // ports reads the published ports only.
 //
 // An unpublished port is internal plumbing and says nothing about the architecture. A published

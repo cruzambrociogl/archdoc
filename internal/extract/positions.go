@@ -22,6 +22,7 @@ type servicePos struct {
 	Env       map[string]archdoc.Provenance
 	Nets      map[string]archdoc.Provenance
 	Ports     []archdoc.Provenance
+	Vols      []archdoc.Provenance
 }
 
 // at returns the position of a named sub-key, falling back to the service declaration.
@@ -42,9 +43,14 @@ func (s servicePos) dependency(name string) archdoc.Provenance { return s.at(s.D
 func (s servicePos) env(name string) archdoc.Provenance        { return s.at(s.Env, name) }
 func (s servicePos) network(name string) archdoc.Provenance    { return s.at(s.Nets, name) }
 
-func (s servicePos) port(i int) archdoc.Provenance {
-	if i < len(s.Ports) && s.Ports[i].Known() {
-		return s.Ports[i]
+func (s servicePos) port(i int) archdoc.Provenance  { return s.indexed(s.Ports, i) }
+func (s servicePos) mount(i int) archdoc.Provenance { return s.indexed(s.Vols, i) }
+
+// indexed locates an entry in a list that has no name of its own — ports and volumes are both
+// positional. Falls back to the service declaration, for the reason given on at().
+func (s servicePos) indexed(ps []archdoc.Provenance, i int) archdoc.Provenance {
+	if i < len(ps) && ps[i].Known() {
+		return ps[i]
 	}
 	return s.Decl
 }
@@ -80,6 +86,7 @@ func readPositions(content []byte, rel string) map[string]servicePos {
 			readNames(rel, lookup(body, "environment"), pos.Env)
 			readNames(rel, lookup(body, "networks"), pos.Nets)
 			pos.Ports = readSequence(rel, lookup(body, "ports"))
+			pos.Vols = readSequence(rel, lookup(body, "volumes"))
 		}
 
 		out[key.Value] = pos

@@ -360,3 +360,44 @@ awkwardness that the worked examples live in clones of other people's repositori
 Separately, the hand-drawn Immich reference architecture comes off the schedule at Cruz's
 request. It stays in `PROGRESS.md` under manual work, with an owner and no date, because it is
 the answer key for AC-3 — dropping it from the plan entirely would quietly drop the criterion.
+
+**2026-09-06 — Gateway routes are found by following bind mounts, not by guessing paths**
+archdoc does not look for `nginx.conf` in the places nginx configs usually live. It reads the
+compose file's `volumes:`, and whatever is mounted into a service is, by the repository's own
+statement, that service's configuration. `docker-compose.yml:93` mounting `cds.yaml` into
+`api-gw` is the citation for *why* that file was read at all.
+
+Which services are gateways is then decided by what the mounted files contain rather than by
+image name — the same sniff-for-recall, reject-precisely rule discovery already uses. A gateway
+running an image no catalog knows is still a gateway, and a `.sql` seed file mounted beside the
+routing table yields nothing.
+
+Measured on Supabase: 7 routes, each citing a line in `cds.yaml`, which is the number the survey
+predicted and the schedule row's gate.
+
+**2026-09-06 — Hostnames resolve through container_name and network aliases**
+One of Supabase's seven routes points at `realtime-dev.supabase-realtime`, which is not a
+service key. It is the `realtime` service's `container_name`, declared in the compose file with
+a comment explaining why.
+
+Without resolution that route creates an external system, and a real container appears twice —
+once as itself and once as a stranger the repository seems to depend on. Services therefore
+carry their aliases, and every host lookup goes through them. This applies to environment
+endpoints too, not only routes.
+
+**2026-09-06 — Only reachability evidence may originate a bridge**
+A refinement of the traffic rule, and again found by reading output rather than by a test.
+
+With routes extracted, `functions` set `SUPABASE_URL=http://api-gw:8000` and the container view
+drew it reaching all **seven** services behind the gateway. Both hops carried traffic, so the
+earlier rule allowed it — but a gateway routes by *path*, and a bridge cannot see paths. One
+call became a fan-out.
+
+So the first hop must be evidence of **reachability**, not of a specific call. A published port
+is reachability: "anything outside can reach whatever this gateway routes to" is what a public
+entry point means, and it is true. An environment URL is a call to one endpoint, and which one
+the configuration does not say. In practice this means only actors originate bridges.
+
+Resolving the rest needs route paths matched against the caller's URL, which is further into
+MDL-03 than R1.a goes. Supabase's user now reaches 8 services; `functions` keeps only the calls
+it declares directly.

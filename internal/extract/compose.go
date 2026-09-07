@@ -73,6 +73,10 @@ func Scan(root string) (*archdoc.FactSet, error) {
 	fs.Services = services
 	fs.Networks = nets
 
+	// Routes come from files the compose file mounts, so they can only be read once the
+	// services and their mounts are known.
+	fs.Routes = Routes(abs, chosen, services)
+
 	// Compose's own project name beats the directory: it is declared rather than incidental.
 	if name != "" {
 		fs.Name = name
@@ -117,6 +121,8 @@ func extractServices(root, rel string) ([]archdoc.Service, string, []archdoc.Net
 			Ports:     ports(svc["ports"], pos),
 			Endpoints: endpoints(serviceEnv(svc, pos, root, rel)),
 			Networks:  networks(svc["networks"], pos),
+			Mounts:    mounts(svc["volumes"], pos),
+			Aliases:   aliases(svc),
 		})
 	}
 

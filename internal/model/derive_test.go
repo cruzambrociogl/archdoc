@@ -209,3 +209,64 @@ func TestDerivationIsDeterministic(t *testing.T) {
 		}
 	}
 }
+
+// A gateway names upstreams by hostname, and the hostname is often not the service key. Without
+// alias resolution a real container is drawn twice — once as itself, once as a stranger the
+// repository appears to depend on.
+func TestRouteTargetsResolveThroughAliases(t *testing.T) {
+	f := facts()
+	f.Services = append(f.Services, archdoc.Service{
+		Name: "admin", Image: "example/admin:1.0", Evidence: archdoc.Declared, Prov: at(30),
+		Aliases: []string{"admin-console.internal"},
+	})
+	f.Routes = []archdoc.Route{{
+		Gateway: "gateway", Target: "admin-console.internal",
+		Config: "conf/cds.yaml", Prov: archdoc.Provenance{File: "conf/cds.yaml", Line: 22},
+	}}
+
+	m := Derive(f)
+
+	if _, ok := m.Node("ext:admin-console.internal"); ok {
+		t.Error("a declared service was drawn a second time as an external system")
+	}
+
+	for _, e := range m.Edges {
+		if e.From == "svc:gateway" && e.To == "svc:admin" {
+			return
+		}
+	}
+	t.Errorf("no route edge to the aliased service: %+v", m.Edges)
+}
+
+// A gateway routes by path, and the bridge cannot see paths. Joining every inbound edge to every
+// outbound one turns a service's single call into a fan-out across everything the gateway
+// serves — which is what Supabase produced before this was restricted.
+func TestServiceCallingAGatewayDoesNotFanOut(t *testing.T) {
+	f := facts()
+	f.Services = append(f.Services, archdoc.Service{
+		Name: "caller", Image: "example/caller:1.0", Evidence: archdoc.Declared, Prov: at(40),
+		Endpoints: []archdoc.Endpoint{
+			{Var: "GATEWAY_URL", Scheme: "http", Host: "gateway", Prov: at(41)},
+		},
+	})
+	f.Routes = []archdoc.Route{{
+		Gateway: "gateway", Target: "db",
+		Config: "conf/cds.yaml", Prov: archdoc.Provenance{File: "conf/cds.yaml", Line: 11},
+	}}
+
+	view := Derive(f).Container()
+
+	for _, e := range view.Edges {
+		if e.From == "svc:caller" && e.To == "svc:db" {
+			t.Error("a service's single call to a gateway was fanned out across its routes")
+		}
+	}
+
+	// The actor's route through the gateway is the case that *is* sound, and must survive.
+	for _, e := range view.Edges {
+		if e.From == actorID && e.To == "svc:db" {
+			return
+		}
+	}
+	t.Error("the actor's route through the gateway was lost")
+}

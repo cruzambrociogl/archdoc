@@ -157,12 +157,17 @@ func (m Model) Node(id string) (Node, bool) {
 // couplings.
 func (m Model) Container() Model {
 	keep := map[string]bool{}
+	reach := map[string]bool{}
 	for _, n := range m.Nodes {
 		if n.Kind.container() || n.Kind == Actor || n.Kind == External {
 			keep[n.ID] = true
 		}
+		// Only an actor may originate a bridge. See bridge() for why.
+		if n.Kind == Actor {
+			reach[n.ID] = true
+		}
 	}
-	return m.project(keep, nil)
+	return m.project(keep, reach, nil)
 }
 
 // Context projects the model into a C4 context view (VIE-01).
@@ -200,7 +205,7 @@ func (m Model) Context() Model {
 	}
 	keep[system.ID] = true
 
-	view := m.project(keep, remap)
+	view := m.project(keep, nil, remap)
 
 	view.Nodes = append([]Node{system}, view.Nodes...)
 	view.Edges = dedupe(dropSelfEdges(view.Edges))
@@ -212,7 +217,7 @@ func (m Model) Context() Model {
 // project builds a view containing only the kept nodes. Edges touching a dropped node are
 // rewritten by remap — either onto a replacement node, or bridged through the dropped one when
 // remap is nil.
-func (m Model) project(keep map[string]bool, remap func(string) string) Model {
+func (m Model) project(keep, reach map[string]bool, remap func(string) string) Model {
 	view := Model{Name: m.Name, Source: m.Source, Networks: m.Networks}
 
 	for _, n := range m.Nodes {
@@ -223,7 +228,7 @@ func (m Model) project(keep map[string]bool, remap func(string) string) Model {
 
 	edges := m.Edges
 	if remap == nil {
-		edges = bridge(edges, keep)
+		edges = bridge(edges, keep, reach)
 	} else {
 		out := make([]Edge, 0, len(edges))
 		for _, e := range edges {
@@ -248,9 +253,26 @@ func (m Model) project(keep map[string]bool, remap func(string) string) Model {
 // bridge replaces paths that pass through a dropped node with direct edges. a→proxy→b becomes
 // a→b, citing both hops: the relationship is real, and the reader can still check it.
 //
+// Two restrictions, both learned from real output rather than from tests.
+//
+// **Both hops must carry traffic.** A path made of start-order evidence is not a path — see the
+// second loop.
+//
+// **Only a node in reach may originate one.** A gateway routes by path, and a bridge cannot see
+// paths: joining every inbound edge to every outbound one turns one call into a fan-out across
+// everything the gateway serves. Supabase showed this exactly — `functions` sets
+// SUPABASE_URL=http://api-gw:8000 and calls one endpoint, and an unrestricted bridge drew it
+// reaching all seven services behind the gateway.
+//
+// reach holds the nodes whose inbound evidence is *reachability* rather than a specific call:
+// an actor, which arrived from a published port. "Anyone outside can reach whatever this
+// gateway routes to" is true and is what a public entry point means. "This service calls
+// everything behind the gateway" is not. Resolving the rest needs route paths, which is more of
+// MDL-03 than R1.a builds.
+//
 // One hop only. A chain of two excluded nodes is rare enough that inventing a path across it
 // would be a bigger claim than the evidence supports.
-func bridge(edges []Edge, keep map[string]bool) []Edge {
+func bridge(edges []Edge, keep, reach map[string]bool) []Edge {
 	out := make([]Edge, 0, len(edges))
 	for _, e := range edges {
 		if keep[e.From] && keep[e.To] {
@@ -267,6 +289,9 @@ func bridge(edges []Edge, keep map[string]bool) []Edge {
 	// yet read — so where the evidence stops, so does the arrow.
 	for _, a := range edges {
 		if keep[a.To] || !a.Traffic {
+			continue
+		}
+		if !reach[a.From] {
 			continue
 		}
 		for _, b := range edges {

@@ -63,6 +63,41 @@ type Service struct {
 	// Networks this service is attached to (MDL-09). Membership is a declared boundary: two
 	// services on no common network cannot reach each other, whatever else the file says.
 	Networks []NetworkRef `json:"networks,omitempty"`
+
+	// Aliases are the other names this service answers to — container_name, and any network
+	// aliases. A gateway's routing table names upstreams by hostname, and the hostname is not
+	// always the service key: Supabase routes to `realtime-dev.supabase-realtime`, which the
+	// compose file declares as that service's container_name. Resolving through aliases is
+	// what stops a real service being drawn twice, once as itself and once as a stranger.
+	Aliases []string `json:"aliases,omitempty"`
+
+	// Mounts are the files and directories the repository hands to this container. They
+	// matter because a gateway's routing table arrives this way, and the mount line is the
+	// repository saying where its own configuration lives.
+	Mounts []Mount `json:"mounts,omitempty"`
+}
+
+// Mount is one bind mount: a path in the repository, and where the container sees it.
+type Mount struct {
+	Source string     `json:"source"` // repository-relative
+	Target string     `json:"target"` // the path inside the container
+	Prov   Provenance `json:"provenance"`
+}
+
+// Route is a routing rule read from a gateway's own configuration (MDL-03/EXT-03).
+//
+// depends_on says a gateway starts after a service; a route says traffic actually reaches it.
+// Only the second justifies an arrow, which is why routes are extracted separately rather than
+// inferred from the compose file.
+type Route struct {
+	Gateway string `json:"gateway"` // the service whose configuration declared it
+	Target  string `json:"target"`  // the host it routes to
+	Path    string `json:"path,omitempty"`
+
+	// Config is the file the rule was read from, repository-relative. It is not the same file
+	// as the compose file, and a reader following the citation needs to land in the right one.
+	Config string     `json:"config"`
+	Prov   Provenance `json:"provenance"`
 }
 
 // NetworkRef is one service's membership of one network.
@@ -133,6 +168,9 @@ type FactSet struct {
 
 	// Networks the file declares at the top level, in name order.
 	Networks []Network `json:"networks,omitempty"`
+
+	// Routes read from gateway configuration the compose file mounts (MDL-03).
+	Routes []Route `json:"routes,omitempty"`
 }
 
 // Candidate is a file discovery looked at, and what it decided about it.

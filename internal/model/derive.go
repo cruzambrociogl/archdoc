@@ -21,9 +21,19 @@ const actorID = "actor:user"
 func Derive(f *archdoc.FactSet) archdoc.Model {
 	m := archdoc.Model{Name: f.Name, Source: f.Source, Networks: f.Networks}
 
-	declared := make(map[string]bool, len(f.Services))
+	// A host names a declared service if it matches the service key or any name that service
+	// also answers to. Without alias resolution a real container is drawn twice — once as
+	// itself, once as a stranger the repository appears to depend on.
+	declared := make(map[string]string, len(f.Services))
 	for _, s := range f.Services {
-		declared[s.Name] = true
+		declared[s.Name] = s.Name
+	}
+	for _, s := range f.Services {
+		for _, a := range s.Aliases {
+			if _, taken := declared[a]; !taken {
+				declared[a] = s.Name
+			}
+		}
 	}
 
 	for _, s := range f.Services {
@@ -55,7 +65,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 		// stays dull on purpose: this is a deterministic fact, and making it read well is
 		// the semantic layer's job, not extraction's.
 		for _, d := range s.DependsOn {
-			if !declared[d.Service] {
+			if _, ok := declared[d.Service]; !ok {
 				continue // a dependency on something not in this file is not ours to draw
 			}
 			m.Edges = append(m.Edges, archdoc.Edge{
@@ -67,22 +77,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 		}
 
 		for _, e := range s.Endpoints {
-			to := serviceID(e.Host)
-
-			// A host the repository does not declare is a system outside it. That is the
-			// evidence rule doing double duty: referenced is also the C4 system boundary.
-			if !declared[e.Host] {
-				to = externalID(e.Host)
-				if _, seen := external[to]; !seen {
-					external[to] = archdoc.Node{
-						ID:       to,
-						Name:     e.Host,
-						Kind:     archdoc.External,
-						Evidence: archdoc.Referenced,
-						Prov:     e.Prov,
-					}
-				}
-			}
+			to := target(e.Host, declared, external, e.Prov)
 
 			m.Edges = append(m.Edges, archdoc.Edge{
 				From:       from,
@@ -116,6 +111,22 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 		}
 	}
 
+	// Routes are the gateway's own configuration saying where traffic goes. depends_on says a
+	// gateway starts after a service; only a route says it reaches one.
+	for _, r := range f.Routes {
+		from, ok := declared[r.Gateway]
+		if !ok {
+			continue
+		}
+		m.Edges = append(m.Edges, archdoc.Edge{
+			From:    serviceID(from),
+			To:      target(r.Target, declared, external, r.Prov),
+			Label:   "routes to",
+			Traffic: true,
+			Prov:    []archdoc.Provenance{r.Prov},
+		})
+	}
+
 	if actor != nil {
 		m.Nodes = append(m.Nodes, *actor)
 	}
@@ -124,6 +135,27 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 	}
 
 	return m.Normalise()
+}
+
+// target resolves a hostname to the node it names, creating an external node when the
+// repository never declared it. That is the evidence rule doing double duty: referenced is also
+// where C4 draws the system boundary.
+func target(host string, declared map[string]string, external map[string]archdoc.Node, prov archdoc.Provenance) string {
+	if name, ok := declared[host]; ok {
+		return serviceID(name)
+	}
+
+	id := externalID(host)
+	if _, seen := external[id]; !seen {
+		external[id] = archdoc.Node{
+			ID:       id,
+			Name:     host,
+			Kind:     archdoc.External,
+			Evidence: archdoc.Referenced,
+			Prov:     prov,
+		}
+	}
+	return id
 }
 
 func serviceID(name string) string  { return "svc:" + name }
