@@ -155,6 +155,9 @@ Two consequences worth knowing:
   technology choice is what the catalog is for
 - **Excluding the gateway reveals the real edges.** With everything routed through a proxy, a
   diagram looks hub-and-spoke and hides the actual couplings
+- **Gateway routes are read, so the arrow does not have to stop at the gateway.** archdoc finds
+  the routing table by following the compose file's own bind mounts, which makes the mount line
+  the citation for why that file was read. Supabase: seven routes, seven cited lines
 - **But only where the evidence says traffic flows.** Relationships through an excluded proxy
   are reconnected to their real endpoints and cite both hops — unless both hops came from
   `depends_on`, which records start-up order and not routing. Supabase makes the difference
@@ -194,7 +197,7 @@ is as good as the environment**, and the environment is usually somewhere else.
 | Stage | Package | Notes |
 |---|---|---|
 | 1 Discover | `internal/extract` | Content-sniff for recall, reject fragments for precision |
-| 2 Extract | `internal/extract` | Two passes — O-8 established that positions do not survive the merge |
+| 2 Extract | `internal/extract` | Two passes — O-8 established that positions do not survive the merge. Also reads what the compose file *points at*: dotenv files it names, and gateway configs it mounts |
 | 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws |
 | 4 Refine | *not yet* | `rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment |
 | 5 Label | `internal/semantic` | The only package permitted outbound calls |

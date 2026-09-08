@@ -4,8 +4,7 @@ Reads an existing codebase and produces the architecture documentation it should
 accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
 web app, one static binary.
 
-**Phase:** R1.a, sprint 1. `archdoc generate` draws a context and a container diagram for any
-repository with a Compose file, every element citing the line that declares it.
+**Phase:** R1.a, sprint 1 — `archdoc generate` draws. `PROGRESS.md` has the scores.
 **Target:** feature-complete 2 Oct 2026, delivered 9 Oct 2026.
 
 ---
@@ -40,7 +39,7 @@ disagree, **the definition wins**. The definition is what the product *is*; the 
 decision is what it is built with. `docs/survey-test-subjects.md` is evidence, never
 instruction.
 
-**Token discipline.** `docs/` totals ~4,650 lines. Never load a document whole. Load the named
+**Token discipline.** `docs/` totals ~4,750 lines. Never load a document whole. Load the named
 section for the task at hand and nothing else.
 
 | Load this | When |
@@ -99,8 +98,8 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 | Package | Seam |
 |---|---|
 | `internal/archdoc` | Core types, and the view projections over them |
-| `internal/extract` | Discovery + the parser registry |
-| `internal/model` | Facts → graph. Kinds, edges, actors, the image catalog |
+| `internal/extract` | Discovery, and every file archdoc reads |
+| `internal/model` | Facts → graph |
 | `internal/store` | Storage interface + SQLite driver |
 | `internal/semantic` | The network boundary |
 | `internal/render` | Layout, SVG, Mermaid |

@@ -306,6 +306,8 @@ it holds a host. Nothing is guessed from a value alone — that is what keeps `M
 deterministic rather than a heuristic.
 
 **2026-09-06 — Edges record whether traffic flows, and the bridge requires it**
+*Refined the same day — see "Only reachability evidence may originate a bridge" below. Traffic
+at both hops turned out to be necessary and not sufficient.*
 Found by reading real output rather than by testing. Supabase's container diagram claimed
 *"User reaches studio"* and *"functions connects to studio"*. Both were bridged through
 `api-gw`, and both hops came from `depends_on`.
@@ -401,3 +403,32 @@ the configuration does not say. In practice this means only actors originate bri
 Resolving the rest needs route paths matched against the caller's URL, which is further into
 MDL-03 than R1.a goes. Supabase's user now reaches 8 services; `functions` keeps only the calls
 it declares directly.
+
+**2026-09-06 — Network membership is a fact worth drawing; sample env files are not**
+Two extraction decisions taken together, because measuring them together is what separated
+them.
+
+*Networks are drawn.* Compose network membership is the one reachability claim a configuration
+file states rather than implies — two services sharing no network cannot reach each other — and
+`internal: true` says a network has no route out at all. Both are declared, so `MDL-11` records
+a trust boundary without inferring anything. Membership often nests, so the boundary nests:
+Mastodon shows `db` and `redis` inside `internal_network` and outside `external_network`.
+
+Where two networks share members without one containing the other, **no boundary is drawn**.
+Nested boxes cannot express that, and flattening would erase the distinction the file drew. A
+wrong grouping claims more than no grouping.
+
+*Sample env files are not read as fact.* `EXT-07` reads what `env_file` names, and only files
+that exist. It deliberately ignores `.env.example` and `.env.production.sample`. Mastodon's
+sample sets `REDIS_HOST=localhost` and `DB_HOST=/var/run/postgresql` — correct defaults for a
+non-container deployment, wrong for the stack its compose file describes — and `S3_ALIAS_HOST`
+is the placeholder `files.example.com`. Reading them would put fiction on the diagram.
+
+Those files are still used for **interpolation defaults**. Filling `${VAR}` with the value a
+repository suggests is a weaker claim than asserting the value is a fact about the system.
+
+The measured result is that `EXT-07` is worth nothing on all three subjects: none ships a dotenv
+file that exists. Recorded rather than hidden — the capability is right and the evidence is
+absent, which is a finding about the subjects. Mastodon's real external dependencies are
+declared as capability toggles (`S3_ENABLED=true`) rather than as hosts, which is `EXT-09`'s
+shape, not `EXT-07`'s.

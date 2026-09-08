@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-09-06
+Last updated: 2026-09-06 (second checkpoint)
 
 ---
 
@@ -43,18 +43,18 @@ constantly, not just at a review.
 | Group | What it covers | Count | Done | Gate |
 |---|---|---|---|---|
 | `DSC` | Discovery — which files are the architecture | 4 | ~3 | — |
-| `EXT` | Extraction — parsers, provenance, the FactSet | 15 | ~5 | AC-7 |
-| `MDL` | Model construction — nodes, edges, boundaries, identity | 17 | ~7 | — |
+| `EXT` | Extraction — parsers, provenance, the FactSet | 15 | ~7 | AC-7 |
+| `MDL` | Model construction — nodes, edges, boundaries, identity | 17 | ~11 | — |
 | `VAL` | Validation | 8 | 0 | AC-4 |
 | `RUL` | Rules — `rules.yaml` | 6 | 0 | AC-5 |
 | `SEM` | Semantic layer — the LLM | 10 | 0 | — |
 | `PRV` | Provenance | 6 | ~1 | AC-1 |
 | `MEM` | Memory and diff | 8 | 0 | AC-6 |
-| `VIE` | Views and rendering | 10 | ~3 | AC-2 |
+| `VIE` | Views and rendering | 10 | ~4 | AC-2 |
 | `SUR` | Surfaces — CLI and web app | 15 | ~2 | AC-8 |
 | `OUT` | Output and deliverables | 10 | ~2 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~23** | |
+| | **Total** | **116** | **~30** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 
@@ -91,6 +91,7 @@ items are ticked.
 | O-7 | Test subject #3 | — | ✓ **closed 26 Aug — Mastodon**, pinned `47ac677`. Chosen to cover `MDL-09`/`MDL-11`/`MDL-16`/`EXT-09`, which the other two leave untested |
 | O-8 | Does `file:line` provenance survive the Compose merge? | — | ✓ **closed 26 Aug — no.** Extraction is two passes; a `Fact` carries one position. See `docs/decisions.md` |
 | O-6 | R1.b sequencing — analysis before clustering? | R1.b only | deferred by design, decide with a working spine |
+| O-10 | Does R1.a resolve service-to-gateway calls by matching route paths? | fuller `MDL-03` | **open.** Routes are read, but a caller's URL names one endpoint and the bridge cannot tell which. Only actors bridge today, so a service calling a gateway loses that edge. Matching `lds` route prefixes against caller URLs would close it — decide before code freeze |
 | O-9 | Which acceptance criteria gate sprint 2? | Sprint 2 gate | ✓ **closed 6 Sep — §4.3 wins: AC-2, AC-4, AC-5.** The disagreement was a symptom, not a judgement call: the calendar had no rows for the validator or for rules, so nothing in it could have passed AC-4 or AC-5, and the gate had been quietly reconciled to the rows. Six missing rows added instead |
 
 ---

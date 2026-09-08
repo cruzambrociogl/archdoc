@@ -45,6 +45,12 @@ raised, not quietly promoted over it.
       cleanly rather than colliding with the `.gitignore` exception
 - [ ] `docs/architecture/` output has no provenance for catalog facts — a node's technology
       comes from the image table and nothing records that. Blocks AC-1; `PRV-02` is the fix
+- [ ] Gateway route *paths* are not read. `lds.template.yaml` holds prefix-to-cluster rules;
+      without them a service calling a gateway cannot be resolved to what it actually calls.
+      Tracked as O-10 in `PROGRESS.md`
+- [ ] Immich's `example.env` and Mastodon's `.env.production.sample` are read for interpolation
+      but never reported. A reader cannot tell which values were filled from a sample file —
+      worth surfacing in the generated document
 
 ---
 
@@ -53,6 +59,4 @@ raised, not quietly promoted over it.
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
 
-- [→ docs/decisions.md] Fixtures: decided against trimmed copies of the subjects' compose
-      files. `testdata/endpoints/` is written by hand so each service exercises one rule, and
-      every trap in it was found in a subject first — 2026-09-06
+*(cleared 2026-09-06 — the previous cycle's entry was routed to `docs/decisions.md`)*
