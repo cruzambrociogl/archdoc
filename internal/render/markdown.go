@@ -56,8 +56,16 @@ func elementTable(m archdoc.Model) string {
 	b.WriteString("|---|---|---|---|---|\n")
 
 	for _, n := range m.Nodes {
+		// The technology carries its own citation: a box's name is proven by the line that
+		// declares it, while what runs inside it usually came from the catalog. Showing one
+		// provenance for both would credit a file with something it never said.
+		tech := dash(n.Technology)
+		if n.Technology != "" && n.TechProv.Known() {
+			tech = fmt.Sprintf("%s <sup>`%s`</sup>", n.Technology, n.TechProv)
+		}
+
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | `%s` |\n",
-			n.Name, typeName(n.Kind), dash(n.Technology), n.Evidence, n.Prov)
+			n.Name, typeName(n.Kind), tech, n.Evidence, n.Prov)
 	}
 
 	return b.String()

@@ -8,24 +8,52 @@ import "fmt"
 // O-8 established that compose-go discards source positions, so extraction runs two passes
 // and reconciles them by key path. See docs/decisions.md, 2026-08-26.
 type Provenance struct {
+	// Origin says what kind of evidence this is. The zero value is Extraction, because a
+	// fact read from a file is the ordinary case and the one every parser produces.
+	Origin Origin `json:"origin,omitempty"`
+
 	File   string `json:"file"`             // repository-relative
 	Line   int    `json:"line"`             // 1-indexed; 0 means unknown
 	Column int    `json:"column,omitempty"` // 1-indexed; 0 means unknown
+
+	// Note carries the evidence for an origin that has no line: which catalog entry matched,
+	// or which model run proposed it. A catalog fact is traceable — just not to a file.
+	Note string `json:"note,omitempty"`
 }
 
-// String renders provenance the way an editor expects: path/to/file.yml:13
+// String renders provenance the way an editor expects: path/to/file.yml:13. A fact with no
+// line renders as its origin and note instead — "catalog: postgres".
 func (p Provenance) String() string {
+	if p.File == "" && p.Note != "" {
+		return string(p.origin()) + ": " + p.Note
+	}
 	if p.Line == 0 {
 		return p.File
 	}
 	return fmt.Sprintf("%s:%d", p.File, p.Line)
 }
 
+func (p Provenance) origin() Origin {
+	if p.Origin == "" {
+		return Extraction
+	}
+	return p.Origin
+}
+
 // Known reports whether this provenance actually points somewhere. A fact whose provenance is
-// unknown must not be emitted — P1 requires every element to be traceable to the file that
-// proves it exists.
+// unknown must not be emitted — P1 requires every element to be traceable.
+//
+// What counts as traceable depends on the origin. A file said it, so it needs a line. A catalog
+// or the model supplied it, so it needs to name what supplied it — AC-1 admits catalog
+// provenance explicitly, and demanding a line for something no file stated would make the
+// criterion unsatisfiable rather than strict.
 func (p Provenance) Known() bool {
-	return p.File != "" && p.Line > 0
+	switch p.origin() {
+	case Catalog, Semantic:
+		return p.Note != ""
+	default:
+		return p.File != "" && p.Line > 0
+	}
 }
 
 // EvidenceKind records how strongly a node is attested. §3 of the product definition:

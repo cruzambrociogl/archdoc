@@ -43,8 +43,6 @@ raised, not quietly promoted over it.
 
 - [ ] `web/dist/index.html` is a tracked placeholder; confirm the real build overwrites it
       cleanly rather than colliding with the `.gitignore` exception
-- [ ] `docs/architecture/` output has no provenance for catalog facts — a node's technology
-      comes from the image table and nothing records that. Blocks AC-1; `PRV-02` is the fix
 - [ ] Gateway route *paths* are not read. `lds.template.yaml` holds prefix-to-cluster rules;
       without them a service calling a gateway cannot be resolved to what it actually calls.
       Tracked as O-10 in `PROGRESS.md`
@@ -59,4 +57,6 @@ raised, not quietly promoted over it.
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
 
-*(cleared 2026-09-06 — the previous cycle's entry was routed to `docs/decisions.md`)*
+- [→ PRV-02] Catalog facts had no provenance. `Provenance.Origin` now records extraction /
+      catalog / rules / model, and a technology cites the catalog entry that supplied it.
+      AC-1 measures 100% on all three subjects — 2026-09-08

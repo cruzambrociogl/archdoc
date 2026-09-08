@@ -37,7 +37,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 	}
 
 	for _, s := range f.Services {
-		kind, tech := classify(s.Image)
+		kind, tech, techProv := classify(s.Image)
 
 		nets := make([]string, 0, len(s.Networks))
 		for _, n := range s.Networks {
@@ -49,6 +49,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 			Name:       s.Name,
 			Kind:       kind,
 			Technology: tech,
+			TechProv:   techProv,
 			Evidence:   archdoc.Declared,
 			Networks:   nets,
 			Prov:       s.Prov,

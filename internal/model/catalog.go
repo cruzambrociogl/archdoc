@@ -59,24 +59,29 @@ var catalog = map[string]entry{
 	"kong":    {archdoc.Proxy, "Kong"},
 }
 
-// classify returns what an image is and what it runs.
+// classify returns what an image is, what it runs, and the evidence for the second answer.
 //
 // An unknown image is an application with no technology. That is the honest default: almost
 // every custom-built service is an application, and leaving the technology empty says "not
 // known from configuration" rather than inventing a stack. MDL-08 hands exactly this case to
 // the semantic layer later.
-func classify(image string) (archdoc.Kind, string) {
+func classify(image string) (kind archdoc.Kind, tech string, prov archdoc.Provenance) {
 	name, tag := splitImage(image)
 
 	e, ok := catalog[name]
 	if !ok {
-		return archdoc.Application, ""
+		return archdoc.Application, "", archdoc.Provenance{}
 	}
 
+	// The technology is not something the repository stated — a lookup table supplied it.
+	// Recording that is PRV-02, and it is what makes AC-1 measurable: the criterion admits
+	// catalog provenance, but only if the catalog actually leaves a trace.
+	prov = archdoc.Provenance{Origin: archdoc.Catalog, Note: name}
+
 	if v := version(tag); v != "" {
-		return e.kind, e.tech + " " + v
+		return e.kind, e.tech + " " + v, prov
 	}
-	return e.kind, e.tech
+	return e.kind, e.tech, prov
 }
 
 // splitImage reduces a reference to the image name and its tag. Registry, namespace and digest

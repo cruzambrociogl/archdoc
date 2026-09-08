@@ -16,7 +16,7 @@ constantly, not just at a review.
 
 | | Criterion | Threshold | Self-checking | Status |
 |---|---|---|---|---|
-| AC-1 | Nodes and edges carry extraction or catalog provenance | ≥ 95% | no | ~ **extraction side holds** — every node and edge cites a line. **Catalog side does not**: technology labels come from the image table and carry no provenance at all. See the finding below |
+| AC-1 | Nodes and edges carry extraction or catalog provenance | ≥ 95% | no | ✓ **100% on all three subjects** (24 nodes, 34 edges, 8 Sep). `PRV-02` closed the catalog hole: a technology now cites the catalog entry that supplied it. Re-measure after the semantic layer, which is where the number can fall |
 | AC-2 | Container diagram produced with the LLM disabled | renders + validates, both subjects | **yes** | ~ **half met.** Renders on all three subjects, and there is no LLM in the tool at all. *Validates* waits on the validator (sprint 2) |
 | AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · |
 | AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | · |
@@ -25,11 +25,6 @@ constantly, not just at a review.
 | AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ✓ **holds end to end** — 5 identical runs on all three subjects, measured on the full generated document rather than the FactSet alone. Covered by tests in four packages |
 | AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | · |
 | AC-9 | Performance | NFR-1 and NFR-2 met on Supabase | no | · |
-
-> **Finding, 6 Sep — catalog facts have no provenance.** A node's `Technology` is a lookup
-> from the image table, and nothing records that. AC-1 explicitly admits *catalog* provenance
-> alongside extraction, so the criterion is not satisfied by extraction alone. `PRV-02` is the
-> capability that fixes it — label each entry with its origin — and it is unstarted.
 
 > **AC-3 is predicted to miss its threshold.** Immich declares none of its three service
 > connections in configuration — all live in TypeScript source. Reporting that as a measured
@@ -48,13 +43,13 @@ constantly, not just at a review.
 | `VAL` | Validation | 8 | 0 | AC-4 |
 | `RUL` | Rules — `rules.yaml` | 6 | 0 | AC-5 |
 | `SEM` | Semantic layer — the LLM | 10 | 0 | — |
-| `PRV` | Provenance | 6 | ~1 | AC-1 |
+| `PRV` | Provenance | 6 | ~2 | AC-1 |
 | `MEM` | Memory and diff | 8 | 0 | AC-6 |
 | `VIE` | Views and rendering | 10 | ~4 | AC-2 |
 | `SUR` | Surfaces — CLI and web app | 15 | ~2 | AC-8 |
 | `OUT` | Output and deliverables | 10 | ~2 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~30** | |
+| | **Total** | **116** | **~32** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 
