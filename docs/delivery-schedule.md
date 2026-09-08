@@ -177,6 +177,22 @@ hand-made FactSet fixture. Both tracks are then unblocked and neither waits.
 >
 > **Met, 6 Sep.** All three subjects generated; five runs byte-identical on each.
 
+**Also landed on 6 Sep, unplanned.** The sprint's committed scope finished four days early, so
+three further capabilities were pulled in — all deterministic, all citable, and each one making
+the *cited* half of the diagram richer rather than diluting it:
+
+- **`MDL-09` — network boundaries.** Compose network membership is declared reachability, and
+  `internal: true` is a declared trust boundary. Mastodon's diagram now nests, showing `db` and
+  `redis` unreachable from outside
+- **`EXT-07` — `env_file`.** Built correctly and worth **nothing** on the three subjects: none
+  ships a dotenv file that exists. Deliberately does not read `.sample` files, whose values
+  describe a different deployment. A measured negative, recorded rather than hidden
+- **`MDL-03` — gateway routing tables**, pulled forward from sprint 3. Seven routes in Supabase,
+  found by following the compose file's own bind mounts. Supabase went from 17 relationships
+  to 23, and the user finally has a way into the system
+
+Sprint 3 keeps the two days this vacated as buffer rather than refilling them.
+
 **Review 1, Fri 11 Sep — the claim:** *"It reads real production repositories and draws them,
 and every element points at the line that proves it."*
 

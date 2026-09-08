@@ -24,7 +24,10 @@ Phase,Work item,Type,Tier,Start,End,Days,Deliverable,Gate / acceptance,Status
 3. Sprint 1,Generated markdown — diagram plus provenance table,Task,Committed,2026-09-06,2026-09-06,1,docs/architecture/*.md written into the subject,Markdown is the deliverable (§8),Complete
 3. Sprint 1,Context view — a projection over the same model,Task,Committed,2026-09-06,2026-09-06,1,"Context diagram, meaningful on Supabase",Declared vs referenced is the system boundary,Complete
 3. Sprint 1,Commit generated output into all three subjects as worked examples,Task,Committed,2026-09-06,2026-09-06,1,Three repositories documented by the tool,Every element traceable to file and line,Complete
-3. Sprint 1,Report outline and first branding,Task,Committed,2026-09-07,2026-09-11,5,"Report document started, sections mapped to sources; initial visual identity","Started, not finished",Planned
+3. Sprint 1,Network boundaries — read compose networks as declared reachability (MDL-09),Task,Committed,2026-09-06,2026-09-06,1,Nested network boundaries on the diagram; internal networks marked,Mastodon shows db and redis unreachable from outside,Complete
+3. Sprint 1,env_file as a fact source (EXT-07),Task,Committed,2026-09-06,2026-09-06,1,"Endpoints from dotenv files the compose file names, cited in that file",Sample files excluded — they describe a different deployment,Complete
+3. Sprint 1,Gateway parsers — read Envoy and Kong routing tables as edges,Task,Committed,2026-09-06,2026-09-06,1,"Gateway-to-service routes, found by following the compose file's own bind mounts",7 gateway edges found in Supabase — met,Complete
+3. Sprint 1,Report outline and first branding,Task,Committed,2026-09-07,2026-09-11,5,"Report document started, sections mapped to sources; initial visual identity","Started, not finished",Complete
 3. Sprint 1,REVIEW 1 — it draws,Review,—,2026-09-11,2026-09-11,1,"Diagrams + docs for three subjects, previewed live",Milestone,Planned
 4. Sprint 2,Validator — every rule traceable to a failure seen in the draw.io experiment,Task,Committed,2026-09-14,2026-09-16,3,"A model is rejected with the offending operations named, never written partially",AC-4 — 100% of the fault-injection suite rejected,Planned
 4. Sprint 2,SQLite storage and versioning — one version per scan,Task,Committed,2026-09-16,2026-09-18,3,model.json plus history; every past version kept,"Rerunning answers what changed, not only what is",Planned
@@ -40,7 +43,6 @@ Phase,Work item,Type,Tier,Start,End,Days,Deliverable,Gate / acceptance,Status
 4. Sprint 2,Report first draft and branding applied,Task,Committed,2026-09-14,2026-09-25,10,Draft sections written from brief.md's source map; visual identity applied,"Draft, not final",Planned
 4. Sprint 2,Review preparation,Task,Committed,2026-09-24,2026-09-24,1,Demo sequence and talking points,—,Planned
 4. Sprint 2,REVIEW 2 — it produces documentation without a language model,Review,—,2026-09-25,2026-09-25,1,"Generated docs for all subjects, shown with the model on and off","AC-2, AC-4, AC-5 passed — THE THESIS",Planned
-5. Sprint 3,Gateway parsers — read Envoy and Kong routing tables as edges,Task,Committed,2026-09-28,2026-09-29,2,Gateway-to-service routes with their ports,7 gateway edges found in Supabase,Planned
 5. Sprint 3,Carry-over and hardening,Task,Committed,2026-09-29,2026-09-30,2,Sprint 2 remainder absorbed; known defects fixed,Buffer week — using it is not failure,Planned
 5. Sprint 3,Architectural diff between two commits,Task,Committed,2026-09-30,2026-10-01,2,"What appeared, what was removed and what changed between two revisions",AC-6 — 100% of the synthetic drift set,Planned
 5. Sprint 3,R1.c — three write surfaces sharing one write-safety design,Task,Stretch,2026-09-30,2026-10-01,2,"Chat refinement, editable canvas, answer surface","Hashing, conflict refusal, never-during-generation",Planned
