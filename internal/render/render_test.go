@@ -88,9 +88,9 @@ func TestDocumentCitesEveryElementAndRelationship(t *testing.T) {
 	doc := Document(fixture())
 
 	for _, want := range []string{
-		"| User | Person | — | declared | `docker-compose.yml:5` |",
-		"| db | Container (data store) | PostgreSQL 16 | declared | `docker-compose.yml:20` |",
-		"| s3.amazonaws.com | External system | — | referenced | `docker-compose.yml:15` |",
+		"| User | Person | — | — | declared | `docker-compose.yml:5` |",
+		"| db | Container (data store) | PostgreSQL 16 | — | declared | `docker-compose.yml:20` |",
+		"| s3.amazonaws.com | External system | — | — | referenced | `docker-compose.yml:15` |",
 		"| api | db | connects to | postgres | `docker-compose.yml:12`, `docker-compose.yml:13` |",
 	} {
 		if !strings.Contains(doc, want) {

@@ -87,9 +87,20 @@ func (r Result) Error() string {
 	return strings.Join(lines, "\n")
 }
 
-func (r *Result) add(rule string, sev Severity, element, msg string, prov archdoc.Provenance) {
+// Add records a finding. Exported because validation is not the only thing that finds problems
+// — rule compilation reports unreachable and conflicting rules, and there is no reason for a
+// reader to meet two different vocabularies for "here is what is wrong".
+func (r *Result) Add(rule string, sev Severity, element, msg string, prov archdoc.Provenance) {
 	r.Findings = append(r.Findings, Finding{rule, sev, element, msg, prov})
 }
+
+func (r *Result) add(rule string, sev Severity, element, msg string, prov archdoc.Provenance) {
+	r.Add(rule, sev, element, msg, prov)
+}
+
+// Sort orders findings deterministically. Exported for callers that assemble a Result from more
+// than one source.
+func (r *Result) Sort() { r.sort() }
 
 // sort gives findings a deterministic order. Validation output reaches the run log and the
 // report, so AC-7 applies to it too.

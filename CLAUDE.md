@@ -101,14 +101,14 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 | `internal/extract` | Discovery, and every file archdoc reads |
 | `internal/model` | Facts → graph |
 | `internal/validate` | The gate — every change to the model passes through it |
+| `internal/rules` | `rules.yaml` — corrections that survive regeneration |
 | `internal/store` | Storage interface + SQLite driver |
 | `internal/semantic` | The network boundary |
 | `internal/render` | Layout, SVG, Mermaid |
 | `internal/serve` | Local HTTP + embedded web assets |
 | `cmd/archdoc` | CLI — thin, no logic |
 
-`rules` and `output` live as files inside the packages that use them until coupling earns them
-a package of their own.
+`output` lives as files inside the packages that use it until coupling earns it a package.
 
 **Build:** contributors need Node; users do not. `web/dist` is built before the binary and
 embedded. A `dev` build tag proxies to the frontend dev server instead.

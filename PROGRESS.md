@@ -20,7 +20,7 @@ constantly, not just at a review.
 | AC-2 | Container diagram produced with the LLM disabled | renders + validates, both subjects | **yes** | ~ **half met.** Renders on all three subjects, and there is no LLM in the tool at all. *Validates* waits on the validator (sprint 2) |
 | AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · |
 | AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | ✓ **13 of 13 rejected, 8 Sep.** Every fault in the suite is a way the draw.io experiment failed, or a way the model could lie without a reader noticing. Grow the suite as new failure modes appear |
-| AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | · |
+| AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | ✓ **10 of 10, 8 Sep.** Measured by running the whole pipeline from disk twice, not by re-applying a cached model — surviving *regeneration* is the criterion |
 | AC-6 | Drift detection | 100% of synthetic drift set | **yes** | · |
 | AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ✓ **holds end to end** — 5 identical runs on all three subjects, measured on the full generated document rather than the FactSet alone. Covered by tests in four packages |
 | AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | · |
@@ -41,7 +41,7 @@ constantly, not just at a review.
 | `EXT` | Extraction — parsers, provenance, the FactSet | 15 | ~7 | AC-7 |
 | `MDL` | Model construction — nodes, edges, boundaries, identity | 17 | ~11 | — |
 | `VAL` | Validation | 8 | ~7 | AC-4 |
-| `RUL` | Rules — `rules.yaml` | 6 | 0 | AC-5 |
+| `RUL` | Rules — `rules.yaml` | 6 | ~6 | AC-5 |
 | `SEM` | Semantic layer — the LLM | 10 | 0 | — |
 | `PRV` | Provenance | 6 | ~2 | AC-1 |
 | `MEM` | Memory and diff | 8 | 0 | AC-6 |
@@ -49,7 +49,7 @@ constantly, not just at a review.
 | `SUR` | Surfaces — CLI and web app | 15 | ~2 | AC-8 |
 | `OUT` | Output and deliverables | 10 | ~2 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~39** | |
+| | **Total** | **116** | **~45** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 

@@ -1,0 +1,26 @@
+# A fixture for gateway routing. The gateway's own configuration is found by following the bind
+# mounts below — the repository states where its routing table lives, so archdoc never guesses.
+
+name: gateway
+
+services:
+  edge:
+    image: envoyproxy/envoy:v1.39.0
+    container_name: edge-proxy
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./conf/cds.yaml:/etc/envoy/cds.yaml:ro
+      - ./conf/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
+
+  api:
+    image: example/api:1.0
+    environment:
+      GATEWAY_URL: http://edge-proxy:8000
+
+  admin:
+    image: example/admin:1.0
+    container_name: admin-console.internal
+
+  db:
+    image: postgres:16

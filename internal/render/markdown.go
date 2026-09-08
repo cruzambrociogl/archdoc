@@ -52,20 +52,17 @@ func elementTable(m archdoc.Model) string {
 	var b strings.Builder
 
 	b.WriteString("### Elements\n\n")
-	b.WriteString("| Element | Type | Technology | Evidence | Declared at |\n")
-	b.WriteString("|---|---|---|---|---|\n")
+	b.WriteString("| Element | Type | Technology | Description | Evidence | Declared at |\n")
+	b.WriteString("|---|---|---|---|---|---|\n")
 
 	for _, n := range m.Nodes {
 		// The technology carries its own citation: a box's name is proven by the line that
 		// declares it, while what runs inside it usually came from the catalog. Showing one
 		// provenance for both would credit a file with something it never said.
-		tech := dash(n.Technology)
-		if n.Technology != "" && n.TechProv.Known() {
-			tech = fmt.Sprintf("%s <sup>`%s`</sup>", n.Technology, n.TechProv)
-		}
+		tech := cited(n.Technology, n.TechProv)
 
-		fmt.Fprintf(&b, "| %s | %s | %s | %s | `%s` |\n",
-			n.Name, typeName(n.Kind), tech, n.Evidence, n.Prov)
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | `%s` |\n",
+			n.Name, typeName(n.Kind), tech, cited(n.Description, n.DescProv), n.Evidence, n.Prov)
 	}
 
 	return b.String()
@@ -199,6 +196,26 @@ func typeName(k archdoc.Kind) string {
 	default:
 		return "Container"
 	}
+}
+
+// cited renders a value with the citation for that value specifically.
+//
+// A box's name is proven by the line that declares it; what runs inside it usually came from a
+// catalog, and what it is *for* can only have come from a person or the model. Showing one
+// provenance for all three would credit a file with things it never said — and PRV-05 needs the
+// reader to be able to tell interpretation from reading at a glance.
+func cited(value string, prov archdoc.Provenance) string {
+	if value == "" {
+		return "—"
+	}
+	if !prov.Known() {
+		return value
+	}
+	if prov.Origin.Interpretation() {
+		// Marked, not hidden. The model's suggestions are useful and they are not facts.
+		return fmt.Sprintf("*%s* <sup>`%s`</sup>", value, prov)
+	}
+	return fmt.Sprintf("%s <sup>`%s`</sup>", value, prov)
 }
 
 // dash keeps empty cells honest. A blank cell reads as an oversight; "—" reads as "the

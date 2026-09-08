@@ -12,6 +12,7 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
+	"github.com/cruzambrociogl/archdoc/internal/rules"
 	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
 
@@ -53,6 +54,28 @@ func generate(args []string, out io.Writer) error {
 
 	m := model.Derive(facts)
 
+	// RUL-04 — corrections apply after extraction and before validation. A rule is the only
+	// thing that survives regeneration, so it has to run on every generate rather than being
+	// applied once to an output file someone later overwrites.
+	rf, err := rules.Load(facts.Root)
+	if err != nil {
+		return err
+	}
+
+	ops, ruleFindings := rf.Compile(facts, m)
+	if !ruleFindings.OK() {
+		return fmt.Errorf("rules.yaml is not usable, nothing written\n%s", ruleFindings.Error())
+	}
+
+	if len(ops) > 0 {
+		var applied validate.Result
+		m, applied = validate.Apply(m, ops)
+		if !applied.OK() {
+			return fmt.Errorf("rules.yaml produced an invalid model, nothing written\n%s",
+				applied.Error())
+		}
+	}
+
 	// VAL-08: nothing is written unless the whole model is sound. A documentation generator
 	// that emits a diagram it knows to be wrong is worse than one that emits nothing, because
 	// the reader cannot tell.
@@ -90,6 +113,15 @@ func generate(args []string, out io.Writer) error {
 
 	// Completeness, not correctness. The model is sound; these are the things configuration
 	// does not state and the semantic layer exists to fill.
+	if n := len(rf.Rules); n > 0 {
+		// RUL-06 — a reader has to be able to tell which parts of this document are
+		// corrections rather than readings.
+		fmt.Fprintf(out, "%d rule(s) applied from %s\n", n, rules.Name)
+	}
+	for _, f := range ruleFindings.Warnings() {
+		fmt.Fprintf(out, "  %s: %s — %s\n", f.Rule, f.Element, f.Message)
+	}
+
 	if w := result.Warnings(); len(w) > 0 {
 		fmt.Fprintf(out, "%d gap(s) — run with --explain-gaps to list them\n", len(w))
 		if *gaps {

@@ -120,6 +120,10 @@ func partition(nodes []archdoc.Node, group bool) (inside, outside []archdoc.Node
 // node renders one element with its C4 label: name, then what it is and what it runs.
 func node(id string, n archdoc.Node) string {
 	label := fmt.Sprintf("<b>%s</b><br/>%s", escape(n.Name), typeLabel(n))
+	if n.Description != "" {
+		// The line a C4 container is supposed to carry and configuration never states.
+		label += "<br/><br/>" + escape(n.Description)
+	}
 
 	switch n.Kind {
 	case archdoc.Datastore:

@@ -1,0 +1,42 @@
+# Ten corrections, which is what AC-5 measures: apply them, regenerate from scratch, and all ten
+# must still be in effect. They are the judgements a repository does not contain — O-4 settled
+# that no automatic strategy recovers them.
+
+rules:
+  # 1 — a name a person reads, rather than a service key
+  - match: { name: api }
+    set: { name: API }
+
+  # 2, 3 — what configuration never states
+  - match: { name: api }
+    set:
+      description: Serves the public HTTP API
+      technology: Go 1.27
+
+  # 4 — the judgement call the derivation rule cannot make
+  - match: { name: admin }
+    set: { kind: proxy }
+
+  # 5 — matching on image, for anything sharing a base
+  - match: { image: 'postgres:*' }
+    set: { description: Primary relational store }
+
+  # 6 — matching on derived kind
+  - match: { kind: datastore }
+    set: { group: persistence }
+
+  # 7 — a relationship extraction cannot see, which is Immich's case exactly
+  - edge: { from: api, to: db }
+    set: { label: reads and writes }
+
+  # 8 — infrastructure a reader does not need
+  - match: { name: edge }
+    exclude: true
+
+  # 9 — a glob over several services at once
+  - match: { name: 'ad*' }
+    set: { technology: Node.js }
+
+  # 10 — renaming something the gateway routes to
+  - match: { name: admin }
+    set: { name: Admin Console }

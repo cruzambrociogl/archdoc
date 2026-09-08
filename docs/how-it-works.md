@@ -30,7 +30,7 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │  3  DERIVE     facts → one graph                 │ ✅
    │                kinds · edges · actors · external │
    │                                                  │
-   │  4  REFINE     your rules.yaml corrections       │ ⬜
+   │  4  REFINE     your rules.yaml corrections       │ ✅
    │                                                  │
    │  5  LABEL      ← the LLM, and only here          │ ⬜
    │                names, descriptions, groupings    │
@@ -199,7 +199,7 @@ is as good as the environment**, and the environment is usually somewhere else.
 | 1 Discover | `internal/extract` | Content-sniff for recall, reject fragments for precision |
 | 2 Extract | `internal/extract` | Two passes — O-8 established that positions do not survive the merge. Also reads what the compose file *points at*: dotenv files it names, and gateway configs it mounts |
 | 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws |
-| 4 Refine | *not yet* | `rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment |
+| 4 Refine | `internal/rules` | `rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment. Compiles to the same operations the semantic layer emits |
 | 5 Label | `internal/semantic` | The only package permitted outbound calls |
 | 6 Validate | `internal/validate` | Every rule traceable to a failure seen in the draw.io experiment. Two severities: wrong is refused, thin is published and reported |
 | 7 Store | `internal/store` | SQLite behind a driver interface |
