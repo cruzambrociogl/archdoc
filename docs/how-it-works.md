@@ -46,9 +46,10 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
               WRITTEN BACK INTO YOUR REPO
    ┌──────────────────────────────────────────────────┐
    │  docs/architecture/                              │
-   │     ├── *.svg      C4 diagrams                   │
-   │     ├── *.mmd      same, as text for GitHub      │
-   │     └── *.md       arc42, 12 sections            │
+   │     ├── index.generated.md   both diagrams       │
+   │     ├── 01..12  arc42 — 5 generated, 7 yours     │
+   │     ├── *.mmd   diagrams as text                 │
+   │     └── *.svg   not yet                          │
    │  .archdoc/                                       │
    │     ├── model.json     machine-readable          │
    │     └── history        every past version        │

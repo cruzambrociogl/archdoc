@@ -43,6 +43,12 @@ raised, not quietly promoted over it.
 
 - [ ] `web/dist/index.html` is a tracked placeholder; confirm the real build overwrites it
       cleanly rather than colliding with the `.gitignore` exception
+- [ ] OUT-09 completeness — the index cannot say whether a human section is still the stub
+      archdoc wrote, because OUT-03 forbids reading it. Needs content hashes in `.archdoc/`,
+      which is also what OUT-10 staleness needs
+- [ ] An `architecture.generated.md` from before the arc42 layout is orphaned in any repository
+      generated with an older build. archdoc writes its own files and never removes ones it no
+      longer emits — decide whether that is a defect
 - [ ] Gateway route *paths* are not read. `lds.template.yaml` holds prefix-to-cluster rules;
       without them a service calling a gateway cannot be resolved to what it actually calls.
       Tracked as O-10 in `PROGRESS.md`

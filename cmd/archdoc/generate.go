@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
@@ -19,19 +20,16 @@ import (
 // Where output lands inside the repository being documented. §8: the markdown is the
 // deliverable and is committed; model.json is machine truth and is committed alongside it.
 const (
-	docsDir      = "docs/architecture"
-	stateDir     = ".archdoc"
-	documentOut  = docsDir + "/architecture.generated.md"
-	contextOut   = docsDir + "/context.mmd"
-	containerOut = docsDir + "/container.mmd"
-	modelOut     = stateDir + "/model.json"
+	docsDir  = "docs/architecture"
+	stateDir = ".archdoc"
+	modelOut = stateDir + "/model.json"
 )
 
 func generate(args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("generate", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	toStdout := fs.Bool("stdout", false, "print the document instead of writing files")
+	toStdout := fs.Bool("stdout", false, "print the index instead of writing files")
 	gaps := fs.Bool("explain-gaps", false, "list what the configuration does not state")
 
 	flags, positional := partitionArgs(args)
@@ -54,9 +52,8 @@ func generate(args []string, out io.Writer) error {
 
 	m := model.Derive(facts)
 
-	// RUL-04 — corrections apply after extraction and before validation. A rule is the only
-	// thing that survives regeneration, so it has to run on every generate rather than being
-	// applied once to an output file someone later overwrites.
+	// RUL-04 — corrections apply after extraction and before validation. Rules run on every
+	// generate rather than being applied once to an output file a later run overwrites.
 	rf, err := rules.Load(facts.Root)
 	if err != nil {
 		return err
@@ -84,44 +81,86 @@ func generate(args []string, out io.Writer) error {
 		return fmt.Errorf("model failed validation, nothing written\n%s", result.Error())
 	}
 
-	document := render.Document(m)
+	meta := render.Meta{
+		Tool:   archdoc.Build().String(),
+		Commit: render.Commit(facts.Root),
+		Source: facts.Source,
+		Rules:  citations(rf),
+	}
+
+	// Which human-owned sections already exist. Asked of the filesystem rather than by
+	// opening the file: OUT-03 forbids reading them, and their existence is all the index
+	// needs to report completeness.
+	existing := render.State{}
+	for _, s := range render.Sections() {
+		if s.Owner != render.Human {
+			continue
+		}
+		_, err := os.Stat(filepath.Join(facts.Root, docsDir, s.File()))
+		existing[s.File()] = err == nil
+	}
+
+	index := render.Index(m, meta)
 
 	if *toStdout {
-		_, err := io.WriteString(out, document)
+		_, err := io.WriteString(out, index)
 		return err
 	}
 
-	files := []struct {
-		path    string
-		content string
-	}{
-		{documentOut, document},
-		{contextOut, render.Mermaid(m.Context(), false)},
-		{containerOut, render.Mermaid(m.Container(), true)},
-		{modelOut, encode(m)},
+	// Tool-owned output, overwritten in full.
+	generated := map[string]string{
+		render.IndexFile: index,
+		"context.mmd":    render.Mermaid(m.Context(), false),
+		"container.mmd":  render.Mermaid(m.Container(), true),
+	}
+	for name, content := range render.Arc42(m, meta) {
+		generated[name] = content
 	}
 
-	for _, f := range files {
-		if err := write(facts.Root, f.path, f.content); err != nil {
+	for _, name := range sortedKeys(generated) {
+		if err := write(facts.Root, filepath.Join(docsDir, name), generated[name]); err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "wrote %s\n", filepath.Join(facts.Root, f.path))
+		fmt.Fprintf(out, "wrote %s\n", filepath.Join(docsDir, name))
+	}
+
+	if err := write(facts.Root, modelOut, encode(m)); err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "wrote %s\n", modelOut)
+
+	// OUT-02 and OUT-03 — the regeneration boundary. A human-owned section is created once,
+	// with questions derived from this model, and after that archdoc neither reads nor writes
+	// it. A documentation generator that eats someone's writing gets uninstalled once.
+	created := 0
+	stubs := render.Stubs(m, meta)
+	for _, name := range sortedKeys(stubs) {
+		if existing[name] {
+			continue
+		}
+		if err := write(facts.Root, filepath.Join(docsDir, name), stubs[name]); err != nil {
+			return err
+		}
+		created++
 	}
 
 	fmt.Fprintf(out, "\n%d elements, %d relationships, from %s\n",
 		len(m.Nodes), len(m.Edges), m.Source)
 
-	// Completeness, not correctness. The model is sound; these are the things configuration
-	// does not state and the semantic layer exists to fill.
+	if created > 0 {
+		fmt.Fprintf(out, "%d section(s) created for you to write — see %s\n",
+			created, filepath.Join(docsDir, render.IndexFile))
+	}
+
 	if n := len(rf.Rules); n > 0 {
-		// RUL-06 — a reader has to be able to tell which parts of this document are
-		// corrections rather than readings.
 		fmt.Fprintf(out, "%d rule(s) applied from %s\n", n, rules.Name)
 	}
 	for _, f := range ruleFindings.Warnings() {
 		fmt.Fprintf(out, "  %s: %s — %s\n", f.Rule, f.Element, f.Message)
 	}
 
+	// Completeness, not correctness. The model is sound; these are the things configuration
+	// does not state and the semantic layer exists to fill.
 	if w := result.Warnings(); len(w) > 0 {
 		fmt.Fprintf(out, "%d gap(s) — run with --explain-gaps to list them\n", len(w))
 		if *gaps {
@@ -134,11 +173,20 @@ func generate(args []string, out io.Writer) error {
 	return nil
 }
 
+// citations names the rules that were applied, for the stamp OUT-04 puts on every generated
+// file. A reader who meets a technology they did not expect can find the line that set it.
+func citations(rf *rules.File) []string {
+	out := make([]string, 0, len(rf.Rules))
+	for _, r := range rf.Rules {
+		out = append(out, fmt.Sprintf("%s:%d", rf.Path, r.Line))
+	}
+	return out
+}
+
 // write puts one generated file into the repository being documented.
 //
 // Only paths this file names are ever written, and each is overwritten in full. archdoc reads
-// repositories it does not own; a documentation generator that edits someone's own writing gets
-// uninstalled once.
+// repositories it does not own.
 func write(root, rel, content string) error {
 	path := filepath.Join(root, rel)
 
@@ -154,4 +202,15 @@ func encode(m archdoc.Model) string {
 		return "{}"
 	}
 	return string(b) + "\n"
+}
+
+// sortedKeys keeps the order files are written — and therefore the order they are reported —
+// stable across runs. AC-7 covers what appears on the terminal too.
+func sortedKeys(m map[string]string) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }

@@ -47,9 +47,9 @@ constantly, not just at a review.
 | `MEM` | Memory and diff | 8 | 0 | AC-6 |
 | `VIE` | Views and rendering | 10 | ~4 | AC-2 |
 | `SUR` | Surfaces — CLI and web app | 15 | ~2 | AC-8 |
-| `OUT` | Output and deliverables | 10 | ~2 | — |
+| `OUT` | Output and deliverables | 10 | ~7 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~45** | |
+| | **Total** | **116** | **~50** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 
