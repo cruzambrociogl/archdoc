@@ -35,7 +35,7 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │  5  LABEL      ← the LLM, and only here          │ ⬜
    │                names, descriptions, groupings    │
    │                                                  │
-   │  6  VALIDATE   reject contradictions             │ ⬜
+   │  6  VALIDATE   reject contradictions             │ ✅
    │                                                  │
    │  7  STORE      one version per scan  (SQLite)    │ ⬜
    │                                                  │
@@ -201,7 +201,7 @@ is as good as the environment**, and the environment is usually somewhere else.
 | 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws |
 | 4 Refine | *not yet* | `rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment |
 | 5 Label | `internal/semantic` | The only package permitted outbound calls |
-| 6 Validate | *not yet* | Every rule traceable to a failure seen in the draw.io experiment |
+| 6 Validate | `internal/validate` | Every rule traceable to a failure seen in the draw.io experiment. Two severities: wrong is refused, thin is published and reported |
 | 7 Store | `internal/store` | SQLite behind a driver interface |
 | 8 Render | `internal/render` | Mermaid today. Layout and SVG come with sprint 2 |
 

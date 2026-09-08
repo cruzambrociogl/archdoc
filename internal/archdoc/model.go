@@ -27,11 +27,11 @@ const (
 	Actor Kind = "actor"
 )
 
-// container reports whether this kind is a C4 container.
+// Container reports whether this kind is a C4 container.
 //
 // The derivation rule, from docs/how-it-works.md: a Compose service becomes a C4 container when
 // it is an application or a data store. Everything else is infrastructure.
-func (k Kind) container() bool {
+func (k Kind) Container() bool {
 	return k == Application || k == Datastore || k == Queue
 }
 
@@ -170,7 +170,7 @@ func (m Model) Container() Model {
 	keep := map[string]bool{}
 	reach := map[string]bool{}
 	for _, n := range m.Nodes {
-		if n.Kind.container() || n.Kind == Actor || n.Kind == External {
+		if n.Kind.Container() || n.Kind == Actor || n.Kind == External {
 			keep[n.ID] = true
 		}
 		// Only an actor may originate a bridge. See bridge() for why.

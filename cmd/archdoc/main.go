@@ -34,6 +34,7 @@ flags for scan:
 
 flags for generate:
   --stdout         print the document instead of writing files
+  --explain-gaps   list what the configuration does not state
 `
 
 func main() {

@@ -19,7 +19,7 @@ constantly, not just at a review.
 | AC-1 | Nodes and edges carry extraction or catalog provenance | ≥ 95% | no | ✓ **100% on all three subjects** (24 nodes, 34 edges, 8 Sep). `PRV-02` closed the catalog hole: a technology now cites the catalog entry that supplied it. Re-measure after the semantic layer, which is where the number can fall |
 | AC-2 | Container diagram produced with the LLM disabled | renders + validates, both subjects | **yes** | ~ **half met.** Renders on all three subjects, and there is no LLM in the tool at all. *Validates* waits on the validator (sprint 2) |
 | AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · |
-| AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | · |
+| AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | ✓ **13 of 13 rejected, 8 Sep.** Every fault in the suite is a way the draw.io experiment failed, or a way the model could lie without a reader noticing. Grow the suite as new failure modes appear |
 | AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | · |
 | AC-6 | Drift detection | 100% of synthetic drift set | **yes** | · |
 | AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ✓ **holds end to end** — 5 identical runs on all three subjects, measured on the full generated document rather than the FactSet alone. Covered by tests in four packages |
@@ -40,7 +40,7 @@ constantly, not just at a review.
 | `DSC` | Discovery — which files are the architecture | 4 | ~3 | — |
 | `EXT` | Extraction — parsers, provenance, the FactSet | 15 | ~7 | AC-7 |
 | `MDL` | Model construction — nodes, edges, boundaries, identity | 17 | ~11 | — |
-| `VAL` | Validation | 8 | 0 | AC-4 |
+| `VAL` | Validation | 8 | ~7 | AC-4 |
 | `RUL` | Rules — `rules.yaml` | 6 | 0 | AC-5 |
 | `SEM` | Semantic layer — the LLM | 10 | 0 | — |
 | `PRV` | Provenance | 6 | ~2 | AC-1 |
@@ -49,7 +49,7 @@ constantly, not just at a review.
 | `SUR` | Surfaces — CLI and web app | 15 | ~2 | AC-8 |
 | `OUT` | Output and deliverables | 10 | ~2 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~32** | |
+| | **Total** | **116** | **~39** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 

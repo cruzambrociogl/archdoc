@@ -12,6 +12,7 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
+	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
 
 // Where output lands inside the repository being documented. §8: the markdown is the
@@ -30,6 +31,7 @@ func generate(args []string, out io.Writer) error {
 	fs.SetOutput(io.Discard)
 
 	toStdout := fs.Bool("stdout", false, "print the document instead of writing files")
+	gaps := fs.Bool("explain-gaps", false, "list what the configuration does not state")
 
 	flags, positional := partitionArgs(args)
 	if err := fs.Parse(flags); err != nil {
@@ -50,6 +52,15 @@ func generate(args []string, out io.Writer) error {
 	}
 
 	m := model.Derive(facts)
+
+	// VAL-08: nothing is written unless the whole model is sound. A documentation generator
+	// that emits a diagram it knows to be wrong is worse than one that emits nothing, because
+	// the reader cannot tell.
+	result := validate.Model(m)
+	if !result.OK() {
+		return fmt.Errorf("model failed validation, nothing written\n%s", result.Error())
+	}
+
 	document := render.Document(m)
 
 	if *toStdout {
@@ -76,6 +87,17 @@ func generate(args []string, out io.Writer) error {
 
 	fmt.Fprintf(out, "\n%d elements, %d relationships, from %s\n",
 		len(m.Nodes), len(m.Edges), m.Source)
+
+	// Completeness, not correctness. The model is sound; these are the things configuration
+	// does not state and the semantic layer exists to fill.
+	if w := result.Warnings(); len(w) > 0 {
+		fmt.Fprintf(out, "%d gap(s) — run with --explain-gaps to list them\n", len(w))
+		if *gaps {
+			for _, f := range w {
+				fmt.Fprintf(out, "  %s: %s — %s\n", f.Rule, f.Element, f.Message)
+			}
+		}
+	}
 
 	return nil
 }
