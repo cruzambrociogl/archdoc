@@ -26,11 +26,15 @@ usage:
 commands:
   scan <path>      extract services from a repository's configuration
   generate <path>  write C4 diagrams and their evidence into the repository
+  history <path>   list every version archdoc has recorded
   version          print build information
 
 flags for scan:
   --json           emit the FactSet as JSON instead of a table
   --explain        show every file discovery considered, and why
+
+flags for history:
+  -n <count>       how many versions to list (default 20)
 
 flags for generate:
   --stdout         print the document instead of writing files
@@ -56,6 +60,9 @@ func run(args []string, out io.Writer) error {
 
 	case "generate":
 		return generate(args[1:], out)
+
+	case "history":
+		return history(args[1:], out)
 
 	case "version":
 		fmt.Fprintln(out, archdoc.Build())

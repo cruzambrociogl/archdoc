@@ -14,6 +14,7 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/rules"
+	"github.com/cruzambrociogl/archdoc/internal/store"
 	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
 
@@ -144,6 +145,12 @@ func generate(args []string, out io.Writer) error {
 		created++
 	}
 
+	// MEM-01 — history is recorded after the model is known good, never before. A version
+	// nothing validated is a version nobody can trust to diff against.
+	if err := record(facts.Root, m, meta, out); err != nil {
+		return err
+	}
+
 	fmt.Fprintf(out, "\n%d elements, %d relationships, from %s\n",
 		len(m.Nodes), len(m.Edges), m.Source)
 
@@ -172,6 +179,53 @@ func generate(args []string, out io.Writer) error {
 
 	return nil
 }
+
+// record appends this model to the repository's history, unless nothing has changed.
+//
+// A failure here is reported and does not stop the run: the documentation is the deliverable and
+// history is an index over it. Refusing to write a correct diagram because a cache could not be
+// updated would be the wrong trade.
+func record(root string, m archdoc.Model, meta render.Meta, out io.Writer) error {
+	// archdoc's own cache should not land in someone's commit. model.json beside it is
+	// committed on purpose — that is the durable record — but a binary index conflicts on
+	// every parallel run and diffs as noise, and it can be rebuilt by regenerating.
+	if err := write(root, stateDir+"/.gitignore", ignoreFile); err != nil {
+		return err
+	}
+
+	h, err := store.Open(root)
+	if err != nil {
+		fmt.Fprintf(out, "history unavailable: %v\n", err)
+		return nil
+	}
+	defer h.Close()
+
+	id, changed, err := h.Save(m, meta.Commit, meta.Tool)
+	if err != nil {
+		fmt.Fprintf(out, "history unavailable: %v\n", err)
+		return nil
+	}
+
+	if changed {
+		fmt.Fprintf(out, "recorded version %d\n", id)
+		return nil
+	}
+	fmt.Fprintf(out, "architecture unchanged since version %d\n", id)
+	return nil
+}
+
+// ignoreFile keeps history local while leaving model.json committed.
+const ignoreFile = `# Written by archdoc.
+#
+# history.db is a local index over the models archdoc has produced. It is rebuildable by
+# regenerating, so it is not worth the merge conflicts a binary file in git causes.
+#
+# model.json is deliberately NOT ignored: it is the durable, reviewable record of the
+# architecture at this commit, and git is the thing designed for storing that.
+history.db
+history.db-shm
+history.db-wal
+`
 
 // citations names the rules that were applied, for the stamp OUT-04 puts on every generated
 // file. A reader who meets a technology they did not expect can find the line that set it.

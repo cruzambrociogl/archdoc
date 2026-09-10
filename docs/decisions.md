@@ -432,3 +432,36 @@ file that exists. Recorded rather than hidden — the capability is right and th
 absent, which is a finding about the subjects. Mastodon's real external dependencies are
 declared as capability toggles (`S3_ENABLED=true`) rather than as hosts, which is `EXT-09`'s
 shape, not `EXT-07`'s.
+
+**2026-09-10 — The history database is a cache; git is the archive**
+`.archdoc/history.db` records every model archdoc has produced for a repository, and archdoc
+writes a `.gitignore` beside it so the file stays local.
+
+The durable record is `model.json`, committed next to the documentation at every commit. The
+model as of any revision is therefore already stored by the thing designed for storing
+revisions, and losing the database costs speed and nothing else — regenerating rebuilds it. A
+binary file in git conflicts on every parallel run and diffs as noise, which is a real cost for
+no gain.
+
+Two consequences worth stating. A diff between two commits does not need the database: check out
+each revision and the committed `model.json` is right there. And `.archdoc/model.json` is
+deliberately *not* ignored — it is the reviewable record, and a reviewer should see it change.
+
+**2026-09-10 — A run that changes nothing records nothing**
+AC-7 guarantees byte-identical output across runs, so recording a version per run would fill
+history with entries differing only in their timestamp, and a diff between two of them would be
+empty.
+
+`Save` fingerprints the model and compares it to the latest version. Same fingerprint, no new
+version. The count in `archdoc history` is therefore the number of times the architecture
+actually moved, not the number of times somebody ran the tool — which is the number a reader
+cares about.
+
+The same model at a *different commit* is also not a change. A commit that touched no
+architecture has no place in an architectural history.
+
+**2026-09-10 — `internal/store` has no interface yet**
+The package map says "storage interface + SQLite driver". There is one driver and the tests run
+against SQLite in memory, so an interface would add a layer with nothing on the other side of
+it. Recorded so the deviation is deliberate rather than forgotten: the moment a second backing
+store is real, or a test needs a fake, the interface earns itself.

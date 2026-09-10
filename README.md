@@ -170,6 +170,7 @@ excluded gateway, and the only one where the distinction between "declares a dep
 ```console
 ./archdoc scan ../subjects/immich --explain   # why that file, and not the other nine
 ./archdoc scan ../subjects/supabase --json    # the raw FactSet, every fact with its line
+./archdoc history ../subjects/supabase        # every version, and when the architecture moved
 ```
 
 Pick any citation from an evidence table and open it. Supabase's

@@ -37,7 +37,7 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │                                                  │
    │  6  VALIDATE   reject contradictions             │ ✅
    │                                                  │
-   │  7  STORE      one version per scan  (SQLite)    │ ⬜
+   │  7  STORE      a version when it changed (SQLite)│ ✅
    │                                                  │
    │  8  RENDER     Mermaid ✅ · SVG + layout ⬜      │ 🟡
    └──────────────────────────────────────────────────┘
@@ -51,8 +51,8 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │     ├── *.mmd   diagrams as text                 │
    │     └── *.svg   not yet                          │
    │  .archdoc/                                       │
-   │     ├── model.json     machine-readable          │
-   │     └── history        every past version        │
+   │     ├── model.json   committed — the record      │
+   │     └── history.db   local cache, git-ignored    │
    └──────────────────────────────────────────────────┘
 ```
 
@@ -203,7 +203,7 @@ is as good as the environment**, and the environment is usually somewhere else.
 | 4 Refine | `internal/rules` | `rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment. Compiles to the same operations the semantic layer emits |
 | 5 Label | `internal/semantic` | The only package permitted outbound calls |
 | 6 Validate | `internal/validate` | Every rule traceable to a failure seen in the draw.io experiment. Two severities: wrong is refused, thin is published and reported |
-| 7 Store | `internal/store` | SQLite behind a driver interface |
+| 7 Store | `internal/store` | SQLite, cgo-free. A run that changes nothing records nothing |
 | 8 Render | `internal/render` | Mermaid today. Layout and SVG come with sprint 2 |
 
 ## Two ways in, one engine

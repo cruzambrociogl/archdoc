@@ -102,7 +102,7 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 | `internal/model` | Facts → graph |
 | `internal/validate` | The gate — every change to the model passes through it |
 | `internal/rules` | `rules.yaml` — corrections that survive regeneration |
-| `internal/store` | Storage interface + SQLite driver |
+| `internal/store` | Version history — SQLite, cgo-free. A local cache; git is the archive |
 | `internal/semantic` | The network boundary |
 | `internal/render` | Layout, SVG, Mermaid |
 | `internal/serve` | Local HTTP + embedded web assets |
