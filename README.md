@@ -36,24 +36,35 @@ Two rules govern the design:
 ```console
 $ archdoc generate ./immich
 
-wrote ./immich/docs/architecture/architecture.generated.md
-wrote ./immich/docs/architecture/context.mmd
-wrote ./immich/docs/architecture/container.mmd
-wrote ./immich/.archdoc/model.json
+wrote docs/architecture/03-context-and-scope.generated.md
+wrote docs/architecture/05-building-block-view.generated.md
+wrote docs/architecture/06-runtime-view.generated.md
+wrote docs/architecture/07-deployment-view.generated.md
+wrote docs/architecture/12-glossary.generated.md
+wrote docs/architecture/index.generated.md
+wrote .archdoc/model.json
+recorded version 1
 
 5 elements, 3 relationships, from docker/docker-compose.yml
+7 section(s) created for you to write — see docs/architecture/index.generated.md
+9 gap(s) — run with --explain-gaps to list them
 ```
 
-The generated markdown holds a **system context** diagram, a **container** diagram, and the
-evidence for both:
+Twelve arc42 sections: five filled from facts and overwritten every run, seven created once with
+questions derived from *this* model and then never read or written again. The building block
+view carries the container diagram and the evidence for it:
 
-| Element | Type | Technology | Evidence | Declared at |
-|---|---|---|---|---|
-| User | Person | — | declared | `docker/docker-compose.yml:26` |
-| immich-machine-learning | Container | — | declared | `docker/docker-compose.yml:34` |
-| immich-server | Container | — | declared | `docker/docker-compose.yml:13` |
-| database | Container (data store) | PostgreSQL 14 | declared | `docker/docker-compose.yml:57` |
-| redis | Container (data store) | Valkey 9 | declared | `docker/docker-compose.yml:50` |
+| Element | Type | Technology | Description | Evidence | Declared at |
+|---|---|---|---|---|---|
+| User | Person | — | — | declared | `docker/docker-compose.yml:26` |
+| immich-machine-learning | Container | — | — | declared | `docker/docker-compose.yml:34` |
+| immich-server | Container | — | — | declared | `docker/docker-compose.yml:13` |
+| database | Container (data store) | PostgreSQL 14 <sup>`catalog: postgres`</sup> | — | declared | `docker/docker-compose.yml:57` |
+| redis | Container (data store) | Valkey 9 <sup>`catalog: valkey`</sup> | — | declared | `docker/docker-compose.yml:50` |
+
+Every value carries the citation for *that value*: a box is proven by the line declaring it,
+while what runs inside it came from a lookup table and says so. The empty descriptions are the
+9 gaps — configuration never states what a service is *for*.
 
 Open any of those lines and the fact is there. That is the whole claim.
 
@@ -149,17 +160,34 @@ University/SP2/
 ./archdoc generate ../subjects/supabase --stdout
 ```
 
-**Then write it in,** which is what a real user would run. Four files land in the subject:
-`docs/architecture/architecture.generated.md`, two `.mmd` files beside it, and
-`.archdoc/model.json`.
+**Then write it in,** which is what a real user would run:
 
 ```console
 ./archdoc generate ../subjects/supabase
 ```
 
-To see the diagrams, open the generated markdown in VS Code and press `⇧⌘V` — Mermaid renders
-natively, with no build step and no site generator. That is the point of emitting Mermaid:
-GitHub renders it the same way.
+```
+docs/architecture/
+├── index.generated.md                  both diagrams, and links to everything below
+├── 01-introduction-and-goals.md        yours — questions, not a blank template
+├── 03-context-and-scope.generated.md   regenerated every run
+├── 05-building-block-view.generated.md
+├── 06-runtime-view.generated.md        says plainly what configuration cannot know
+├── 07-deployment-view.generated.md
+├── 12-glossary.generated.md
+├── 02, 04, 08–11                       yours
+└── context.mmd · container.mmd
+.archdoc/
+├── model.json                          committed — the durable record
+└── history.db                          local cache, git-ignored by archdoc
+```
+
+To see the diagrams, open `index.generated.md` in VS Code and press `⇧⌘V` — Mermaid renders
+natively, with no build step and no site generator.
+
+**Write a sentence into any file without `.generated.` in its name, then regenerate.** It will
+still be there. That boundary is the difference between a tool people keep and one they
+uninstall.
 
 **Start with Supabase.** It is the only subject with an external system, the only one with an
 excluded gateway, and the only one where the distinction between "declares a dependency" and
@@ -178,6 +206,15 @@ Pick any citation from an evidence table and open it. Supabase's
 `supabase-mail`, resolved from `.env`, and the citation still lands on text a person can read.
 That is the two-pass extractor working: one pass knows what is true, the other knows where it
 was written.
+
+**History** — a run that changes nothing records nothing, so the version count is the number of
+times the architecture actually moved:
+
+```console
+./archdoc generate ../subjects/supabase   # recorded version 1
+./archdoc generate ../subjects/supabase   # architecture unchanged since version 1
+./archdoc history ../subjects/supabase
+```
 
 **Determinism** — five runs must be byte-identical (AC-7):
 
