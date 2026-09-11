@@ -30,12 +30,21 @@ func Claude(model string) Completer {
 	// workspace on every request. Keys created inside a workspace need nothing extra, so
 	// the header is sent only when the variable is set.
 	var opts []option.RequestOption
-	if ws := strings.TrimSpace(os.Getenv("ANTHROPIC_WORKSPACE_ID")); ws != "" {
+	ws := strings.TrimSpace(os.Getenv("ANTHROPIC_WORKSPACE_ID"))
+	if ws != "" && !strings.HasPrefix(ws, "sk-ant-") {
 		opts = append(opts, option.WithHeader("anthropic-workspace-id", ws))
 	}
 	client := anthropic.NewClient(opts...)
 
 	return func(ctx context.Context, system string, turns []Turn) (Reply, error) {
+		// A key pasted into the wrong variable would otherwise travel as a header value. Refuse
+		// before sending anything, rather than pass a secret where an identifier belongs.
+		if strings.HasPrefix(ws, "sk-ant-") {
+			return Reply{}, errors.New("ANTHROPIC_WORKSPACE_ID contains an API key, not a workspace id " +
+				"(workspace ids start wrkspc_). Put the key in ANTHROPIC_API_KEY; a key created " +
+				"inside a workspace needs no ANTHROPIC_WORKSPACE_ID at all")
+		}
+
 		msgs := make([]anthropic.BetaMessageParam, 0, len(turns))
 		for _, t := range turns {
 			block := anthropic.NewBetaTextBlock(t.Text)
