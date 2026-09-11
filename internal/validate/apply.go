@@ -144,8 +144,9 @@ func apply(m *archdoc.Model, op archdoc.Op) {
 				continue
 			}
 			if op.Kind == archdoc.SetEdgeLabel {
-				m.Edges[i].Label = op.Value
-				m.Edges[i].Prov = append(m.Edges[i].Prov, op.Prov)
+				// The label's citation, not the relationship's. Appending it to Prov made a
+				// model that only reworded an arrow look like evidence the arrow exists.
+				m.Edges[i].Label, m.Edges[i].LabelProv = op.Value, op.Prov
 				continue
 			}
 			m.Edges = append(m.Edges[:i], m.Edges[i+1:]...)
@@ -182,7 +183,7 @@ func apply(m *archdoc.Model, op archdoc.Op) {
 		// PRV-05 renders.
 		switch op.Kind {
 		case archdoc.SetName:
-			n.Name = op.Value
+			n.Name, n.NameProv = op.Value, op.Prov
 		case archdoc.SetDescription:
 			n.Description, n.DescProv = op.Value, op.Prov
 		case archdoc.SetTechnology:

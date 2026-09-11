@@ -62,7 +62,11 @@ func (k Kind) rank() int {
 type Node struct {
 	ID   string `json:"id"`   // stable across runs and renames (MDL-13)
 	Name string `json:"name"` // what a reader is shown
-	Kind Kind   `json:"kind"`
+
+	// NameProv is set when the display name was changed after extraction — by a rule or by
+	// the model. Empty means the name is the key the configuration declared.
+	NameProv Provenance `json:"name_provenance,omitempty"`
+	Kind     Kind       `json:"kind"`
 
 	// Description is the one-line responsibility a C4 container should carry. Configuration
 	// never states it, so it stays empty until the semantic layer or a rule supplies one.
@@ -100,6 +104,11 @@ type Edge struct {
 	// Label is what the relationship does, in the reader's terms — "reads from", "publishes
 	// to". Kept short: C4 relationship labels are verbs, not sentences.
 	Label string `json:"label,omitempty"`
+
+	// LabelProv is where the label came from when something other than extraction wrote it.
+	// Kept apart from Prov on purpose: Prov is the evidence that the relationship exists, and
+	// a model that only reworded the label must never appear as evidence for the arrow.
+	LabelProv Provenance `json:"label_provenance,omitempty"`
 
 	// Technology is how, when the configuration says so — a URL scheme, a known port.
 	Technology string `json:"technology,omitempty"`
@@ -315,6 +324,7 @@ func bridge(edges []Edge, keep, reach map[string]bool) []Edge {
 				From:       a.From,
 				To:         b.To,
 				Label:      firstNonEmpty(a.Label, b.Label),
+				LabelProv:  labelProvOf(a, b),
 				Technology: firstNonEmpty(b.Technology, a.Technology),
 				Traffic:    true,
 				Prov:       append(append([]Provenance{}, a.Prov...), b.Prov...),
@@ -355,10 +365,11 @@ func dedupe(edges []Edge) []Edge {
 		// The stronger evidence names the relationship. Where depends_on and a configured
 		// endpoint describe the same pair, "connects to postgres" is what the reader needs;
 		// "depends on" would be true and would waste the better fact.
+		// The label's citation travels with the label, whichever edge it came from.
 		if e.Traffic && !out[i].Traffic {
-			out[i].Label = e.Label
+			out[i].Label, out[i].LabelProv = e.Label, e.LabelProv
 		} else if out[i].Label == "" {
-			out[i].Label = e.Label
+			out[i].Label, out[i].LabelProv = e.Label, e.LabelProv
 		}
 		out[i].Traffic = out[i].Traffic || e.Traffic
 	}
@@ -388,6 +399,14 @@ func dedupeProv(ps []Provenance) []Provenance {
 	}
 	sort.Slice(out, func(i, j int) bool { return less(out[i], out[j]) })
 	return out
+}
+
+// labelProvOf returns the citation of whichever label firstNonEmpty picked for a bridged edge.
+func labelProvOf(a, b Edge) Provenance {
+	if a.Label != "" {
+		return a.LabelProv
+	}
+	return b.LabelProv
 }
 
 func firstNonEmpty(a, b string) string {

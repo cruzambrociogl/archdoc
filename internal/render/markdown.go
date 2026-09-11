@@ -62,7 +62,7 @@ func elementTable(m archdoc.Model) string {
 		tech := cited(n.Technology, n.TechProv)
 
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | `%s` |\n",
-			n.Name, typeName(n.Kind), tech, cited(n.Description, n.DescProv), n.Evidence, n.Prov)
+			cited(n.Name, n.NameProv), typeName(n.Kind), tech, cited(n.Description, n.DescProv), n.Evidence, n.Prov)
 	}
 
 	return b.String()
@@ -95,7 +95,7 @@ func relationshipTable(m archdoc.Model) string {
 		}
 
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s |\n",
-			from.Name, to.Name, dash(e.Label), dash(e.Technology), strings.Join(cites, ", "))
+			from.Name, to.Name, cited(e.Label, e.LabelProv), dash(e.Technology), strings.Join(cites, ", "))
 	}
 
 	return b.String()
