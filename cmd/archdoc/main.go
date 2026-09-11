@@ -39,7 +39,8 @@ flags for history:
 flags for generate:
   --stdout         print the document instead of writing files
   --explain-gaps   list what the configuration does not state
-  --label          ask Claude for descriptions and edge labels (needs ANTHROPIC_API_KEY;
+  --label          ask Claude for descriptions and edge labels (needs ANTHROPIC_API_KEY,
+                   plus ANTHROPIC_WORKSPACE_ID if the key is not tied to a workspace;
                    sends structure only, never file contents)
 `
 

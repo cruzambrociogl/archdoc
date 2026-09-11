@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/anthropics/anthropic-sdk-go/shared/constant"
 )
 
@@ -23,7 +26,14 @@ import (
 //     request, the API re-runs it on Anthropic's recommended fallback instead of returning an
 //     empty refusal. A refusal that still gets through is reported, not guessed around.
 func Claude(model string) Completer {
-	client := anthropic.NewClient()
+	// A key created at organisation level rather than inside a workspace must name the
+	// workspace on every request. Keys created inside a workspace need nothing extra, so
+	// the header is sent only when the variable is set.
+	var opts []option.RequestOption
+	if ws := strings.TrimSpace(os.Getenv("ANTHROPIC_WORKSPACE_ID")); ws != "" {
+		opts = append(opts, option.WithHeader("anthropic-workspace-id", ws))
+	}
+	client := anthropic.NewClient(opts...)
 
 	return func(ctx context.Context, system string, turns []Turn) (Reply, error) {
 		msgs := make([]anthropic.BetaMessageParam, 0, len(turns))
@@ -76,6 +86,12 @@ func explain(err error) error {
 	}
 
 	switch apierr.StatusCode {
+	case 400:
+		if strings.Contains(err.Error(), "anthropic-workspace-id") {
+			return errors.New("this API key is not tied to a workspace — set ANTHROPIC_WORKSPACE_ID " +
+				"to the workspace to bill, or create a key inside a workspace in the console")
+		}
+		return fmt.Errorf("Anthropic API error 400: %w", err)
 	case 401:
 		return errors.New("no valid Anthropic credentials — set ANTHROPIC_API_KEY, or run without --label")
 	case 429:
