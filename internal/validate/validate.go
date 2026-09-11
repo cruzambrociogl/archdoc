@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 )
@@ -206,10 +207,46 @@ func Model(m archdoc.Model) Result {
 		if e.Technology == "" {
 			r.add("VAL-03", Warning, id, "no protocol", first)
 		}
+
+		// SEM-10 — found on a live run: the model labelled seven relationships "over HTTPS" when
+		// the configuration publishes plain port 8000. A label is interpretation; a protocol is
+		// a fact. A model-written label may not name a protocol the relationship's own recorded
+		// technology does not already state. Rules are exempt — a person is accountable for them.
+		if e.LabelProv.Origin == archdoc.Semantic {
+			if p := unstatedProtocol(e.Label, e.Technology); p != "" {
+				r.add("SEM-10", Error, id, fmt.Sprintf(
+					"label names %q, a protocol the configuration does not state — "+
+						"describe what the relationship does, and leave protocol out", p), e.LabelProv)
+			}
+		}
 	}
 
 	r.sort()
 	return r
+}
+
+// protocols a label must not assert unless extraction already recorded them. Deliberately
+// protocols only: "PostgreSQL" is a technology and "SQL" a language, and neither is a claim
+// about how bytes travel.
+var protocols = []string{
+	"http", "https", "grpc", "websocket", "websockets", "tls", "ssl",
+	"amqp", "mqtt", "smtp", "tcp", "udp", "graphql",
+}
+
+// unstatedProtocol returns the first protocol a label names that technology does not state.
+func unstatedProtocol(label, technology string) string {
+	tech := strings.ToLower(technology)
+	words := strings.FieldsFunc(strings.ToLower(label), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+	for _, w := range words {
+		for _, p := range protocols {
+			if w == p && !strings.Contains(tech, p) {
+				return p
+			}
+		}
+	}
+	return ""
 }
 
 // hasExtraction reports whether any citation came from reading a file. Rules count: a person

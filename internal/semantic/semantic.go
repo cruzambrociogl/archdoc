@@ -128,7 +128,10 @@ Return operations:
 - set_technology: only for elements whose technology is empty, and only when the name makes the
   technology evident. Leave it out when unsure.
 - set_edge_label: a short verb phrase for a relationship ("reads and writes user data"), replacing
-  a generic label like "connects to" or "depends on".
+  a generic label like "connects to" or "depends on". Describe what that particular target does
+  for the source; relationships to different targets should read differently. Do not name a
+  protocol, transport or security layer (HTTPS, gRPC, WebSocket, TLS) in a label: protocol is a
+  fact the model records separately, and a label may only interpret, never assert.
 - set_name: only when a clearer display name is obvious. Usually leave names alone.
 
 Use the element ids exactly as given. For set_edge_label, "target" is the source id and "to" is the
