@@ -215,6 +215,12 @@ and every element points at the line that proves it."*
 > AC-4 — validator rejects 100% of a fault-injection suite. AC-5 — ten rules survive
 > regeneration.
 
+**Pulled forward, 8–10 Sep.** Sprint 1 closed early, so Track A's whole sprint landed before it
+opened: the operation vocabulary and `PRV-02`, the validator (**AC-4 met**, 13 of 13 faults),
+`rules.yaml` (**AC-5 met**, 10 of 10 rules), arc42 output, and SQLite history. Two of the three
+sprint gates are already met. What remains is the semantic layer with `PRV-05`, egress
+reporting, and the workbench — layout, SVG, web app — which is also where the cut goes if needed.
+
 **Review 2, Fri 25 Sep — the claim:** *"Here is the documentation with the language model on,
 and here is the same diagram with it switched off."*
 
