@@ -465,3 +465,21 @@ The package map says "storage interface + SQLite driver". There is one driver an
 against SQLite in memory, so an interface would add a layer with nothing on the other side of
 it. Recorded so the deviation is deliberate rather than forgotten: the moment a second backing
 store is real, or a test needs a fake, the interface earns itself.
+
+**2026-09-11 — The semantic layer is fenced by the type system, not by the prompt**
+Three things keep the model from changing what exists, and none is an instruction it could
+ignore: it is sent structure only (names, kinds, relationships — no paths, lines or file
+contents); it answers in a strict JSON schema whose only verbs are labelling verbs; and every
+operation passes through the same validator as a rules.yaml correction, where
+`OpKind.AllowedFrom` rejects anything structural. Validation failures go back to the model
+with the reasons, three times at most (VAL-07), then the run fails with nothing applied (VAL-08).
+
+It is opt-in (`--label`). Without it no request is made and the diagram is complete — AC-2 by
+construction. Rules are compiled against the model as extracted and applied *after* labelling,
+so a person's correction always overrides a model suggestion, and a model renaming `api` to
+"API" cannot break a rule that matches `name: api`.
+
+Defaults: `claude-opus-5`, with server-side fallbacks in `"default"` mode so a safety-classifier
+refusal is re-run on Anthropic's recommended fallback rather than returned empty. A model
+value's provenance names the model but not the request id, so a relabelled run that changes
+no architecture does not create a new version in history.

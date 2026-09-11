@@ -39,6 +39,8 @@ flags for history:
 flags for generate:
   --stdout         print the document instead of writing files
   --explain-gaps   list what the configuration does not state
+  --label          ask Claude for descriptions and edge labels (needs ANTHROPIC_API_KEY;
+                   sends structure only, never file contents)
 `
 
 func main() {

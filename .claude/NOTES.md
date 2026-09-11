@@ -49,6 +49,9 @@ raised, not quietly promoted over it.
 - [ ] An `architecture.generated.md` from before the arc42 layout is orphaned in any repository
       generated with an older build. archdoc writes its own files and never removes ones it no
       longer emits — decide whether that is a defect
+- [ ] The semantic layer has never run against the live API — no credentials on this machine.
+      First live run is the real test of the prompt; expect to tune it. PRV-05 is half done:
+      the evidence table italicises model values, the diagram does not yet distinguish them
 - [ ] Gateway route *paths* are not read. `lds.template.yaml` holds prefix-to-cluster rules;
       without them a service calling a gateway cannot be resolved to what it actually calls.
       Tracked as O-10 in `PROGRESS.md`

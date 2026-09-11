@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/rules"
+	"github.com/cruzambrociogl/archdoc/internal/semantic"
 	"github.com/cruzambrociogl/archdoc/internal/store"
 	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
@@ -32,6 +34,7 @@ func generate(args []string, out io.Writer) error {
 
 	toStdout := fs.Bool("stdout", false, "print the index instead of writing files")
 	gaps := fs.Bool("explain-gaps", false, "list what the configuration does not state")
+	label := fs.Bool("label", false, "ask Claude for names, descriptions and edge labels")
 
 	flags, positional := partitionArgs(args)
 	if err := fs.Parse(flags); err != nil {
@@ -60,9 +63,24 @@ func generate(args []string, out io.Writer) error {
 		return err
 	}
 
+	// Rules are compiled against the model as extracted, before anything relabels it: a rule
+	// matching `name: api` must still match after the model has renamed api to "API".
 	ops, ruleFindings := rf.Compile(facts, m)
 	if !ruleFindings.OK() {
 		return fmt.Errorf("rules.yaml is not usable, nothing written\n%s", ruleFindings.Error())
+	}
+
+	// The semantic layer is opt-in and runs before the rules are applied, so a person's
+	// correction always overrides a model's suggestion. Without --label no request is made
+	// and the diagram is complete anyway — that is AC-2.
+	if *label {
+		labelled, rep, err := semantic.Label(context.Background(), semantic.Claude(semantic.Model), semantic.Model, m)
+		if err != nil {
+			return fmt.Errorf("labelling failed, nothing written: %w", err)
+		}
+		m = labelled
+		fmt.Fprintf(out, "labelled by %s: %d operation(s) in %d attempt(s), %d bytes sent, structure only\n",
+			rep.Model, rep.Ops, rep.Attempts, rep.BytesSent)
 	}
 
 	if len(ops) > 0 {

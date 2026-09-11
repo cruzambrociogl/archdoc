@@ -74,7 +74,12 @@ jobs:
 
             imports=$(go list -f '{{join .Imports "\n"}}' "$pkg")
             if echo "$imports" | grep -qx 'net/http'; then
-              offenders="$offenders$pkg\n"
+              offenders="$offenders$pkg (net/http)\n"
+            fi
+            # The Anthropic SDK makes its own HTTP calls, so importing it would bypass the
+            # net/http check above without ever naming net/http. Close that door too.
+            if echo "$imports" | grep -q '^github.com/anthropics/anthropic-sdk-go'; then
+              offenders="$offenders$pkg (anthropic-sdk-go)\n"
             fi
           done
 
