@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-09-06 (second checkpoint)
+Last updated: 2026-09-12 (web app checkpoint)
 
 ---
 
@@ -44,12 +44,12 @@ constantly, not just at a review.
 | `RUL` | Rules — `rules.yaml` | 6 | ~6 | AC-5 |
 | `SEM` | Semantic layer — the LLM | 10 | ~5 | — |
 | `PRV` | Provenance | 6 | ~3 | AC-1 |
-| `MEM` | Memory and diff | 8 | ~2 | AC-6 |
+| `MEM` | Memory and diff | 8 | ~5 | AC-6 — versions compare structurally in the app (MEM-04/06/07); diff between two *commits* and MEM-05's rename/re-bound classes remain |
 | `VIE` | Views and rendering | 10 | ~7 | AC-2 |
-| `SUR` | Surfaces — CLI and web app | 15 | ~5 | AC-8 |
-| `OUT` | Output and deliverables | 10 | ~7 | — |
+| `SUR` | Surfaces — CLI and web app | 15 | ~12 | AC-8 — `serve` and all web views SUR-07–12, 15 done 12 Sep; `init`, `diff`, `export` remain |
+| `OUT` | Output and deliverables | 10 | ~8 | — OUT-09 from size and mtime (no conformance % yet); OUT-10 approximated by mtime, not by commit |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~65** | |
+| | **Total** | **116** | **~75** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 
@@ -74,7 +74,7 @@ items are ticked.
 |---|---|---|---|
 | Week 0 | 28 Aug | O-8 answered; `go test ./...` green in CI | ✓ **met, verified.** O-8 and O-7 closed on evidence. CI green on `a96fc1d` — both jobs, including the import check that enforces the network boundary |
 | Sprint 1 | 11 Sep | `archdoc generate` produces a container **and** a context diagram for all three subjects, every element traceable to a file and line | ✓ **met, 6 Sep.** All three generated; AC-7 verified on each. (The gate here previously read *AC-7, AC-4, AC-5* — those are sprint 2's, per `docs/delivery-schedule.md` §4.3) |
-| Sprint 2 | 25 Sep | AC-2, AC-6, AC-8 — **the thesis, demonstrated** | · |
+| Sprint 2 | 25 Sep | AC-2, AC-4, AC-5 — **the thesis, demonstrated** (per O-9; this line read AC-2, AC-6, AC-8 until 12 Sep) | ✓ **all three met by 12 Sep**, as is AC-8. Every coding row done, web app included. Left: report draft, self-check (18 Sep), review prep (24 Sep) |
 | Sprint 3 | 9 Oct | All nine evaluated and written up | · |
 
 ---

@@ -41,11 +41,6 @@ raised, not quietly promoted over it.
 
 ## Open
 
-- [ ] `web/dist/index.html` is a tracked placeholder; confirm the real build overwrites it
-      cleanly rather than colliding with the `.gitignore` exception
-- [ ] OUT-09 completeness — the index cannot say whether a human section is still the stub
-      archdoc wrote, because OUT-03 forbids reading it. Needs content hashes in `.archdoc/`,
-      which is also what OUT-10 staleness needs
 - [ ] An `architecture.generated.md` from before the arc42 layout is orphaned in any repository
       generated with an older build. archdoc writes its own files and never removes ones it no
       longer emits — decide whether that is a defect
@@ -54,17 +49,16 @@ raised, not quietly promoted over it.
       architecture changed. Either fingerprint architecture only, or accept it and say so
 - [ ] A layout recomputed for an unchanged architecture (engine version changed) is not stored,
       because Save returns the existing version untouched. Harmless — Supabase lays out in
-      milliseconds — but the stored layout stays stale until the architecture next changes
-- [ ] PRV-05 — the evidence tables now mark every model-written name, label, description and
-      technology with its own citation. The Mermaid diagram itself does not yet distinguish them
+      milliseconds, and `serve` recomputes a stale layout on the fly — but the stored one stays stale
 - [ ] Labelling takes ~2 minutes on Supabase with adaptive thinking at default effort. Worth
       measuring `effort: low`/`medium` — labelling is the kind of work that often holds quality there
-- [ ] Gateway route *paths* are not read. `lds.template.yaml` holds prefix-to-cluster rules;
-      without them a service calling a gateway cannot be resolved to what it actually calls.
-      Tracked as O-10 in `PROGRESS.md`
 - [ ] Immich's `example.env` and Mastodon's `.env.production.sample` are read for interpolation
       but never reported. A reader cannot tell which values were filled from a sample file —
       worth surfacing in the generated document
+- [ ] Web app checked with HTTP requests and unit tests only — click through it in a browser on
+      all three subjects before Review 2
+- [ ] Relationships are not clickable on the canvas (the SVG groups boxes, not arrows); they are
+      inspected from either end in the inspector. Fine for the review; revisit if it confuses
 
 ---
 
@@ -73,6 +67,10 @@ raised, not quietly promoted over it.
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
 
-- [→ PRV-02] Catalog facts had no provenance. `Provenance.Origin` now records extraction /
-      catalog / rules / model, and a technology cites the catalog entry that supplied it.
-      AC-1 measures 100% on all three subjects — 2026-09-08
+- [x] `web/dist/index.html` placeholder — it did collide: every local build showed it modified.
+      Untracked; `web/dist/.gitkeep` is tracked instead so a fresh clone still compiles — 2026-09-12
+- [→ docs/decisions.md, PROGRESS.md OUT] OUT-09 completeness — done from size and mtime recorded
+      at stub creation, **not** content hashes: hashing a file is reading it — 2026-09-12
+- [x] PRV-05 — the C4 SVG, which is the diagram now shown, italicises every model-written value.
+      Mermaid is the fallback and stays plain — 2026-09-12
+- [→ PROGRESS.md O-10] Gateway route paths are not read — tracked there, not here — 2026-09-12

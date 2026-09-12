@@ -549,3 +549,24 @@ in the log, and a failed run is the one someone goes looking for. And cost is re
 a model whose price archdoc knows; an unknown model reports its tokens and no figure, because
 NFR-6 asks for actual cost and a guessed one is worse than none. `archdoc runs --show N` prints
 the payload unformatted — a prettier version would no longer be the thing that was sent.
+
+**2026-09-12 — The web app is thin, local, and draws the committed SVG**
+`archdoc serve` reads what `generate` stored and computes nothing of its own; the canvas is the
+SVG from `render.SVG` over the stored layout, so the browser and the repository show one drawing
+(VIE-10). React + Vite, built into `web/dist` and embedded; a `dev` build tag proxies to Vite.
+It binds to 127.0.0.1 and refuses any Host header that is not this machine — a page elsewhere can
+make a browser call localhost, and the Host check is what stops it reading the model through a
+rebound DNS name. Human sections are refused by the API, not read: OUT-03 holds in the app too.
+
+**2026-09-12 — Completeness from size and mtime, not content hashes**
+OUT-09 needs to know whether a human section is still archdoc's stub; OUT-03 forbids reading it.
+Hashing was the obvious answer and was rejected — hashing a file is reading it. `generate` records
+each stub's size and modification time in `.archdoc/sections.json`; a later change to either means
+someone wrote. "May be stale" compares the file's mtime with the latest version, an approximation
+of OUT-10, which asks for the section's last *commit*. Cost: a `touch` reads as written.
+
+**2026-09-12 — Version diff by element ID, wording kept apart from structure**
+The timeline's diff identifies elements by ID, so a rename is one changed field, not a removal
+plus an addition (MEM-06). Appeared/disappeared is reported apart from reworded: the first is
+news about the system, the second about the documentation. This compares recorded versions; the
+diff between two git commits (AC-6) remains Sprint 3 work.

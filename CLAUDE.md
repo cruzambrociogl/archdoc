@@ -4,7 +4,7 @@ Reads an existing codebase and produces the architecture documentation it should
 accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
 web app, one static binary.
 
-**Phase:** R1.a, sprint 1 — `archdoc generate` draws. `PROGRESS.md` has the scores.
+**Phase:** R1.a, sprint 2 — engine and web app built; Review 2 on 25 Sep. `PROGRESS.md` has the scores.
 **Target:** feature-complete 2 Oct 2026, delivered 9 Oct 2026.
 
 ---

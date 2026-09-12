@@ -209,7 +209,7 @@ is as good as the environment**, and the environment is usually somewhere else.
 ## Two ways in, one engine
 
 ```
-archdoc scan | generate | diff | export        the command line
+archdoc scan | generate | history | runs       the command line
 archdoc serve                                  the same engine, in a browser
 ```
 
