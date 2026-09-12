@@ -47,6 +47,17 @@ func fence(diagram string) string {
 	return "```mermaid\n" + strings.TrimRight(diagram, "\n") + "\n```\n"
 }
 
+// figure shows a diagram: the drawn SVG when there is one, with its Mermaid source kept in a
+// collapsed block for editing and diffing (§8 — "markdown embeds the SVG; the .mmd sits
+// alongside"). Without a picture it falls back to Mermaid, which renders with no layout engine.
+func figure(meta Meta, title, svg, mermaid string) string {
+	if !meta.Pictures {
+		return fence(mermaid)
+	}
+	return fmt.Sprintf("![%s](%s)\n\n<details>\n<summary>Diagram as text (Mermaid)</summary>\n\n%s\n</details>\n",
+		title, svg, fence(mermaid))
+}
+
 // elementTable is the answer to "how do you know?" for every box on the diagram.
 func elementTable(m archdoc.Model) string {
 	var b strings.Builder

@@ -70,6 +70,11 @@ type Meta struct {
 	Commit string // the scanned repository's commit, when it has one
 	Source string // the configuration file the model came from
 	Rules  []string
+
+	// Pictures is true when context.svg and container.svg are being written beside the
+	// markdown. The documents then show the drawn diagram and keep the Mermaid source in a
+	// collapsed block; without pictures they show Mermaid, which needs no layout engine.
+	Pictures bool
 }
 
 func (m Meta) stamp() string {
@@ -104,9 +109,9 @@ func Arc42(m archdoc.Model, meta Meta) map[string]string {
 
 		switch s.Number {
 		case 3:
-			b.WriteString(contextSection(m))
+			b.WriteString(contextSection(m, meta))
 		case 5:
-			b.WriteString(buildingBlockSection(m))
+			b.WriteString(buildingBlockSection(m, meta))
 		case 6:
 			b.WriteString(runtimeSection(m))
 		case 7:
@@ -121,13 +126,13 @@ func Arc42(m archdoc.Model, meta Meta) map[string]string {
 	return out
 }
 
-func contextSection(m archdoc.Model) string {
+func contextSection(m archdoc.Model, meta Meta) string {
 	view := m.Context()
 
 	var b strings.Builder
 	b.WriteString("The system as a whole, and what surrounds it. Everything the repository declares is\n")
 	b.WriteString("inside one box; everything it only references sits outside.\n\n")
-	b.WriteString(fence(Mermaid(view, false)))
+	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(view, false)))
 	b.WriteString("\n")
 	b.WriteString(elementTable(view))
 
@@ -146,12 +151,12 @@ func contextSection(m archdoc.Model) string {
 	return b.String()
 }
 
-func buildingBlockSection(m archdoc.Model) string {
+func buildingBlockSection(m archdoc.Model, meta Meta) string {
 	view := m.Container()
 
 	var b strings.Builder
 	b.WriteString("The separately deployable pieces inside the system, and what talks to what.\n\n")
-	b.WriteString(fence(Mermaid(view, true)))
+	b.WriteString(figure(meta, "Containers", "container.svg", Mermaid(view, true)))
 	b.WriteString("\n")
 	b.WriteString(elementTable(view))
 	b.WriteString("\n")

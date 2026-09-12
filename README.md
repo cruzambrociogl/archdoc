@@ -176,7 +176,8 @@ docs/architecture/
 ├── 07-deployment-view.generated.md
 ├── 12-glossary.generated.md
 ├── 02, 04, 08–11                       yours
-└── context.mmd · container.mmd
+├── context.svg · container.svg          the drawn C4 diagrams
+└── context.mmd · container.mmd          the same, as editable text
 .archdoc/
 ├── model.json                          committed — the durable record
 └── history.db                          local cache, git-ignored by archdoc

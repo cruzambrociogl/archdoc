@@ -45,11 +45,11 @@ constantly, not just at a review.
 | `SEM` | Semantic layer — the LLM | 10 | ~5 | — |
 | `PRV` | Provenance | 6 | ~3 | AC-1 |
 | `MEM` | Memory and diff | 8 | ~2 | AC-6 |
-| `VIE` | Views and rendering | 10 | ~4 | AC-2 |
+| `VIE` | Views and rendering | 10 | ~7 | AC-2 |
 | `SUR` | Surfaces — CLI and web app | 15 | ~2 | AC-8 |
 | `OUT` | Output and deliverables | 10 | ~7 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~59** | |
+| | **Total** | **116** | **~62** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 

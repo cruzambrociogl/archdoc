@@ -107,6 +107,15 @@ func generate(args []string, out io.Writer) error {
 		Rules:  citations(rf),
 	}
 
+	// VIE-03/04 — positions are computed once per architecture and stored with its version. A
+	// run that finds the architecture unchanged draws from the stored coordinates, so the
+	// picture cannot shift between identical runs. --stdout writes nothing, so it draws nothing.
+	var layouts map[string]archdoc.Layout
+	if !*toStdout {
+		layouts = layoutViews(facts.Root, m, out)
+		meta.Pictures = layouts != nil
+	}
+
 	// Which human-owned sections already exist. Asked of the filesystem rather than by
 	// opening the file: OUT-03 forbids reading them, and their existence is all the index
 	// needs to report completeness.
@@ -131,6 +140,10 @@ func generate(args []string, out io.Writer) error {
 		render.IndexFile: index,
 		"context.mmd":    render.Mermaid(m.Context(), false),
 		"container.mmd":  render.Mermaid(m.Container(), true),
+	}
+	if meta.Pictures {
+		generated["context.svg"] = render.SVG(m.Context(), layouts["context"])
+		generated["container.svg"] = render.SVG(m.Container(), layouts["container"])
 	}
 	for name, content := range render.Arc42(m, meta) {
 		generated[name] = content
@@ -165,7 +178,7 @@ func generate(args []string, out io.Writer) error {
 
 	// MEM-01 — history is recorded after the model is known good, never before. A version
 	// nothing validated is a version nobody can trust to diff against.
-	if err := record(facts.Root, m, meta, out); err != nil {
+	if err := record(facts.Root, m, layouts, meta, out); err != nil {
 		return err
 	}
 
@@ -203,7 +216,7 @@ func generate(args []string, out io.Writer) error {
 // A failure here is reported and does not stop the run: the documentation is the deliverable and
 // history is an index over it. Refusing to write a correct diagram because a cache could not be
 // updated would be the wrong trade.
-func record(root string, m archdoc.Model, meta render.Meta, out io.Writer) error {
+func record(root string, m archdoc.Model, layouts map[string]archdoc.Layout, meta render.Meta, out io.Writer) error {
 	// archdoc's own cache should not land in someone's commit. model.json beside it is
 	// committed on purpose — that is the durable record — but a binary index conflicts on
 	// every parallel run and diffs as noise, and it can be rebuilt by regenerating.
@@ -218,7 +231,7 @@ func record(root string, m archdoc.Model, meta render.Meta, out io.Writer) error
 	}
 	defer h.Close()
 
-	id, changed, err := h.Save(m, meta.Commit, meta.Tool)
+	id, changed, err := h.Save(m, layouts, meta.Commit, meta.Tool)
 	if err != nil {
 		fmt.Fprintf(out, "history unavailable: %v\n", err)
 		return nil
@@ -244,6 +257,41 @@ history.db
 history.db-shm
 history.db-wal
 `
+
+// layoutViews returns the positions for the context and container views: the stored ones when
+// history already holds this exact architecture, freshly computed ones otherwise.
+//
+// A layout failure is reported and does not stop the run. The documentation falls back to the
+// Mermaid diagrams, which need no layout — a missing picture is a gap, and a run that refused to
+// write correct documentation because a drawing failed would be the wrong trade.
+func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc.Layout {
+	if h, err := store.Open(root); err == nil {
+		defer h.Close()
+		if latest, err := h.Latest(); err == nil && latest != nil {
+			if fp, err := store.Fingerprint(m); err == nil && fp == latest.Fingerprint {
+				c1, okCtx := latest.Layouts["context"]
+				c2, okCon := latest.Layouts["container"]
+				// Only a layout from the running engine is reused; an older one is recomputed.
+				if okCtx && okCon && c1.Version == render.LayoutVersion && c2.Version == render.LayoutVersion {
+					return latest.Layouts
+				}
+			}
+		}
+	}
+
+	ctx := context.Background()
+	contextLayout, err := render.Layout(ctx, m.Context(), false)
+	if err != nil {
+		fmt.Fprintf(out, "layout unavailable, Mermaid diagrams only: %v\n", err)
+		return nil
+	}
+	containerLayout, err := render.Layout(ctx, m.Container(), true)
+	if err != nil {
+		fmt.Fprintf(out, "layout unavailable, Mermaid diagrams only: %v\n", err)
+		return nil
+	}
+	return map[string]archdoc.Layout{"context": contextLayout, "container": containerLayout}
+}
 
 // citations names the rules that were applied, for the stamp OUT-04 puts on every generated
 // file. A reader who meets a technology they did not expect can find the line that set it.

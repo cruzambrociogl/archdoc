@@ -36,10 +36,10 @@ func Index(m archdoc.Model, meta Meta) string {
 	fmt.Fprintf(&b, "Derived from `%s`. Every element below cites the line that declares it.\n\n", meta.Source)
 
 	b.WriteString("## System context\n\n")
-	b.WriteString(fence(Mermaid(m.Context(), false)))
+	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(m.Context(), false)))
 
 	b.WriteString("\n## Containers\n\n")
-	b.WriteString(fence(Mermaid(m.Container(), true)))
+	b.WriteString(figure(meta, "Containers", "container.svg", Mermaid(m.Container(), true)))
 
 	b.WriteString("\n## Sections\n\n")
 	b.WriteString("Twelve arc42 sections. Five are generated from facts and overwritten on every\n")

@@ -33,7 +33,7 @@ func history(t *testing.T) *Store {
 func TestSaveRecordsAVersion(t *testing.T) {
 	s := history(t)
 
-	id, changed, err := s.Save(model("example"), "abc123", "test")
+	id, changed, err := s.Save(model("example"), nil, "abc123", "test")
 	if err != nil {
 		t.Fatalf("save: %v", err)
 	}
@@ -64,13 +64,13 @@ func TestSaveRecordsAVersion(t *testing.T) {
 func TestUnchangedRunsDoNotCreateVersions(t *testing.T) {
 	s := history(t)
 
-	first, _, err := s.Save(model("example"), "abc123", "test")
+	first, _, err := s.Save(model("example"), nil, "abc123", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i := range 5 {
-		id, changed, err := s.Save(model("example"), "abc123", "test")
+		id, changed, err := s.Save(model("example"), nil, "abc123", "test")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -96,7 +96,7 @@ func TestUnchangedRunsDoNotCreateVersions(t *testing.T) {
 func TestAChangedModelCreatesANewVersion(t *testing.T) {
 	s := history(t)
 
-	if _, _, err := s.Save(model("example"), "abc123", "test"); err != nil {
+	if _, _, err := s.Save(model("example"), nil, "abc123", "test"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -106,7 +106,7 @@ func TestAChangedModelCreatesANewVersion(t *testing.T) {
 		Prov: archdoc.Provenance{File: "docker-compose.yml", Line: 9},
 	})
 
-	if _, changed, err := s.Save(grown, "def456", "test"); err != nil || !changed {
+	if _, changed, err := s.Save(grown, nil, "def456", "test"); err != nil || !changed {
 		t.Fatalf("adding a node did not record a version (err=%v)", err)
 	}
 
@@ -128,11 +128,11 @@ func TestAChangedModelCreatesANewVersion(t *testing.T) {
 func TestSameModelAtANewCommitIsNotAChange(t *testing.T) {
 	s := history(t)
 
-	if _, _, err := s.Save(model("example"), "abc123", "test"); err != nil {
+	if _, _, err := s.Save(model("example"), nil, "abc123", "test"); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, changed, err := s.Save(model("example"), "def456", "test"); err != nil || changed {
+	if _, changed, err := s.Save(model("example"), nil, "def456", "test"); err != nil || changed {
 		t.Errorf("a commit that changed no architecture recorded a version (err=%v)", err)
 	}
 }
@@ -155,7 +155,7 @@ func TestHistorySurvivesReopening(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := first.Save(model("example"), "abc123", "test"); err != nil {
+	if _, _, err := first.Save(model("example"), nil, "abc123", "test"); err != nil {
 		t.Fatal(err)
 	}
 	first.Close()

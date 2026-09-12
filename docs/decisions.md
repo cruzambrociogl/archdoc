@@ -516,3 +516,20 @@ Bridging now takes the second hop's label when a person or the model wrote it �
 one that says what reaches the target — and keeps the first hop's extracted label otherwise, since
 with no model "reaches" reads better on a user's arrow than "routes to". The label's citation
 moves with it; the arrow's evidence is still both hops.
+
+**2026-09-12 — archdoc draws its own C4 diagram from stored coordinates**
+Graphviz (`goccy/go-graphviz`, WebAssembly — no cgo, no system install) places everything; archdoc
+sizes every box for the exact text it will draw, then draws the SVG itself. Graphviz's own SVG was
+rejected: the C4 conventions — name, type, technology, responsibility, dashed external systems,
+italic model text — are archdoc's to apply, and a future web canvas must draw the identical picture
+from the same stored coordinates (VIE-10). The markdown shows the SVG and keeps the Mermaid source
+in a collapsed block, as §8 asks; if layout fails, the documents fall back to Mermaid alone.
+
+Positions are stored with each version and reused when the architecture is unchanged, so an
+identical run cannot reshuffle the picture. **Keeping boxes in place across a *changed*
+architecture is out of scope:** Graphviz lays out from scratch, and position pinning is closer to
+research than to a task. A stored layout carries the engine's version and is reused only by the
+same engine — found the first day, when a fix to boundary labels did not appear on Immich or
+Mastodon because their unchanged architectures reused layouts stored by the old code.
+
+Cost: the binary grows from 24 MB to 31 MB. That is the price of layout without a system Graphviz.

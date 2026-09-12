@@ -39,7 +39,7 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │                                                  │
    │  7  STORE      a version when it changed (SQLite)│ ✅
    │                                                  │
-   │  8  RENDER     Mermaid ✅ · SVG + layout ⬜      │ 🟡
+   │  8  RENDER     C4 SVG + Mermaid, layout stored   │ ✅
    └──────────────────────────────────────────────────┘
                           │
                           ▼
@@ -49,7 +49,7 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │     ├── index.generated.md   both diagrams       │
    │     ├── 01..12  arc42 — 5 generated, 7 yours     │
    │     ├── *.mmd   diagrams as text                 │
-   │     └── *.svg   not yet                          │
+   │     └── *.svg   the drawn C4 diagrams            │
    │  .archdoc/                                       │
    │     ├── model.json   committed — the record      │
    │     └── history.db   local cache, git-ignored    │
@@ -204,7 +204,7 @@ is as good as the environment**, and the environment is usually somewhere else.
 | 5 Label | `internal/semantic` | The only package permitted outbound calls. Opt-in with `--label`; built and tested offline, not yet run against the live API |
 | 6 Validate | `internal/validate` | Every rule traceable to a failure seen in the draw.io experiment. Two severities: wrong is refused, thin is published and reported |
 | 7 Store | `internal/store` | SQLite, cgo-free. A run that changes nothing records nothing |
-| 8 Render | `internal/render` | Mermaid today. Layout and SVG come with sprint 2 |
+| 8 Render | `internal/render` | Graphviz places, archdoc draws the C4 SVG from stored coordinates; Mermaid kept as text |
 
 ## Two ways in, one engine
 

@@ -49,6 +49,12 @@ raised, not quietly promoted over it.
 - [ ] An `architecture.generated.md` from before the arc42 layout is orphaned in any repository
       generated with an older build. archdoc writes its own files and never removes ones it no
       longer emits — decide whether that is a defect
+- [ ] The version fingerprint is a hash of the model's JSON, so adding a field to the model
+      (as 11–12 Sep did) records a new version for every repository on its next run, though no
+      architecture changed. Either fingerprint architecture only, or accept it and say so
+- [ ] A layout recomputed for an unchanged architecture (engine version changed) is not stored,
+      because Save returns the existing version untouched. Harmless — Supabase lays out in
+      milliseconds — but the stored layout stays stale until the architecture next changes
 - [ ] PRV-05 — the evidence tables now mark every model-written name, label, description and
       technology with its own citation. The Mermaid diagram itself does not yet distinguish them
 - [ ] Labelling takes ~2 minutes on Supabase with adaptive thinking at default effort. Worth

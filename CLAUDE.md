@@ -70,8 +70,8 @@ acceptance criterion.
    iteration; unsorted output silently breaks AC-7 (five runs, byte-identical). This is the
    single most likely defect in generated Go here.
 2. **Never write to human-owned files. Never read them either.** The write set is closed and
-   named in `cmd/archdoc/generate.go`: `docs/architecture/*.generated.md`, the `.mmd` beside
-   them, and `.archdoc/`. Each is overwritten wholesale. Human sections are *linked*, not
+   named in `cmd/archdoc/generate.go`: `docs/architecture/*.generated.md`, the `.mmd` and
+   `.svg` beside them, and `.archdoc/`. Each is overwritten wholesale. Human sections are *linked*, not
    parsed — `OUT-02` / `OUT-03`. A documentation generator that eats someone's writing gets
    uninstalled once.
 3. **Only `internal/semantic` may make outbound network calls.** This is what makes AC-8

@@ -40,6 +40,11 @@ type Version struct {
 	Tool        string
 	Fingerprint string // content hash of the model, which is what makes a no-op run detectable
 	Model       archdoc.Model
+
+	// Layouts are the positions computed for this version's views, keyed by view name. Stored
+	// so an unchanged architecture is drawn from the same coordinates every time, rather than
+	// laid out again (VIE-04). Empty for versions recorded before layouts existed.
+	Layouts map[string]archdoc.Layout
 }
 
 // Store is history for one repository.
@@ -88,10 +93,56 @@ func open(dsn string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("creating schema: %w", err)
 	}
+	if err := migrate(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("upgrading history: %w", err)
+	}
 	return &Store{db: db}, nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }
+
+// migrate brings a history database written by an older archdoc up to date. Additive only: a
+// column is added, never removed or rewritten, so older versions keep everything they had.
+func migrate(db *sql.DB) error {
+	rows, err := db.Query(`PRAGMA table_info(versions)`)
+	if err != nil {
+		return err
+	}
+	has := map[string]bool{}
+	for rows.Next() {
+		var (
+			cid, notnull, pk int
+			name, typ        string
+			dflt             sql.NullString
+		)
+		if err := rows.Scan(&cid, &name, &typ, &notnull, &dflt, &pk); err != nil {
+			rows.Close()
+			return err
+		}
+		has[name] = true
+	}
+	rows.Close()
+
+	if !has["layouts"] {
+		if _, err := db.Exec(`ALTER TABLE versions ADD COLUMN layouts TEXT NOT NULL DEFAULT ''`); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Fingerprint is the content hash that decides whether a model is a new version. Exported so a
+// caller can ask "is this architecture unchanged?" before doing work — laying it out, say — that
+// an unchanged architecture has already had done.
+func Fingerprint(m archdoc.Model) (string, error) {
+	encoded, err := json.Marshal(m)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(encoded)
+	return hex.EncodeToString(sum[:]), nil
+}
 
 // Save records a model, unless the latest version already holds exactly this one.
 //
@@ -99,13 +150,19 @@ func (s *Store) Close() error { return s.db.Close() }
 // with AC-7 guaranteeing byte-identical output across runs, recording every run would fill the
 // log with entries that differ in nothing but their timestamp, and a diff between two of them
 // would be empty. `changed` reports which happened.
-func (s *Store) Save(m archdoc.Model, commit, tool string) (id int64, changed bool, err error) {
+func (s *Store) Save(m archdoc.Model, layouts map[string]archdoc.Layout, commit, tool string) (id int64, changed bool, err error) {
 	encoded, err := json.Marshal(m)
 	if err != nil {
 		return 0, false, err
 	}
-	sum := sha256.Sum256(encoded)
-	fingerprint := hex.EncodeToString(sum[:])
+	fingerprint, err := Fingerprint(m)
+	if err != nil {
+		return 0, false, err
+	}
+	laid, err := json.Marshal(layouts)
+	if err != nil {
+		return 0, false, err
+	}
 
 	latest, err := s.Latest()
 	if err != nil {
@@ -116,9 +173,9 @@ func (s *Store) Save(m archdoc.Model, commit, tool string) (id int64, changed bo
 	}
 
 	res, err := s.db.Exec(
-		`INSERT INTO versions (created_at, commit_sha, source, tool, fingerprint, model)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		time.Now().UTC().Format(time.RFC3339), commit, m.Source, tool, fingerprint, string(encoded),
+		`INSERT INTO versions (created_at, commit_sha, source, tool, fingerprint, model, layouts)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		time.Now().UTC().Format(time.RFC3339), commit, m.Source, tool, fingerprint, string(encoded), string(laid),
 	)
 	if err != nil {
 		return 0, false, err
@@ -130,13 +187,13 @@ func (s *Store) Save(m archdoc.Model, commit, tool string) (id int64, changed bo
 
 // Latest returns the most recent version, or nil when there is no history yet.
 func (s *Store) Latest() (*Version, error) {
-	return s.one(`SELECT id, created_at, commit_sha, source, tool, fingerprint, model
+	return s.one(`SELECT id, created_at, commit_sha, source, tool, fingerprint, model, layouts
 	              FROM versions ORDER BY id DESC LIMIT 1`)
 }
 
 // Get returns one version by id (MEM-03).
 func (s *Store) Get(id int64) (*Version, error) {
-	return s.one(`SELECT id, created_at, commit_sha, source, tool, fingerprint, model
+	return s.one(`SELECT id, created_at, commit_sha, source, tool, fingerprint, model, layouts
 	              FROM versions WHERE id = ?`, id)
 }
 
@@ -175,10 +232,11 @@ func (s *Store) one(query string, args ...any) (*Version, error) {
 		v         Version
 		createdAt string
 		encoded   string
+		laid      string
 	)
 
 	err := s.db.QueryRow(query, args...).Scan(
-		&v.ID, &createdAt, &v.Commit, &v.Source, &v.Tool, &v.Fingerprint, &encoded)
+		&v.ID, &createdAt, &v.Commit, &v.Source, &v.Tool, &v.Fingerprint, &encoded, &laid)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -189,6 +247,11 @@ func (s *Store) one(query string, args ...any) (*Version, error) {
 	v.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
 	if err := json.Unmarshal([]byte(encoded), &v.Model); err != nil {
 		return nil, fmt.Errorf("version %d: %w", v.ID, err)
+	}
+	if laid != "" {
+		if err := json.Unmarshal([]byte(laid), &v.Layouts); err != nil {
+			return nil, fmt.Errorf("version %d layouts: %w", v.ID, err)
+		}
 	}
 	return &v, nil
 }
