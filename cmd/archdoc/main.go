@@ -29,11 +29,15 @@ commands:
   generate <path>  write C4 diagrams and their evidence into the repository
   history <path>   list every version archdoc has recorded
   runs <path>      list every run that used the network, and what it cost
+  serve <path>     open the web app for a repository archdoc has documented
   version          print build information
 
 flags for scan:
   --json           emit the FactSet as JSON instead of a table
   --explain        show every file discovery considered, and why
+
+flags for serve:
+  --port <n>       local port (default 7474); only this machine can connect
 
 flags for runs:
   --show <run>     print exactly what that run sent, byte for byte
@@ -74,6 +78,9 @@ func run(args []string, out io.Writer) error {
 
 	case "runs":
 		return runs(args[1:], out)
+
+	case "serve":
+		return serveCommand(args[1:], out)
 
 	case "version":
 		fmt.Fprintln(out, archdoc.Build())
