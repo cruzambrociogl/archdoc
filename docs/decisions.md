@@ -502,6 +502,17 @@ publishes plain port 8000. The validator now rejects a model-written label namin
 edge's recorded technology does not state, which sends the reason back through VAL-07. Rules are
 exempt. Descriptions are not checked — they are interpretation by definition, and marked as such.
 
-Known and accepted: the seven user relationships, all bridged from one published port through the
-gateway, get one generic label. Their evidence is identical, so a label distinguishing them would
-be claiming more than the configuration says.
+~~Known and accepted: the seven user relationships, all bridged from one published port through
+the gateway, get one generic label. Their evidence is identical, so a label distinguishing them
+would be claiming more than the configuration says.~~ *Wrong — corrected 12 Sep, below.*
+
+**2026-09-12 — A reconnected arrow takes the route's label, when one was written**
+Corrects the "known and accepted" note in the entry above. The seven user arrows' evidence was
+never identical: each crosses the gateway on its own route, with its own line in `cds.yaml`, and
+the model had labelled each route specifically ("forwards signup, login and token requests to").
+Those labels were hidden with the gateway, because bridging kept the first hop's label.
+
+Bridging now takes the second hop's label when a person or the model wrote it — that hop is the
+one that says what reaches the target — and keeps the first hop's extracted label otherwise, since
+with no model "reaches" reads better on a user's arrow than "routes to". The label's citation
+moves with it; the arrow's evidence is still both hops.

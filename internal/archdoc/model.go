@@ -318,13 +318,12 @@ func bridge(edges []Edge, keep, reach map[string]bool) []Edge {
 			if b.From != a.To || !keep[b.To] || !keep[a.From] || !b.Traffic {
 				continue
 			}
-			// The label is the first hop's: this is a's relationship, extended past the
-			// infrastructure in the way rather than b's relationship re-attributed.
+			label, labelProv := bridgeLabel(a, b)
 			out = append(out, Edge{
 				From:       a.From,
 				To:         b.To,
-				Label:      firstNonEmpty(a.Label, b.Label),
-				LabelProv:  labelProvOf(a, b),
+				Label:      label,
+				LabelProv:  labelProv,
 				Technology: firstNonEmpty(b.Technology, a.Technology),
 				Traffic:    true,
 				Prov:       append(append([]Provenance{}, a.Prov...), b.Prov...),
@@ -401,12 +400,25 @@ func dedupeProv(ps []Provenance) []Provenance {
 	return out
 }
 
-// labelProvOf returns the citation of whichever label firstNonEmpty picked for a bridged edge.
-func labelProvOf(a, b Edge) Provenance {
-	if a.Label != "" {
-		return a.LabelProv
+// bridgeLabel picks the label for an edge reconnected past excluded infrastructure.
+//
+// The second hop's label wins when a person or the model wrote it. That hop is the one that says
+// what reaches the target — each gateway route has its own line in the gateway's config, and a
+// label written for it ("forwards signup and token requests to") describes that route
+// specifically. Found on a live Supabase run: keeping the first hop's label gave all seven user
+// arrows the same generic text, while the specific route labels existed and were hidden with the
+// gateway.
+//
+// Otherwise the first hop's extracted label stays, as before: with no model, "reaches" reads
+// better on a user's arrow than the gateway's "routes to".
+func bridgeLabel(a, b Edge) (string, Provenance) {
+	if b.Label != "" && b.LabelProv.Known() {
+		return b.Label, b.LabelProv
 	}
-	return b.LabelProv
+	if a.Label != "" {
+		return a.Label, a.LabelProv
+	}
+	return b.Label, b.LabelProv
 }
 
 func firstNonEmpty(a, b string) string {
