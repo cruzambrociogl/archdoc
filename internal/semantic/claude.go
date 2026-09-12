@@ -25,7 +25,7 @@ import (
 //   - Server-side fallbacks in "default" mode. If Claude Opus 5's safety classifiers decline a
 //     request, the API re-runs it on Anthropic's recommended fallback instead of returning an
 //     empty refusal. A refusal that still gets through is reported, not guessed around.
-func Claude(model string) Completer {
+func Claude(model string, rec *Recorder, extra ...option.RequestOption) Completer {
 	// A key created at organisation level rather than inside a workspace must name the
 	// workspace on every request. Keys created inside a workspace need nothing extra, so
 	// the header is sent only when the variable is set.
@@ -34,6 +34,10 @@ func Claude(model string) Completer {
 	if ws != "" && !strings.HasPrefix(ws, "sk-ant-") {
 		opts = append(opts, option.WithHeader("anthropic-workspace-id", ws))
 	}
+	if rec != nil {
+		opts = append(opts, option.WithMiddleware(rec.Middleware()))
+	}
+	opts = append(opts, extra...) // tests point the real client at a local server
 	client := anthropic.NewClient(opts...)
 
 	return func(ctx context.Context, system string, turns []Turn) (Reply, error) {
@@ -73,8 +77,12 @@ func Claude(model string) Completer {
 			return Reply{}, explain(err)
 		}
 
+		// Usage is what NFR-6 and SUR-13 report: tokens in and out, which is what cost is made of.
+		in := resp.Usage.InputTokens + resp.Usage.CacheReadInputTokens + resp.Usage.CacheCreationInputTokens
+		out := resp.Usage.OutputTokens
+
 		if resp.StopReason == anthropic.BetaStopReasonRefusal {
-			return Reply{Refused: true}, nil
+			return Reply{Refused: true, InputTokens: in, OutputTokens: out}, nil
 		}
 
 		var text string
@@ -83,7 +91,7 @@ func Claude(model string) Completer {
 				text += t.Text
 			}
 		}
-		return Reply{Text: text}, nil
+		return Reply{Text: text, InputTokens: in, OutputTokens: out}, nil
 	}
 }
 

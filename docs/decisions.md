@@ -533,3 +533,19 @@ same engine — found the first day, when a fix to boundary labels did not appea
 Mastodon because their unchanged architectures reused layouts stored by the old code.
 
 Cost: the binary grows from 24 MB to 31 MB. That is the price of layout without a system Graphviz.
+
+**2026-09-12 — The run log records the wire, not the prompt**
+SUR-14 says print exactly what left the machine; AC-8 says the run log accounts for every byte.
+Both are met by recording the HTTP request bodies as they go onto the wire — a middleware on the
+SDK client, inside `internal/semantic`, the one package allowed to make calls. A log built from
+the prompt string would account for the prompt and miss whatever the client wrapped around it.
+
+The test that gates AC-8 points the real SDK at a local fake of the Messages API and checks
+that the recorder holds exactly the bytes the server received — and that no path, line number,
+provenance or API key is among them.
+
+Two rules. A run is logged **whether or not it succeeded**: a request that left the machine is
+in the log, and a failed run is the one someone goes looking for. And cost is reported only for
+a model whose price archdoc knows; an unknown model reports its tokens and no figure, because
+NFR-6 asks for actual cost and a guessed one is worse than none. `archdoc runs --show N` prints
+the payload unformatted — a prettier version would no longer be the thing that was sent.

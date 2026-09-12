@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
@@ -74,13 +75,29 @@ func generate(args []string, out io.Writer) error {
 	// correction always overrides a model's suggestion. Without --label no request is made
 	// and the diagram is complete anyway — that is AC-2.
 	if *label {
-		labelled, rep, err := semantic.Label(context.Background(), semantic.Claude(semantic.Model), semantic.Model, m)
+		rec := &semantic.Recorder{}
+		started := time.Now()
+		labelled, rep, err := semantic.Label(context.Background(), semantic.Claude(semantic.Model, rec), semantic.Model, m)
+
+		// AC-8 — logged whether or not labelling succeeded. A request that left the machine is
+		// in the log; a failed run is exactly the one someone goes looking for.
+		runID := logRun(facts.Root, rec, rep, started, err, out)
 		if err != nil {
 			return fmt.Errorf("labelling failed, nothing written: %w", err)
 		}
 		m = labelled
-		fmt.Fprintf(out, "labelled by %s: %d operation(s) in %d attempt(s), %d bytes sent, structure only\n",
-			rep.Model, rep.Ops, rep.Attempts, rep.BytesSent)
+
+		cost := "cost unknown for this model"
+		if c, ok := semantic.Cost(rep.Model, rep.InputTokens, rep.OutputTokens); ok {
+			cost = fmt.Sprintf("$%.4f", c)
+		}
+		fmt.Fprintf(out, "labelled by %s: %d operation(s) in %d attempt(s)\n", rep.Model, rep.Ops, rep.Attempts)
+		fmt.Fprintf(out, "sent %d request(s), %d bytes, structure only · %d tokens in, %d out · %s\n",
+			len(rec.Exchanges()), rec.Bytes(), rep.InputTokens, rep.OutputTokens, cost)
+		if runID > 0 {
+			fmt.Fprintf(out, "run %d logged — 'archdoc runs %s --show %d' prints exactly what was sent\n",
+				runID, root, runID)
+		}
 	}
 
 	if len(ops) > 0 {
@@ -257,6 +274,44 @@ history.db
 history.db-shm
 history.db-wal
 `
+
+// logRun records one use of the network: every request exactly as it left, and what it cost. A
+// failure to write the log is reported and does not stop the run — but it is reported, because a
+// run log with a silent gap is not a run log.
+func logRun(root string, rec *semantic.Recorder, rep semantic.Report, started time.Time, runErr error, out io.Writer) int64 {
+	h, err := store.Open(root)
+	if err != nil {
+		fmt.Fprintf(out, "run log unavailable: %v\n", err)
+		return 0
+	}
+	defer h.Close()
+
+	status := "ok"
+	if runErr != nil {
+		status = runErr.Error()
+	}
+	cost, known := semantic.Cost(rep.Model, rep.InputTokens, rep.OutputTokens)
+
+	r := store.Run{
+		StartedAt: started, FinishedAt: time.Now(), Status: status,
+		Commit: render.Commit(root), EgressMode: "structure-only", Model: rep.Model,
+		BytesSent: rec.Bytes(), TokensIn: rep.InputTokens, TokensOut: rep.OutputTokens,
+		CostUSD: cost, CostKnown: known,
+	}
+	for _, ex := range rec.Exchanges() {
+		r.Exchanges = append(r.Exchanges, store.Exchange{
+			Method: ex.Method, URL: ex.URL, Status: ex.Status, Body: string(ex.Body),
+		})
+	}
+	r.Requests = len(r.Exchanges)
+
+	id, err := h.SaveRun(r)
+	if err != nil {
+		fmt.Fprintf(out, "run log unavailable: %v\n", err)
+		return 0
+	}
+	return id
+}
 
 // layoutViews returns the positions for the context and container views: the stored ones when
 // history already holds this exact architecture, freshly computed ones otherwise.

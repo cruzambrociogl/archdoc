@@ -93,6 +93,12 @@ func open(dsn string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("creating schema: %w", err)
 	}
+	// The run log (AC-8). CREATE IF NOT EXISTS, so a history file from before egress reporting
+	// gains the table on open and loses nothing.
+	if _, err := db.Exec(runsSchema); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("creating the run log: %w", err)
+	}
 	if err := migrate(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("upgrading history: %w", err)

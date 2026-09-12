@@ -23,7 +23,7 @@ constantly, not just at a review.
 | AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | ✓ **10 of 10, 8 Sep.** Measured by running the whole pipeline from disk twice, not by re-applying a cached model — surviving *regeneration* is the criterion |
 | AC-6 | Drift detection | 100% of synthetic drift set | **yes** | · |
 | AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ✓ **holds end to end** — 5 identical runs on all three subjects, measured on the full generated document rather than the FactSet alone. Covered by tests in four packages |
-| AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | ~ **structure-only is the only mode.** A test asserts no path, line or provenance reaches the prompt, and the run reports bytes sent. The full run log is the egress-reporting row, still open |
+| AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | ✓ **met, 12 Sep.** Measured on the wire: the real SDK against a local fake of the API, the recorder holding exactly the bytes the server received, with no path, line, provenance or key among them. Every run is logged, failures included; `archdoc runs --show` prints it unformatted |
 | AC-9 | Performance | NFR-1 and NFR-2 met on Supabase | no | · |
 
 > **AC-3 is predicted to miss its threshold.** Immich declares none of its three service
@@ -46,10 +46,10 @@ constantly, not just at a review.
 | `PRV` | Provenance | 6 | ~3 | AC-1 |
 | `MEM` | Memory and diff | 8 | ~2 | AC-6 |
 | `VIE` | Views and rendering | 10 | ~7 | AC-2 |
-| `SUR` | Surfaces — CLI and web app | 15 | ~2 | AC-8 |
+| `SUR` | Surfaces — CLI and web app | 15 | ~5 | AC-8 |
 | `OUT` | Output and deliverables | 10 | ~7 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~62** | |
+| | **Total** | **116** | **~65** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 

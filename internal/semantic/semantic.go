@@ -44,6 +44,9 @@ type Turn struct {
 type Reply struct {
 	Text    string
 	Refused bool // the model's safety classifiers declined; Text is not an answer
+
+	InputTokens  int64
+	OutputTokens int64
 }
 
 // Completer sends one request. The real one calls the Anthropic API (claude.go); tests pass a
@@ -56,6 +59,11 @@ type Report struct {
 	Attempts  int
 	BytesSent int // every byte of every prompt, so egress is accounted for rather than assumed
 	Ops       int
+
+	// Tokens across every attempt, including the ones the validator sent back. A retry is
+	// billed like any other request, so it is counted like one.
+	InputTokens  int64
+	OutputTokens int64
 }
 
 // Label asks the model for names, descriptions and edge labels, and returns the model with the
@@ -84,6 +92,8 @@ func Label(ctx context.Context, complete Completer, model string, m archdoc.Mode
 		if err != nil {
 			return m, rep, err
 		}
+		rep.InputTokens += reply.InputTokens
+		rep.OutputTokens += reply.OutputTokens
 		if reply.Refused {
 			return m, rep, fmt.Errorf("the model declined to label this architecture; the diagram is unchanged")
 		}
