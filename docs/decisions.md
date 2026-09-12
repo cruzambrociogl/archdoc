@@ -483,3 +483,25 @@ Defaults: `claude-opus-5`, with server-side fallbacks in `"default"` mode so a s
 refusal is re-run on Anthropic's recommended fallback rather than returned empty. A model
 value's provenance names the model but not the request id, so a relabelled run that changes
 no architecture does not create a new version in history.
+
+**2026-09-11 — First live runs: provenance for labels is separate, and labels may not assert protocol**
+Three live runs on Supabase. Structure held on every one: versions 1–4 in history have the same
+13 elements, kinds and 23 relationships — AC-2 on real output, not a fixture.
+
+Two defects surfaced only because the model produced real text, and both are now fenced by code
+rather than by prompt:
+
+*A relabelled arrow looked like evidence for the arrow.* SetEdgeLabel appended the model's
+citation to the edge's own provenance, and a citation with no file sorts first, so every
+relationship read "Declared at: model: claude-opus-5". Edges now carry `LabelProv` and nodes
+`NameProv`, beside `DescProv` and `TechProv`. `Prov` means one thing only: the evidence that the
+element or relationship exists.
+
+*A label asserted a fact.* Seven relationships were labelled "over HTTPS" when the configuration
+publishes plain port 8000. The validator now rejects a model-written label naming a protocol the
+edge's recorded technology does not state, which sends the reason back through VAL-07. Rules are
+exempt. Descriptions are not checked — they are interpretation by definition, and marked as such.
+
+Known and accepted: the seven user relationships, all bridged from one published port through the
+gateway, get one generic label. Their evidence is identical, so a label distinguishing them would
+be claiming more than the configuration says.

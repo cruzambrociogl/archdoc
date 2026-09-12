@@ -17,7 +17,7 @@ constantly, not just at a review.
 | | Criterion | Threshold | Self-checking | Status |
 |---|---|---|---|---|
 | AC-1 | Nodes and edges carry extraction or catalog provenance | ≥ 95% | no | ✓ **100% on all three subjects** (24 nodes, 34 edges, 8 Sep). `PRV-02` closed the catalog hole: a technology now cites the catalog entry that supplied it. Re-measure after the semantic layer, which is where the number can fall |
-| AC-2 | Container diagram produced with the LLM disabled | renders + validates, both subjects | **yes** | ~ **half met.** Renders on all three subjects, and there is no LLM in the tool at all. *Validates* waits on the validator (sprint 2) |
+| AC-2 | Container diagram produced with the LLM disabled | renders + validates, both subjects | **yes** | ✓ **met, 11 Sep.** Renders and validates on all three subjects with no model involved. The live on/off comparison held on Supabase across four versions: identical elements, kinds and relationships — only words changed |
 | AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · |
 | AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | ✓ **13 of 13 rejected, 8 Sep.** Every fault in the suite is a way the draw.io experiment failed, or a way the model could lie without a reader noticing. Grow the suite as new failure modes appear |
 | AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | ✓ **10 of 10, 8 Sep.** Measured by running the whole pipeline from disk twice, not by re-applying a cached model — surviving *regeneration* is the criterion |
@@ -43,13 +43,13 @@ constantly, not just at a review.
 | `VAL` | Validation | 8 | ~8 | AC-4 |
 | `RUL` | Rules — `rules.yaml` | 6 | ~6 | AC-5 |
 | `SEM` | Semantic layer — the LLM | 10 | ~5 | — |
-| `PRV` | Provenance | 6 | ~2 | AC-1 |
+| `PRV` | Provenance | 6 | ~3 | AC-1 |
 | `MEM` | Memory and diff | 8 | ~2 | AC-6 |
 | `VIE` | Views and rendering | 10 | ~4 | AC-2 |
 | `SUR` | Surfaces — CLI and web app | 15 | ~2 | AC-8 |
 | `OUT` | Output and deliverables | 10 | ~7 | — |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~58** | |
+| | **Total** | **116** | **~59** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
 

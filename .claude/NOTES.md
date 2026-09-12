@@ -49,9 +49,10 @@ raised, not quietly promoted over it.
 - [ ] An `architecture.generated.md` from before the arc42 layout is orphaned in any repository
       generated with an older build. archdoc writes its own files and never removes ones it no
       longer emits — decide whether that is a defect
-- [ ] The semantic layer has never run against the live API — no credentials on this machine.
-      First live run is the real test of the prompt; expect to tune it. PRV-05 is half done:
-      the evidence table italicises model values, the diagram does not yet distinguish them
+- [ ] PRV-05 — the evidence tables now mark every model-written name, label, description and
+      technology with its own citation. The Mermaid diagram itself does not yet distinguish them
+- [ ] Labelling takes ~2 minutes on Supabase with adaptive thinking at default effort. Worth
+      measuring `effort: low`/`medium` — labelling is the kind of work that often holds quality there
 - [ ] Gateway route *paths* are not read. `lds.template.yaml` holds prefix-to-cluster rules;
       without them a service calling a gateway cannot be resolved to what it actually calls.
       Tracked as O-10 in `PROGRESS.md`
