@@ -2,6 +2,7 @@ package render
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -173,5 +174,25 @@ func TestDocumentsEmbedThePictureWhenThereIsOne(t *testing.T) {
 	without := Index(fixture(), Meta{Source: "docker-compose.yml"})
 	if strings.Contains(without, ".svg") {
 		t.Error("the index links a picture that is not being written")
+	}
+}
+
+// Found on Supabase: ten containers all reached by one user laid out in a single row, 2232 points
+// wide and a third as tall, unreadable once a markdown preview scaled it to the column. A wide
+// fan-out must come back in a readable shape.
+func TestWideFanOutStaysReadable(t *testing.T) {
+	at := func(line int) archdoc.Provenance { return archdoc.Provenance{File: "compose.yml", Line: line} }
+	m := archdoc.Model{Name: "wide"}
+	m.Nodes = append(m.Nodes, archdoc.Node{ID: "actor:user", Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: at(1)})
+	for i := 0; i < 10; i++ {
+		id := fmt.Sprintf("svc:s%02d", i)
+		m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: id[4:], Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at(10 + i)})
+		m.Edges = append(m.Edges, archdoc.Edge{From: "actor:user", To: id, Label: "reaches", Traffic: true, Prov: []archdoc.Provenance{at(2)}})
+	}
+	view := m.Normalise().Container()
+
+	l := laid(t, view, true)
+	if a := l.Width / l.Height; a > 2.5 {
+		t.Errorf("a ten-way fan-out is %.1f times wider than tall (%gx%g)", a, l.Width, l.Height)
 	}
 }

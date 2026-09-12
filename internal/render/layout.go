@@ -30,32 +30,76 @@ func Layout(ctx context.Context, view archdoc.Model, group bool) (archdoc.Layout
 		back[dot] = model
 	}
 
-	src, clusters := toDOT(view, group, ids)
-
 	g, err := graphviz.New(ctx)
 	if err != nil {
 		return archdoc.Layout{}, fmt.Errorf("starting the layout engine: %w", err)
 	}
 	defer g.Close()
 
-	graph, err := graphviz.ParseBytes([]byte(src))
+	lay := func(dir string) (archdoc.Layout, error) {
+		src, clusters := toDOT(view, group, ids, dir)
+
+		graph, err := graphviz.ParseBytes([]byte(src))
+		if err != nil {
+			return archdoc.Layout{}, fmt.Errorf("layout input rejected: %w", err)
+		}
+		defer graph.Close()
+
+		var out bytes.Buffer
+		if err := g.Render(ctx, graph, graphviz.Format("json0"), &out); err != nil {
+			return archdoc.Layout{}, fmt.Errorf("laying out: %w", err)
+		}
+		return parseLayout(out.Bytes(), back, clusters)
+	}
+
+	// Top to bottom first: it reads as C4 diagrams usually do, people above the system.
+	tall, err := lay("TB")
 	if err != nil {
-		return archdoc.Layout{}, fmt.Errorf("layout input rejected: %w", err)
+		return archdoc.Layout{}, err
 	}
-	defer graph.Close()
-
-	var out bytes.Buffer
-	if err := g.Render(ctx, graph, graphviz.Format("json0"), &out); err != nil {
-		return archdoc.Layout{}, fmt.Errorf("laying out: %w", err)
+	if aspect(tall) <= maxAspect {
+		return tall, nil
 	}
 
-	return parseLayout(out.Bytes(), back, clusters)
+	// Too wide to read. Found on Supabase: ten containers all reached by one user sat in a
+	// single row, 2232 points wide, and a markdown preview scaled the text to a third of its
+	// size. Left to right stacks them instead. Keep whichever is nearer a readable shape;
+	// both are deterministic, so the choice is too.
+	wide, err := lay("LR")
+	if err != nil {
+		return tall, nil // the first layout is still correct, only wide
+	}
+	if distance(aspect(wide)) < distance(aspect(tall)) {
+		return wide, nil
+	}
+	return tall, nil
+}
+
+// maxAspect is how much wider than tall a diagram may be before the other orientation is tried.
+// A markdown preview scales a picture to the column; past this the text stops being legible.
+const maxAspect = 2.0
+
+// idealAspect is the shape a diagram is steered towards: a little wider than tall, like a page.
+const idealAspect = 1.4
+
+func aspect(l archdoc.Layout) float64 {
+	if l.Height <= 0 {
+		return 0
+	}
+	return l.Width / l.Height
+}
+
+func distance(a float64) float64 {
+	if a > idealAspect {
+		return a / idealAspect
+	}
+	return idealAspect / a
 }
 
 // LayoutVersion changes whenever what Layout produces changes. Found the first day: a fix to
 // where boundary labels sit did not show on Immich or Mastodon, because their unchanged
 // architectures reused layouts stored by the old code. Bump this with any such change.
-const LayoutVersion = 2
+const LayoutVersion = 3
 
 // Box and text geometry, in points. Shared by the layout and the drawing, so a box is sized for
 // exactly the text that will be drawn in it.
@@ -87,12 +131,12 @@ func boxHeight(n archdoc.Node) float64 {
 
 // toDOT writes the Graphviz input. Order is fixed — nodes and edges in view order, which is
 // already sorted — because the output must be byte-identical across runs.
-func toDOT(view archdoc.Model, group bool, ids map[string]string) (string, map[string]archdoc.Boundary) {
+func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string) (string, map[string]archdoc.Boundary) {
 	var b strings.Builder
 	clusters := map[string]archdoc.Boundary{}
 
 	b.WriteString("digraph archdoc {\n")
-	b.WriteString("  graph [rankdir=TB, nodesep=0.6, ranksep=0.9, fontsize=11, fontname=\"Helvetica\"];\n")
+	fmt.Fprintf(&b, "  graph [rankdir=%s, nodesep=0.6, ranksep=0.9, fontsize=11, fontname=\"Helvetica\"];\n", rankdir)
 	b.WriteString("  node [shape=box, fixedsize=true, fontname=\"Helvetica\"];\n")
 	fmt.Fprintf(&b, "  edge [fontsize=%g, fontname=\"Helvetica\"];\n", labelSize)
 
