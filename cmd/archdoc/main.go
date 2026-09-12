@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -90,7 +91,7 @@ func scan(args []string, out io.Writer) error {
 	// Go's flag package stops parsing at the first non-flag argument, so "scan ./repo --json"
 	// would silently ignore the flag. Separating them first means flags work on either side of
 	// the path, which is what anyone typing the command will expect.
-	flags, positional := partitionArgs(args)
+	flags, positional := partitionArgs(fs, args)
 
 	if err := fs.Parse(flags); err != nil {
 		return err
@@ -165,13 +166,32 @@ func report(out io.Writer, f *archdoc.FactSet, explain bool) {
 
 // partitionArgs splits arguments into flags and positional values, so flags may appear before
 // or after the path.
-func partitionArgs(args []string) (flags, positional []string) {
-	for _, a := range args {
-		if len(a) > 1 && a[0] == '-' {
-			flags = append(flags, a)
+//
+// A flag that takes a value keeps the word after it: `history -n 3 ./repo` means n=3 and the
+// path is ./repo. The first version treated every flag as on/off, so the 3 became the path and
+// the flag package complained that -n had no value. Boolean flags still never consume a word.
+func partitionArgs(fs *flag.FlagSet, args []string) (flags, positional []string) {
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if len(a) < 2 || a[0] != '-' {
+			positional = append(positional, a)
 			continue
 		}
-		positional = append(positional, a)
+
+		flags = append(flags, a)
+		if strings.Contains(a, "=") {
+			continue // -n=3 carries its own value
+		}
+
+		if f := fs.Lookup(strings.TrimLeft(a, "-")); f != nil && !isBool(f) && i+1 < len(args) {
+			i++
+			flags = append(flags, args[i])
+		}
 	}
 	return flags, positional
+}
+
+func isBool(f *flag.Flag) bool {
+	b, ok := f.Value.(interface{ IsBoolFlag() bool })
+	return ok && b.IsBoolFlag()
 }

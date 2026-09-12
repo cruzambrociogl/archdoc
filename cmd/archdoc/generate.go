@@ -36,7 +36,7 @@ func generate(args []string, out io.Writer) error {
 	gaps := fs.Bool("explain-gaps", false, "list what the configuration does not state")
 	label := fs.Bool("label", false, "ask Claude for names, descriptions and edge labels")
 
-	flags, positional := partitionArgs(args)
+	flags, positional := partitionArgs(fs, args)
 	if err := fs.Parse(flags); err != nil {
 		return err
 	}

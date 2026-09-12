@@ -21,7 +21,7 @@ func history(args []string, out io.Writer) error {
 
 	limit := fs.Int("n", 20, "how many versions to list")
 
-	flags, positional := partitionArgs(args)
+	flags, positional := partitionArgs(fs, args)
 	if err := fs.Parse(flags); err != nil {
 		return err
 	}
