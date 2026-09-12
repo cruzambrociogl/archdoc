@@ -190,6 +190,11 @@ func generate(args []string, out io.Writer) error {
 		if err := write(facts.Root, filepath.Join(docsDir, name), stubs[name]); err != nil {
 			return err
 		}
+		// Remember the stub's size and time, so completeness can later tell "still the stub"
+		// from "written" by asking the filesystem, never by opening the file (OUT-03).
+		if err := render.RecordStub(facts.Root, docsDir, name); err != nil {
+			fmt.Fprintf(out, "completeness tracking unavailable for %s: %v\n", name, err)
+		}
 		created++
 	}
 
