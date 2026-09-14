@@ -570,3 +570,12 @@ The timeline's diff identifies elements by ID, so a rename is one changed field,
 plus an addition (MEM-06). Appeared/disappeared is reported apart from reworded: the first is
 news about the system, the second about the documentation. This compares recorded versions; the
 diff between two git commits (AC-6) remains Sprint 3 work.
+
+**2026-09-14 — Scope reopened: architecture stays the product, the evidence widens to code**
+R1.a's output showed its ceiling on Immich: five boxes from Compose, while the code holds 46
+controllers, 64 tables, and the one edge the diagram lacks (`server/src/dtos/config.dto.ts:624`).
+Decided: architecture documentation remains the product, in arc42's broad sense — runtime,
+domain, data, not only boxes. Configuration-only extraction is the limit to remove, not the
+identity to change. The four interfaces stay: CLI, Markdown, storage, web app. Horizon for the
+next phase: end of 2026. Everything else — lenses, explanations, D-1 to D-17 — is a proposal in
+`docs/vision.md`, not taken; the product definition wins until each is recorded here (O-11).

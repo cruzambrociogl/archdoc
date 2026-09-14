@@ -57,6 +57,10 @@ raised, not quietly promoted over it.
       worth surfacing in the generated document
 - [ ] Web app checked with HTTP requests and unit tests only — click through it in a browser on
       all three subjects before Review 2
+- [ ] Directions kept as to-dos (13 Sep), none chosen: (a) depth — R1.b source analysis;
+      (b) richness — evidence-anchored flows and explanations from the LLM; (c) agents — R2b,
+      the model over MCP; (d) harden and measure — more subjects, AC-6, AC-3. Now folded into
+      `docs/vision.md` (O-11) — (a) is D-2/D-4, (b) is §2.3 and §3, (c) is D-17, (d) is D-14
 - [ ] Relationships are not clickable on the canvas (the SVG groups boxes, not arrows); they are
       inspected from either end in the inspector. Fine for the review; revisit if it confuses
 
