@@ -589,3 +589,14 @@ documentation the user owns in their own repository, and `rules.yaml` correction
 regeneration. Parity list, build order and non-goals in §2.2; canonical wording in `docs/brief.md`.
 The line that holds: every feature we match must have a verifiable counterpart, or we have built a
 worse Code Wiki.
+
+**2026-10-02 — Delivery 11 Dec; 9 Oct is a progress review; evidence before building**
+Four planning decisions. Review 2 was held on 25 Sep and went well. **9 Oct is a progress review,
+not the delivery** — so the report and slides leave October, and the 2 Oct code freeze is void; the
+freeze moves to 4 Dec and delivery to **11 Dec 2026**. The phase after the review is ordered
+**evidence first**: the comprehension pilot and the comparison against Code Wiki and DeepWiki run
+before any parser work, because their result can redirect it. The audience to optimise for is
+**technical readers losing control of code an AI wrote** — which deprioritises the vibe-coder-facing
+work (plain language, guided tours, ask-instead-of-read) and promotes components, data, flows, the
+change lens and a publishable site. Candidate features are scored in `docs/feature-inventory.md`,
+to be marked in or out in the planning week (13–17 Oct); the calendar is built from that list.
