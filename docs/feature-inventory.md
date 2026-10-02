@@ -179,6 +179,40 @@ I asked for?"
 | Report and slides, from measured results | 7–10 Dec |
 | **Delivery** | **11 Dec** |
 
+## Provisional working set — so there is a path before the planning week
+
+**Status: provisional, chosen by me on 2 Oct, to be confirmed or amended 13–17 Oct.** The calendar
+is built on this so that work can start; nothing here is a commitment, and every row stays
+negotiable until the planning week closes.
+
+**In — the build (27 Oct → 3 Dec)**
+
+| Block | Features |
+|---|---|
+| **Build 1 · foundations and stability** · 27 Oct – 13 Nov | F-01 syntax parsing in the binary · F-02 application discovery · F-03 module and import graph · F-04 one backend framework pack · F-07 ORM and schema reading · F-31 identity for code elements · F-32 unresolved as a state · F-30 interpretation memory · F-35 egress rules for symbols |
+| **Build 2 · lenses and output** · 10 – 21 Nov | F-10 component view · F-11 data model view · F-12 flow view · F-13 feature list · F-14 dependency map · F-15 deployment view · F-20 more arc42 sections · F-24 coverage report · F-36 validator rules for cited claims · F-33 rules for new element kinds |
+| **Build 3 · surfaces and change** · 24 Nov – 3 Dec | F-25 web app at scale · F-22 publishable static site · F-19 component pages · F-21 output sized to the project · F-37 diff between two commits · F-39 drift set · F-38 change summary · F-28 the three missing CLI commands · F-54 browser pass · loose ends F-49, F-50, F-52, F-57 |
+| **Wherever they fit** | F-05 frontend pack · F-06 Python pack · F-34 local model path · F-40 intent sources |
+
+**Evidence (20–24 Oct, and again in December):** F-42 comprehension pilot · F-43 competitor
+comparison · F-44 the hand-drawn reference *(yours, starts now)* · F-45 structure-only quality ·
+F-46 local model quality · F-47 performance · F-48 new test subjects.
+
+**Stretch — only if Build 2 lands early:** F-41 plan → code mapping. It is the feature with no
+competitor counterpart, so it is the first thing to promote if there is room, and the mid-phase
+checkpoint on 13 Nov is where that is decided.
+
+**Out for this phase:** F-09 type-aware resolution · F-16 data-flow view · F-17 lifecycle view ·
+F-18 CI view · F-23 HTML export · F-26 ask the map · F-27 agent interface · F-29 watch mode ·
+F-51, F-53, F-55, F-56. None is rejected; each is cheap to revive once the foundations exist.
+
+**The honest arithmetic.** Added up as ideal days, the Musts alone exceed the window. The reason to
+try anyway is measured: between 6 Sep and 12 Sep this project built extraction, the model, the
+validator, rules, storage, layout, the C4 renderer, arc42 output, the semantic layer and the whole
+web app. Velocity with AI assistance is several times what these estimates assume. **But the buffer
+is thin, so the cut list above is agreed in advance** — when something slips, we drop from the
+bottom of Build 3 rather than renegotiate.
+
 ## How to decide
 
 1. Go down each table and mark **in** or **out**. Ignore my recommendations where you disagree.

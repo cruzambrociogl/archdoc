@@ -41,6 +41,10 @@
 
 ## 1. Where we are
 
+> **Revision 3 — 2 Oct 2026.** R1.a is built and the delivery moved to **11 Dec 2026**. Sections
+> §4.2–§4.4 are kept as the record of what was planned and what happened; **§7 holds the plan now
+> being executed**, and `docs/feature-inventory.md` holds the work it is built from.
+
 The calendar shows four quiet weeks. They produced the three documents this plan rests on.
 
 | Period | Phase | Output |
@@ -54,6 +58,14 @@ The calendar shows four quiet weeks. They produced the three documents this plan
 **Nothing is behind.** Idea definition, specification and research happened in the correct
 order, and the research was empirical rather than assumed. Construction has not started, and
 that is the right state on 24 August with two weeks lost to exams.
+
+**Where it actually stands — 2 Oct 2026.** Sprints 1 to 3 delivered the engine and the web app:
+extraction with file-and-line provenance, the validator, `rules.yaml`, version history, the C4
+renderer, arc42 output, the semantic layer with egress accounting, and `archdoc serve` with all
+seven views. **Seven of the nine acceptance criteria are met**, AC-2 — the thesis — among them.
+Review 1 (11 Sep) and Review 2 (25 Sep) were both held and both went well. 9 Oct turned out to be a
+progress review rather than the delivery, so the 2 Oct code freeze is void: the project is in an
+extension phase that ends with delivery on **11 Dec**. That phase is §7.
 
 ---
 
@@ -298,23 +310,57 @@ keys first. It compiles, it passes casual testing, and it silently breaks AC-7.
 
 ---
 
-## 7. If the extension happens — the November plan
+## 7. The extension — October to December
 
-Written now and presented as **trajectory**, not as a request. Having it ready is part of what
-earns the extension.
+**No longer a trajectory: this is the plan.** The delivery is 11 Dec 2026 and 9 Oct is a progress
+review. Two things changed the shape of it: `docs/vision.md` (R1.a's ceiling is its input — it reads
+configuration, so it says little about repositories that are mostly code) and Google Code Wiki,
+which ships much of what the vision proposed, hosted and for free. The response is positioning, not
+retreat: **the local, verifiable alternative** (`vision.md` §2.2).
 
-Roughly seven additional weeks would go, in priority order:
+### What the old §7 priorities became
 
-| | Work | Why this order |
-|---|---|---|
-| 1 | **Build-manifest extraction** — `pom.xml`, `Cargo.toml`, `go.work`, workspaces | The largest reach for the least risk. Declared structure, language-agnostic, no clustering. Opens every Java, Rust and Node project that has no Compose file |
-| 2 | **R1.c — the three write surfaces** | One shared safety design; implementation-bound |
-| 3 | **Orchestrator manifests** — Kubernetes, Helm | Currently out of scope for want of a test subject. Would also make a real deployment diagram worth drawing |
-| 4 | **R1.b static analysis** | Per-language cost, so it starts with one ecosystem |
-| 5 | **Clustering prototype** | Research. Prototype against fixtures; no delivery date, ever |
+| Old priority | Now |
+|---|---|
+| Build-manifest extraction | **F-02 application discovery** — in Build 1, and still the item that widens *who can use* the tool |
+| R1.c write surfaces | **Deferred** — a phase of its own; the write-safety design should not be rushed |
+| Orchestrator manifests | Still out of scope. Unchanged |
+| R1.b static analysis | **The main line** — Build 1, no longer a stretch |
+| Clustering prototype | **Deferred** — framework conventions give deterministic groups first (`vision.md` D-2) |
 
-Item 1 is the strongest candidate: it is the only one that widens who can *use* the tool rather
-than deepening what it does for those it already serves.
+### Two ordering decisions
+
+1. **Evidence before building.** The comprehension pilot and the comparison against Code Wiki and
+   DeepWiki run on 20–24 Oct, before any parser work, because their result can redirect it. If a
+   technical reader learns as much by asking a coding agent, that must be known in October.
+2. **Audience: technical readers losing control of code an AI wrote.** This deprioritises the
+   vibe-coder-facing features — plain language, guided tours, ask-instead-of-read — and promotes
+   components, data, flows, the change lens and a publishable site.
+
+### The blocks
+
+| | Period | Work | Gate |
+|---|---|---|---|
+| | 5–8 Oct | Performance measurement (AC-9); review preparation | AC-9 scored |
+| | 5–16 Oct | **Hand-drawn Immich reference — owner: Cruz** | The answer key exists. Blocks AC-3 and the comparison |
+| | 9 Oct | Progress review | R1.a shown; direction presented |
+| | 13–17 Oct | **Planning week** — `feature-inventory.md` marked in or out; `vision.md` D-1 to D-17 settled; capability catalog and calendar rewritten | A chosen list, not a menu |
+| | 20–24 Oct | **Evidence sprint** — pilot, competitor comparison, structure-only and local-model quality checks | Numbers that can redirect the build |
+| 1 | 27 Oct – 13 Nov | **Foundations and stability** — parsing in the binary, application discovery, import graph, one backend pack, schema reading; identity, unresolved, interpretation memory, symbol egress rules | Immich's server→machine-learning edge recovered from TypeScript, cited at its line |
+| | 13 Nov | Mid-phase checkpoint | Confirm or cut the stretch items |
+| 2 | 10–21 Nov | **Lenses and output** — component, data and flow views; feature list, dependency map, deployment view; arc42 §5/§6/§8; coverage report; cited-claim validation | A reader learns how Immich works from the documents, and every element opens at its line |
+| 3 | 24 Nov – 3 Dec | **Surfaces and change** — web app at scale, publishable site, component pages, diff between two commits, change summary, the missing CLI commands, loose ends | AC-6 scored on the drift set; the app readable at hundreds of elements |
+| | 4 Dec | **Code freeze** | No new capability |
+| | 4–8 Dec | Acceptance measurement — all nine criteria | Every criterion has a number, including the ones that fall short |
+| | 7–10 Dec | Report and slides, from measured results | Shortfalls written as findings |
+| | **11 Dec** | **Delivery** | Working tool, measured results, report |
+
+### What slips first
+
+Agreed in advance, so slipping is a decision already made rather than an argument in December:
+F-18, F-17, F-16, F-29, F-27, F-26, F-09, F-23 are already out; after them, work is dropped from
+the bottom of Build 3. **Never cut:** provenance on every element, the unresolved state, the
+coverage report, and the acceptance measurement. Those are what the thesis is.
 
 ---
 

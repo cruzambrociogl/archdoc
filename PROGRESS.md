@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-09-12 (web app checkpoint)
+Last updated: 2026-10-02 (extension plan)
 
 ---
 
@@ -18,13 +18,13 @@ constantly, not just at a review.
 |---|---|---|---|---|
 | AC-1 | Nodes and edges carry extraction or catalog provenance | ≥ 95% | no | ✓ **100% on all three subjects** (24 nodes, 34 edges, 8 Sep). `PRV-02` closed the catalog hole: a technology now cites the catalog entry that supplied it. Re-measure after the semantic layer, which is where the number can fall |
 | AC-2 | Container diagram produced with the LLM disabled | renders + validates, both subjects | **yes** | ✓ **met, 11 Sep.** Renders and validates on all three subjects with no model involved. The live on/off comparison held on Supabase across four versions: identical elements, kinds and relationships — only words changed |
-| AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · |
+| AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · **reference due 5–16 Oct (Cruz)**, scored in the evidence sprint 20–24 Oct. Also the answer key for the Code Wiki / DeepWiki comparison |
 | AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | ✓ **13 of 13 rejected, 8 Sep.** Every fault in the suite is a way the draw.io experiment failed, or a way the model could lie without a reader noticing. Grow the suite as new failure modes appear |
 | AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | ✓ **10 of 10, 8 Sep.** Measured by running the whole pipeline from disk twice, not by re-applying a cached model — surviving *regeneration* is the criterion |
-| AC-6 | Drift detection | 100% of synthetic drift set | **yes** | · |
+| AC-6 | Drift detection | 100% of synthetic drift set | **yes** | · scheduled — Build 3, 24 Nov – 3 Dec (F-37 diff between commits, F-39 drift set) |
 | AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ✓ **holds end to end** — 5 identical runs on all three subjects, measured on the full generated document rather than the FactSet alone. Covered by tests in four packages |
 | AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | ✓ **met, 12 Sep.** Measured on the wire: the real SDK against a local fake of the API, the recorder holding exactly the bytes the server received, with no path, line, provenance or key among them. Every run is logged, failures included; `archdoc runs --show` prints it unformatted |
-| AC-9 | Performance | NFR-1 and NFR-2 met on Supabase | no | · |
+| AC-9 | Performance | NFR-1 and NFR-2 met on Supabase | no | · scheduled — 5–8 Oct, free to run; re-measured on a code-heavy repo after Build 1 |
 
 > **AC-3 is predicted to miss its threshold.** Immich declares none of its three service
 > connections in configuration — all live in TypeScript source. Reporting that as a measured
@@ -75,7 +75,8 @@ items are ticked.
 | Week 0 | 28 Aug | O-8 answered; `go test ./...` green in CI | ✓ **met, verified.** O-8 and O-7 closed on evidence. CI green on `a96fc1d` — both jobs, including the import check that enforces the network boundary |
 | Sprint 1 | 11 Sep | `archdoc generate` produces a container **and** a context diagram for all three subjects, every element traceable to a file and line | ✓ **met, 6 Sep.** All three generated; AC-7 verified on each. (The gate here previously read *AC-7, AC-4, AC-5* — those are sprint 2's, per `docs/delivery-schedule.md` §4.3) |
 | Sprint 2 | 25 Sep | AC-2, AC-4, AC-5 — **the thesis, demonstrated** (per O-9; this line read AC-2, AC-6, AC-8 until 12 Sep) | ✓ **all three met by 12 Sep**, as is AC-8. Every coding row done, web app included. Left: report draft, self-check (18 Sep), review prep (24 Sep) |
-| Sprint 3 | 9 Oct | All nine evaluated and written up | · |
+| Sprint 3 | 9 Oct | All nine evaluated and written up | ⊘ **superseded 2 Oct** — 9 Oct became a progress review; this gate moves to the extension phase below |
+| **Extension** | **11 Dec** | Code as evidence: component, data and flow views on all subjects, every element cited and what cannot be resolved shown; all nine criteria scored and written up | · plan in `docs/delivery-schedule.md` §7; work chosen in `docs/feature-inventory.md` |
 
 ---
 
@@ -87,7 +88,7 @@ items are ticked.
 | O-8 | Does `file:line` provenance survive the Compose merge? | — | ✓ **closed 26 Aug — no.** Extraction is two passes; a `Fact` carries one position. See `docs/decisions.md` |
 | O-6 | R1.b sequencing — analysis before clustering? | R1.b only | deferred by design, decide with a working spine |
 | O-10 | Does R1.a resolve service-to-gateway calls by matching route paths? | fuller `MDL-03` | **open.** Routes are read, but a caller's URL names one endpoint and the bridge cannot tell which. Only actors bridge today, so a service calling a gateway loses that edge. Matching `lds` route prefixes against caller URLs would close it — decide before code freeze |
-| O-11 | Where does archdoc go beyond configuration? | The roadmap after R1.a | **open, 14 Sep.** Proposal in `docs/vision.md`: code as evidence, one model with many lenses, reference docs plus explanations. Seventeen decisions (D-1–D-17) to take or amend; the first step is a cheap comprehension pilot (D-14). Schedule unchanged until agreed |
+| O-11 | Where does archdoc go beyond configuration? | The roadmap after R1.a | **direction closed 2 Oct, features provisional.** Positioning: the local, verifiable alternative (`vision.md` §2.2). Audience: technical readers losing control. Evidence before building. Features scored in `docs/feature-inventory.md`, confirmed 13–17 Oct. Original note: Proposal in `docs/vision.md`: code as evidence, one model with many lenses, reference docs plus explanations. Seventeen decisions (D-1–D-17) to take or amend; the first step is a cheap comprehension pilot (D-14). Schedule unchanged until agreed |
 | O-9 | Which acceptance criteria gate sprint 2? | Sprint 2 gate | ✓ **closed 6 Sep — §4.3 wins: AC-2, AC-4, AC-5.** The disagreement was a symptom, not a judgement call: the calendar had no rows for the validator or for rules, so nothing in it could have passed AC-4 or AC-5, and the gate had been quietly reconciled to the rows. Six missing rows added instead |
 
 ---
