@@ -21,6 +21,63 @@ element links back to the file and line that proves it exists.
 
 It is **not** a drawing tool, and **not** an enforcement tool. It describes what is there.
 
+## How to describe archdoc — the canonical wording
+
+One place for the description, so the report, the slides and the branding sheet cannot drift.
+**Two versions, and which one to use depends on tense, not on taste:** the first describes what
+runs today and is the only one to use at a review or in a submitted report; the second describes
+the direction of `docs/vision.md`, and becomes the first once code reading ships.
+
+### Today — what runs (use this for anything graded)
+
+> ArchDoc lee los archivos de configuración de un repositorio (Docker Compose, configuración de
+> proxy, variables de entorno, contratos de API) y genera automáticamente diagramas de
+> arquitectura en formato C4 y documentación en formato arc42.
+>
+> Cada servicio y cada conexión del diagrama se extraen directamente de la configuración e
+> indican el archivo y la línea que los respaldan. La IA solo se utiliza para nombrar y describir
+> elementos ya detectados: no puede agregar componentes que no existan en el proyecto.
+
+> archdoc reads a repository's configuration files — Docker Compose, proxy configuration,
+> environment variables, API contracts — and automatically generates C4 architecture diagrams and
+> arc42 documentation. Every service and every connection is extracted from that configuration and
+> states the file and line that back it. The AI is used only to name and describe elements already
+> detected: it cannot add components that do not exist in the project.
+
+### The direction — once code reading ships (`docs/vision.md` §2.2)
+
+> ArchDoc es la alternativa local y verificable a los wikis de código generados por IA. Lee un
+> repositorio — su código fuente y sus archivos de configuración (Docker Compose, configuración de
+> proxy, variables de entorno, contratos de API) — y genera la documentación de arquitectura que
+> ese proyecto debería haber tenido: diagramas C4, documentación arc42 y explicaciones del sistema
+> (sus funcionalidades, sus flujos y sus datos).
+>
+> Cada elemento y cada relación se extraen del repositorio e indican el archivo y la línea que los
+> respaldan; lo que no se puede resolver se marca como no resuelto, en lugar de omitirse. El código
+> nunca tiene que salir de tu máquina y la documentación vive en tu repositorio, no en el sitio web
+> de otra empresa. La IA solo nombra, agrupa y describe elementos ya detectados, y cada afirmación
+> cita la evidencia en la que se basa: no puede agregar componentes que no existan en el proyecto.
+
+> archdoc is the local, verifiable alternative to hosted AI code wikis. Point it at any repository
+> and it produces the architecture documentation that repository should have had — diagrams, module
+> walkthroughs, data models, flows, and answers to questions about them. Every element is extracted
+> from the code and cites the file and line that proves it, the model can never add something that
+> does not exist, the code never has to leave the machine, and the documentation lives in the
+> repository rather than on someone else's website.
+
+### One line
+
+> ArchDoc convierte un repositorio en documentación de arquitectura verificable: cada elemento
+> señala el archivo y la línea que lo prueban, y la IA nunca inventa componentes.
+
+> archdoc turns a repository into architecture documentation you can verify: every element points
+> at the file and line that prove it, and the AI never invents a component.
+
+**The sentence that never gets cut.** *La IA no puede agregar componentes que no existan en el
+proyecto.* Every other clause may be shortened or dropped; this one is what separates archdoc from
+Google Code Wiki, DeepWiki, Archify and from simply asking a chatbot. Keep it even in the shortest
+form, and never promise code reading in the present tense before it exists.
+
 ## The problem it exists for
 
 AI now writes most of the code while a person directs it. That works, and it is fast — but the

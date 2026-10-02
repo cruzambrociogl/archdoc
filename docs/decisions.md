@@ -579,3 +579,13 @@ domain, data, not only boxes. Configuration-only extraction is the limit to remo
 identity to change. The four interfaces stay: CLI, Markdown, storage, web app. Horizon for the
 next phase: end of 2026. Everything else — lenses, explanations, D-1 to D-17 — is a proposal in
 `docs/vision.md`, not taken; the product definition wins until each is recorded here (O-11).
+
+**2026-10-02 — Positioning: the alternative, not the rival**
+Google Code Wiki (Gemini, hosted, free, any language) ships most of what `docs/vision.md` §2.3–2.8
+proposes: code reading, sequence diagrams, module walkthroughs, chat over the result, refreshed per
+commit. Decided not to compete on breadth and not to retreat either: offer the same usefulness on a
+foundation they cannot — extraction that can be checked, determinism, local and offline operation,
+documentation the user owns in their own repository, and `rules.yaml` corrections that survive
+regeneration. Parity list, build order and non-goals in §2.2; canonical wording in `docs/brief.md`.
+The line that holds: every feature we match must have a verifiable counterpart, or we have built a
+worse Code Wiki.

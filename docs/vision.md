@@ -15,7 +15,8 @@
 |---|---|
 | Why this exists at all | §1 |
 | Why not just ask the AI that wrote the code | §1.5 |
-| The direction in one page | §2.1–§2.3 |
+| How we stand against Code Wiki and DeepWiki, and what we match | §1.4, §2.2 |
+| The direction in one page | §2.1–§2.4 |
 | What stays exactly as it is | §4, §5 |
 | What must be decided before building | §6 — the core of this document |
 | What to do first | §8 |
@@ -85,6 +86,7 @@ problem this document addresses.
 |---|---|---|---|
 | **DeepWiki** (Cognition) — the closest reference | Any repository | An LLM, from the code | Partly: pages cite source files, but the model chooses the citations and draws the diagrams, and nothing checks either |
 | **Archify** — an agent skill | Whatever the agent read | The agent authors the diagram IR, layout included | No: sources are optional decoration chosen by the agent |
+| **Google Code Wiki** (Gemini, hosted, public preview) — **the direct competitor** | Any public GitHub repository, all of its code | Gemini, from reading the code | No: pages link to files, but no mechanism checks that what they describe exists |
 | **archdoc R1.a** | Compose, env, gateways | A parser | Yes — every element opens at its line |
 
 Both alternatives cover any repository because nothing they draw has to be true. archdoc's
@@ -129,7 +131,7 @@ provenance as a guarantee.
 
 What changes is the evidence: **the code, and configuration when present** — not configuration
 only. The new capabilities are not a drift from architecture documentation; they are what
-architecture documentation looks like when it is done properly (§2.2).
+architecture documentation looks like when it is done properly (§2.3).
 
 **"Architecture" is meant in arc42's sense, not the narrow one.** Not only the boxes and the
 lines between them, but how the system behaves at runtime (§6), the concepts that cut across it
@@ -137,7 +139,63 @@ lines between them, but how the system behaves at runtime (§6), the concepts th
 under this definition: for a single React app, most of the value lies in features, flows and
 data, which the narrow sense would exclude and arc42 does not.
 
-### 2.2 One model, many lenses, several zoom levels
+### 2.2 Positioning — the local, verifiable alternative
+
+Google Code Wiki (§1.4) ships, for free and for any language, most of what §2.3 to §2.8 propose:
+code reading, architecture and sequence diagrams, module walkthroughs, chat over the result,
+refreshed on every commit. **We do not compete with that team on breadth, and we do not need to.**
+The stance is *alternative*, not rival: offer the same usefulness on a foundation they cannot
+offer — and that foundation is the project's roots, not a departure from them.
+
+> **archdoc is the local, verifiable alternative to hosted AI code wikis.** Point it at any
+> repository and it produces the architecture documentation that repository should have had —
+> diagrams, module walkthroughs, data models, flows, and answers to questions about them. The
+> difference is the foundation: every element is extracted from the code and cites the file and
+> line that proves it, the model can never add something that does not exist, the code never has
+> to leave the machine, and the documentation lives in the repository rather than on someone
+> else's website.
+
+The Spanish wording for the report, and the shorter forms, are in `docs/brief.md` — one canonical
+place, so the report, the slides and the branding sheet do not drift.
+
+#### What we match, and how ours differs
+
+| What Code Wiki offers | archdoc's version | Where ours is better |
+|---|---|---|
+| Paste a URL, zero configuration | One command, zero configuration | Works on **private and local** repositories; nothing is uploaded |
+| Wiki pages: summaries, module-by-module walkthroughs | arc42 sections, plus a page per component | Standards-shaped, and **the author's own sections are never touched** |
+| Architecture, class and sequence diagrams, dependency maps | C4 context and containers today; components, sequence, data model and dependency views to come | Every element is **proven**, and what cannot be resolved is shown as **unresolved** rather than invented |
+| Chat over the documentation | "Ask the map": answers from the validated model, each carrying citations | It can say **"not resolved"** honestly, because it knows what it failed to see — and it can run **fully offline** |
+| Refreshes after every commit | Watch mode or a git hook, over stored version history | Not merely refreshed: it reports **what changed architecturally** — appeared, disappeared, renamed |
+| A shareable hosted wiki | Markdown and SVG committed in the repository, a publishable static site, and a self-contained HTML export | **The user owns the artifact.** It reads with archdoc uninstalled (NFR-12) and it diffs in code review |
+| Every language from day one | Popular stacks first, a generic baseline for the rest (§2.5) | Honest about coverage: it **reports what it could not see** (D-6) |
+
+Two of ours have no counterpart there, so they lead the pitch: **"did it build what I asked?"**
+(the plan compared against what exists, D-9) and **corrections that survive regeneration**
+(`rules.yaml`).
+
+#### Build order — parity that earns its place
+
+Each step is what makes the next one worth having:
+
+1. **Read code** — TypeScript/JavaScript and Python (tiers 2 and 3, §2.5). Everything else depends on it.
+2. **The pages that make it a wiki** — a page per component, the feature list, the data model, the key flows; all generated, all cited.
+3. **Make it look the part** — search, zoom, focus, and a legend that teaches *proven / interpreted / unresolved*. The web app is the base.
+4. **Publishable output** — a static site (the `mkdocs.yml` of §7 already anticipated it), so "share it with my team" has an answer that is not a hosted service.
+5. **Ask the map** — grounded question answering over the model, local first, and the same surface exposed to coding agents (D-17, §4).
+6. **Freshness** — per-commit change summaries (D-15).
+7. **The measured comparison** — archdoc against Code Wiki and DeepWiki on the same repository, counting what each missed and what each invented (D-14). It is the one result none of them can publish about themselves.
+
+#### Non-goals, on purpose
+
+- **Not a hosted service.** Local is the feature, not a limitation (§7's zero-service rule).
+- **Not every language at once.** A generic baseline everywhere, depth where it pays.
+- **Not prettier than Google.** Good enough that nobody picks the alternative for its looks alone.
+
+**The line that must hold:** every feature we match has to have a verifiable counterpart. The day
+archdoc ships something that cannot be traced to evidence, it has become a worse Code Wiki.
+
+### 2.3 One model, many lenses, several zoom levels
 
 One validated model, looked at through lenses. Each lens answers one question a person asks,
 and each already has a home in arc42 and C4 — homes that are empty or thin today. Archify's five
@@ -162,10 +220,10 @@ evidence it moves to §7, where it belongs, and corroborates what the code shows
 system, container, and component. **The code level — functions and variables — is out of scope
 for this version.** Parsing the code is still required to build the levels above it.
 
-### 2.3 Two families of output from one model
+### 2.4 Two families of output from one model
 
 ```
-        Evidence: configuration + code (three tiers, §2.4)
+        Evidence: configuration + code (three tiers, §2.5)
                               │
              One validated model — provenance on everything
                               │
@@ -189,12 +247,12 @@ What the web app already has maps onto what Archify's viewer offers:
 |---|---|
 | Semantic Passport | The inspector — built |
 | Route probe, upstream/downstream reach | Traversal over proven edges only — cheap |
-| Semantic lenses | The lenses of §2.2 |
-| Reading depth by zoom | The zoom levels of §2.2 |
+| Semantic lenses | The lenses of §2.3 |
+| Reading depth by zoom | The zoom levels of §2.3 |
 | Before/Delta/After | The version diff — built |
 | Stories (guided chapters) | **New:** a guided tour whose every chapter cites model elements |
 
-### 2.4 Evidence in three tiers
+### 2.5 Evidence in three tiers
 
 | Tier | Reads | Gives | Cost |
 |---|---|---|---|
@@ -206,7 +264,7 @@ A property of the target helps: **AI-generated code concentrates on a few popula
 React / Next / Vite, Express / NestJS, FastAPI / Flask / Django, Prisma / TypeORM / SQLAlchemy.
 A small number of framework packs covers most of what people will point archdoc at.
 
-### 2.5 Views are earned by evidence
+### 2.6 Views are earned by evidence
 
 A container diagram with one box is noise. A view — and a document section — appears only when
 the evidence supports it.
@@ -219,7 +277,7 @@ the evidence supports it.
 | CRUD backend | Data model at the centre, routes as features, request flows |
 | Script | Context (files, APIs and environment it reads and writes), a pipeline flow of its steps |
 
-### 2.6 What each audience gets first
+### 2.7 What each audience gets first
 
 | Who | Starts with |
 |---|---|
@@ -229,7 +287,7 @@ the evidence supports it.
 | Planned team | Reference documentation, the change lens, conformance to their design |
 | Expert | The change lens and the navigable map |
 
-### 2.7 Immich, as it would be
+### 2.8 Immich, as it would be
 
 - **Containers:** server (NestJS), web (SvelteKit), mobile (Flutter), machine-learning
   (FastAPI), Postgres, Redis — connected, with the server → machine-learning edge cited at
@@ -505,7 +563,7 @@ or dropped, and remembered under D-1. Decide on evidence from the experiment.
 
 **Problem.** Twelve arc42 sections for a 200-line script is absurd.
 
-**Recommendation:** extend "views are earned by evidence" (§2.5) to documents: a single page for
+**Recommendation:** extend "views are earned by evidence" (§2.6) to documents: a single page for
 a small project, full arc42 for a system. §8 already holds that partial output is the honest
 output; this applies it to size.
 
@@ -551,12 +609,12 @@ interface (§4). All four run the same engine.
 
 **Problem.** R1.b, R1.c and R2 were drawn for a configuration-only product.
 
-**Recommendation, to refine:**
+**Recommendation, to refine** (the order inside R1.b and R1.c is the build order of §2.2):
 
 | Phase | Content |
 |---|---|
 | R1.a — done | Configuration as evidence; the whole spine; the web app |
-| **R1.b — Code as evidence** | Tiers 2 and 3 (§2.4) for the first stacks; the Boundaries, Containers, Structure, Data and Features lenses; D-1 to D-9 |
+| **R1.b — Code as evidence** | Tiers 2 and 3 (§2.5) for the first stacks; the Boundaries, Containers, Structure, Data and Features lenses; D-1 to D-9 |
 | **R1.c — Explanations** | Flow, sequence, lifecycle, workflow; guided stories; HTML export; the change lens per commit |
 | **R1.d — Interaction** | The former R1.c: chat refinement, editable canvas, answer surface |
 | R2 — Authority | Unchanged; intent vs actual (D-9) is its descriptive first step, and the agent interface brings R2b nearer |
@@ -615,7 +673,7 @@ delivery differ, so neither answer wastes work.
 1. **Refine this document.** Take or amend each decision in §6; record each taken one in
    `decisions.md`.
 2. **Evidence before design**, as the original survey did:
-   - choose new subjects across the project types of §2.5 — including a couple deliberately
+   - choose new subjects across the project types of §2.6 — including a couple deliberately
      vibe-coded, since that is the audience;
    - for each, write down the questions a person would actually ask about it *before* designing
      anything. That list decides which lenses matter first.
