@@ -35,6 +35,7 @@ func generate(args []string, out io.Writer) error {
 
 	toStdout := fs.Bool("stdout", false, "print the index instead of writing files")
 	gaps := fs.Bool("explain-gaps", false, "list what the configuration does not state")
+	site := fs.Bool("site", false, "also write mkdocs.yml, so the documents build as a static site")
 	label := fs.Bool("label", false, "ask Claude for names, descriptions and edge labels")
 
 	flags, positional := partitionArgs(fs, args)
@@ -133,11 +134,16 @@ func generate(args []string, out io.Writer) error {
 		meta.Pictures = layouts != nil
 	}
 
+	// Which sections this repository has evidence for. A single-service repo with no networks
+	// gets a document set proportionate to it rather than twelve chapters, four of which would
+	// ask about structure it does not have (OUT-01, §8's "partial output is the honest output").
+	plan := render.PlanFor(m, *facts)
+
 	// Which human-owned sections already exist. Asked of the filesystem rather than by
 	// opening the file: OUT-03 forbids reading them, and their existence is all the index
 	// needs to report completeness.
 	existing := render.State{}
-	for _, s := range render.Sections() {
+	for _, s := range plan {
 		if s.Owner != render.Human {
 			continue
 		}
@@ -145,7 +151,7 @@ func generate(args []string, out io.Writer) error {
 		existing[s.File()] = err == nil
 	}
 
-	index := render.Index(m, meta)
+	index := render.Index(m, plan, meta)
 
 	if *toStdout {
 		_, err := io.WriteString(out, index)
@@ -157,13 +163,21 @@ func generate(args []string, out io.Writer) error {
 		render.IndexFile: index,
 		"context.mmd":    render.Mermaid(m.Context(), false),
 		"container.mmd":  render.Mermaid(m.Container(), true),
+		// OUT-09's other half: a document set that says where its own evidence runs out. No
+		// competitor in this space publishes what it missed.
+		render.CoverageFile: render.Coverage(m, *facts, reported(result), meta),
 	}
 	if meta.Pictures {
 		generated["context.svg"] = render.SVG(m.Context(), layouts["context"])
 		generated["container.svg"] = render.SVG(m.Container(), layouts["container"])
 	}
-	for name, content := range render.Arc42(m, meta) {
+	for name, content := range render.Arc42(m, *facts, plan, meta) {
 		generated[name] = content
+	}
+	// Layer 3 of the output contract (§8), opt-in: the committed markdown already stands on its
+	// own, so a site is one configuration file away.
+	if *site {
+		generated[render.MkDocsFile] = render.MkDocs(m, plan)
 	}
 
 	for _, name := range sortedKeys(generated) {
@@ -182,7 +196,7 @@ func generate(args []string, out io.Writer) error {
 	// with questions derived from this model, and after that archdoc neither reads nor writes
 	// it. A documentation generator that eats someone's writing gets uninstalled once.
 	created := 0
-	stubs := render.Stubs(m, meta)
+	stubs := render.Stubs(m, plan, meta)
 	for _, name := range sortedKeys(stubs) {
 		if existing[name] {
 			continue
@@ -355,6 +369,19 @@ func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc
 
 // citations names the rules that were applied, for the stamp OUT-04 puts on every generated
 // file. A reader who meets a technology they did not expect can find the line that set it.
+// reported turns the validator's warnings into what the coverage report prints. Warnings are
+// completeness, not correctness: the model is sound and these are the things configuration does
+// not state (VAL-03, VAL-06). Mapped rather than passed through, so rendering stays independent
+// of the validator's types.
+func reported(r validate.Result) []render.Gap {
+	w := r.Warnings()
+	out := make([]render.Gap, 0, len(w))
+	for _, f := range w {
+		out = append(out, render.Gap{Rule: f.Rule, Element: f.Element, Message: f.Message})
+	}
+	return out
+}
+
 func citations(rf *rules.File) []string {
 	out := make([]string, 0, len(rf.Rules))
 	for _, r := range rf.Rules {

@@ -351,7 +351,7 @@ func (s *Server) rules(w http.ResponseWriter, r *http.Request) {
 // docs lists what generate wrote, and the human sections by name only (SUR-12).
 func (s *Server) docs(w http.ResponseWriter, r *http.Request) {
 	var generated []string
-	for _, name := range append([]string{render.IndexFile}, generatedSections()...) {
+	for _, name := range append([]string{render.IndexFile, render.CoverageFile}, generatedSections()...) {
 		if _, err := os.Stat(filepath.Join(s.root, docsDir, name)); err == nil {
 			generated = append(generated, name)
 		}

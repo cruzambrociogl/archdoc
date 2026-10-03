@@ -124,12 +124,12 @@ func TestFirstRunProducesTheWholeDocument(t *testing.T) {
 	}
 
 	// 12 sections + index + two .mmd files + the two drawn diagrams.
-	if len(entries) != 17 {
+	if len(entries) != 18 {
 		names := make([]string, 0, len(entries))
 		for _, e := range entries {
 			names = append(names, e.Name())
 		}
-		t.Errorf("got %d files, want 17: %v", len(entries), names)
+		t.Errorf("got %d files, want 18: %v", len(entries), names)
 	}
 }
 

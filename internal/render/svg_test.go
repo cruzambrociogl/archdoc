@@ -163,7 +163,7 @@ func TestLongDescriptionsAreCutVisibly(t *testing.T) {
 // With pictures, the documents show the SVG and keep the Mermaid source; without them, Mermaid
 // alone, exactly as before.
 func TestDocumentsEmbedThePictureWhenThereIsOne(t *testing.T) {
-	with := Index(fixture(), Meta{Source: "docker-compose.yml", Pictures: true})
+	with := Index(fixture(), Sections(), Meta{Source: "docker-compose.yml", Pictures: true})
 	if !strings.Contains(with, "![Containers](container.svg)") {
 		t.Error("the index does not show the drawn diagram")
 	}
@@ -171,7 +171,7 @@ func TestDocumentsEmbedThePictureWhenThereIsOne(t *testing.T) {
 		t.Error("the Mermaid source was dropped when the picture was added")
 	}
 
-	without := Index(fixture(), Meta{Source: "docker-compose.yml"})
+	without := Index(fixture(), Sections(), Meta{Source: "docker-compose.yml"})
 	if strings.Contains(without, ".svg") {
 		t.Error("the index links a picture that is not being written")
 	}

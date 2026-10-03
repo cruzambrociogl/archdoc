@@ -12,7 +12,7 @@ const docs = "docs/architecture"
 // writeStubs creates every human section as archdoc would, and records it.
 func writeStubs(t *testing.T, root string) {
 	t.Helper()
-	for name, content := range Stubs(fixture(), meta()) {
+	for name, content := range Stubs(fixture(), Sections(), meta()) {
 		path := filepath.Join(root, docs, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)

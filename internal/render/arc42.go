@@ -94,11 +94,12 @@ func (m Meta) stamp() string {
 }
 
 // Arc42 renders every section archdoc can fill from facts. The map is keyed on file name,
-// relative to the documentation directory.
-func Arc42(m archdoc.Model, meta Meta) map[string]string {
+// relative to the documentation directory. plan says which sections this repository has evidence
+// for — see plan.go; pass Sections() for all of them.
+func Arc42(m archdoc.Model, facts archdoc.FactSet, plan []Section, meta Meta) map[string]string {
 	out := map[string]string{}
 
-	for _, s := range Sections() {
+	for _, s := range plan {
 		if s.Owner != Generated {
 			continue
 		}
@@ -115,7 +116,7 @@ func Arc42(m archdoc.Model, meta Meta) map[string]string {
 		case 6:
 			b.WriteString(runtimeSection(m))
 		case 7:
-			b.WriteString(deploymentSection(m))
+			b.WriteString(deploymentSection(m, facts))
 		case 12:
 			b.WriteString(glossarySection(m))
 		}
@@ -197,19 +198,24 @@ func runtimeSection(m archdoc.Model) string {
 // deploymentSection is shallow by nature and useful anyway.
 //
 // Compose describes a single host running containers, so the mapping is one level deep — a real
-// deployment view arrives with orchestrator manifests, which are out of R1 scope. What it can
-// say honestly is which containers are published to the outside and which networks they sit on,
-// both of which are declared facts.
-func deploymentSection(m archdoc.Model) string {
+// deployment view arrives with orchestrator manifests, which are out of R1 scope. What it can say
+// honestly is a great deal: the image each container runs, the ports published to the host, the
+// networks each sits on, and the paths the repository hands into each container.
+//
+// This section is also where Compose *belongs*. A compose file is a deployment descriptor, and the
+// container view (§5) is the awkward projection of it; everything below was already extracted and
+// then dropped on the floor because §5 must not show deployment concepts.
+func deploymentSection(m archdoc.Model, facts archdoc.FactSet) string {
 	var b strings.Builder
 
 	b.WriteString("Compose describes one host running containers, so this view is one level deep.\n")
 	b.WriteString("A layered deployment view needs orchestrator manifests, which are out of scope for\n")
-	b.WriteString("this release.\n\n")
-	b.WriteString("What the configuration does state is which containers are reachable from outside\n")
-	b.WriteString("the host, and which networks each sits on.\n\n")
+	b.WriteString("this release. What the configuration does state is below, and all of it is declared:\n")
+	b.WriteString("the image each container runs, what is published to the host, which networks each\n")
+	b.WriteString("sits on, and what the repository mounts into it.\n\n")
 
 	view := m.Container()
+	svc := byName(facts)
 
 	reachable := map[string]bool{}
 	for _, e := range view.Edges {
@@ -218,18 +224,110 @@ func deploymentSection(m archdoc.Model) string {
 		}
 	}
 
-	b.WriteString("| Container | Reachable from outside | Networks |\n|---|---|---|\n")
+	b.WriteString("### Containers\n\n")
+	b.WriteString("| Container | Runs | Reachable from outside | Networks | Declared at |\n|---|---|---|---|---|\n")
 	for _, n := range view.Nodes {
 		if !n.Kind.Container() {
 			continue
 		}
-		fmt.Fprintf(&b, "| %s | %s | %s |\n",
-			n.Name, yesNo(reachable[n.ID]), dash(strings.Join(n.Networks, ", ")))
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | `%s` |\n",
+			n.Name, runs(svc[n.Name], n), yesNo(reachable[n.ID]),
+			dash(strings.Join(n.Networks, ", ")), n.Prov)
 	}
 
+	b.WriteString(portTable(facts))
 	b.WriteString(networkTable(m, view))
+	b.WriteString(mountTable(facts))
 
 	return b.String()
+}
+
+// runs is the image a container runs, or the fact that the repository builds it. A built image is
+// as much a deployment fact as a pulled one, and "built here" is what tells a reader the source is
+// in front of them.
+func runs(s archdoc.Service, n archdoc.Node) string {
+	if s.Image != "" {
+		return "`" + s.Image + "`"
+	}
+	if n.Technology != "" {
+		return "built from this repository — " + n.Technology
+	}
+	return "built from this repository"
+}
+
+// portTable is the host's side of the boundary: every published port, which is the only thing
+// Compose says outright about what the outside world can touch.
+func portTable(facts archdoc.FactSet) string {
+	type row struct{ service, published, target, protocol, prov string }
+	var rows []row
+
+	for _, s := range facts.Services {
+		for _, p := range s.Ports {
+			protocol := p.Protocol
+			if protocol == "" {
+				protocol = "tcp"
+			}
+			rows = append(rows, row{s.Name, p.Published, fmt.Sprintf("%d", p.Target), protocol, p.Prov.String()})
+		}
+	}
+	if len(rows) == 0 {
+		return "\nNo port is published to the host. Nothing outside reaches these containers\ndirectly — whatever reaches them arrives through something this configuration does\nnot declare.\n"
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].service != rows[j].service {
+			return rows[i].service < rows[j].service
+		}
+		return rows[i].published < rows[j].published
+	})
+
+	var b strings.Builder
+	b.WriteString("\n### Published ports\n\n")
+	b.WriteString("| Container | On the host | In the container | Protocol | Declared at |\n|---|---|---|---|---|\n")
+	for _, r := range rows {
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | `%s` |\n", r.service, r.published, r.target, r.protocol, r.prov)
+	}
+	return b.String()
+}
+
+// mountTable is what the repository hands to a container. It matters twice: it is how a gateway's
+// routing table arrives, and it is the one place configuration says which of its own files a
+// running container depends on.
+func mountTable(facts archdoc.FactSet) string {
+	type row struct{ service, source, target, prov string }
+	var rows []row
+
+	for _, s := range facts.Services {
+		for _, mnt := range s.Mounts {
+			rows = append(rows, row{s.Name, mnt.Source, mnt.Target, mnt.Prov.String()})
+		}
+	}
+	if len(rows) == 0 {
+		return ""
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].service != rows[j].service {
+			return rows[i].service < rows[j].service
+		}
+		return rows[i].source < rows[j].source
+	})
+
+	var b strings.Builder
+	b.WriteString("\n### What the repository mounts into containers\n\n")
+	b.WriteString("| Container | From the repository | Seen inside as | Declared at |\n|---|---|---|---|\n")
+	for _, r := range rows {
+		fmt.Fprintf(&b, "| %s | `%s` | `%s` | `%s` |\n", r.service, r.source, r.target, r.prov)
+	}
+	return b.String()
+}
+
+func byName(facts archdoc.FactSet) map[string]archdoc.Service {
+	out := make(map[string]archdoc.Service, len(facts.Services))
+	for _, s := range facts.Services {
+		out[s.Name] = s
+	}
+	return out
 }
 
 func glossarySection(m archdoc.Model) string {

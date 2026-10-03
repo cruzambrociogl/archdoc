@@ -179,6 +179,22 @@ I asked for?"
 | Report and slides, from measured results | 7–10 Dec |
 | **Delivery** | **11 Dec** |
 
+## Already shipped — 2 Oct, before the planning week
+
+Four rows were done immediately because they needed no parser, no API call and no decision: they
+surface facts extraction already had and then dropped. Measured on Mastodon, the only subject on
+this machine.
+
+| ID | What shipped |
+|---|---|
+| F-15 | Deployment view (§7): image per container, published ports, networks, and what the repository mounts in — every row cited |
+| F-24 | `coverage.generated.md`: what was read (including files discovery passed over, and why), how much is known, every gap grouped by rule, and the fixed limits of configuration |
+| F-21 | Output proportionate to the repository — six sections instead of twelve for a one-service repo, with the index naming the omissions |
+| F-22 | `--site` writes `mkdocs.yml`, completing layer 3 of the output contract |
+
+Also: the coverage page is listed in the web app, and a section that was never created no longer
+reports as "missing" in the completeness view.
+
 ## Provisional working set — so there is a path before the planning week
 
 **Status: provisional, chosen by me on 2 Oct, to be confirmed or amended 13–17 Oct.** The calendar

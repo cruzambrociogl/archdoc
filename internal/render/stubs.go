@@ -21,11 +21,13 @@ import (
 // Stubs returns the human-owned sections, keyed on file name. The caller writes each one **only
 // if it does not already exist** — that is the regeneration boundary, and it is the reason these
 // are returned separately from Arc42's output rather than alongside it.
-func Stubs(m archdoc.Model, meta Meta) map[string]string {
+// plan says which sections this repository has something to put in — see plan.go; pass Sections()
+// for all of them.
+func Stubs(m archdoc.Model, plan []Section, meta Meta) map[string]string {
 	view := m.Container()
 
 	out := map[string]string{}
-	for _, s := range Sections() {
+	for _, s := range plan {
 		if s.Owner != Human {
 			continue
 		}

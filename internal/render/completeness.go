@@ -80,6 +80,12 @@ func SectionStates(root, dir string, architectureChanged time.Time) ([]SectionSt
 		info, err := os.Stat(filepath.Join(root, dir, s.File()))
 		switch {
 		case errors.Is(err, fs.ErrNotExist):
+			// A section that was never created is not missing — it was never part of this
+			// repository's document set, because the architecture states nothing that would
+			// fill it (plan.go). Only a stub archdoc actually wrote can go missing.
+			if _, written := stubs[s.File()]; !written {
+				continue
+			}
 			st.State = Missing
 		case err != nil:
 			return nil, err

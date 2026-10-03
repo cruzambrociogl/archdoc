@@ -71,7 +71,7 @@ func repo(t *testing.T) string {
 	dir := filepath.Join(root, docsDir)
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, render.IndexFile), []byte("# generated\n"), 0o644)
-	for name, content := range render.Stubs(m, render.Meta{}) {
+	for name, content := range render.Stubs(m, render.Sections(), render.Meta{}) {
 		os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644)
 		render.RecordStub(root, docsDir, name)
 	}

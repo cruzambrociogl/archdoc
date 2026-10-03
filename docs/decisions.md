@@ -600,3 +600,16 @@ before any parser work, because their result can redirect it. The audience to op
 work (plain language, guided tours, ask-instead-of-read) and promotes components, data, flows, the
 change lens and a publishable site. Candidate features are scored in `docs/feature-inventory.md`,
 to be marked in or out in the planning week (13–17 Oct); the calendar is built from that list.
+
+**2026-10-02 — Deployment view enriched, coverage published, output made proportionate, site emitted**
+Four deliverable-level changes, all from facts already extracted and then discarded. §7 now carries
+what Compose actually states — the image each container runs, published ports, networks, and what the
+repository mounts in — because a compose file *is* a deployment descriptor and §5 is the awkward
+projection of it. A new `coverage.generated.md` publishes what was read (including the candidate
+files discovery passed over, and why), how much is known, every validator gap grouped by rule, and
+the fixed limits of reading configuration. No competitor in this space publishes what it missed; a
+reader who cannot see the edge of the map has no way to know they are standing at it. Output is now
+proportionate: a one-service repository with no networks, ports or relationships gets six sections
+instead of twelve, and the index names the omissions so they read as a decision. `--site` writes
+`mkdocs.yml` into the documentation directory (not the repository root, which a project may own),
+completing layer 3 of §8 — the answer to "share it with my team" that is not a hosted service.

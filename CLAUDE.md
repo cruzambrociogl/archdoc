@@ -4,8 +4,8 @@ Reads an existing codebase and produces the architecture documentation it should
 accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
 web app, one static binary.
 
-**Phase:** R1.a, sprint 2 — engine and web app built; Review 2 on 25 Sep. `PROGRESS.md` has the scores.
-**Target:** feature-complete 2 Oct 2026, delivered 9 Oct 2026.
+**Phase:** extension — R1.a built, both reviews held. Delivery 11 Dec; plan in `docs/delivery-schedule.md` §7.
+**Target:** code freeze 4 Dec 2026, delivered 11 Dec 2026.
 
 ---
 
@@ -71,8 +71,8 @@ acceptance criterion.
    iteration; unsorted output silently breaks AC-7 (five runs, byte-identical). This is the
    single most likely defect in generated Go here.
 2. **Never write to human-owned files. Never read them either.** The write set is closed and
-   named in `cmd/archdoc/generate.go`: `docs/architecture/*.generated.md`, the `.mmd` and
-   `.svg` beside them, and `.archdoc/`. Each is overwritten wholesale. Human sections are *linked*, not
+   named in `cmd/archdoc/generate.go`: `docs/architecture/*.generated.md`, the `.mmd`, `.svg`
+   and (with `--site`) `mkdocs.yml` beside them, and `.archdoc/`. Each is overwritten wholesale. Human sections are *linked*, not
    parsed — `OUT-02` / `OUT-03`. A documentation generator that eats someone's writing gets
    uninstalled once.
 3. **Only `internal/semantic` may make outbound network calls.** This is what makes AC-8

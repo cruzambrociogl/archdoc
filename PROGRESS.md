@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-10-02 (extension plan)
+Last updated: 2026-10-02 (extension plan; deliverables pass)
 
 ---
 
@@ -47,7 +47,7 @@ constantly, not just at a review.
 | `MEM` | Memory and diff | 8 | ~5 | AC-6 — versions compare structurally in the app (MEM-04/06/07); diff between two *commits* and MEM-05's rename/re-bound classes remain |
 | `VIE` | Views and rendering | 10 | ~7 | AC-2 |
 | `SUR` | Surfaces — CLI and web app | 15 | ~12 | AC-8 — `serve` and all web views SUR-07–12, 15 done 12 Sep; `init`, `diff`, `export` remain |
-| `OUT` | Output and deliverables | 10 | ~8 | — OUT-09 from size and mtime (no conformance % yet); OUT-10 approximated by mtime, not by commit |
+| `OUT` | Output and deliverables | 10 | ~9 | — coverage report and the MkDocs site (layer 3) done 2 Oct; OUT-09 from size and mtime (no conformance % yet); OUT-10 approximated by mtime, not by commit |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
 | | **Total** | **116** | **~75** | |
 
