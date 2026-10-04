@@ -21,6 +21,13 @@ element links back to the file and line that proves it exists.
 
 It is **not** a drawing tool, and **not** an enforcement tool. It describes what is there.
 
+## Comparison matrix
+
+`docs/comparison-matrix.md` — the full feature list and the matrix against the eight known
+alternatives (Archify, GitDiagram, DeepWiki, Google Code Wiki, the AI diagram editors, Structurizr,
+Compose visualisers). In Spanish, because it feeds the report's functional-feasibility section. Every
+row is marked implemented or planned; do not promote a planned row to the present tense.
+
 ## How to describe archdoc — the canonical wording
 
 One place for the description, so the report, the slides and the branding sheet cannot drift.
