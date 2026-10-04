@@ -61,6 +61,10 @@ raised, not quietly promoted over it.
       (b) richness — evidence-anchored flows and explanations from the LLM; (c) agents — R2b,
       the model over MCP; (d) harden and measure — more subjects, AC-6, AC-3. Now folded into
       `docs/vision.md` (O-11) — (a) is D-2/D-4, (b) is §2.3 and §3, (c) is D-17, (d) is D-14
+- [ ] **Immich and Supabase are not cloned on this machine** (deleted 23 Sep for disk space; only
+      Mastodon remains). Immich is needed for the hand-drawn reference (F-44) and the Code Wiki /
+      DeepWiki comparison (F-43); Supabase is the scale case. Re-clone at the pinned revisions in
+      `docs/survey-test-subjects.md` §Method before the evidence sprint (20 Oct)
 - [ ] Relationships are not clickable on the canvas (the SVG groups boxes, not arrows); they are
       inspected from either end in the inspector. Fine for the review; revisit if it confuses
 
@@ -71,10 +75,7 @@ raised, not quietly promoted over it.
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
 
-- [x] `web/dist/index.html` placeholder — it did collide: every local build showed it modified.
-      Untracked; `web/dist/.gitkeep` is tracked instead so a fresh clone still compiles — 2026-09-12
-- [→ docs/decisions.md, PROGRESS.md OUT] OUT-09 completeness — done from size and mtime recorded
-      at stub creation, **not** content hashes: hashing a file is reading it — 2026-09-12
-- [x] PRV-05 — the C4 SVG, which is the diagram now shown, italicises every model-written value.
-      Mermaid is the fallback and stays plain — 2026-09-12
-- [→ PROGRESS.md O-10] Gateway route paths are not read — tracked there, not here — 2026-09-12
+- [→ docs/decisions.md, PROGRESS.md] Deployment view, coverage report, proportionate output and the
+      MkDocs site shipped — F-15, F-24, F-21, F-22 — 2026-10-02
+- [→ docs/vision.md §2.9] Token and cost sizing measured; thinking dominates and NFR-2 is the real
+      limit — 2026-10-04

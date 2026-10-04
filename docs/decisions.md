@@ -613,3 +613,18 @@ proportionate: a one-service repository with no networks, ports or relationships
 instead of twelve, and the index names the omissions so they read as a decision. `--site` writes
 `mkdocs.yml` into the documentation directory (not the repository root, which a project may own),
 completing layer 3 of §8 — the answer to "share it with my team" that is not a hosted service.
+
+**2026-10-04 — Run sizing measured, and the local-model shortlist**
+Measured rather than guessed: a whole-repository labelling request for Mastodon is ~3,579 chars
+(≈1,000 tokens), ~83 tokens per element, matching the one live Supabase run at ~5 KB. Full-run
+estimates are cents for ordinary repositories and about a dollar for an Immich-scale one; thinking,
+billed as output, dominates. **Time is the binding constraint, not money** — NFR-2's three minutes
+breaks long before the budget does, which is the strongest argument for interpretation memory (D-1)
+landing in the first build block. Numbers and levers in `docs/vision.md` §2.9.
+For the eventual local path (NFR-4): cloud stays the default, local is opt-in. Shortlist for a 24 GB
+machine — **Granite 4.2 8B** first, because it is tuned for tool calls and strict JSON, which is
+exactly the shape archdoc asks for; **Qwen3 14B** as the quality baseline; a 30B mixture-of-experts
+only if quality demands it. Dense 32B models are rejected: they run but make the machine unusable.
+What makes a small model viable is schema-constrained decoding (Ollama can constrain generation to
+the JSON schema we already send) plus the validator, which refuses anything off-policy regardless of
+which model produced it. Verify the shortlist when implementing — the local field moves monthly.

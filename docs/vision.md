@@ -16,6 +16,7 @@
 | Why this exists at all | §1 |
 | Why not just ask the AI that wrote the code | §1.5 |
 | How we stand against Code Wiki and DeepWiki, and what we match | §1.4, §2.2 |
+| What a run will cost, in tokens and in time | §2.9 |
 | The direction in one page | §2.1–§2.4 |
 | What stays exactly as it is | §4, §5 |
 | What must be decided before building | §6 — the core of this document |
@@ -298,6 +299,59 @@ the evidence supports it.
 - **Flows:** "upload a photo" — web → controller → service → job queue → machine-learning →
   database.
 - **Deployment:** the Compose file, where it belongs.
+
+### 2.9 What a run will cost
+
+Measured on Mastodon, 2026-10-04, by building the payload locally — no request was sent:
+
+| | Chars | ≈ Tokens |
+|---|---|---|
+| System prompt | 1,381 | 384 |
+| JSON schema | 402 | 112 |
+| Structure — 6 elements, 8 relationships | 1,796 | 499 |
+| **Whole-repository input** | **3,579** | **≈ 1,000** |
+| Per element | 299 | ≈ 83 |
+
+That matches the one live run on record: Supabase, ~25 elements, about 5 KB sent.
+
+**The formula.** Input ≈ 500 fixed (system + schema) + 70–85 per item. Output ≈ 40 per item of
+visible text — **plus thinking, which is billed as output and dominates the total.** Supabase
+produced 45 operations in about two minutes, so thinking is estimated at 2–4× the visible output.
+That multiplier is the largest uncertainty in every number below.
+
+| Repository | Items¹ | Input | Output incl. thinking | Opus 5.5 | Sonnet 5.5 |
+|---|---|---|---|---|---|
+| React app, or a script | ~28 | ~4k | ~5k | ~$0.11 | ~$0.06 |
+| Front + back + database | ~73 | ~9k | ~12k | ~$0.28 | ~$0.14 |
+| Immich-scale | ~284 | ~30k | ~41k | ~$0.95 | ~$0.48 |
+
+¹ items = elements + components + data entities + flows + features. Add ~20% for validator
+retries (VAL-07 allows three attempts). Treat as ±2×.
+
+**So the money is not the problem: cents for ordinary repositories, about a dollar for the largest.**
+
+**The levers, in order of effect.**
+
+1. **Interpretation memory (D-1)** — after the first run only changed items are re-asked, typically
+   2–10% of the work. Steady-state runs cost under a cent. This is why it is in the first build block.
+2. **Effort** — thinking is most of the bill, and effort is its only control. Never measured; worth
+   a sweep of low and medium before any default is set.
+3. **Model choice** — Sonnet 5.5 halves the cost, Haiku 4.5 quarters it. Labelling is not hard
+   reasoning, so bulk description work probably belongs on a cheaper model with Opus kept for
+   grouping. The code still pins `claude-opus-5`; `claude-opus-5-5` is the same tier ~20% cheaper (F-57).
+4. **Batch API** — half price, and nobody watches a generate run.
+5. **Prompt caching will not help.** The shared prefix is ~500 tokens, under the minimum cacheable
+   size. It becomes worth revisiting only if a lens sends one large shared context.
+
+**The real constraint is time, not money.** NFR-2 allows a full generate three minutes; Supabase's
+25 elements already took about two. At 284 items that is twenty minutes or more unless requests are
+batched in parallel, effort is lowered, or only changed items are interpreted. **The new lenses
+break NFR-2 well before they strain a budget** — the strongest argument for D-1 landing early.
+
+**Local operation** (D-8, F-34, F-46) hits the same wall in a different currency: a 14B model on a
+24 GB machine generates roughly 30–40 tokens a second, so ~41k output tokens is about twenty
+minutes. Comfortable for small repositories, slow for Immich-scale ones — and thinking should be
+off or minimal there, which costs little because the task is naming, not reasoning.
 
 ---
 
