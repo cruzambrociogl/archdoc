@@ -628,3 +628,33 @@ only if quality demands it. Dense 32B models are rejected: they run but make the
 What makes a small model viable is schema-constrained decoding (Ollama can constrain generation to
 the JSON schema we already send) plus the validator, which refuses anything off-policy regardless of
 which model produced it. Verify the shortlist when implementing — the local field moves monthly.
+
+**2026-10-04 — The surface: one app, two modes, diagrams drawn by the app, built early**
+The web app is redesigned as archdoc's main surface, specified in `docs/surface-spec.md`. Four
+decisions (S-1 to S-4). **The published app is the site:** `archdoc export --site` builds the same app
+with one version's data baked in as JSON; `mkdocs.yml` stays as the plain fallback. The site reads the
+**model**, not the Markdown — both are projections of one model, and the Markdown flattens citations,
+truth states and diagrams. Human-owned sections are linked on the repository host, never copied in,
+because copying is reading (hard rule 2). **The app draws its diagrams** from a scene the engine emits
+— positions included, so layout stays deterministic and stored — and the committed SVG and Mermaid
+become exports. This reverses the "same SVG, byte for byte" property of the current canvas: the
+guarantee is the elements and their layout, not the bytes. **Citations open the line**: the editor
+locally, a permalink at the commit when published. **The shell and today's screens are built before
+Build 1**, moving F-25 and F-22 forward. Then S-5 to S-7, the same day: **React Flow** draws the graph
+diagrams, our own component the sequences, layout stays in the engine. **People can drag a diagram into
+shape and keep it** — `.archdoc/layout.yaml`, committed and re-applied every run like `rules.yaml` — and
+**save named views** in `.archdoc/views.yaml`. Position is presentation, not fact, so neither can
+falsify anything; they are the first files the app writes, so they carry ANS-04/05's write safety.
+Interpretations are committed beside `model.json`, so a clone or CI shows everything without
+regenerating and without a key (`surface-spec.md` §3.2).
+
+**2026-10-04 — What the app may control (C-1 to C-5)**
+The published site controls nothing; the live app is a second front end over the same engine, and
+every action it offers is a CLI command with the same effect. It **runs `scan` and `generate`**,
+with the model only after a confirmation showing egress, model and estimated cost (C-1). It **writes
+`rules.yaml`**, append-only after a preview — archdoc's configuration, not a documentation section
+(C-2). **Settings stay read-only** for now (C-3). It **never acts on git**: it shows archdoc's
+uncommitted files and their diff, and the command to copy (C-4). Control from the published site is
+**deferred**, not refused (C-5). Because the app now acts, every action is a `POST` requiring the
+app's own Origin and a per-session token: the Host check stops cross-site reads, not cross-site form
+posts. `docs/surface-spec.md` §11.
