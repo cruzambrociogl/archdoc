@@ -137,6 +137,39 @@ func TestCanvasIsTheEngineSVG(t *testing.T) {
 	}
 }
 
+// The scene is the view and the layout the SVG is drawn from: every element the view holds has a
+// box, so the app can draw exactly what is committed.
+func TestSceneCarriesTheLayout(t *testing.T) {
+	ts, _ := server(t)
+	code, b := get(t, ts, "/api/scene?view=container")
+	if code != 200 {
+		t.Fatalf("scene: %d %s", code, b)
+	}
+	var sc struct {
+		View   string         `json:"view"`
+		Model  archdoc.Model  `json:"model"`
+		Layout archdoc.Layout `json:"layout"`
+	}
+	if err := json.Unmarshal(b, &sc); err != nil {
+		t.Fatal(err)
+	}
+	if sc.View != "container" || len(sc.Model.Nodes) == 0 {
+		t.Fatalf("scene: view %q with %d elements", sc.View, len(sc.Model.Nodes))
+	}
+	boxes := map[string]bool{}
+	for _, bx := range sc.Layout.Boxes {
+		boxes[bx.ID] = true
+	}
+	for _, n := range sc.Model.Nodes {
+		if !boxes[n.ID] {
+			t.Errorf("%s has no box in the layout", n.ID)
+		}
+	}
+	if code, _ := get(t, ts, "/api/scene?view=nonsense"); code != 400 {
+		t.Errorf("an unknown view was accepted: %d", code)
+	}
+}
+
 func TestDiffBetweenVersions(t *testing.T) {
 	ts, _ := server(t)
 	code, b := get(t, ts, "/api/diff?from=1&to=2")

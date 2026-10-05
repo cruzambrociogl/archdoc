@@ -62,6 +62,7 @@ func New(root string) (*Server, error) {
 	s.mux.HandleFunc("GET /api/versions", s.versions)
 	s.mux.HandleFunc("GET /api/model", s.model)
 	s.mux.HandleFunc("GET /api/svg", s.svg)
+	s.mux.HandleFunc("GET /api/scene", s.scene)
 	s.mux.HandleFunc("GET /api/diff", s.diff)
 	s.mux.HandleFunc("GET /api/runs", s.runs)
 	s.mux.HandleFunc("GET /api/runs/{id}", s.run)
@@ -204,13 +205,35 @@ func (s *Server) model(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// svg draws a view exactly as the committed SVG draws it: from the stored layout when there is a
-// current one, computing one only when the stored layout is missing or from an older engine.
-func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
-	v, err := s.version(r, "version")
+// scene is a view with the layout it is drawn at — what the app draws, and what the committed SVG
+// is drawn from. Both come from laidOut, so the page and the repository show one arrangement
+// (surface-spec §10.1).
+func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
+	v, name, view, l, err := s.laidOut(r)
 	if err != nil {
 		fail(w, err)
 		return
+	}
+	send(w, map[string]any{"version": v.ID, "view": name, "model": view, "layout": l})
+}
+
+// svg draws a view exactly as the committed SVG draws it — the export of the same scene.
+func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
+	_, _, view, l, err := s.laidOut(r)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
+	w.Write([]byte(render.SVG(view, l)))
+}
+
+// laidOut resolves the requested version and view, with its stored layout when there is a current
+// one, computing one only when the stored layout is missing or from an older engine.
+func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model, archdoc.Layout, error) {
+	v, err := s.version(r, "version")
+	if err != nil {
+		return nil, "", archdoc.Model{}, archdoc.Layout{}, err
 	}
 
 	name := r.URL.Query().Get("view")
@@ -221,21 +244,17 @@ func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
 	case "container", "":
 		name, view = "container", v.Model.Container()
 	default:
-		fail(w, fmt.Errorf("unknown view %q", name))
-		return
+		return nil, "", archdoc.Model{}, archdoc.Layout{}, fmt.Errorf("unknown view %q", name)
 	}
 
 	l, ok := v.Layouts[name]
 	if !ok || l.Version != render.LayoutVersion {
 		l, err = render.Layout(r.Context(), view, name == "container")
 		if err != nil {
-			fail(w, err)
-			return
+			return nil, "", archdoc.Model{}, archdoc.Layout{}, err
 		}
 	}
-
-	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
-	w.Write([]byte(render.SVG(view, l)))
+	return v, name, view, l, nil
 }
 
 func (s *Server) diff(w http.ResponseWriter, r *http.Request) {
