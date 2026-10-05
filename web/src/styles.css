@@ -1,43 +1,25 @@
+/* The workbench's own names, pointed at the design tokens until each view is redesigned. */
 :root {
-  --bg: #f7f7f5;
-  --panel: #ffffff;
-  --text: #1d1d1f;
-  --muted: #6b6b70;
-  --line: #e2e2e0;
-  --accent: #1168bd;
-  --added: #e6f4ea;
-  --removed: #fdecea;
-  --warn: #fff4e0;
-  --warn-text: #9a5b00;
-  --error: #b3261e;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-size: 14px;
+  --bg: var(--page);
+  --text: var(--ink);
+  --line: var(--rule);
+  --added: var(--k-slate-fill);
+  --removed: var(--hover);
+  --warn: var(--unres-fill);
+  --warn-text: var(--unres-ink);
+  --error: var(--accent);
+  font-family: var(--font-sans);
+  font-size: var(--t-body);
   color: var(--text);
   background: var(--bg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #18181a;
-    --panel: #222225;
-    --text: #ececec;
-    --muted: #9a9aa0;
-    --line: #36363a;
-    --accent: #6aaef0;
-    --added: #1d3524;
-    --removed: #3d2020;
-    --warn: #3a2e14;
-    --warn-text: #f0b85a;
-    --error: #ff8a80;
-  }
-}
-
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); }
+body { margin: 0; background: var(--bg); -webkit-font-smoothing: antialiased; }
 a { color: var(--accent); }
 h2 { font-size: 16px; margin: 0 0 8px; }
 h3 { font-size: 14px; margin: 18px 0 6px; }
-code, .mono, pre { font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+code, .mono, pre { font-family: var(--font-mono); }
 pre { background: var(--panel); border: 1px solid var(--line); padding: 10px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; }

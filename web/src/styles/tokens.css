@@ -1,0 +1,163 @@
+/*
+ * The surface design's tokens (Claude Design, "Surface Foundations" and "Surface Themes").
+ *
+ * Four channels, never shared:
+ *   kind      hue — slate, teal, green, violet, grey
+ *   truth     form and glyph — solid, diamond and italic, dotted ochre hatch
+ *   change    stroke weight and a corner tag
+ *   citation  magenta — also links and selection, and nothing else
+ *
+ * Two groups of tokens. Chrome tokens (--page … --accent) invert in dark mode. Diagram tokens
+ * (--k-*, --u-*, --canvas-*) do not: the canvas stays paper-white in both themes, because a
+ * diagram on screen is the same drawing as the exported one.
+ */
+
+:root {
+  --font-serif: 'Spectral', Georgia, serif;
+  --font-sans: 'Public Sans', Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* chrome */
+  --page: #e3e6e5;
+  --panel: #f5f7f6;
+  --surface: #ffffff;
+  --chip: #fbfcfc;
+  --hover: #e7ebe9;
+  --rule: #c8cfcd;
+  --rule-soft: #d8dedc;
+  --hair: #e3e6e5;
+  --ink: #15201e;
+  --muted: #46514f;
+  --faint: #98a2a0;
+  --grey: #6d7a77;
+  --accent: #a31f62;
+  --accent-soft: #f9e9f1;
+  --accent-line: rgba(163, 31, 98, 0.35);
+  --on-ink: #fbfcfc;
+
+  /* truth states, as they appear in chrome text */
+  --interp: #3f5b72;
+  --interp-ink: #2c4658;
+  --unres: #8a6512;
+  --unres-ink: #6e500c;
+  --unres-fill: #fbf4e2;
+
+  /* status dots */
+  --ok: #4a6b3f;
+
+  /* kinds, in chrome (chips, inspector headers); diagram copies below */
+  --kind-slate: #3f5b72;
+  --kind-teal: #1e6b66;
+  --kind-green: #4a6b3f;
+  --kind-violet: #5d5580;
+  --kind-grey: #6d7a77;
+
+  /* diagram — fixed in both themes */
+  --canvas: #ffffff;
+  --canvas-dot: #e3e6e5;
+  --canvas-ink: #15201e;
+  --canvas-muted: #46514f;
+  --boundary-fill: #e7ebe9;
+  --boundary-line: #98a2a0;
+  --edge: #46514f;
+
+  --k-slate: #3f5b72;
+  --k-slate-fill: #edf2f6;
+  --k-slate-ink: #2c4658;
+  --k-teal: #1e6b66;
+  --k-teal-fill: #d7ece8;
+  --k-teal-ink: #0e4643;
+  --k-green: #4a6b3f;
+  --k-green-fill: #f1f4ee;
+  --k-green-ink: #33502a;
+  --k-violet: #5d5580;
+  --k-violet-fill: #efeef7;
+  --k-violet-ink: #4a4468;
+  --k-grey: #6d7a77;
+  --k-grey-fill: #f5f7f6;
+  --k-grey-ink: #46514f;
+
+  --u-line: #8a6512;
+  --u-ink: #6e500c;
+  --u-fill: #fbf4e2;
+  --u-hatch: repeating-linear-gradient(135deg, #fbf4e2 0 4px, #ffffff 4px 8px);
+
+  /* shape */
+  --radius: 2px;
+  --radius-box: 3px;
+  --shadow-pop: 0 14px 34px -22px rgba(21, 32, 30, 0.45);
+  --shadow-dialog: 0 24px 60px -30px rgba(21, 32, 30, 0.6);
+
+  /* type scale */
+  --t-eyebrow: 10.5px;
+  --t-small: 12px;
+  --t-body: 13px;
+  --t-read: 17px;
+
+  color-scheme: light;
+}
+
+/* Dark: the chrome inverts; the canvas does not. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --page: #101816;
+    --panel: #1e2927;
+    --surface: #15201e;
+    --chip: #15201e;
+    --hover: #26322f;
+    --rule: #3a4643;
+    --rule-soft: #2a3533;
+    --hair: #2a3533;
+    --ink: #e3e6e5;
+    --muted: #98a2a0;
+    --faint: #6d7a77;
+    --grey: #98a2a0;
+    --accent: #c4739b;
+    --accent-soft: #3a2230;
+    --accent-line: rgba(196, 115, 155, 0.4);
+    --on-ink: #15201e;
+    --interp: #7fa6c9;
+    --interp-ink: #9fbad3;
+    --unres: #d9b45a;
+    --unres-ink: #d9b45a;
+    --unres-fill: #2b2a1c;
+    --ok: #8fa96f;
+    --kind-slate: #7fa6c9;
+    --kind-teal: #6db8b0;
+    --kind-green: #8fa96f;
+    --kind-violet: #a69ccf;
+    --kind-grey: #98a2a0;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --page: #101816;
+  --panel: #1e2927;
+  --surface: #15201e;
+  --chip: #15201e;
+  --hover: #26322f;
+  --rule: #3a4643;
+  --rule-soft: #2a3533;
+  --hair: #2a3533;
+  --ink: #e3e6e5;
+  --muted: #98a2a0;
+  --faint: #6d7a77;
+  --grey: #98a2a0;
+  --accent: #c4739b;
+  --accent-soft: #3a2230;
+  --accent-line: rgba(196, 115, 155, 0.4);
+  --on-ink: #15201e;
+  --interp: #7fa6c9;
+  --interp-ink: #9fbad3;
+  --unres: #d9b45a;
+  --unres-ink: #d9b45a;
+  --unres-fill: #2b2a1c;
+  --ok: #8fa96f;
+  --kind-slate: #7fa6c9;
+  --kind-teal: #6db8b0;
+  --kind-green: #8fa96f;
+  --kind-violet: #a69ccf;
+  --kind-grey: #98a2a0;
+  color-scheme: dark;
+}
