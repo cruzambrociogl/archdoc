@@ -82,6 +82,23 @@ designed in Claude Design. Built on `develop`, every screen driven in a browser.
 | Completeness | ✓ "unknown" where archdoc has no record of the stub; a published site judged by size |
 | Export in CI | ✓ builds from the committed `model.json` when there is no history |
 
+### Code as evidence — the working plan, from 5 Oct
+
+The vision's build order (`vision.md` §2.2, D-2 to D-8 as recommended there), as vertical slices:
+each runs from parser to screen and ends with something visible in the app. Measured on Immich and
+the FastAPI template. Worked through in order, without dates, until the 9 Oct demo is called.
+
+| # | Slice | Features | Status |
+|---|---|---|---|
+| 0 | Setup; parsing inside the binary — gotreesitter vs. typescript-go, measured on Immich | F-01 | · |
+| 1 | Applications from manifests; Compose as deployment evidence | F-02 | · |
+| 2 | Module and import graph → components by convention; identity by what a thing is | F-03, F-10, F-31 | · |
+| 3 | NestJS pack: routes, services, injection; outbound calls; unresolved as a state | F-04, F-08, F-13, F-32 | · |
+| 4 | Data model from table classes and migrations | F-07, F-11 | · |
+| 5 | Flows from an entry point, as sequence diagrams | F-12 | · |
+| 6 | SvelteKit and React pages; FastAPI and Python | F-05, F-06 | · |
+| 7 | Component pages and cited claims, remembered — paid runs, asked first | F-19, F-30, F-36 | · |
+
 ### Superseded — do not implement as written
 
 Two catalog entries are contradicted by later decisions. Recorded here so they are not

@@ -15,6 +15,11 @@ Repos cloned, not run. Every claim below cites `file:line` in the pinned revisio
 |---|---|---|
 | Immich (simple) | `github.com/immich-app/immich` | `cbf5d83a693d0328282ddb0f5d398c351d92558e` |
 | Supabase (complex) | `github.com/supabase/supabase` | `34454037d31a817654e514f9748590989496cf0b` |
+| FastAPI template (AI-typical, added 5 Oct) | `github.com/fastapi/full-stack-fastapi-template` | `1762adac607a1b29cfc4da129557780beea71616` |
+
+The FastAPI template was added for code as evidence (`vision.md`): FastAPI, React + Vite, SQLModel,
+Postgres and Compose — small, widely copied, and the stack AI tools produce. Mastodon (pinned in
+Part 3) remains a configuration-only subject: Ruby is not among the first languages (D-7).
 
 Order: cold-start discovery pass first (catalog what is findable *before* reading deeply,
 since that is what DSC must do), then a deep read of every config file found.
