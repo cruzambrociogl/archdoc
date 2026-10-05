@@ -880,3 +880,92 @@ button.runs-row:hover {
   max-height: 320px;
   overflow: auto;
 }
+
+/* ——— coverage ——— */
+
+.stat.static {
+  cursor: default;
+}
+.stat.static:hover {
+  background: var(--chip);
+}
+.coverage-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 32px;
+  margin-top: 30px;
+}
+@media (max-width: 900px) {
+  .coverage-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.gap-group {
+  margin: 8px 0 16px;
+  border: 1px solid var(--rule-soft);
+}
+.gap-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 12px;
+  background: var(--u-hatch);
+  border-bottom: 1px solid var(--rule-soft);
+  color: var(--canvas-ink);
+}
+.gap-head .mono {
+  margin-left: auto;
+  color: var(--u-ink);
+}
+.gap-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--u-ink);
+}
+.gap-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.gap-row:hover:not(.static) {
+  background: var(--panel);
+}
+.gap-row.static {
+  cursor: default;
+  grid-template-columns: 1fr;
+}
+.gap-row .mono {
+  font-size: 11px;
+}
+.gap-more {
+  padding: 8px 12px;
+}
+.gap-note {
+  margin: 0;
+  padding: 10px 12px 4px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.read-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hair);
+}
+.read-why {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.coverage-sub {
+  margin-top: 26px;
+}

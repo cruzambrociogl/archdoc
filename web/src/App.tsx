@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Summary, Version, ViewsResponse } from './api'
+import type { CoverageResponse, Summary, Version, ViewsResponse } from './api'
 import { RootContext, useApi } from './api'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
@@ -11,6 +11,7 @@ import { Palette } from './shell/Palette'
 import { Shortcuts } from './shell/Shortcuts'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
+import { Coverage } from './screens/Coverage'
 import { Changes } from './screens/Changes'
 import { Corrections } from './screens/Corrections'
 import { Documents } from './screens/Documents'
@@ -21,6 +22,7 @@ const titles: Record<Screen, string> = {
   explorer: 'Explorer',
   changes: 'Changes',
   docs: 'Documents',
+  coverage: 'Coverage',
   rules: 'Corrections',
   runs: 'Network runs',
 }
@@ -33,6 +35,7 @@ export function App() {
   const [navOpen, setNavOpen] = useState(false)
   const [viewsKey, setViewsKey] = useState(0)
   const [searching, setSearching] = useState(false)
+  const coverage = useApi<CoverageResponse>('/api/coverage')
   const [keys, setKeys] = useState(false)
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
 
@@ -91,15 +94,16 @@ export function App() {
           onSearch={() => setSearching(true)}
         />
         <div className="shell-body">
-          <Nav summary={s} route={route} go={go} open={navOpen} views={views.data?.views ?? []} />
+          <Nav summary={s} route={route} go={go} open={navOpen} views={views.data?.views ?? []} coverage={coverage.data} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
-            {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} />}
+            {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
             {route.screen === 'explorer' && (
               <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable onViewsChanged={() => setViewsKey((k) => k + 1)} />
             )}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
+            {route.screen === 'coverage' && <Coverage go={go} />}
             {route.screen === 'rules' && <Corrections />}
             {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
           </main>

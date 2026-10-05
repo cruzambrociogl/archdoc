@@ -1,4 +1,4 @@
-import type { DiffResponse, ModelResponse, Node, Provenance, Run, Summary, Version } from '../api'
+import type { CoverageResponse, DiffResponse, ModelResponse, Node, Provenance, Run, Summary, Version } from '../api'
 import { bytes, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
@@ -9,7 +9,7 @@ import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
  * The landing page (surface-spec §5.1): what this system is, at a glance, and how much of it can
  * be trusted. Everything here is counted from what the engine stored; nothing is estimated.
  */
-export function Overview(props: { summary: Summary; versions: Version[]; version: number | null; go: (r: Partial<Route>) => void }) {
+export function Overview(props: { summary: Summary; versions: Version[]; version: number | null; go: (r: Partial<Route>) => void; coverage?: CoverageResponse }) {
   const q = props.version ? `?version=${props.version}` : ''
   const m = useApi<ModelResponse>(`/api/model${q}`)
   const runs = useApi<Run[]>('/api/runs')
@@ -101,7 +101,17 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
           of={runCount ? `${runCount} ${runCount === 1 ? 'run' : 'runs'}, every byte logged in Network runs.` : 'archdoc has never sent anything from this repository.'}
           onClick={() => props.go({ screen: 'runs' })}
         />
-        <Trust k="Evidence" v={model.source} pct={100} of="Every element and relationship cites the file and line that declares it." mono />
+        {props.coverage ? (
+          <Trust
+            k="Could not be resolved"
+            v={`${props.coverage.gaps.reduce((n, g) => n + g.gaps.length, 0)} gaps`}
+            pct={props.coverage.items ? Math.round((props.coverage.complete / props.coverage.items) * 100) : 0}
+            of={`${props.coverage.complete} of ${props.coverage.items} elements and relationships carry no gap. Coverage lists each one.`}
+            onClick={() => props.go({ screen: 'coverage' })}
+          />
+        ) : (
+          <Trust k="Evidence" v={model.source} pct={100} of="Every element and relationship cites the file and line that declares it." mono />
+        )}
       </div>
 
       <div className="overview-grid">
@@ -148,7 +158,11 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
       <div className="paths">
         <PathCard t="Understand it from the top" route="context → containers → each element's passport" onClick={() => props.go({ screen: 'explorer', level: 'context' })} />
         <PathCard t="What changed" route="the versions, and the difference between any two" onClick={() => props.go({ screen: 'changes' })} />
-        <PathCard t="Check the evidence" route="the documents, and what archdoc could not see" onClick={() => props.go({ screen: 'docs' })} />
+        <PathCard
+          t="Check the evidence"
+          route={props.coverage ? 'what archdoc could not see, and why' : 'the documents, and what archdoc could not see'}
+          onClick={() => props.go({ screen: props.coverage ? 'coverage' : 'docs' })}
+        />
       </div>
     </div>
   )

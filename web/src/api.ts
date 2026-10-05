@@ -103,6 +103,17 @@ export interface SceneResponse {
   arrangement: { file: string; hash: string; placed: string[]; new: string[]; stale: string[] }
 }
 
+export interface CoverageResponse {
+  source: string
+  read: { file: string; used: boolean; why: string }[]
+  known: { label: string; value: string }[]
+  complete: number
+  items: number
+  gaps: { rule: string; gaps: { rule: string; element: string; message: string }[] }[]
+  unconnected: string[]
+  limits: { limit: string; needed: string }[]
+}
+
 export interface SavedView {
   name: string
   level: string

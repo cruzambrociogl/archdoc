@@ -1,4 +1,4 @@
-import type { SavedView, Summary } from '../api'
+import type { CoverageResponse, SavedView, Summary } from '../api'
 import type { Route, Screen } from '../route'
 
 interface Item {
@@ -17,7 +17,7 @@ interface Item {
  * rule 3): components, features, flows, the data model and dependencies arrive with the code
  * lenses, and are absent until then rather than shown empty.
  */
-export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Route>) => void; open: boolean; views: SavedView[] }) {
+export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Route>) => void; open: boolean; views: SavedView[]; coverage?: CoverageResponse }) {
   const { summary: s, route, go } = props
   const inExplorer = route.screen === 'explorer'
   const level = route.level ?? 'container'
@@ -37,6 +37,10 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
       : []),
     { label: 'Changes', screen: 'changes', depth: 0, badge: s.versions > 1 ? `${s.versions} versions` : undefined },
     { label: 'Documents', screen: 'docs', depth: 0 },
+    // Earned: present once generate has written the coverage report.
+    ...(props.coverage
+      ? ([{ label: 'Coverage', screen: 'coverage', depth: 0, badge: `${props.coverage.gaps.reduce((n, g) => n + g.gaps.length, 0)} gaps` }] as Item[])
+      : []),
     { label: 'Corrections', screen: 'rules', depth: 0, divider: true },
     { label: 'Network runs', screen: 'runs', depth: 0, badge: String(s.runs) },
   ]
