@@ -675,3 +675,16 @@ scripts, and still losing the fonts. The site exists to be hosted (GitHub Pages,
 built by CI), and previewing it locally is one command (`python3 -m http.server 8080 -d …`), which
 export prints. The spec is corrected. A single self-contained HTML export (vision D-10, F-23) remains
 the answer for a file to attach or open offline, if it is ever wanted.
+
+**2026-10-05 — Parsing code: gotreesitter, pure Go (F-01, D-4)**
+The binary must stay one static file with no cgo (NFR-10), and every Go tree-sitter binding but one
+needs cgo. gotreesitter is a pure-Go tree-sitter runtime that loads the upstream grammars' parse
+tables, with build tags that embed only the grammars archdoc ships. Measured before choosing:
+Immich's server, 543 TypeScript files (3.4 MB), parsed in 1.0 s, finding 47 controllers and 301
+routes each at its line; 7 files carry one known grammar gap (a tagged template with a type argument,
+Kysely's ``sql<T>`…` ``), recovered locally inside SQL bodies archdoc never reads. Python: Immich's
+machine-learning service (31 files) and the FastAPI template's backend (40 files) parse with no errors,
+every route found. The alternative — an importable fork of Microsoft's typescript-go — would add type
+information but only for TypeScript, from an unofficial fork of internal packages; it stays the
+candidate for D-4's later "resolved by type" upgrade. Syntax is the baseline, and provenance records
+how a link was resolved.
