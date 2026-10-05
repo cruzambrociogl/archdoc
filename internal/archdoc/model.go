@@ -25,6 +25,10 @@ const (
 	System Kind = "system"
 	// Actor is a person or system outside the boundary that reaches in.
 	Actor Kind = "actor"
+	// Component is a part of an application's code — a directory under its source root, or a
+	// Python module — inside the container named by Parent (F-03). It appears only in that
+	// container's component view.
+	Component Kind = "component"
 )
 
 // Container reports whether this kind is a C4 container.
@@ -42,7 +46,7 @@ func (k Kind) rank() int {
 	switch k {
 	case Actor:
 		return 0
-	case System, Application:
+	case System, Application, Component:
 		return 1
 	case Datastore:
 		return 2
@@ -92,6 +96,11 @@ type Node struct {
 	Dir     string     `json:"dir,omitempty"`
 	DirProv Provenance `json:"dir_provenance,omitempty"`
 
+	// Files are a component's files, repository-relative, in path order, and Lines their total —
+	// what the component is made of, and how much of it there is.
+	Files []string `json:"files,omitempty"`
+	Lines int      `json:"lines,omitempty"`
+
 	// DescProv and TechProv are separate from Prov because they can come from somewhere
 	// else. A node is proven by the line that declares it; its technology may come from the
 	// catalog and its description from the model. PRV-05 must tell a reader which parts of a
@@ -133,6 +142,10 @@ type Edge struct {
 	// through an excluded proxy cite both hops it was built from, rather than appearing from
 	// nowhere.
 	Prov []Provenance `json:"provenance"`
+
+	// Weight is how many times the relationship is attested when that is more than its citations
+	// show: a component edge cites one import per importing file, at most ten, and counts them all.
+	Weight int `json:"weight,omitempty"`
 }
 
 // Model is the whole system as archdoc understands it: one graph, from which every view is a
@@ -212,6 +225,9 @@ func (m Model) Context() Model {
 
 	keep := map[string]bool{}
 	for _, n := range m.Nodes {
+		if n.Kind == Component {
+			continue // a part of a container is inside the system twice over; it has no say in the box
+		}
 		if n.Kind == Actor || n.Evidence == Referenced {
 			keep[n.ID] = true
 			continue
@@ -238,6 +254,40 @@ func (m Model) Context() Model {
 	sortNodes(view.Nodes)
 
 	return view
+}
+
+// Component projects one container into its C4 component view (F-10): the components whose
+// parent it is, and how they use each other. The view is named after the container.
+func (m Model) Component(of string) Model {
+	keep := map[string]bool{}
+	for _, n := range m.Nodes {
+		if n.Kind == Component && n.Parent == of {
+			keep[n.ID] = true
+		}
+	}
+	view := m.project(keep, nil, func(id string) string { return id })
+	view.Networks = nil
+	if c, ok := m.Node(of); ok {
+		view.Name = c.Name
+	}
+	return view
+}
+
+// Components lists the containers that have a component view, in model order.
+func (m Model) Components() []string {
+	has := map[string]bool{}
+	for _, n := range m.Nodes {
+		if n.Kind == Component && n.Parent != "" {
+			has[n.Parent] = true
+		}
+	}
+	var out []string
+	for _, n := range m.Nodes {
+		if has[n.ID] {
+			out = append(out, n.ID)
+		}
+	}
+	return out
 }
 
 // project builds a view containing only the kept nodes. Edges touching a dropped node are
@@ -365,6 +415,7 @@ func dedupe(edges []Edge) []Edge {
 			continue
 		}
 		out[i].Prov = append(out[i].Prov, e.Prov...)
+		out[i].Weight += e.Weight
 		out[i].Technology = firstNonEmpty(out[i].Technology, e.Technology)
 
 		// The stronger evidence names the relationship. Where depends_on and a configured

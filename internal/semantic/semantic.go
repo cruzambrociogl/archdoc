@@ -175,13 +175,23 @@ type relationship struct {
 func describe(m archdoc.Model) (string, error) {
 	p := payload{System: m.Name}
 
+	// Components are not sent: the semantic layer works at the container level, and describing a
+	// component needs its code in the prompt (F-19), not a directory's name.
+	inside := map[string]bool{}
 	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Component {
+			inside[n.ID] = true
+			continue
+		}
 		p.Elements = append(p.Elements, element{
 			ID: n.ID, Name: n.Name, Kind: string(n.Kind),
 			Technology: n.Technology, Description: n.Description, Networks: n.Networks,
 		})
 	}
 	for _, e := range m.Edges {
+		if inside[e.From] || inside[e.To] {
+			continue
+		}
 		p.Relationships = append(p.Relationships, relationship{
 			From: e.From, To: e.To, Label: e.Label, Technology: e.Technology,
 		})

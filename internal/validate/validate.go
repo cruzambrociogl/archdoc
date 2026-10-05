@@ -121,6 +121,7 @@ func (r *Result) sort() {
 var kinds = map[archdoc.Kind]bool{
 	archdoc.Application: true, archdoc.Datastore: true, archdoc.Queue: true,
 	archdoc.Proxy: true, archdoc.External: true, archdoc.System: true, archdoc.Actor: true,
+	archdoc.Component: true,
 }
 
 // Model checks a whole model against every rule.
@@ -169,7 +170,11 @@ func Model(m archdoc.Model) Result {
 		// VAL-06 — completeness, not correctness. Configuration never states what a service
 		// is *for*; the semantic layer is what fills these, and a model without it is thin
 		// rather than wrong.
-		if n.Description == "" && n.Kind != archdoc.Actor {
+		//
+		// Components are exempt: their descriptions are interpretation's work at a level the
+		// semantic layer does not yet reach, and fifty "no description" warnings would bury the
+		// gaps a reader can act on. What was read of the code is reported as coverage instead.
+		if n.Description == "" && n.Kind != archdoc.Actor && n.Kind != archdoc.Component {
 			r.add("VAL-06", Warning, n.ID, "no description", n.Prov)
 		}
 		if n.Technology == "" && n.Kind.Container() {
@@ -177,6 +182,10 @@ func Model(m archdoc.Model) Result {
 		}
 	}
 
+	component := map[string]bool{}
+	for _, n := range m.Nodes {
+		component[n.ID] = n.Kind == archdoc.Component
+	}
 	for _, e := range m.Edges {
 		id := e.From + " → " + e.To
 		first := archdoc.Provenance{}
@@ -203,8 +212,9 @@ func Model(m archdoc.Model) Result {
 		}
 
 		// VAL-03 — completeness. Most edges have no protocol because configuration did not
-		// state one; that is a gap to report, not a reason to refuse the diagram.
-		if e.Technology == "" {
+		// state one; that is a gap to report, not a reason to refuse the diagram. An import
+		// between two parts of one program has none to state.
+		if e.Technology == "" && !(component[e.From] && component[e.To]) {
 			r.add("VAL-03", Warning, id, "no protocol", first)
 		}
 

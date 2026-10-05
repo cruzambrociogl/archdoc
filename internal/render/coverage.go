@@ -45,6 +45,28 @@ type CoverageReport struct {
 	// Unconnected are elements nothing reaches and that reach nothing.
 	Unconnected []string `json:"unconnected"`
 	Limits      []Limit  `json:"limits"`
+	// Code is what was read of each running application's code, in directory order.
+	Code []CodeRead `json:"code"`
+}
+
+// CodeRead is one application's code: how much was read, and how what it imports was resolved.
+// An application in a language archdoc does not read yet is listed with Read false — the edge of
+// the map, stated.
+type CodeRead struct {
+	App        string `json:"app"`       // the application's directory
+	Container  string `json:"container"` // the element it is, when one was drawn
+	Language   string `json:"language"`
+	Read       bool   `json:"read"`
+	Root       string `json:"root,omitempty"`
+	Files      int    `json:"files"`
+	Lines      int    `json:"lines"`
+	Components int    `json:"components"`
+	// Imports counts every import by how it was resolved: path, alias, module, package, unresolved.
+	Imports map[archdoc.Resolution]int `json:"imports"`
+	// Unresolved are the imports that look like the application's own code and match no file.
+	Unresolved []archdoc.Import `json:"unresolved"`
+	// Partial are files the parser recovered in; what it read of them is still used.
+	Partial []string `json:"partial"`
 }
 
 // ReadFile is one file discovery considered, used or passed over, and why.
@@ -102,23 +124,43 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 		r.Gaps = append(r.Gaps, GapGroup{Rule: rule, Gaps: list})
 	}
 
-	r.Items = len(m.Nodes) + len(m.Edges)
+	// Completeness is counted at the level configuration speaks to; the code's own coverage is
+	// reported per application below.
+	component := components(m)
 	for _, n := range m.Nodes {
+		if component[n.ID] {
+			continue
+		}
+		r.Items++
 		if !named[n.ID] {
 			r.Complete++
 		}
 	}
 	for _, e := range m.Edges {
+		if component[e.From] || component[e.To] {
+			continue
+		}
+		r.Items++
 		if !named[e.From+" → "+e.To] {
 			r.Complete++
 		}
 	}
+	r.Code = codeRead(m, facts)
 
 	r.Unconnected = unconnected(m.Container())
 	if r.Unconnected == nil {
 		r.Unconnected = []string{}
 	}
 	r.Limits = limits
+	if len(facts.Sources) > 0 {
+		r.Limits = make([]Limit, 0, len(limits))
+		for _, l := range limits {
+			if l.Limit == insideLimit {
+				l = Limit{"The structure inside a container whose code archdoc does not read", "A reader for its language — see what code was read"}
+			}
+			r.Limits = append(r.Limits, l)
+		}
+	}
 	return r
 }
 
@@ -162,6 +204,30 @@ func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) str
 		b.WriteString("This is rarely true of a running system. It usually means the connection is made\n")
 		b.WriteString("in application code or at deploy time, where configuration cannot see it. The\n")
 		b.WriteString("element is drawn unconnected rather than joined up on a guess.\n")
+	}
+
+	if len(r.Code) > 0 {
+		b.WriteString("\n## What code was read\n\n")
+		b.WriteString("Each running application's own code, parsed. An import is resolved by path, by an alias\n")
+		b.WriteString("its configuration declares, or as a module of its own package; one that names its own\n")
+		b.WriteString("code and matches no file is unresolved, and listed.\n\n")
+		b.WriteString("| Application | Language | Files | Lines | Components | Imports resolved | Unresolved | Parsed in part |\n")
+		b.WriteString("|---|---|---|---|---|---|---|---|\n")
+		for _, c := range r.Code {
+			if !c.Read {
+				fmt.Fprintf(&b, "| `%s` | %s | not read — archdoc has no reader for %s yet | | | | | |\n", c.App, c.Language, c.Language)
+				continue
+			}
+			own := c.Imports[archdoc.ByPath] + c.Imports[archdoc.ByAlias] + c.Imports[archdoc.ByModule]
+			fmt.Fprintf(&b, "| `%s` | %s | %d | %d | %d | %d own, %d packages | %d | %d |\n", c.Root, c.Language,
+				c.Files, c.Lines, c.Components, own, c.Imports[archdoc.ByPackage], len(c.Unresolved), len(c.Partial))
+		}
+		for _, c := range r.Code {
+			for _, i := range c.Unresolved {
+				fmt.Fprintf(&b, "\n- unresolved: `%s` at `%s`", i.Spec, i.Prov)
+			}
+		}
+		b.WriteString("\n")
 	}
 
 	b.WriteString("\n## What configuration cannot state\n\n")
@@ -224,8 +290,14 @@ func sourcesRead(facts archdoc.FactSet) []ReadFile {
 
 // knownCounts is the one place the documents say how much of themselves is backed by what.
 func knownCounts(m archdoc.Model, gaps []Gap) []Count {
-	declared, referenced := 0, 0
+	component := components(m)
+	declared, referenced, parts, uses, elements := 0, 0, 0, 0, 0
 	for _, n := range m.Nodes {
+		if component[n.ID] {
+			parts++
+			continue
+		}
+		elements++
 		if n.Evidence == archdoc.Referenced {
 			referenced++
 			continue
@@ -233,8 +305,13 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 		declared++
 	}
 
-	withProtocol := 0
+	withProtocol, relationships := 0, 0
 	for _, e := range m.Edges {
+		if component[e.From] || component[e.To] {
+			uses++
+			continue
+		}
+		relationships++
 		if e.Technology != "" {
 			withProtocol++
 		}
@@ -242,6 +319,9 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 
 	described, interpreted := 0, 0
 	for _, n := range m.Nodes {
+		if component[n.ID] {
+			continue
+		}
 		if n.Description != "" {
 			described++
 		}
@@ -251,23 +331,85 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 		}
 	}
 
-	return []Count{
+	counts := []Count{
 		{"Elements declared by this repository", fmt.Sprint(declared)},
 		{"Elements only referenced — they exist, nothing more is known", fmt.Sprint(referenced)},
-		{"Relationships", fmt.Sprint(len(m.Edges))},
+		{"Relationships", fmt.Sprint(relationships)},
 		{"… of which state a protocol", fmt.Sprint(withProtocol)},
-		{"Elements carrying a description", fmt.Sprintf("%d of %d", described, len(m.Nodes))},
+		{"Elements carrying a description", fmt.Sprintf("%d of %d", described, elements)},
 		{"Elements carrying any model-written value", fmt.Sprint(interpreted)},
 		{"Gaps the validator reported", fmt.Sprint(len(gaps))},
 	}
+	if parts > 0 {
+		counts = append(counts,
+			Count{"Components, read from the code", fmt.Sprint(parts)},
+			Count{"… and uses between them, each an import", fmt.Sprint(uses)})
+	}
+	return counts
 }
+
+func components(m archdoc.Model) map[string]bool {
+	out := map[string]bool{}
+	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Component {
+			out[n.ID] = true
+		}
+	}
+	return out
+}
+
+// codeRead reports each running application's code: read, with how its imports resolved, or not
+// read, because archdoc has no reader for its language yet.
+func codeRead(m archdoc.Model, facts archdoc.FactSet) []CodeRead {
+	containerOf := map[string]string{}
+	count := map[string]int{}
+	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Component {
+			count[n.Parent]++
+		} else if n.Dir != "" {
+			containerOf[n.Dir] = n.ID
+		}
+	}
+	sources := map[string]archdoc.Source{}
+	for _, s := range facts.Sources {
+		sources[s.App] = s
+	}
+	out := []CodeRead{}
+	for _, a := range facts.Apps {
+		if !a.Role.Container() {
+			continue
+		}
+		c := CodeRead{App: a.Dir, Container: containerOf[a.Dir], Language: a.Language,
+			Imports: map[archdoc.Resolution]int{}, Unresolved: []archdoc.Import{}, Partial: []string{}}
+		if s, ok := sources[a.Dir]; ok {
+			c.Read, c.Root, c.Files, c.Components = true, s.Root, len(s.Files), count[c.Container]
+			for _, f := range s.Files {
+				c.Lines += f.Lines
+				if f.Partial {
+					c.Partial = append(c.Partial, f.Path)
+				}
+				for _, i := range f.Imports {
+					c.Imports[i.How]++
+					if i.How == archdoc.Unresolved {
+						c.Unresolved = append(c.Unresolved, i)
+					}
+				}
+			}
+		}
+		out = append(out, c)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].App < out[j].App })
+	return out
+}
+
+const insideLimit = "The structure *inside* a container — its modules and components"
 
 // limits is fixed, and deliberately so: these are properties of reading configuration, not of this
 // repository. Naming them is how the document stays honest about its own method.
 var limits = []Limit{
 	{"The order of calls in a scenario", "Application source, or runtime traces"},
 	{"What happens on failure — retries, fallbacks, queues", "Application source"},
-	{"The structure *inside* a container — its modules and components", "Application source"},
+	{insideLimit, "Application source"},
 	{"The shape of the data a container stores", "Schema or migration files"},
 	{"Connections built at runtime from assembled values", "Application source"},
 	{"Why any of it is this way", "A person — sections 1, 4 and 9"},

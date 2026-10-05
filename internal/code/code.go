@@ -73,7 +73,7 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 			}
 			return nil
 		}
-		if lang := languageOf(rel, python); lang != "" && !isTest(d.Name()) {
+		if lang := languageOf(rel, python); lang != "" && !isTest(d.Name()) && !isConfig(d.Name()) {
 			paths = append(paths, rel)
 		}
 		return nil
@@ -203,6 +203,12 @@ func isTest(name string) bool {
 		return true
 	}
 	return strings.HasSuffix(name, ".py") && (strings.HasPrefix(name, "test_") || strings.HasSuffix(name, "_test.py"))
+}
+
+// isConfig reports a tool's configuration file — eslint.config.mjs, vite.config.ts,
+// lint-staged.config.js: code that configures the build, not code of the application.
+func isConfig(name string) bool {
+	return strings.Contains(name, ".config.") || strings.HasPrefix(name, ".")
 }
 
 func lines(b []byte) int {

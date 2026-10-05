@@ -259,8 +259,28 @@ func generate(args []string, out io.Writer) error {
 		return err
 	}
 
-	fmt.Fprintf(out, "\n%d elements, %d relationships, from %s\n",
-		len(m.Nodes), len(m.Edges), m.Source)
+	elements, relationships, components, uses := 0, 0, 0, 0
+	isComponent := map[string]bool{}
+	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Component {
+			components++
+			isComponent[n.ID] = true
+		} else {
+			elements++
+		}
+	}
+	for _, e := range m.Edges {
+		if isComponent[e.From] && isComponent[e.To] {
+			uses++
+		} else {
+			relationships++
+		}
+	}
+	fmt.Fprintf(out, "\n%d elements, %d relationships, from %s\n", elements, relationships, m.Source)
+	if components > 0 {
+		fmt.Fprintf(out, "%d components in %d containers, %d uses between them, from the code\n",
+			components, len(m.Components()), uses)
+	}
 
 	if created > 0 {
 		fmt.Fprintf(out, "%d section(s) created for you to write — see %s\n",
