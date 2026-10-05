@@ -10,7 +10,8 @@
 > covers the whole vision on purpose, so later features land in a slot that already exists rather
 > than being bolted on.
 >
-> Drafted 2026-10-04.
+> Drafted 2026-10-04. **Built 2026-10-05** except the §11 run, publish, git and settings controls and
+> the correction composer — the status marks below are as drafted; `PROGRESS.md` holds what shipped.
 
 ### Where to look
 

@@ -4,7 +4,7 @@ Reads an existing codebase and produces the architecture documentation it should
 accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
 web app, one static binary.
 
-**Phase:** extension — R1.a built, both reviews held. Delivery 11 Dec; plan in `docs/delivery-schedule.md` §7.
+**Phase:** extension — R1.a built; surface redesigned (5 Oct). Plan in `docs/delivery-schedule.md` §7.
 **Target:** code freeze 4 Dec 2026, delivered 11 Dec 2026.
 
 ---
@@ -53,6 +53,7 @@ section for the task at hand and nothing else.
 | `docs/survey-test-subjects.md` §1–2 | Writing or fixing a parser — real dialects, real failures |
 | `docs/how-it-works.md` | Orienting — the pipeline on one screen, and which stage lives in which package |
 | `docs/delivery-schedule.md` | Planning or scoping. **Not** while building |
+| `docs/surface-spec.md` | Working on the web app or the published site — screens, design system, modes, what the app may do. Design: Claude Design project (memory) |
 | `docs/vision.md` | Discussing scope beyond configuration — code as evidence, lenses, explanations. **A proposal:** until a decision there is recorded in `decisions.md`, the definition wins |
 | `PROGRESS.md` | Starting work — what is done, what gate is next |
 | `.claude/NOTES.md` | Starting or ending a session — the inbox of unplanned items |
@@ -106,7 +107,8 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 | `internal/store` | Version history — SQLite, cgo-free. A local cache; git is the archive |
 | `internal/semantic` | The network boundary |
 | `internal/render` | Layout, SVG, Mermaid |
-| `internal/serve` | Local HTTP + embedded web assets |
+| `internal/arrange` | `layout.yaml`, `views.yaml` — presentation a person saves, applied over the layout |
+| `internal/serve` | Local HTTP, the action gate, the published-site export, embedded web assets |
 | `cmd/archdoc` | CLI — thin, no logic |
 
 `output` lives as files inside the packages that use it until coupling earns it a package.

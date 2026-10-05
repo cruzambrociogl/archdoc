@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-10-02 (extension plan; deliverables pass)
+Last updated: 2026-10-05 (surface redesign)
 
 ---
 
@@ -46,12 +46,29 @@ constantly, not just at a review.
 | `PRV` | Provenance | 6 | ~3 | AC-1 |
 | `MEM` | Memory and diff | 8 | ~5 | AC-6 — versions compare structurally in the app (MEM-04/06/07); diff between two *commits* and MEM-05's rename/re-bound classes remain |
 | `VIE` | Views and rendering | 10 | ~7 | AC-2 |
-| `SUR` | Surfaces — CLI and web app | 15 | ~12 | AC-8 — `serve` and all web views SUR-07–12, 15 done 12 Sep; `init`, `diff`, `export` remain |
-| `OUT` | Output and deliverables | 10 | ~9 | — coverage report and the MkDocs site (layer 3) done 2 Oct; OUT-09 from size and mtime (no conformance % yet); OUT-10 approximated by mtime, not by commit |
+| `SUR` | Surfaces — CLI and web app | 22 | ~19 | AC-8 — web views redesigned and SUR-16–22 added and done 5 Oct (see below); `init`, `diff`, and `export` formats other than `--site` remain |
+| `OUT` | Output and deliverables | 12 | ~11 | — coverage report and the MkDocs site done 2 Oct; OUT-11 published site and OUT-12 coverage as data 5 Oct; OUT-09 from size and mtime (no conformance % yet); OUT-10 approximated by mtime, not by commit |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
-| | **Total** | **116** | **~75** | |
+| | **Total** | **125** | **~84** | |
 
 109 are R1.a; the 7 `ANS` capabilities are R1.c.
+
+### Surface redesign — 5 Oct, pulled forward from Build 3
+
+Decided 4–5 Oct (`docs/decisions.md`, S-1 to S-7, C-1 to C-5); specified in `docs/surface-spec.md`;
+designed in Claude Design. Built on `develop`, every screen driven in a browser.
+
+| Feature | What shipped |
+|---|---|
+| F-25 web app at scale | ✓ explorer drawn with React Flow from the stored scene; find, focus, legend, minimap, zoom; checked at 300 elements, 60 fps. Upstream/downstream reach and path probe remain |
+| F-55 clickable relationships | ✓ arrows selectable, with their own passport |
+| F-22 publishable site | ✓ `archdoc export --site` — the same app, published mode, citations on the repository host |
+| F-24 coverage report | ✓ also as `.archdoc/coverage.json` and a screen |
+| S-6, S-7 | ✓ arrangements in `layout.yaml` applied to app and SVG; saved views in `views.yaml` |
+| §5.12 change lens | ✓ comparison screen and overlay on the diagram |
+| §5.17 search | ✓ ⌘K over elements, relationships, files, documents, views |
+| §11.5 action gate | ✓ Origin + session token on every action |
+| §11 run, publish, git, settings controls; correction composer (C-2) | · not started |
 
 ### Superseded — do not implement as written
 

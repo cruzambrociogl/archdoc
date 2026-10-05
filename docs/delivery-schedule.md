@@ -341,6 +341,7 @@ retreat: **the local, verifiable alternative** (`vision.md` §2.2).
 
 | | Period | Work | Gate |
 |---|---|---|---|
+| | 4–5 Oct | **Surface redesign — pulled forward from Build 3** (S-4): spec, Claude Design, shell, explorer drawn by the app, change lens, documents, coverage, arrangements and saved views, search, action gate, published site | ✓ done — every screen driven in a browser, the explorer checked at 300 elements |
 | | 5–8 Oct | Performance measurement (AC-9); review preparation | AC-9 scored |
 | | 5–16 Oct | **Hand-drawn Immich reference — owner: Cruz** | The answer key exists. Blocks AC-3 and the comparison |
 | | 9 Oct | Progress review | R1.a shown; direction presented |
@@ -349,7 +350,7 @@ retreat: **the local, verifiable alternative** (`vision.md` §2.2).
 | 1 | 27 Oct – 13 Nov | **Foundations and stability** — parsing in the binary, application discovery, import graph, one backend pack, schema reading; identity, unresolved, interpretation memory, symbol egress rules | Immich's server→machine-learning edge recovered from TypeScript, cited at its line |
 | | 13 Nov | Mid-phase checkpoint | Confirm or cut the stretch items |
 | 2 | 10–21 Nov | **Lenses and output** — component, data and flow views; feature list, dependency map, deployment view; arc42 §5/§6/§8; coverage report; cited-claim validation | A reader learns how Immich works from the documents, and every element opens at its line |
-| 3 | 24 Nov – 3 Dec | **Surfaces and change** — web app at scale, publishable site, component pages, diff between two commits, change summary, the missing CLI commands, loose ends | AC-6 scored on the drift set; the app readable at hundreds of elements |
+| 3 | 24 Nov – 3 Dec | **Surfaces and change** — component pages, diff between two commits, change summary, the missing CLI commands, the app's run and publish controls, loose ends (the web app at scale and the publishable site moved to 4–5 Oct) | AC-6 scored on the drift set; the app readable at hundreds of elements |
 | | 4 Dec | **Code freeze** | No new capability |
 | | 4–8 Dec | Acceptance measurement — all nine criteria | Every criterion has a number, including the ones that fall short |
 | | 7–10 Dec | Report and slides, from measured results | Shortfalls written as findings |
