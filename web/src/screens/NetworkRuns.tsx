@@ -1,5 +1,5 @@
 import type { Exchange, Run } from '../api'
-import { bytes, useApi, when } from '../api'
+import { bytes, published, useApi, when } from '../api'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
 
@@ -66,7 +66,14 @@ export function NetworkRuns(props: { route: Route; go: (r: Partial<Route>, o?: {
         ))}
       </div>
 
-      <RunDetail id={open} />
+      {published ? (
+        <p className="lede-quiet">
+          This published site carries only the summary above. Each request, exactly as it was sent, stays on the machine that
+          made it, in archdoc serve.
+        </p>
+      ) : (
+        <RunDetail id={open} />
+      )}
     </div>
   )
 }

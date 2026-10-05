@@ -3,7 +3,7 @@ import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, V
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
 import type { DiffResponse, SceneResponse, Version } from '../../api'
-import { action, useApi } from '../../api'
+import { action, source, useApi } from '../../api'
 import type { Route } from '../../route'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
@@ -151,7 +151,7 @@ function Toolbar(props: {
           Save view…
         </button>
       )}
-      <a className="tool" href={`/api/svg?view=${props.level}${q}`} download={`${props.level}.svg`} title="The same scene, as the committed SVG">
+      <a className="tool" href={source(`/api/svg?view=${props.level}${q}`)} download={`${props.level}.svg`} title="The same scene, as the committed SVG">
         Export SVG
       </a>
       {saving && (
@@ -356,10 +356,16 @@ function Canvas(props: {
   const setRoute = (patch: Partial<Route>) =>
     props.go({ screen: 'explorer', level: route.level, focus: route.focus, q: route.q, dim: route.dim, from: route.from, ...patch }, { replace: true })
 
-  // A new scene — another level or version — is framed whole.
+  // A new scene — another level or version — is framed whole, unless the address names a selection:
+  // a shared link to one element opens on that element.
   useEffect(() => {
-    const t = setTimeout(() => flow.fitView({ padding: 0.08, duration: 0, maxZoom: 1.2 }), 0)
+    const t = setTimeout(() => {
+      const target = selected && !selected.includes('>') && (scene.model.nodes ?? []).some((n) => n.id === selected)
+      if (target) flow.fitView({ nodes: [{ id: selected! }], padding: 1.2, duration: 0, maxZoom: 1.2 })
+      else flow.fitView({ padding: 0.08, duration: 0, maxZoom: 1.2 })
+    }, 0)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene.version, scene.view, flow])
 
   // "/" jumps to the search.

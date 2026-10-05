@@ -1,4 +1,5 @@
-import type { Summary, Version } from '../api'
+import type { Session, Summary, Version } from '../api'
+import { published } from '../api'
 import type { Route } from '../route'
 import type { Theme } from '../theme'
 
@@ -21,6 +22,7 @@ export function TopBar(props: {
   theme: Theme
   onTheme: () => void
   onSearch: () => void
+  session?: Session
 }) {
   const { summary: s, route, go } = props
   const inExplorer = route.screen === 'explorer'
@@ -35,6 +37,12 @@ export function TopBar(props: {
         <span className="brand-repo">/ {s.name}</span>
       </div>
 
+      {published ? (
+        <span className="generated-from" title="This published site shows one version, built from the committed record">
+          Generated from <span className="mono">{(props.session?.commit ?? s.commit ?? '').slice(0, 7) || 'an uncommitted tree'}</span>
+          {props.session?.generated_at && <> on {new Date(props.session.generated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</>}
+        </span>
+      ) : (
       <label className="version-pick" title="The version on screen">
         <span className="mono">⌁ {s.commit ? s.commit.slice(0, 7) : 'no commit'}</span>
         <select
@@ -53,6 +61,7 @@ export function TopBar(props: {
             ))}
         </select>
       </label>
+      )}
 
       <div className="topbar-spacer">
         <button className="search-box" onClick={props.onSearch} title="Search everything (⌘K)">
@@ -80,9 +89,15 @@ export function TopBar(props: {
       <button className="icon-btn" onClick={props.onTheme} title={themeLabel[props.theme]} aria-label={themeLabel[props.theme]}>
         {themeGlyph[props.theme]}
       </button>
-      <span className="mode-badge" title="Served by archdoc serve on this machine">
-        Local
-      </span>
+      {published ? (
+        <span className="mode-badge published" title="A static site built by archdoc export --site: one version, no controls">
+          Published
+        </span>
+      ) : (
+        <span className="mode-badge" title="Served by archdoc serve on this machine">
+          Local
+        </span>
+      )}
     </header>
   )
 }

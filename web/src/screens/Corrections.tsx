@@ -56,7 +56,7 @@ export function Corrections() {
   return (
     <div className="reading wide">
       <Eyebrow>
-        Corrections · <a href={link(file)}>{file}</a> · {rules.length} {rules.length === 1 ? 'rule' : 'rules'}
+        Corrections · {link(file) ? <a href={link(file)}>{file}</a> : file} · {rules.length} {rules.length === 1 ? 'rule' : 'rules'}
       </Eyebrow>
       <div className="page-title-row">
         <h1 className="page-title small">What a person corrected</h1>

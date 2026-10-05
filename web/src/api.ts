@@ -215,8 +215,29 @@ export interface CompletenessResponse {
   }[]
 }
 
+// ——— live or published ———
+// The same app runs in two modes (surface-spec §3). Live, it reads archdoc serve's API. Published —
+// built by 'archdoc export --site' — it reads the same responses from static files beside it; the
+// marker is written into index.html by the exporter.
+
+export const published = !!document.querySelector('meta[name="archdoc-mode"][content="published"]')
+
+/** The file a published site reads an API path from. Mirrors serve.StaticName in Go. */
+export function staticName(apiPath: string): string {
+  const [p, query = ''] = apiPath.replace(/#.*$/, '').replace(/^\/api\//, '').split('?')
+  if (p.startsWith('docs/')) return `data/${p}`
+  const ext = p === 'svg' ? '.svg' : '.json'
+  const q = new URLSearchParams(query)
+  const keys = [...new Set([...q.keys()])].sort()
+  const tail = keys.length ? '@' + keys.map((k) => `${k}=${q.get(k)}`).join(',') : ''
+  return `data/${p.replace(/\//g, '_')}${tail}${ext}`
+}
+
+/** Where a path is fetched from in this mode. */
+export const source = (path: string) => (published && path.startsWith('/api/') ? staticName(path) : path)
+
 async function request(path: string): Promise<Response> {
-  const r = await fetch(path)
+  const r = await fetch(source(path))
   if (!r.ok) {
     let msg = r.statusText
     try {
@@ -289,17 +310,40 @@ export async function action<T>(path: string, body?: unknown): Promise<T> {
   return data as T
 }
 
-/** The repository's absolute path, so every citation can open in the editor. */
-export const RootContext = createContext('')
+/**
+ * Where citations open. Live: the repository's absolute path, so a citation opens in the editor.
+ * Published: the repository host at the commit, when a remote is known; with no known remote a
+ * citation is plain text, never a guessed link (surface-spec S-3).
+ */
+export interface Place {
+  root: string
+  remote?: string
+  commit?: string
+}
+export const RootContext = createContext<Place>({ root: '' })
 
-export function editorLink(root: string, file: string, line?: number): string {
-  const path = file.startsWith('/') ? file : `${root}/${file}`
+export function editorLink(place: Place | string, file: string, line?: number): string | undefined {
+  const p = typeof place === 'string' ? { root: place } : place
+  if (published) {
+    if (!p.remote || !p.commit) return undefined
+    return `${p.remote}/blob/${p.commit}/${file.replace(/^\.\//, '')}${line ? `#L${line}` : ''}`
+  }
+  const path = file.startsWith('/') ? file : `${p.root}/${file}`
   return `vscode://file${path}${line ? `:${line}` : ''}`
 }
 
 export function useEditorLink() {
-  const root = useContext(RootContext)
-  return (file: string, line?: number) => editorLink(root, file, line)
+  const place = useContext(RootContext)
+  return (file: string, line?: number) => editorLink(place, file, line)
+}
+
+export interface Session {
+  mode: 'local' | 'published'
+  remote?: string
+  commit?: string
+  generated_at?: string
+  version?: number
+  baseline?: number
 }
 
 export function when(iso?: string): string {

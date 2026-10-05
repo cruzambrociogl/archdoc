@@ -40,8 +40,9 @@ export function Cite({ p, compact }: { p?: Provenance; compact?: boolean }) {
     <span className="cite-ref cite-note">{p.note}</span>
   )
 
-  return p.file ? (
-    <a className="cite" href={link(p.file, p.line)} title={`${title}\n${p.file}${p.line ? `:${p.line}` : ''} — open in editor`}>
+  const href = p.file ? link(p.file, p.line) : undefined
+  return href ? (
+    <a className="cite" href={href} title={`${title}\n${p.file}${p.line ? `:${p.line}` : ''} — open at the line`}>
       <OriginGlyph origin={origin} />
       {body}
     </a>

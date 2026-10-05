@@ -512,3 +512,20 @@ kbd {
   border-bottom-width: 2px;
   padding: 0 6px;
 }
+
+.generated-from {
+  font: 11px var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.generated-from .mono {
+  color: var(--ink);
+}
+.mode-badge.published {
+  background: var(--ink);
+  color: var(--on-ink);
+  border-color: var(--ink);
+}

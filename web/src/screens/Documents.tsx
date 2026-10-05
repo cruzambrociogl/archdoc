@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { marked } from 'marked'
 import type { CompletenessResponse, DocsResponse } from '../api'
-import { editorLink, useApi, when } from '../api'
+import { published, source, useApi, useEditorLink, when } from '../api'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
 
@@ -139,20 +139,22 @@ function Head({ entry, owner }: { entry: Entry; owner: string }) {
   )
 }
 
-function Generated({ entry, dir, onOpen }: { entry: Entry; dir: string; onOpen: (f: string) => void }) {
+function Generated({ entry, onOpen }: { entry: Entry; dir: string; onOpen: (f: string) => void }) {
   const doc = useApi<string>(`/api/docs/${encodeURIComponent(entry.file)}`, 'text')
+  const link = useEditorLink()
   if (doc.error) return <Failure error={doc.error} />
   if (doc.data === undefined) return <Loading />
 
-  const source = doc.data.replace(/<!--[\s\S]*?-->/g, '')
+  const text = doc.data.replace(/<!--[\s\S]*?-->/g, '')
   // Relative references point beside the document: generated files through the API (and
   // generated pages within this screen), the sections a person owns to their editor.
-  const html = (marked.parse(source, { async: false }) as string).replace(
+  const html = (marked.parse(text, { async: false }) as string).replace(
     /(src|href)="(?![a-z]+:|#|\/)([^"]+)"/g,
     (_, attr: string, ref: string) => {
       if (attr === 'href' && isGenerated(ref)) return `href="#screen=docs&doc=${encodeURIComponent(ref)}" data-doc="${ref}"`
-      if (/\.generated\.md$|\.svg$|\.mmd$/.test(ref)) return `${attr}="/api/docs/${encodeURIComponent(ref)}"`
-      return `${attr}="${editorLink(dir, ref)}"`
+      if (/\.generated\.md$|\.svg$|\.mmd$/.test(ref)) return `${attr}="${source(`/api/docs/${encodeURIComponent(ref)}`)}"`
+      const to = link(`docs/architecture/${ref}`)
+      return to ? `${attr}="${to}"` : `${attr}="#screen=docs&doc=${encodeURIComponent(ref)}" data-doc="${ref}"`
     },
   )
 
@@ -175,12 +177,12 @@ function Generated({ entry, dir, onOpen }: { entry: Entry; dir: string; onOpen: 
   )
 }
 
-function Yours({ entry, dir, changed, version }: { entry: Entry; dir: string; changed: string; version: number | null }) {
+function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed: string; version: number | null }) {
   const q = useApi<{ markdown: string }>(
     entry.state === 'not started' && entry.number ? `/api/questions?section=${entry.number}${version ? `&version=${version}` : ''}` : null,
   )
   const [copied, setCopied] = useState(false)
-  const link = editorLink(dir, entry.file)
+  const link = useEditorLink()(`docs/architecture/${entry.file}`)
 
   return (
     <article className="doc-reading">
@@ -222,15 +224,19 @@ function Yours({ entry, dir, changed, version }: { entry: Entry; dir: string; ch
             <p className="yours-note">
               No preview. This section is yours, and archdoc never reads it (hard rule 2). The app shows only what the file
               system reports — when it last changed — and compares that with the architecture's history.
+              {published && ' On a published site that is what the publisher’s machine reported when the site was built.'}
             </p>
           </>
         )}
         <div className="yours-actions">
-          {entry.state !== 'missing' && (
-            <a className="btn btn-ink" href={link}>
-              Open in editor
-            </a>
-          )}
+          {entry.state !== 'missing' &&
+            (link ? (
+              <a className="btn btn-ink" href={link}>
+                {published ? 'View on the repository host' : 'Open in editor'}
+              </a>
+            ) : (
+              <span className="mono small">docs/architecture/{entry.file}</span>
+            ))}
           {entry.state === 'not started' && q.data && (
             <button
               className="btn btn-outline"

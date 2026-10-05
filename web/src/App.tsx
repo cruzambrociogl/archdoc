@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { CoverageResponse, Summary, Version, ViewsResponse } from './api'
-import { RootContext, useApi } from './api'
+import type { CoverageResponse, Session, Summary, Version, ViewsResponse } from './api'
+import { RootContext, published, useApi } from './api'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
 import { useRoute } from './route'
@@ -36,6 +36,7 @@ export function App() {
   const [viewsKey, setViewsKey] = useState(0)
   const [searching, setSearching] = useState(false)
   const coverage = useApi<CoverageResponse>('/api/coverage')
+  const session = useApi<Session>('/api/session')
   const [keys, setKeys] = useState(false)
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
 
@@ -79,7 +80,7 @@ export function App() {
   const version = route.v ?? null
 
   return (
-    <RootContext.Provider value={s.root}>
+    <RootContext.Provider value={{ root: s.root, remote: session.data?.remote, commit: session.data?.commit }}>
       <div className="shell">
         <TopBar
           summary={s}
@@ -92,6 +93,7 @@ export function App() {
           theme={theme}
           onTheme={nextTheme}
           onSearch={() => setSearching(true)}
+          session={session.data}
         />
         <div className="shell-body">
           <Nav summary={s} route={route} go={go} open={navOpen} views={views.data?.views ?? []} coverage={coverage.data} />
@@ -99,7 +101,7 @@ export function App() {
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
             {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
             {route.screen === 'explorer' && (
-              <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable onViewsChanged={() => setViewsKey((k) => k + 1)} />
+              <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={!published} onViewsChanged={() => setViewsKey((k) => k + 1)} />
             )}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
