@@ -166,3 +166,33 @@ func readAll(t *testing.T, dir string) map[string]string {
 	}
 	return out
 }
+
+// F-52: a file only archdoc writes, which it no longer emits — here the pre-arc42 single document —
+// is removed instead of sitting beside the current set looking current. A human file of any name
+// is never touched, and neither is a file archdoc does not own.
+func TestOrphanedGeneratedFilesAreRemoved(t *testing.T) {
+	root := copyFixture(t, "gateway")
+	gen(t, root)
+
+	dir := filepath.Join(root, docsDir)
+	orphan := filepath.Join(dir, "architecture.generated.md")
+	mine := filepath.Join(dir, "notes-on-architecture.md")
+	theirs := filepath.Join(dir, "diagram.svg")
+	for _, p := range []string{orphan, mine, theirs} {
+		os.WriteFile(p, []byte("x\n"), 0o644)
+	}
+
+	out := gen(t, root)
+
+	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
+		t.Error("an orphaned generated file survived")
+	}
+	if !strings.Contains(out, "removed "+filepath.Join(docsDir, "architecture.generated.md")) {
+		t.Errorf("the removal was not reported:\n%s", out)
+	}
+	for _, p := range []string{mine, theirs} {
+		if _, err := os.Stat(p); err != nil {
+			t.Errorf("%s was removed, though archdoc does not own it", filepath.Base(p))
+		}
+	}
+}

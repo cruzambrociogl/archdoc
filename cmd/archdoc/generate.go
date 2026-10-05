@@ -207,6 +207,16 @@ func generate(args []string, out io.Writer) error {
 		fmt.Fprintf(out, "wrote %s\n", filepath.Join(docsDir, name))
 	}
 
+	// Files only archdoc could have written there, that it did not write this run — a section the
+	// document no longer has, an older layout's file, a picture the layout could not draw — would
+	// otherwise sit beside the current set looking current. They are removed; nothing else is.
+	for _, name := range orphans(facts.Root, generated) {
+		if err := os.Remove(filepath.Join(facts.Root, docsDir, name)); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "removed %s — archdoc no longer writes it\n", filepath.Join(docsDir, name))
+	}
+
 	if err := write(facts.Root, modelOut, encode(m)); err != nil {
 		return err
 	}
@@ -415,6 +425,28 @@ func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc
 // completeness, not correctness: the model is sound and these are the things configuration does
 // not state (VAL-03, VAL-06). Mapped rather than passed through, so rendering stays independent
 // of the validator's types.
+// orphans are the files in docs/architecture that only archdoc writes — by name, so a human file can
+// never match — and that this run did not write. mkdocs.yml is opt-in per run, so it is left alone.
+func orphans(root string, written map[string]string) []string {
+	entries, err := os.ReadDir(filepath.Join(root, docsDir))
+	if err != nil {
+		return nil
+	}
+	ours := map[string]bool{"context.svg": true, "container.svg": true, "context.mmd": true, "container.mmd": true}
+	var out []string
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || (!strings.HasSuffix(name, ".generated.md") && !ours[name]) {
+			continue
+		}
+		if _, ok := written[name]; !ok {
+			out = append(out, name)
+		}
+	}
+	sort.Strings(out) // AC-7: the same report every run
+	return out
+}
+
 func reported(r validate.Result) []render.Gap {
 	w := r.Warnings()
 	out := make([]render.Gap, 0, len(w))
