@@ -10,9 +10,9 @@ import { Nav } from './shell/Nav'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
 import { Changes } from './screens/Changes'
-import { Rules } from './Rules'
+import { Corrections } from './screens/Corrections'
 import { Documents } from './screens/Documents'
-import { Runs } from './Runs'
+import { NetworkRuns } from './screens/NetworkRuns'
 
 const titles: Record<Screen, string> = {
   overview: 'Overview',
@@ -54,8 +54,8 @@ export function App() {
     document.title = repo ? `${titles[route.screen]} · ${repo} · archdoc` : 'archdoc'
   }, [route.screen, summary.data?.name])
 
-  if (summary.error) return <main className="page"><Failure error={summary.error} /></main>
-  if (!summary.data) return <main className="page"><Loading /></main>
+  if (summary.error) return <main className="boot"><Failure error={summary.error} /></main>
+  if (!summary.data) return <main className="boot"><Loading /></main>
   const s = summary.data
   const version = route.v ?? null
 
@@ -89,8 +89,8 @@ export function App() {
             )}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
-            {route.screen === 'rules' && <Rules />}
-            {route.screen === 'runs' && <Runs />}
+            {route.screen === 'rules' && <Corrections />}
+            {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
           </main>
         </div>
       </div>

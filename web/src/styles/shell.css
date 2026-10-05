@@ -16,6 +16,10 @@ body,
   font-size: var(--t-body);
 }
 
+.boot {
+  padding: 24px;
+}
+
 kbd {
   font-family: var(--font-mono);
   font-size: 10px;

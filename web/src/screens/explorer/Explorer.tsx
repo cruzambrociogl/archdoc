@@ -84,7 +84,7 @@ function Canvas({ scene, selected, onSelect }: { scene: SceneResponse; selected:
 
   // A new scene — another level or version — is framed whole.
   useEffect(() => {
-    const t = setTimeout(() => flow.fitView({ padding: 0.08, duration: 0 }), 0)
+    const t = setTimeout(() => flow.fitView({ padding: 0.08, duration: 0, maxZoom: 1.2 }), 0)
     return () => clearTimeout(t)
   }, [scene, flow])
 
@@ -152,7 +152,7 @@ function Canvas({ scene, selected, onSelect }: { scene: SceneResponse; selected:
         minZoom={0.1}
         maxZoom={2.5}
         fitView
-        fitViewOptions={{ padding: 0.08 }}
+        fitViewOptions={{ padding: 0.08, maxZoom: 1.2 }}
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={18} size={1.2} color="var(--canvas-dot)" />
@@ -191,7 +191,7 @@ function ZoomControls() {
         <button onClick={() => flow.zoomOut({ duration: 120 })} aria-label="Zoom out">
           −
         </button>
-        <button onClick={() => flow.fitView({ padding: 0.08, duration: 160 })} aria-label="Fit">
+        <button onClick={() => flow.fitView({ padding: 0.08, duration: 160, maxZoom: 1.2 })} aria-label="Fit">
           FIT
         </button>
       </div>

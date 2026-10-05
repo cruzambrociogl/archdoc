@@ -166,7 +166,8 @@ export interface RulesResponse {
     edge?: { from: string; to: string }
   }[]
   operations: Op[] | null
-  findings: { rule: number; severity: string; element: string; message: string }[]
+  /** rule is the check that raised it (RUL-05); element is where — for a rule, "rules.yaml:6". */
+  findings: { rule: string; severity: string; element: string; message: string }[]
 }
 
 export interface DocsResponse {
