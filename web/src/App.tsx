@@ -11,8 +11,7 @@ import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
 import { Changes } from './screens/Changes'
 import { Rules } from './Rules'
-import { Docs } from './Docs'
-import { Completeness } from './Completeness'
+import { Documents } from './screens/Documents'
 import { Runs } from './Runs'
 
 const titles: Record<Screen, string> = {
@@ -89,13 +88,7 @@ export function App() {
               />
             )}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
-            {route.screen === 'docs' && (
-              <>
-                <Docs />
-                <div style={{ height: 24 }} />
-                <Completeness version={version} />
-              </>
-            )}
+            {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
             {route.screen === 'rules' && <Rules />}
             {route.screen === 'runs' && <Runs />}
           </main>
