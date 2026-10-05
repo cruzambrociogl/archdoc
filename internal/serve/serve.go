@@ -280,24 +280,13 @@ func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model
 	if err != nil {
 		return none(err)
 	}
-
 	name := r.URL.Query().Get("view")
-	var view archdoc.Model
-	switch name {
-	case "context":
-		view = v.Model.Context()
-	case "container", "":
-		name, view = "container", v.Model.Container()
-	default:
-		return none(fmt.Errorf("unknown view %q", name))
+	if name == "" {
+		name = "container"
 	}
-
-	l, ok := v.Layouts[name]
-	if !ok || l.Version != render.LayoutVersion {
-		l, err = render.Layout(r.Context(), view, name == "container")
-		if err != nil {
-			return none(err)
-		}
+	view, l, err := engineLayout(r.Context(), v, name)
+	if err != nil {
+		return none(err)
 	}
 	a, hash, err := arrange.LoadLayout(s.root)
 	if err != nil {
@@ -305,6 +294,27 @@ func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model
 	}
 	arranged, rep := arrange.Apply(name, l, a)
 	return v, name, view, arranged, rep, hash, nil
+}
+
+// engineLayout is a version's view at the engine's own layout: the stored one when current.
+func engineLayout(ctx context.Context, v *store.Version, name string) (archdoc.Model, archdoc.Layout, error) {
+	var view archdoc.Model
+	switch name {
+	case "context":
+		view = v.Model.Context()
+	case "container":
+		view = v.Model.Container()
+	default:
+		return archdoc.Model{}, archdoc.Layout{}, fmt.Errorf("unknown view %q", name)
+	}
+	l, ok := v.Layouts[name]
+	if !ok || l.Version != render.LayoutVersion {
+		var err error
+		if l, err = render.Layout(ctx, view, name == "container"); err != nil {
+			return archdoc.Model{}, archdoc.Layout{}, err
+		}
+	}
+	return view, l, nil
 }
 
 func (s *Server) diff(w http.ResponseWriter, r *http.Request) {

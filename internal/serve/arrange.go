@@ -9,6 +9,7 @@ import (
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/arrange"
+	"github.com/cruzambrociogl/archdoc/internal/store"
 )
 
 // The app's first writes (surface-spec S-6, S-7, C-*): an arrangement of a diagram, and a named
@@ -31,8 +32,10 @@ type layoutRequest struct {
 	Base      string                   `json:"base"`
 }
 
-// saveLayout records where a person placed boxes of one view, on top of what was saved before.
-// Only elements the latest version of that view holds may be placed: an arrangement cannot name
+// saveLayout keeps a view as a person arranged it. The first save of a view records every box as it
+// stands, not only the ones dragged: from then on the diagram holds still when the engine's layout
+// reshuffles after a change, and only elements added since are placed by the engine — and marked
+// new. Only elements the latest version of the view holds may be placed: an arrangement cannot name
 // something that does not exist.
 func (s *Server) saveLayout(w http.ResponseWriter, r *http.Request) {
 	var req layoutRequest
@@ -40,29 +43,37 @@ func (s *Server) saveLayout(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	known, err := s.viewIDs(req.View)
+	latest, err := s.latest()
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	for id := range req.Positions {
-		if !known[id] {
-			fail(w, fmt.Errorf("%s is not an element of the %s view", id, req.View))
-			return
-		}
+	_, engine, err := engineLayout(r.Context(), latest, req.View)
+	if err != nil {
+		fail(w, err)
+		return
 	}
-
 	a, _, err := arrange.LoadLayout(s.root)
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	if a[req.View] == nil {
-		a[req.View] = map[string]archdoc.Point{}
+	current, _ := arrange.Apply(req.View, engine, a)
+
+	known := map[string]archdoc.Point{}
+	for _, b := range current.Boxes {
+		known[b.ID] = archdoc.Point{X: b.Rect.X, Y: b.Rect.Y}
+	}
+	for id := range req.Positions {
+		if _, ok := known[id]; !ok {
+			fail(w, fmt.Errorf("%s is not an element of the %s view", id, req.View))
+			return
+		}
 	}
 	for id, p := range req.Positions {
-		a[req.View][id] = p
+		known[id] = p
 	}
+	a[req.View] = known
 	s.writeLayout(w, a, req.Base)
 }
 
@@ -153,19 +164,25 @@ func (s *Server) saveView(w http.ResponseWriter, r *http.Request) {
 	send(w, map[string]any{"hash": hash, "views": vs})
 }
 
-// viewIDs are the element ids of a view in the latest version.
-func (s *Server) viewIDs(view string) (map[string]bool, error) {
+// latest is the most recent version recorded.
+func (s *Server) latest() (*store.Version, error) {
 	h, err := s.open()
 	if err != nil {
 		return nil, err
 	}
 	defer h.Close()
 	v, err := h.Latest()
+	if err == nil && v == nil {
+		err = errors.New("no version recorded")
+	}
+	return v, err
+}
+
+// viewIDs are the element ids of a view in the latest version.
+func (s *Server) viewIDs(view string) (map[string]bool, error) {
+	v, err := s.latest()
 	if err != nil {
 		return nil, err
-	}
-	if v == nil {
-		return nil, errors.New("no version recorded")
 	}
 	var m archdoc.Model
 	switch view {

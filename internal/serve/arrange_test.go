@@ -90,8 +90,9 @@ func TestAnArrangementIsSavedAndApplied(t *testing.T) {
 	if r := boxOf(after.Layout, "svc:api"); r.X != 900 || r.Y != 40 {
 		t.Errorf("not applied: %+v", r)
 	}
-	if len(after.Arrangement.Placed) != 1 || after.Arrangement.Placed[0] != "svc:api" {
-		t.Errorf("placed: %v", after.Arrangement.Placed)
+	// The first save keeps every box where it stands, so the diagram holds still from then on.
+	if len(after.Arrangement.Placed) != len(after.Layout.Boxes) {
+		t.Errorf("placed %v of %d boxes", after.Arrangement.Placed, len(after.Layout.Boxes))
 	}
 
 	if code, _ := post(t, ts, "/api/layout/reset", token, map[string]any{"view": "container", "base": after.Arrangement.Hash}); code != 200 {
