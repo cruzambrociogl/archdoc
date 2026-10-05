@@ -41,47 +41,10 @@ raised, not quietly promoted over it.
 
 ## Open
 
-- [ ] An `architecture.generated.md` from before the arc42 layout is orphaned in any repository
-      generated with an older build. archdoc writes its own files and never removes ones it no
-      longer emits — decide whether that is a defect
-- [ ] The version fingerprint is a hash of the model's JSON, so adding a field to the model
-      (as 11–12 Sep did) records a new version for every repository on its next run, though no
-      architecture changed. Either fingerprint architecture only, or accept it and say so
-- [ ] A layout recomputed for an unchanged architecture (engine version changed) is not stored,
-      because Save returns the existing version untouched. Harmless — Supabase lays out in
-      milliseconds, and `serve` recomputes a stale layout on the fly — but the stored one stays stale
-- [ ] Labelling takes ~2 minutes on Supabase with adaptive thinking at default effort. Worth
-      measuring `effort: low`/`medium` — labelling is the kind of work that often holds quality there
-- [ ] Immich's `example.env` and Mastodon's `.env.production.sample` are read for interpolation
-      but never reported. A reader cannot tell which values were filled from a sample file —
-      worth surfacing in the generated document
-- [ ] Web app checked with HTTP requests and unit tests only — click through it in a browser on
-      all three subjects before Review 2
-- [ ] Directions kept as to-dos (13 Sep), none chosen: (a) depth — R1.b source analysis;
-      (b) richness — evidence-anchored flows and explanations from the LLM; (c) agents — R2b,
-      the model over MCP; (d) harden and measure — more subjects, AC-6, AC-3. Now folded into
-      `docs/vision.md` (O-11) — (a) is D-2/D-4, (b) is §2.3 and §3, (c) is D-17, (d) is D-14
 - [ ] **Immich and Supabase are not cloned on this machine** (deleted 23 Sep for disk space; only
-      Mastodon remains). Immich is needed for the hand-drawn reference (F-44) and the Code Wiki /
-      DeepWiki comparison (F-43); Supabase is the scale case. Re-clone at the pinned revisions in
-      `docs/survey-test-subjects.md` §Method before the evidence sprint (20 Oct)
-- [ ] `rules.yaml` is read from the repository root (`internal/rules`, `Name`), but
-      `product-definition.md` §7 places it at `.archdoc/rules.yaml` — the definition wins. Matters
-      now: C-2 lets the app append to it, and the root is outside the closed write set. Move it into
-      `.archdoc/` before building the correction composer; update §8 "Who writes what" (rules are no
-      longer editor-only) when C-2 is folded into the definition
-- [ ] The surface design's settings panel assumes `.archdoc/config.yaml` and flags that do not exist
-      (`--egress`, `--model`, `--provider`, `--effort`, `--rules`, `--out`); today only `--label`,
-      `--site`, `--stdout`, `--explain-gaps`, `--port`. The panel shows only what exists until they land
-- [ ] A repository generated before `.archdoc/sections.json` existed (Mastodon, on this machine) reports
-      every untouched stub as "may be stale": without the recorded size and mtime the engine cannot tell a
-      stub from a written section. Regenerating fixes it; worth saying so in the completeness view
-- [ ] The published site cannot be opened from disk: browsers refuse to fetch data/ from a file://
-      page, so it needs a static host or `python3 -m http.server`. surface-spec §3 says "or a folder
-      opened from disk" — either inline the data as scripts for file://, or correct the spec
-- [ ] Completeness on a published site is computed from file mtimes where export ran; in CI every file
-      is freshly checked out, so "written" and "may be stale" mean little there. Decide what the
-      published Documents screen should claim about human sections
+      Mastodon remains). Supabase is needed for AC-9 (5–8 Oct), Immich for the hand-drawn reference
+      (F-44) and the Code Wiki / DeepWiki comparison (F-43). Re-clone at the pinned revisions in
+      `docs/survey-test-subjects.md` §Method
 
 ---
 
@@ -90,8 +53,22 @@ raised, not quietly promoted over it.
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
 
-- [x] Relationships are clickable on the canvas, with their own passport in the inspector (F-55) — 2026-10-05
-- [→ docs/decisions.md, PROGRESS.md] Deployment view, coverage report, proportionate output and the
-      MkDocs site shipped — F-15, F-24, F-21, F-22 — 2026-10-02
-- [→ docs/vision.md §2.9] Token and cost sizing measured; thinking dominates and NFR-2 is the real
-      limit — 2026-10-04
+- [x] The pre-arc42 `architecture.generated.md` left behind — generate now removes files only it
+      writes that it no longer emits (F-52) — 2026-10-05
+- [x] A schema change minted a version for every repository — the fingerprint is the architecture,
+      recomputed from the stored model, so upgrades mint nothing (F-50) — 2026-10-05
+- [x] A layout recomputed for an unchanged architecture was not stored — a same-architecture run now
+      refreshes the version's evidence, layouts and commit (F-51) — 2026-10-05
+- [x] Sample env files not reported — coverage now names the interpolation file and calls a sample a
+      sample (F-53). Mastodon's `.env.production.sample` turned out never to be read — 2026-10-05
+- [x] Web app clicked through in a browser — every screen, live and published, 4–5 Oct
+- [x] `rules.yaml` location — now `.archdoc/rules.yaml`; the root one is read with a note — 2026-10-05
+- [x] Stubs reading "may be stale" without `sections.json` — they read "unknown" now, with the reason.
+      (Regenerating would not have fixed it: stubs are created once) — 2026-10-05
+- [x] Published completeness from checkout mtimes — the export judges by size and claims no
+      staleness — 2026-10-05
+- [→ docs/decisions.md] The published site from `file://` — decided against; it is served — 2026-10-05
+- [→ PROGRESS.md, surface §11] The settings flags the design assumes — they arrive with the §11
+      controls, still to build — 2026-10-05
+- [→ docs/feature-inventory.md F-56] Measuring labelling effort low/medium — 2026-10-05
+- [→ docs/vision.md] The 13 Sep directions — folded into the vision (O-11) — 2026-10-05
