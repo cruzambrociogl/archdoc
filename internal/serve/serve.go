@@ -46,9 +46,10 @@ const docsDir = "docs/architecture"
 
 // Server answers for one repository.
 type Server struct {
-	root  string
-	mux   *http.ServeMux
-	token string // this run's session token; see guard.go
+	root    string
+	history string // where the version history is kept: the repository, or a temporary seed (export.go)
+	mux     *http.ServeMux
+	token   string // this run's session token; see guard.go
 }
 
 // New prepares a server for the repository at root. It needs history to exist: the app displays
@@ -61,8 +62,14 @@ func New(root string) (*Server, error) {
 	if _, err := os.Stat(filepath.Join(abs, store.File)); err != nil {
 		return nil, fmt.Errorf("no archdoc history in %s — run 'archdoc generate %s' first", abs, root)
 	}
+	return newServer(abs, abs), nil
+}
 
-	s := &Server{root: abs, mux: http.NewServeMux(), token: newToken()}
+// newServer answers for the repository at root, reading version history from history's
+// .archdoc/history.db — the repository itself, except when export seeds history from model.json.
+func newServer(root, history string) *Server {
+	abs := root
+	s := &Server{root: abs, history: history, mux: http.NewServeMux(), token: newToken()}
 	s.mux.HandleFunc("GET /api/session", s.session)
 	s.mux.HandleFunc("GET /api/summary", s.summary)
 	s.mux.HandleFunc("GET /api/versions", s.versions)
@@ -85,7 +92,7 @@ func New(root string) (*Server, error) {
 	s.mux.HandleFunc("/api/layout/reset", s.action(s.resetLayout))
 	s.mux.HandleFunc("/api/views/save", s.action(s.saveView))
 	s.mux.Handle("/", s.frontend())
-	return s, nil
+	return s
 }
 
 // ServeHTTP refuses any request not addressed to this machine by name. A page on another site
@@ -172,7 +179,7 @@ func (s *Server) questions(w http.ResponseWriter, r *http.Request) {
 	fail(w, fmt.Errorf("section %d is not one a person writes", n))
 }
 
-func (s *Server) open() (*store.Store, error) { return store.Open(s.root) }
+func (s *Server) open() (*store.Store, error) { return store.Open(s.history) }
 
 func (s *Server) summary(w http.ResponseWriter, r *http.Request) {
 	h, err := s.open()

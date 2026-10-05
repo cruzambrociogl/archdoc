@@ -3,7 +3,12 @@ package serve
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/cruzambrociogl/archdoc/internal/store"
 )
 
 func TestStaticNames(t *testing.T) {
@@ -56,5 +61,41 @@ func TestExportIsCompleteAndCarriesNoLocalPath(t *testing.T) {
 	}
 	if _, ok := files["data/runs_1.json"]; ok {
 		t.Error("a run's payload was published; only the summary should travel")
+	}
+}
+
+// A fresh clone in CI has no history.db — it is never committed — but does have the committed
+// model.json. The site is built from that, as one version, with nothing regenerated.
+func TestExportFromTheCommittedRecordAlone(t *testing.T) {
+	root := repo(t)
+	h, err := store.Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, _ := h.Latest()
+	h.Close()
+	b, _ := json.Marshal(v.Model)
+	os.WriteFile(filepath.Join(root, ".archdoc", "model.json"), b, 0o644)
+	os.Remove(filepath.Join(root, store.File))
+
+	files, err := Export(root, 0)
+	if err != nil {
+		t.Fatalf("export without history: %v", err)
+	}
+	var sum struct {
+		Versions int `json:"versions"`
+	}
+	json.Unmarshal(files["data/summary.json"], &sum)
+	if sum.Versions != 1 {
+		t.Errorf("built from model.json: %d versions, want 1", sum.Versions)
+	}
+	if _, ok := files["data/scene@view=container.json"]; !ok {
+		t.Error("no scene in a site built from model.json")
+	}
+
+	// With neither, it says what is missing.
+	os.Remove(filepath.Join(root, ".archdoc", "model.json"))
+	if _, err := Export(root, 0); err == nil || !strings.Contains(err.Error(), "model.json") {
+		t.Errorf("export with nothing to build from: %v", err)
 	}
 }

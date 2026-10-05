@@ -2,16 +2,21 @@ package serve
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/render"
+	"github.com/cruzambrociogl/archdoc/internal/store"
 )
 
 // The published site (surface-spec §3): the same app, built as static files, with one version's
@@ -52,10 +57,21 @@ func StaticName(apiPath string) string {
 // Export returns the published site's data, keyed by StaticName: the latest version, and the
 // baseline "what changed" is measured against — the version given, or the one before the latest.
 // The network-run log travels as a summary only: the payloads stay on the publisher's machine.
+//
+// With no history — a fresh clone in CI, where history.db is never committed — the site is built
+// from the committed record instead: .archdoc/model.json, laid out by the same engine, as a single
+// version. Nothing is regenerated, so model-written labels in model.json survive and no key is
+// needed (surface-spec §3.2).
 func Export(root string, since int64) (map[string][]byte, error) {
 	s, err := New(root)
 	if err != nil {
-		return nil, err
+		abs, _ := filepath.Abs(root)
+		seed, cleanup, serr := seedHistory(abs)
+		if serr != nil {
+			return nil, fmt.Errorf("%v; and no committed .archdoc/model.json to build from instead: %v", err, serr)
+		}
+		defer cleanup()
+		s = newServer(abs, seed)
 	}
 	latest, err := s.latest()
 	if err != nil {
@@ -182,4 +198,43 @@ func Export(root string, since int64) (map[string][]byte, error) {
 		"generated_at": latest.CreatedAt, "version": latest.ID, "baseline": base,
 	}, "", "  ")
 	return out, nil
+}
+
+// seedHistory builds a one-version history from the committed model.json, in a temporary
+// directory, so a clone with no history.db can still be published. The caller removes it.
+func seedHistory(root string) (string, func(), error) {
+	b, err := os.ReadFile(filepath.Join(root, ".archdoc", "model.json"))
+	if err != nil {
+		return "", nil, err
+	}
+	var m archdoc.Model
+	if err := json.Unmarshal(b, &m); err != nil {
+		return "", nil, fmt.Errorf(".archdoc/model.json: %w", err)
+	}
+	dir, err := os.MkdirTemp("", "archdoc-export-")
+	if err != nil {
+		return "", nil, err
+	}
+	cleanup := func() { os.RemoveAll(dir) }
+
+	layouts := map[string]archdoc.Layout{}
+	for name, view := range map[string]archdoc.Model{"context": m.Context(), "container": m.Container()} {
+		l, err := render.Layout(context.Background(), view, name == "container")
+		if err != nil {
+			cleanup()
+			return "", nil, err
+		}
+		layouts[name] = l
+	}
+	h, err := store.Open(dir)
+	if err != nil {
+		cleanup()
+		return "", nil, err
+	}
+	defer h.Close()
+	if _, _, err := h.Save(m, layouts, render.Commit(root), "export"); err != nil {
+		cleanup()
+		return "", nil, err
+	}
+	return dir, cleanup, nil
 }
