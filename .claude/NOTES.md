@@ -82,8 +82,6 @@ raised, not quietly promoted over it.
 - [ ] Completeness on a published site is computed from file mtimes where export ran; in CI every file
       is freshly checked out, so "written" and "may be stale" mean little there. Decide what the
       published Documents screen should claim about human sections
-- [ ] Relationships are not clickable on the canvas (the SVG groups boxes, not arrows); they are
-      inspected from either end in the inspector. Fine for the review; revisit if it confuses
 
 ---
 
@@ -92,6 +90,7 @@ raised, not quietly promoted over it.
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
 
+- [x] Relationships are clickable on the canvas, with their own passport in the inspector (F-55) — 2026-10-05
 - [→ docs/decisions.md, PROGRESS.md] Deployment view, coverage report, proportionate output and the
       MkDocs site shipped — F-15, F-24, F-21, F-22 — 2026-10-02
 - [→ docs/vision.md §2.9] Token and cost sizing measured; thinking dominates and NFR-2 is the real
