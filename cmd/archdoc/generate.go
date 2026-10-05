@@ -319,10 +319,15 @@ const ignoreFile = `# Written by archdoc.
 # regenerating, so it is not worth the merge conflicts a binary file in git causes.
 #
 # model.json is deliberately NOT ignored: it is the durable, reviewable record of the
-# architecture at this commit, and git is the thing designed for storing that.
+# architecture at this commit, and git is the thing designed for storing that. Neither are
+# coverage.json, layout.yaml and views.yaml beside it.
+#
+# site/ is what 'archdoc export --site' builds from the committed record — a build product,
+# rebuilt by CI, not something to commit.
 history.db
 history.db-shm
 history.db-wal
+site/
 `
 
 // logRun records one use of the network: every request exactly as it left, and what it cost. A

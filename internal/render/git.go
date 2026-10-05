@@ -51,3 +51,59 @@ func short(hash string) string {
 	}
 	return hash[:12]
 }
+
+// Remote is the web address of the repository's origin, when it is a host whose file links are
+// known (GitHub, GitLab, Codeberg, Bitbucket), so a published site can open a citation at its line.
+// Read from .git/config directly, like Commit. Empty when there is no origin or the host is
+// unknown — the published site then shows paths as plain text rather than guessing a link.
+func Remote(root string) string {
+	b, err := os.ReadFile(filepath.Join(root, ".git", "config"))
+	if err != nil {
+		return ""
+	}
+	inOrigin := false
+	for _, line := range strings.Split(string(b), "\n") {
+		l := strings.TrimSpace(line)
+		if strings.HasPrefix(l, "[") {
+			inOrigin = l == `[remote "origin"]`
+			continue
+		}
+		if !inOrigin {
+			continue
+		}
+		if k, v, ok := strings.Cut(l, "="); ok && strings.TrimSpace(k) == "url" {
+			return webURL(strings.TrimSpace(v))
+		}
+	}
+	return ""
+}
+
+// webURL turns a clone address into the repository's web address, or "" for an unknown host.
+func webURL(u string) string {
+	u = strings.TrimSuffix(u, ".git")
+	switch {
+	case strings.HasPrefix(u, "git@"): // git@github.com:owner/repo
+		host, path, ok := strings.Cut(strings.TrimPrefix(u, "git@"), ":")
+		if !ok {
+			return ""
+		}
+		u = "https://" + host + "/" + path
+	case strings.HasPrefix(u, "ssh://git@"):
+		u = "https://" + strings.TrimPrefix(u, "ssh://git@")
+	case strings.HasPrefix(u, "http://"), strings.HasPrefix(u, "https://"):
+		// Drop any credentials a clone URL may carry.
+		_, rest, _ := strings.Cut(u, "://")
+		if at := strings.LastIndex(strings.SplitN(rest, "/", 2)[0], "@"); at >= 0 {
+			rest = rest[at+1:]
+		}
+		u = "https://" + rest
+	default:
+		return ""
+	}
+	for _, host := range []string{"github.com/", "gitlab.com/", "codeberg.org/", "bitbucket.org/"} {
+		if strings.HasPrefix(strings.TrimPrefix(u, "https://"), host) {
+			return u
+		}
+	}
+	return ""
+}

@@ -30,6 +30,7 @@ commands:
   history <path>   list every version archdoc has recorded
   runs <path>      list every run that used the network, and what it cost
   serve <path>     open the web app for a repository archdoc has documented
+  export <path>    build the published site: the web app as static files, for a team
   version          print build information
 
 flags for scan:
@@ -38,6 +39,10 @@ flags for scan:
 
 flags for serve:
   --port <n>       local port (default 7474); only this machine can connect
+
+flags for export:
+  --site           build the published site into .archdoc/site (required)
+  --since <v>      the version "what changed" is measured against (default: the previous one)
 
 flags for runs:
   --show <run>     print exactly what that run sent, byte for byte
@@ -82,6 +87,9 @@ func run(args []string, out io.Writer) error {
 
 	case "serve":
 		return serveCommand(args[1:], out)
+
+	case "export":
+		return export(args[1:], out)
 
 	case "version":
 		fmt.Fprintln(out, archdoc.Build())
