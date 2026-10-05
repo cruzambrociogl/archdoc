@@ -8,6 +8,7 @@ import { useTheme } from './theme'
 import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
 import { Explorer } from './screens/explorer/Explorer'
+import { Overview } from './screens/Overview'
 import { Timeline } from './Timeline'
 import { Rules } from './Rules'
 import { Docs } from './Docs'
@@ -77,7 +78,7 @@ export function App() {
           <Nav summary={s} route={route} go={go} open={navOpen} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
-            {route.screen === 'overview' && <p className="muted">Overview arrives in the next step.</p>}
+            {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} />}
             {route.screen === 'explorer' && (
               <Explorer
                 version={version}
