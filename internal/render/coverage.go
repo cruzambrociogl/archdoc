@@ -200,6 +200,13 @@ func sourcesRead(facts archdoc.FactSet) []ReadFile {
 	for _, f := range envFiles(facts) {
 		out = append(out, ReadFile{File: f, Used: true, Why: "network locations read from environment values"})
 	}
+	if in := facts.Interpolation; in != nil {
+		why := "the values Compose's ${VARIABLES} were filled from"
+		if in.Sample {
+			why = "a sample — Compose's ${VARIABLES} were filled from its defaults, which a real deployment may override"
+		}
+		out = append(out, ReadFile{File: in.File, Used: true, Why: why})
+	}
 	return out
 }
 

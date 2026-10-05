@@ -199,6 +199,17 @@ type FactSet struct {
 
 	// Routes read from gateway configuration the compose file mounts (MDL-03).
 	Routes []Route `json:"routes,omitempty"`
+
+	// Interpolation is the dotenv file Compose's ${VARIABLES} were filled from, repository-
+	// relative, or empty when none was found. Sample is set when it is a sample — example.env,
+	// .env.example, .env.sample — whose values are defaults a real deployment may override.
+	Interpolation *EnvSource `json:"interpolation,omitempty"`
+}
+
+// EnvSource is the dotenv file interpolation read, and whether it is a sample.
+type EnvSource struct {
+	File   string `json:"file"`
+	Sample bool   `json:"sample"`
 }
 
 // Candidate is a file discovery looked at, and what it decided about it.

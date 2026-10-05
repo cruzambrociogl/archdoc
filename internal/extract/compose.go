@@ -72,6 +72,9 @@ func Scan(root string) (*archdoc.FactSet, error) {
 	}
 	fs.Services = services
 	fs.Networks = nets
+	if name, sample := envSource(filepath.Dir(filepath.Join(abs, chosen))); name != "" {
+		fs.Interpolation = &archdoc.EnvSource{File: filepath.ToSlash(filepath.Join(filepath.Dir(chosen), name)), Sample: sample}
+	}
 
 	// Routes come from files the compose file mounts, so they can only be read once the
 	// services and their mounts are known.
@@ -206,33 +209,47 @@ func stripComposeTags(b []byte) []byte {
 	return b
 }
 
-// environment reads a .env beside the Compose file. Absent is normal, and not an error: a
+// envNames are the dotenv files interpolation is filled from, in order: a real .env wins, then the
+// conventional samples. Immich names its sample example.env rather than .env.example, which is why
+// the list is not two entries.
+var envNames = []struct {
+	name   string
+	sample bool
+}{{".env", false}, {".env.example", true}, {"example.env", true}, {".env.sample", true}}
+
+// envSource is the dotenv file beside the Compose file that interpolation reads, and whether it is
+// a sample. Reported in the FactSet, so the coverage page can say which values came from a sample.
+func envSource(dir string) (string, bool) {
+	for _, e := range envNames {
+		if _, err := os.Stat(filepath.Join(dir, e.name)); err == nil {
+			return e.name, e.sample
+		}
+	}
+	return "", false
+}
+
+// environment reads the dotenv file envSource chooses. Absent is normal, and not an error: a
 // repository being documented has usually never been configured to run.
 func environment(dir string) (map[string]string, error) {
 	env := map[string]string{}
-
-	// Order matters: a real .env wins, then the conventional samples. Immich names its sample
-	// example.env rather than .env.example, which is why the list is not two entries.
-	for _, name := range []string{".env", ".env.example", "example.env", ".env.sample"} {
-		b, err := os.ReadFile(filepath.Join(dir, name))
-		if err != nil {
+	name, _ := envSource(dir)
+	if name == "" {
+		return env, nil
+	}
+	b, err := os.ReadFile(filepath.Join(dir, name))
+	if err != nil {
+		return env, nil
+	}
+	for _, line := range splitLines(b) {
+		if line == "" || line[0] == '#' {
 			continue
 		}
-
-		for _, line := range splitLines(b) {
-			if line == "" || line[0] == '#' {
-				continue
-			}
-			if k, v, ok := cut(line, '='); ok {
-				if _, exists := env[k]; !exists {
-					env[k] = v
-				}
+		if k, v, ok := cut(line, '='); ok {
+			if _, exists := env[k]; !exists {
+				env[k] = v
 			}
 		}
-
-		break // .env wins over .env.example
 	}
-
 	return env, nil
 }
 
