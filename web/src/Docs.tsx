@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { marked } from 'marked'
 import type { DocsResponse } from './api'
 import { editorLink, useApi } from './api'
-import { Failure, Loading } from './Prov'
+import { Failure, Loading } from './ui/marks'
 
 const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 

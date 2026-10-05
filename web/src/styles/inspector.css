@@ -1,0 +1,191 @@
+/* The inspector — an element's passport (surface-spec §5.3, "Surface Screens" explorer). */
+
+.inspector {
+  background: var(--panel);
+  border-left: 1px solid var(--rule);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.inspector-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.inspector-body {
+  padding: 16px;
+}
+.inspector-hint {
+  margin: 4px 0 18px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.index-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.index-list button {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.index-list button:hover .index-name {
+  color: var(--accent);
+}
+.index-name {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.index-kind {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.passport-head {
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.passport-title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.passport-name-block {
+  min-width: 0;
+}
+.passport-name {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.passport-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.passport-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.inspector-section {
+  padding: 12px 16px 4px;
+}
+.inspector-section + .inspector-section {
+  padding-top: 14px;
+}
+.inspector-section .eyebrow {
+  margin-bottom: 4px;
+}
+
+.fact {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.fact-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+.fact-key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fact-value {
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.fact-value .mark {
+  margin-right: 4px;
+}
+.fact-cite {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 5px;
+}
+
+.relation {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.relation-dir {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.relation-body {
+  min-width: 0;
+}
+.relation-other {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: 12.5px var(--font-sans);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.relation-other:hover {
+  color: var(--accent);
+}
+.relation-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+.relation-cites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.inspector-actions {
+  margin-top: auto;
+  padding: 14px 16px 18px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 6px 0;
+  font: 12px var(--font-sans);
+  color: var(--accent);
+  cursor: pointer;
+}

@@ -1,6 +1,6 @@
 import type { CompletenessResponse } from './api'
 import { editorLink, useApi, when } from './api'
-import { Failure, Loading } from './Prov'
+import { Failure, Loading } from './ui/marks'
 
 const explain: Record<string, string> = {
   missing: 'The file is gone. The next generate recreates the stub.',

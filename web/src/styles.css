@@ -59,21 +59,7 @@ button.link { border: 0; background: none; padding: 0; color: var(--accent); tex
 .canvas g[id]:hover rect { stroke: #f59e0b; }
 .canvas g.selected rect { stroke: #f59e0b; stroke-width: 4; }
 
-.inspector { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; max-height: calc(100vh - 130px); overflow: auto; }
-.facts { display: grid; grid-template-columns: 90px 1fr; gap: 6px 10px; margin: 12px 0; }
-.facts dt { color: var(--muted); font-size: 12px; }
-.facts dd { margin: 0; min-width: 0; }
-.relations { list-style: none; padding: 0; margin: 0; }
-.relations li { padding: 8px 0; border-top: 1px solid var(--line); }
 
-.prov { display: inline-flex; align-items: baseline; gap: 5px; font-size: 11px; margin-right: 8px; flex-wrap: wrap; }
-.prov a { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
-.prov .origin { border-radius: 4px; padding: 0 5px; background: var(--line); color: var(--text); cursor: help; }
-.prov.model .origin { background: #7c3aed; color: #fff; font-style: italic; }
-.prov.rules .origin { background: #0f766e; color: #fff; }
-.prov.catalog .origin { background: #92400e; color: #fff; }
-.prov .note { color: var(--muted); }
-.prov.unknown { color: var(--error); }
 
 ul.plain { list-style: none; padding: 0; margin: 0 0 12px; }
 ul.plain li { padding: 3px 0; }

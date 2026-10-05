@@ -1,6 +1,6 @@
 import type { RulesResponse } from './api'
 import { useApi, useEditorLink } from './api'
-import { Failure, Loading } from './Prov'
+import { Failure, Loading } from './ui/marks'
 
 /** What rules.yaml says, and what each rule did to the model as extracted. */
 export function Rules() {

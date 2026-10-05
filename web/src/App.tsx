@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Summary, Version } from './api'
 import { RootContext, useApi } from './api'
-import { Failure, Loading } from './Prov'
+import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
 import { useRoute } from './route'
 import { useTheme } from './theme'

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Exchange, Run } from './api'
 import { bytes, useApi, when } from './api'
-import { Failure, Loading } from './Prov'
+import { Failure, Loading } from './ui/marks'
 
 /** Every run that used the network, and the exact bytes it sent. */
 export function Runs() {

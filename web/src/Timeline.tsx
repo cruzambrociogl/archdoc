@@ -2,7 +2,8 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { DiffResponse, Edge, Version } from './api'
 import { useApi, when } from './api'
-import { Failure, Loading, Prov } from './Prov'
+import { Failure, Loading } from './ui/marks'
+import { Cite } from './ui/Cite'
 
 /**
  * Every version archdoc recorded. A version exists only when the architecture changed — a run
@@ -83,7 +84,7 @@ function DiffView({ d }: { d: DiffResponse }) {
           ? 'Structural change — elements or relationships appeared or disappeared.'
           : 'Wording only — the structure is identical.'}
       </p>
-      <List title="Elements added" cls="added" items={x.added_nodes} show={(n) => <>{n.name} <Prov p={n.provenance} /></>} />
+      <List title="Elements added" cls="added" items={x.added_nodes} show={(n) => <>{n.name} <Cite p={n.provenance} /></>} />
       <List title="Elements removed" cls="removed" items={x.removed_nodes} show={(n) => <>{n.name} <span className="muted small">{n.id}</span></>} />
       <List title="Relationships added" cls="added" items={x.added_edges} show={(e) => edge(e)} />
       <List title="Relationships removed" cls="removed" items={x.removed_edges} show={(e) => edge(e)} />
