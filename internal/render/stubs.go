@@ -44,6 +44,13 @@ func Stubs(m archdoc.Model, plan []Section, meta Meta) map[string]string {
 	return out
 }
 
+// Questions are the questions a human-owned section raises for this model — the body of its stub,
+// regenerated. The app shows them for a section nobody has started, which means it never has to
+// open the file a person owns (OUT-03): the questions come from the model, not from the stub.
+func Questions(section int, m archdoc.Model) string {
+	return questions(section, m, m.Container())
+}
+
 func questions(section int, m archdoc.Model, view archdoc.Model) string {
 	var b strings.Builder
 

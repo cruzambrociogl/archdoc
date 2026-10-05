@@ -226,6 +226,25 @@ func TestHumanSectionsAreNeverRead(t *testing.T) {
 	}
 }
 
+// The questions for a human section come from the model, so they can be shown without opening the
+// file a person owns. A generated section has none.
+func TestQuestionsComeFromTheModel(t *testing.T) {
+	ts, _ := server(t)
+	code, b := get(t, ts, "/api/questions?section=1")
+	if code != 200 {
+		t.Fatalf("questions: %d %s", code, b)
+	}
+	var q struct {
+		Markdown string `json:"markdown"`
+	}
+	if err := json.Unmarshal(b, &q); err != nil || !strings.Contains(q.Markdown, "- ") {
+		t.Errorf("no questions for section 1: %s", b)
+	}
+	if code, _ := get(t, ts, "/api/questions?section=3"); code != 400 {
+		t.Errorf("a generated section was given questions: %d", code)
+	}
+}
+
 func TestCompletenessReportsSections(t *testing.T) {
 	ts, root := server(t)
 	os.WriteFile(filepath.Join(root, docsDir, "04-solution-strategy.md"), []byte("written\n"), 0o644)

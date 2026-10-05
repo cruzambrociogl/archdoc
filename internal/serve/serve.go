@@ -70,6 +70,7 @@ func New(root string) (*Server, error) {
 	s.mux.HandleFunc("GET /api/docs", s.docs)
 	s.mux.HandleFunc("GET /api/docs/{name}", s.doc)
 	s.mux.HandleFunc("GET /api/completeness", s.completeness)
+	s.mux.HandleFunc("GET /api/questions", s.questions)
 	s.mux.Handle("/", s.frontend())
 	return s, nil
 }
@@ -117,6 +118,29 @@ func ListenAndServe(ctx context.Context, root string, port int, ready func(url s
 }
 
 // ——— the API ———
+
+// questions serves the questions a human-owned section raises, regenerated from the model of the
+// requested version. The section's file is never opened (OUT-03); the stub it started from was
+// built from the same function.
+func (s *Server) questions(w http.ResponseWriter, r *http.Request) {
+	v, err := s.version(r, "version")
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	n, err := strconv.Atoi(r.URL.Query().Get("section"))
+	if err != nil {
+		fail(w, errors.New("section must be a number"))
+		return
+	}
+	for _, sec := range render.Sections() {
+		if sec.Number == n && sec.Owner == render.Human {
+			send(w, map[string]any{"section": n, "title": sec.Title, "markdown": render.Questions(n, v.Model)})
+			return
+		}
+	}
+	fail(w, fmt.Errorf("section %d is not one a person writes", n))
+}
 
 func (s *Server) open() (*store.Store, error) { return store.Open(s.root) }
 
