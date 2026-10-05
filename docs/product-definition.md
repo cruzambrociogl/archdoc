@@ -908,9 +908,8 @@ precisely: **nothing automated ever writes human content.**
 named view — and, once built, appends a correction to `rules.yaml` (`decisions.md`, C-2). Each is
 an explicit save, behind the action gate (SUR-22), refused when the file changed after the page
 loaded it (ANS-04's hash check). None of them is a human-owned section: those are still never read
-or written by anything automated. The definition places `rules.yaml` in `.archdoc/`; the code still
-reads it from the repository root, which must be reconciled before the composer is built
-(`.claude/NOTES.md`).
+or written by anything automated. `rules.yaml` lives in `.archdoc/` (since 5 Oct 2026); one left at
+the repository root is still read, with a note to move it.
 
 ### What archdoc owes the human author
 

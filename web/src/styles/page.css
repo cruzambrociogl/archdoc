@@ -969,3 +969,11 @@ button.runs-row:hover {
 .coverage-sub {
   margin-top: 26px;
 }
+
+.notice {
+  margin: 0 0 22px;
+  padding: 10px 14px;
+  border: 1px solid var(--ink);
+  font-size: 13px;
+  line-height: 1.55;
+}

@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -125,8 +127,8 @@ func TestCorrectionsCiteTheirLine(t *testing.T) {
 		if c.prov.Origin != archdoc.Rules {
 			t.Errorf("%s origin is %q, want rules", c.what, c.prov.Origin)
 		}
-		if c.prov.File != "rules.yaml" || c.prov.Line == 0 {
-			t.Errorf("%s cites %s, want a line in rules.yaml", c.what, c.prov)
+		if c.prov.File != Name || c.prov.Line == 0 {
+			t.Errorf("%s cites %s, want a line in %s", c.what, c.prov, Name)
 		}
 	}
 }
@@ -227,5 +229,36 @@ func TestCompilationIsDeterministic(t *testing.T) {
 				t.Fatalf("operation %d differs between runs:\n %+v\n %+v", i, got[i], first[i])
 			}
 		}
+	}
+}
+
+// Rules live in .archdoc/ since 5 Oct 2026. A repository that still keeps them at the root is read,
+// and told to move them; when both exist, .archdoc/ wins and the root file is reported as ignored.
+func TestRulesMovedIntoArchdocDir(t *testing.T) {
+	write := func(root, rel, body string) {
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		os.WriteFile(p, []byte(body), 0o644)
+	}
+	body := "rules:\n  - match: { name: api }\n    set: { kind: proxy }\n"
+
+	legacy := t.TempDir()
+	write(legacy, LegacyName, body)
+	f, err := Load(legacy)
+	if err != nil || !f.Legacy || f.Path != LegacyName || len(f.Rules) != 1 {
+		t.Errorf("legacy location: %+v %v", f, err)
+	}
+
+	both := t.TempDir()
+	write(both, LegacyName, body)
+	write(both, Name, body+"  - match: { name: db }\n    exclude: true\n")
+	f, err = Load(both)
+	if err != nil || f.Legacy || !f.Shadowed || f.Path != Name || len(f.Rules) != 2 {
+		t.Errorf("both locations: %+v %v", f, err)
+	}
+
+	none := t.TempDir()
+	if f, err := Load(none); err != nil || f.Path != Name || len(f.Rules) != 0 {
+		t.Errorf("no rules: %+v %v", f, err)
 	}
 }

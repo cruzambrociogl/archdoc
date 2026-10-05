@@ -442,7 +442,8 @@ func (s *Server) rules(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	send(w, map[string]any{"file": f.Path, "exists": len(f.Rules) > 0, "rules": list, "operations": ops, "findings": found})
+	send(w, map[string]any{"file": f.Path, "exists": len(f.Rules) > 0, "rules": list, "operations": ops, "findings": found,
+		"legacy": f.Legacy, "shadowed": f.Shadowed})
 }
 
 // docs lists what generate wrote, and the human sections by name only (SUR-12).

@@ -38,10 +38,10 @@ export function Corrections() {
   if (!r.data.exists) {
     return (
       <div className="reading">
-        <Eyebrow>Corrections · rules.yaml</Eyebrow>
+        <Eyebrow>Corrections · .archdoc/rules.yaml</Eyebrow>
         <h1 className="page-title small">Nothing has been corrected</h1>
         <p className="lede">
-          This repository has no <span className="mono">rules.yaml</span>. A rule is a correction that survives every
+          This repository has no <span className="mono">.archdoc/rules.yaml</span>. A rule is a correction that survives every
           regeneration: rename an element, reclassify it, describe it, exclude it, or add a relationship the configuration
           cannot show.
         </p>
@@ -62,6 +62,14 @@ export function Corrections() {
         <h1 className="page-title small">What a person corrected</h1>
         <p className="title-note">Rules are applied after the model, so a person's correction always wins, and they survive every regeneration.</p>
       </div>
+
+      {(r.data.legacy || r.data.shadowed) && (
+        <p className="notice">
+          {r.data.legacy
+            ? 'These rules were read from rules.yaml at the repository root, where they lived before. Move the file to .archdoc/rules.yaml, beside archdoc’s other files.'
+            : 'There is also a rules.yaml at the repository root. It is ignored — .archdoc/rules.yaml takes precedence — and can be removed.'}
+        </p>
+      )}
 
       {!!findings?.length && (
         <>

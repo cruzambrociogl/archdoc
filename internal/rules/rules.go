@@ -24,8 +24,14 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
 
-// Name is where archdoc looks. One file, at the root of the repository being documented.
-const Name = "rules.yaml"
+// Name is where archdoc looks: one file, in archdoc's own directory, beside the other files a
+// person writes for it (layout.yaml, views.yaml). Keeping it there keeps the app's appends to it
+// (C-2) inside the closed write set.
+const Name = ".archdoc/rules.yaml"
+
+// LegacyName is where rules.yaml lived before 5 Oct 2026, at the repository root. It is still read
+// when it is the only one, and the caller is told to move it.
+const LegacyName = "rules.yaml"
 
 // A Rule is one correction: what it matches, and what it does.
 type Rule struct {
@@ -62,21 +68,42 @@ type EdgeRef struct {
 type File struct {
 	Path  string // repository-relative, for provenance
 	Rules []Rule
+	// Legacy is set when the rules came from the old location at the repository root.
+	Legacy bool
+	// Shadowed is set when both locations exist: the root file is ignored, and should be removed.
+	Shadowed bool
 }
 
 // Load reads rules.yaml from a repository root. A missing file is not an error: most
 // repositories have no corrections to make, and requiring one would be a barrier to the first
 // run rather than a feature.
 func Load(root string) (*File, error) {
-	rel := Name
-	content, err := os.ReadFile(filepath.Join(root, rel))
-	if os.IsNotExist(err) {
-		return &File{Path: rel}, nil
+	_, legacyErr := os.Stat(filepath.Join(root, LegacyName))
+	legacy := legacyErr == nil
+
+	content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(Name)))
+	switch {
+	case err == nil:
+		f, err := Parse(content, Name)
+		if f != nil {
+			f.Shadowed = legacy
+		}
+		return f, err
+	case !os.IsNotExist(err):
+		return nil, err
+	case !legacy:
+		return &File{Path: Name}, nil
 	}
+
+	content, err = os.ReadFile(filepath.Join(root, LegacyName))
 	if err != nil {
 		return nil, err
 	}
-	return Parse(content, rel)
+	f, err := Parse(content, LegacyName)
+	if f != nil {
+		f.Legacy = true
+	}
+	return f, err
 }
 
 // Parse reads the document, keeping the line each rule was written on. Provenance for a

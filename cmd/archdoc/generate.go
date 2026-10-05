@@ -73,7 +73,7 @@ func generate(args []string, out io.Writer) error {
 	// matching `name: api` must still match after the model has renamed api to "API".
 	ops, ruleFindings := rf.Compile(facts, m)
 	if !ruleFindings.OK() {
-		return fmt.Errorf("rules.yaml is not usable, nothing written\n%s", ruleFindings.Error())
+		return fmt.Errorf("%s is not usable, nothing written\n%s", rf.Path, ruleFindings.Error())
 	}
 
 	// The semantic layer is opt-in and runs before the rules are applied, so a person's
@@ -258,7 +258,13 @@ func generate(args []string, out io.Writer) error {
 	}
 
 	if n := len(rf.Rules); n > 0 {
-		fmt.Fprintf(out, "%d rule(s) applied from %s\n", n, rules.Name)
+		fmt.Fprintf(out, "%d rule(s) applied from %s\n", n, rf.Path)
+	}
+	if rf.Legacy {
+		fmt.Fprintf(out, "rules.yaml at the repository root is read for now; move it to %s, where archdoc keeps its other files\n", rules.Name)
+	}
+	if rf.Shadowed {
+		fmt.Fprintf(out, "rules.yaml at the repository root is ignored: %s takes precedence — remove the root one\n", rules.Name)
 	}
 	for _, f := range ruleFindings.Warnings() {
 		fmt.Fprintf(out, "  %s: %s — %s\n", f.Rule, f.Element, f.Message)

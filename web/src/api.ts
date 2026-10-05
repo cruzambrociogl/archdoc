@@ -184,6 +184,10 @@ export interface Op {
 export interface RulesResponse {
   file: string
   exists: boolean
+  /** The rules were read from the old location at the repository root. */
+  legacy?: boolean
+  /** Both locations exist; the root file is ignored. */
+  shadowed?: boolean
   rules: {
     line: number
     set: Record<string, string> | null
