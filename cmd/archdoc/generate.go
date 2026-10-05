@@ -56,8 +56,8 @@ func generate(args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if facts.Source == "" {
-		return fmt.Errorf("no deployable Compose file found in %s", facts.Root)
+	if facts.Source == "" && !hasContainerApp(facts.Apps) {
+		return fmt.Errorf("no deployable Compose file and no application manifest found in %s", facts.Root)
 	}
 
 	m := model.Derive(facts)
@@ -425,6 +425,17 @@ func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc
 // completeness, not correctness: the model is sound and these are the things configuration does
 // not state (VAL-03, VAL-06). Mapped rather than passed through, so rendering stays independent
 // of the validator's types.
+// hasContainerApp reports whether any manifest describes a running part of the system — enough to
+// document a repository that has no Compose file.
+func hasContainerApp(apps []archdoc.App) bool {
+	for _, a := range apps {
+		if a.Role.Container() {
+			return true
+		}
+	}
+	return false
+}
+
 // orphans are the files in docs/architecture that only archdoc writes — by name, so a human file can
 // never match — and that this run did not write. mkdocs.yml is opt-in per run, so it is left alone.
 func orphans(root string, written map[string]string) []string {

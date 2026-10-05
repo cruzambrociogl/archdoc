@@ -200,10 +200,73 @@ type FactSet struct {
 	// Routes read from gateway configuration the compose file mounts (MDL-03).
 	Routes []Route `json:"routes,omitempty"`
 
+	// Apps are the applications the repository holds, found by their manifests (F-02, D-5) —
+	// every manifest discovery read, including the ones that are not a running part of the
+	// system (libraries, tests, docs, tooling), each with its role and why.
+	Apps []App `json:"apps,omitempty"`
+
 	// Interpolation is the dotenv file Compose's ${VARIABLES} were filled from, repository-
 	// relative, or empty when none was found. Sample is set when it is a sample — example.env,
 	// .env.example, .env.sample — whose values are defaults a real deployment may override.
 	Interpolation *EnvSource `json:"interpolation,omitempty"`
+}
+
+// AppRole is what a manifest's package is, judged from what it depends on and declares.
+type AppRole string
+
+const (
+	// RoleService is a server: a web framework, a worker. A C4 container.
+	RoleService AppRole = "service"
+	// RoleWeb is a front end served to a browser. A C4 container.
+	RoleWeb AppRole = "web"
+	// RoleMobile is an app installed on a phone. A C4 container.
+	RoleMobile AppRole = "mobile"
+	// RoleCLI is a command-line tool the repository ships. A C4 container.
+	RoleCLI AppRole = "cli"
+	// RoleLibrary is code other parts import; it runs inside them, not on its own.
+	RoleLibrary AppRole = "library"
+	// RoleTest is a test suite — end-to-end tests and their helpers.
+	RoleTest AppRole = "test"
+	// RoleDocs is a documentation site: about the system, not part of it.
+	RoleDocs AppRole = "docs"
+	// RoleWorkspace is a monorepo root that only gathers other packages.
+	RoleWorkspace AppRole = "workspace"
+	// RoleTooling is anything else: scripts, configuration, build helpers.
+	RoleTooling AppRole = "tooling"
+)
+
+// Container reports whether an application of this role runs as a part of the system — a C4
+// container — rather than something about it or inside it.
+func (r AppRole) Container() bool {
+	return r == RoleService || r == RoleWeb || r == RoleMobile || r == RoleCLI
+}
+
+// App is one manifest and what it says about the package it describes.
+type App struct {
+	Name     string `json:"name"`     // the manifest's package name, or its directory's
+	Dir      string `json:"dir"`      // repository-relative; "." for the root
+	Manifest string `json:"manifest"` // repository-relative
+	Language string `json:"language,omitempty"`
+	// Framework is what the role was judged from — NestJS, SvelteKit, FastAPI, Flutter — and
+	// FrameworkProv is the line in the manifest that names it.
+	Framework     string     `json:"framework,omitempty"`
+	FrameworkProv Provenance `json:"framework_provenance,omitempty"`
+	Role          AppRole    `json:"role"`
+	Why           string     `json:"why"` // the role, in words: what decided it
+	Prov          Provenance `json:"provenance"`
+	// Deployed names the Compose service that runs this application, when some Compose file in
+	// the repository builds that service from this application's directory; the build line is the
+	// evidence. Without it, the application is a container of its own.
+	Deployed *Deployment `json:"deployed,omitempty"`
+}
+
+// Deployment ties an application to the Compose service that runs it.
+type Deployment struct {
+	Service string     `json:"service"`
+	Prov    Provenance `json:"provenance"`
+	// ByName is set when no build line ties them and the match is an exact, unique name. The
+	// provenance then cites the service and says so.
+	ByName bool `json:"by_name,omitempty"`
 }
 
 // EnvSource is the dotenv file interpolation read, and whether it is a sample.

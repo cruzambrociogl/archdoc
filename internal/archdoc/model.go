@@ -86,6 +86,12 @@ type Node struct {
 	// Networks this node is attached to, in name order (MDL-09).
 	Networks []string `json:"networks,omitempty"`
 
+	// Dir is the repository-relative directory of the application's own code, when one was
+	// found (F-02); DirProv proves the tie — the manifest, or the Compose line that builds the
+	// service from that directory. What lies inside is the component level's evidence.
+	Dir     string     `json:"dir,omitempty"`
+	DirProv Provenance `json:"dir_provenance,omitempty"`
+
 	// DescProv and TechProv are separate from Prov because they can come from somewhere
 	// else. A node is proven by the line that declares it; its technology may come from the
 	// catalog and its description from the model. PRV-05 must tell a reader which parts of a

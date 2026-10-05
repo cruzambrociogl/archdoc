@@ -25,6 +25,9 @@ export interface Node {
   evidence: 'declared' | 'referenced'
   parent?: string
   networks?: string[] | null
+  /** The application's own code, and what ties it to this element (a manifest, a build line). */
+  dir?: string
+  dir_provenance?: Provenance
   provenance: Provenance
 }
 

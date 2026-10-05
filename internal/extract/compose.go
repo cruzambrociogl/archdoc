@@ -60,8 +60,12 @@ func Scan(root string) (*archdoc.FactSet, error) {
 		}
 	}
 
+	// Applications are found whether or not there is a Compose file: most repositories are
+	// code, and a repository with no Compose file at all still has applications to document.
+	fs.Apps = Apps(abs)
+
 	if chosen == "" {
-		return fs, nil // nothing to extract; the candidate list still explains why
+		return fs, nil // nothing more to extract; the candidate list still explains why
 	}
 
 	fs.Source = chosen
@@ -75,6 +79,10 @@ func Scan(root string) (*archdoc.FactSet, error) {
 	if name, sample := envSource(filepath.Dir(filepath.Join(abs, chosen))); name != "" {
 		fs.Interpolation = &archdoc.EnvSource{File: filepath.ToSlash(filepath.Join(filepath.Dir(chosen), name)), Sample: sample}
 	}
+
+	// Which deployed service runs which application: only where some Compose file builds it
+	// from the application's directory.
+	deploy(fs.Apps, services, builds(abs, candidates))
 
 	// Routes come from files the compose file mounts, so they can only be read once the
 	// services and their mounts are known.

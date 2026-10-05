@@ -93,6 +93,7 @@ function Passport({ node, nodes, edges, onSelect }: { node: Node; nodes: Node[];
     ['name', node.name, cited(node.name_provenance) ?? node.provenance],
     ['technology', node.technology, cited(node.technology_provenance) ?? node.provenance],
     ['description', node.description, cited(node.description_provenance) ?? node.provenance],
+    ['code', node.dir ? (node.dir === '.' ? 'the repository root' : `${node.dir}/`) : undefined, cited(node.dir_provenance)],
     ['inside', node.parent ? name(node.parent) : undefined, undefined],
     ['networks', node.networks?.length ? node.networks.join(', ') : undefined, undefined],
   ]

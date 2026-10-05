@@ -8,6 +8,7 @@ package model
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 )
@@ -20,6 +21,16 @@ const actorID = "actor:user"
 // not separate derivations.
 func Derive(f *archdoc.FactSet) archdoc.Model {
 	m := archdoc.Model{Name: f.Name, Source: f.Source, Networks: f.Networks}
+	if m.Source == "" {
+		// No Compose file: the model is built from the applications' manifests alone.
+		var manifests []string
+		for _, a := range f.Apps {
+			if a.Role.Container() {
+				manifests = append(manifests, a.Manifest)
+			}
+		}
+		m.Source = strings.Join(manifests, ", ")
+	}
 
 	// A host names a declared service if it matches the service key or any name that service
 	// also answers to. Without alias resolution a real container is drawn twice — once as
@@ -53,6 +64,44 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 			Evidence:   archdoc.Declared,
 			Networks:   nets,
 			Prov:       s.Prov,
+		})
+	}
+
+	// Applications found by their manifests (F-02). One the deployed Compose file runs — tied by
+	// a build line, or by an exact name — enriches that service with its code; any other is a
+	// container of its own, which is how a repository with no Compose file gets a diagram at all.
+	byID := map[string]int{}
+	for i, n := range m.Nodes {
+		byID[n.ID] = i
+	}
+	for _, a := range f.Apps {
+		if !a.Role.Container() {
+			continue
+		}
+		tech := a.Framework
+		if a.Language != "" {
+			tech = strings.TrimPrefix(tech+" · "+a.Language, " · ")
+		}
+		if a.Deployed != nil {
+			if i, ok := byID[serviceID(a.Deployed.Service)]; ok {
+				n := &m.Nodes[i]
+				n.Dir, n.DirProv = a.Dir, a.Deployed.Prov
+				if n.Technology == "" {
+					n.Technology, n.TechProv = tech, a.FrameworkProv
+				}
+				continue
+			}
+		}
+		m.Nodes = append(m.Nodes, archdoc.Node{
+			ID:         appID(a.Dir),
+			Name:       a.Name,
+			Kind:       archdoc.Application,
+			Technology: tech,
+			TechProv:   a.FrameworkProv,
+			Evidence:   archdoc.Declared,
+			Dir:        a.Dir,
+			DirProv:    a.Prov,
+			Prov:       a.Prov,
 		})
 	}
 
@@ -160,6 +209,7 @@ func target(host string, declared map[string]string, external map[string]archdoc
 }
 
 func serviceID(name string) string  { return "svc:" + name }
+func appID(dir string) string       { return "app:" + dir }
 func externalID(host string) string { return "ext:" + host }
 
 // sortedKeys exists for the same reason as every other sort in this codebase: Go randomises map

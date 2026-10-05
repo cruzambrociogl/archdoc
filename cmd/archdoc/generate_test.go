@@ -196,3 +196,30 @@ func TestOrphanedGeneratedFilesAreRemoved(t *testing.T) {
 		}
 	}
 }
+
+// F-02: a repository with no Compose file at all — the usual case for code an AI wrote — is
+// documented from its applications' manifests instead of being refused.
+func TestARepositoryWithoutComposeIsDocumented(t *testing.T) {
+	root := t.TempDir()
+	write := func(rel, body string) {
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		os.WriteFile(p, []byte(body), 0o644)
+	}
+	write("api/package.json", `{"name": "api", "dependencies": {"express": "^4"}}`)
+	write("web/package.json", `{"name": "web", "dependencies": {"react": "^19"}}`)
+
+	out := gen(t, root)
+	if !strings.Contains(out, "2 elements") {
+		t.Errorf("want the two applications as elements:\n%s", out)
+	}
+	b, err := os.ReadFile(filepath.Join(root, modelOut))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"app:api"`, `"Express · JavaScript"`, `"app:web"`, `"React · JavaScript"`} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("model.json has no %s", want)
+		}
+	}
+}

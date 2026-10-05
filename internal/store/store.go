@@ -149,8 +149,8 @@ func migrate(db *sql.DB) error {
 // A field that does carry architecture must be added here when it is added to the model.
 func Fingerprint(m archdoc.Model) (string, error) {
 	type node struct {
-		ID, Name, Kind, Description, Technology, Evidence, Parent string
-		Networks                                                  []string
+		ID, Name, Kind, Description, Technology, Evidence, Parent, Dir string
+		Networks                                                       []string
 	}
 	type edge struct {
 		From, To, Label, Technology string
@@ -167,7 +167,7 @@ func Fingerprint(m archdoc.Model) (string, error) {
 		Networks []network
 	}{Name: m.Name}
 	for _, n := range m.Nodes {
-		arch.Nodes = append(arch.Nodes, node{n.ID, n.Name, string(n.Kind), n.Description, n.Technology, string(n.Evidence), n.Parent, n.Networks})
+		arch.Nodes = append(arch.Nodes, node{n.ID, n.Name, string(n.Kind), n.Description, n.Technology, string(n.Evidence), n.Parent, n.Dir, n.Networks})
 	}
 	for _, e := range m.Edges {
 		arch.Edges = append(arch.Edges, edge{e.From, e.To, e.Label, e.Technology, e.Traffic})
