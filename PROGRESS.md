@@ -92,7 +92,7 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 |---|---|---|---|
 | 0 | Setup; parsing inside the binary — gotreesitter vs. typescript-go, measured on Immich | F-01 | ✓ 5 Oct — gotreesitter, five grammar packages |
 | 1 | Applications from manifests; Compose as deployment evidence | F-02 | ✓ 5 Oct — Immich: server and ML tied by build line, web, mobile, CLI on their own |
-| 2 | Module and import graph → components by convention; identity by what a thing is | F-03, F-10, F-31 | ◐ imports read and resolved (Immich: 1,100 files, no import unresolved) |
+| 2 | Module and import graph → components by convention; identity by what a thing is | F-03, F-10, F-31 | ✓ 5 Oct — Immich: 43 components in 5 containers, 145 uses, no import unresolved; explorer Components level, committed SVGs, coverage of the code |
 | 3 | NestJS pack: routes, services, injection; outbound calls; unresolved as a state | F-04, F-08, F-13, F-32 | · |
 | 4 | Data model from table classes and migrations | F-07, F-11 | · |
 | 5 | Flows from an entry point, as sequence diagrams | F-12 | · |

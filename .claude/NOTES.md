@@ -41,7 +41,12 @@ raised, not quietly promoted over it.
 
 ## Open
 
-(empty)
+- [ ] Dense component views: Immich's server is 14 components and 73 uses, most into three hubs
+  (`src (top level)` — enum, types, constants — `utils`, `dtos`). The explorer copes (selecting
+  focuses); the committed `component-*.svg` is a hairball. Options: draw hubs as a shared band
+  with "used by 12 of 13" instead of arrows; or wait for type-aware resolution (F-09) to tell a type
+  import from a runtime use — only 5 of the server's 3,578 imports are `import type`. Decide before
+  the component view is shown as a picture anyone reads. — 2026-10-05
 
 ---
 
