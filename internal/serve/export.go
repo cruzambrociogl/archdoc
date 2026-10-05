@@ -107,7 +107,7 @@ func Export(root string, since int64) (map[string][]byte, error) {
 		return err
 	}
 
-	paths := []string{"/api/summary", "/api/model", "/api/rules", "/api/docs", "/api/completeness", "/api/views", "/api/runs"}
+	paths := []string{"/api/summary", "/api/model", "/api/rules", "/api/docs", "/api/views", "/api/runs"}
 	for _, view := range []string{"context", "container"} {
 		paths = append(paths, "/api/scene?view="+view, "/api/svg?view="+view)
 	}
@@ -135,6 +135,13 @@ func Export(root string, since int64) (map[string][]byte, error) {
 	if err := put("/api/coverage", true); err != nil {
 		return nil, err
 	}
+	// Completeness by size only: a published site is built from a fresh checkout, where every
+	// modification time is the checkout's, so staleness would mean nothing there.
+	comp, err := get("/api/completeness?basis=size", false)
+	if err != nil {
+		return nil, err
+	}
+	out[StaticName("/api/completeness")] = comp
 
 	// The documents, as the reader opens them.
 	var docs struct {

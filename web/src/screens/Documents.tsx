@@ -11,7 +11,7 @@ const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').rep
 // text, never interpreted. Comments are archdoc's own stamps, not content.
 marked.use({ renderer: { html: (token) => escape(token.text) } })
 
-type State = 'generated' | 'not started' | 'written' | 'may be stale' | 'missing'
+type State = 'generated' | 'not started' | 'written' | 'may be stale' | 'missing' | 'unknown'
 
 interface Entry {
   number?: number
@@ -37,6 +37,7 @@ const stateNote: Record<State, string> = {
   written: 'Someone has written in it since the stub.',
   'may be stale': 'Written before the architecture last changed — it may describe a system that no longer exists.',
   missing: 'The file is gone. The next generate recreates the stub.',
+  unknown: 'archdoc has no record of the stub it created here, so it cannot tell whether it has been written.',
 }
 
 /**
@@ -83,6 +84,7 @@ export function Documents(props: { version: number | null; route: Route; go: (r:
           </div>
           <div className="doc-counts">
             {count('generated')} generated · {count('written')} written · {count('may be stale')} may be stale · {count('not started')} not started
+            {count('unknown') > 0 && ` · ${count('unknown')} unknown`}
           </div>
         </div>
         {extras.map((e) => (
@@ -214,6 +216,15 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
                   <span>{when(entry.modified)}</span>
                 </>
               )}
+              {entry.state === 'unknown' && (
+                <>
+                  <span className="fact-key">why unknown</span>
+                  <span>
+                    This repository was generated before archdoc recorded the stubs it creates (.archdoc/sections.json), so a stub and
+                    a written section look alike. Open the file to see which it is.
+                  </span>
+                </>
+              )}
               {entry.state === 'may be stale' && (
                 <>
                   <span className="fact-key">why stale</span>
@@ -224,7 +235,8 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
             <p className="yours-note">
               No preview. This section is yours, and archdoc never reads it (hard rule 2). The app shows only what the file
               system reports — when it last changed — and compares that with the architecture's history.
-              {published && ' On a published site that is what the publisher’s machine reported when the site was built.'}
+              {published &&
+                ' On a published site the state is judged by size alone: the files come from a fresh checkout, where every modification time is the checkout’s, so staleness is not shown here — the live app shows it.'}
             </p>
           </>
         )}

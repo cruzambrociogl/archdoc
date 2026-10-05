@@ -977,3 +977,9 @@ button.runs-row:hover {
   font-size: 13px;
   line-height: 1.55;
 }
+.seg-unknown {
+  border: 1px dotted var(--ink);
+}
+.shape-unknown {
+  border: 1px dotted var(--ink);
+}

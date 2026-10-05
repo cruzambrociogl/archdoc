@@ -28,7 +28,7 @@ func writeStubs(t *testing.T, root string) {
 
 func stateOf(t *testing.T, root, file string, changed time.Time) Completeness {
 	t.Helper()
-	states, err := SectionStates(root, docs, changed)
+	states, err := SectionStates(root, docs, changed, BySizeAndTime)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestAllSevenHumanSectionsAreReported(t *testing.T) {
 	root := t.TempDir()
 	writeStubs(t, root)
 
-	states, err := SectionStates(root, docs, time.Time{})
+	states, err := SectionStates(root, docs, time.Time{}, BySizeAndTime)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,6 +111,47 @@ func TestAllSevenHumanSectionsAreReported(t *testing.T) {
 	for _, s := range states {
 		if s.Section.Owner != Human {
 			t.Errorf("a generated section was reported: %s", s.File)
+		}
+	}
+}
+
+// A repository generated before sections.json existed: archdoc has no record of its stubs, so it
+// cannot tell a stub from a written section — and says "unknown" instead of guessing "may be stale".
+func TestNoRecordOfTheStubIsUnknown(t *testing.T) {
+	root := t.TempDir()
+	writeStubs(t, root)
+	os.Remove(filepath.Join(root, stubsFile))
+
+	if got := stateOf(t, root, "01-introduction-and-goals.md", time.Now().Add(time.Hour)); got != Unknown {
+		t.Errorf("a section with no recorded stub reads %q", got)
+	}
+}
+
+// A published site is built from a fresh checkout: every modification time is the checkout's, so
+// only sizes are compared, and staleness is not claimed.
+func TestBySizeIgnoresModificationTimes(t *testing.T) {
+	root := t.TempDir()
+	writeStubs(t, root)
+	untouched := filepath.Join(root, docs, "01-introduction-and-goals.md")
+	edited := filepath.Join(root, docs, "02-architecture-constraints.md")
+	os.Chtimes(untouched, time.Now().Add(time.Hour), time.Now().Add(time.Hour)) // a checkout's time
+	os.WriteFile(edited, []byte("# 2. Constraints\n\nWritten by a person.\n"), 0o644)
+	os.Chtimes(edited, time.Now().Add(-24*time.Hour), time.Now().Add(-24*time.Hour))
+
+	states, err := SectionStates(root, docs, time.Now(), BySize)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range states {
+		switch s.File {
+		case "01-introduction-and-goals.md":
+			if s.State != NotStarted {
+				t.Errorf("an untouched stub with a new mtime reads %q by size", s.State)
+			}
+		case "02-architecture-constraints.md":
+			if s.State != Written {
+				t.Errorf("an edited section written before the change reads %q by size; staleness is not claimed", s.State)
+			}
 		}
 	}
 }

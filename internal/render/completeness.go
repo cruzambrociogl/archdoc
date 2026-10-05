@@ -21,6 +21,22 @@ const (
 	Written Completeness = "written"
 	// MayBeStale means it was written, and the architecture has changed since.
 	MayBeStale Completeness = "may be stale"
+	// Unknown means archdoc has no record of the stub it created — the repository was generated
+	// before .archdoc/sections.json existed — so it cannot tell a stub from a written section,
+	// and says so rather than guessing.
+	Unknown Completeness = "unknown"
+)
+
+// Basis is what a state is judged from.
+type Basis int
+
+const (
+	// BySizeAndTime compares the file's size and modification time with the stub's: the live
+	// app's basis, on the machine where the files were written.
+	BySizeAndTime Basis = iota
+	// BySize compares size only, and claims nothing about staleness: a published site is built
+	// from a fresh checkout, where every modification time is the checkout's.
+	BySize
 )
 
 // SectionStatus is one human-owned section and its state.
@@ -64,7 +80,7 @@ func RecordStub(root, dir, name string) error {
 // SectionStates reports every human-owned section, by asking the filesystem and never opening a
 // file. architectureChanged is when the model last changed; a section written before that may
 // no longer describe the system.
-func SectionStates(root, dir string, architectureChanged time.Time) ([]SectionStatus, error) {
+func SectionStates(root, dir string, architectureChanged time.Time, basis Basis) ([]SectionStatus, error) {
 	stubs, err := loadStubs(root)
 	if err != nil {
 		return nil, err
@@ -93,7 +109,13 @@ func SectionStates(root, dir string, architectureChanged time.Time) ([]SectionSt
 			st.Modified = info.ModTime().UTC()
 			rec, known := stubs[s.File()]
 			switch {
-			case known && rec.Size == info.Size() && rec.ModTime.Equal(st.Modified):
+			case !known:
+				st.State = Unknown
+			case basis == BySize && rec.Size == info.Size():
+				st.State = NotStarted
+			case basis == BySize:
+				st.State = Written
+			case rec.Size == info.Size() && rec.ModTime.Equal(st.Modified):
 				st.State = NotStarted
 			case !architectureChanged.IsZero() && st.Modified.Before(architectureChanged):
 				st.State = MayBeStale

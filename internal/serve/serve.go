@@ -518,7 +518,14 @@ func (s *Server) completeness(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	states, err := render.SectionStates(s.root, docsDir, v.CreatedAt)
+	// basis=size is what a published site is built with: its files come from a fresh checkout,
+	// where modification times mean nothing, so only sizes are compared and staleness is not
+	// claimed.
+	basis := render.BySizeAndTime
+	if r.URL.Query().Get("basis") == "size" {
+		basis = render.BySize
+	}
+	states, err := render.SectionStates(s.root, docsDir, v.CreatedAt, basis)
 	if err != nil {
 		fail(w, err)
 		return
