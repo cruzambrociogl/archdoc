@@ -236,6 +236,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* A container whose code was read opens onto its components: a corner badge, not a line, because
+   the engine sized the box for the text it draws. */
+.el-opens {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--tint-ink);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
 .el-tech {
   margin-top: 4px;
   font-family: var(--font-mono);

@@ -12,12 +12,28 @@ import { Eyebrow, TruthChip, TruthMark } from '../ui/marks'
  */
 type Changes = { from: number; mark?: 'added' | 'changed' | 'words'; list: Change[] }
 
-export function Inspector({ model, id, onSelect, changes }: { model: Model; id: string | null; onSelect: (id: string) => void; changes?: Changes }) {
+export function Inspector({
+  model,
+  id,
+  onSelect,
+  changes,
+  opens,
+  onOpen,
+}: {
+  model: Model
+  id: string | null
+  onSelect: (id: string) => void
+  changes?: Changes
+  /** Containers whose code was read, and how many components each opens onto. */
+  opens?: Map<string, number>
+  onOpen?: (id: string) => void
+}) {
   const nodes = model.nodes ?? []
   const edges = model.edges ?? []
   const node = nodes.find((n) => n.id === id)
   const edge = node ? undefined : edges.find((e) => `${e.from}>${e.to}` === id)
-  const what = node ? kindStyle(node.kind).label.toLowerCase() : edge ? 'relationship' : `${nodes.length} elements`
+  const parts = nodes.length > 0 && nodes.every((n) => n.kind === 'component')
+  const what = node ? kindStyle(node.kind).label.toLowerCase() : edge ? (edge.weight ? 'import' : 'relationship') : `${nodes.length} ${parts ? 'components' : 'elements'}`
 
   return (
     <aside className="inspector">
@@ -27,11 +43,11 @@ export function Inspector({ model, id, onSelect, changes }: { model: Model; id: 
       </div>
       {(node || edge) && changes?.mark && <ChangeNote changes={changes} />}
       {node ? (
-        <Passport node={node} nodes={nodes} edges={edges} onSelect={onSelect} />
+        <Passport node={node} nodes={nodes} edges={edges} onSelect={onSelect} container={model.name} opens={opens?.get(node.id)} onOpen={onOpen} />
       ) : edge ? (
         <EdgePassport edge={edge} nodes={nodes} onSelect={onSelect} />
       ) : (
-        <Index nodes={nodes} edges={edges} onSelect={onSelect} />
+        <Index nodes={nodes} edges={edges} onSelect={onSelect} parts={parts} />
       )}
     </aside>
   )
@@ -59,12 +75,12 @@ function ChangeNote({ changes }: { changes: Changes }) {
   )
 }
 
-function Index({ nodes, edges, onSelect }: { nodes: Node[]; edges: Edge[]; onSelect: (id: string) => void }) {
+function Index({ nodes, edges, onSelect, parts }: { nodes: Node[]; edges: Edge[]; onSelect: (id: string) => void; parts: boolean }) {
   return (
     <div className="inspector-body">
       <p className="inspector-hint">Select a box. Every value it shows carries the line that proves it.</p>
       <Eyebrow>
-        {nodes.length} elements · {edges.length} relationships
+        {parts ? `${nodes.length} components · ${edges.length} uses` : `${nodes.length} elements · ${edges.length} relationships`}
       </Eyebrow>
       <ul className="index-list">
         {nodes.map((n) => (
@@ -81,8 +97,26 @@ function Index({ nodes, edges, onSelect }: { nodes: Node[]; edges: Edge[]; onSel
   )
 }
 
-function Passport({ node, nodes, edges, onSelect }: { node: Node; nodes: Node[]; edges: Edge[]; onSelect: (id: string) => void }) {
-  const name = (id: string) => nodes.find((n) => n.id === id)?.name ?? id
+function Passport({
+  node,
+  nodes,
+  edges,
+  onSelect,
+  container,
+  opens,
+  onOpen,
+}: {
+  node: Node
+  nodes: Node[]
+  edges: Edge[]
+  onSelect: (id: string) => void
+  /** The view's name: in a component view, the container every component is inside. */
+  container: string
+  opens?: number
+  onOpen?: (id: string) => void
+}) {
+  const name = (id: string) => nodes.find((n) => n.id === id)?.name ?? (id === node.parent ? container : id)
+  const component = node.kind === 'component'
   const k = kindStyle(node.kind)
   const out = edges.filter((e) => e.from === node.id)
   const into = edges.filter((e) => e.to === node.id)
@@ -93,7 +127,8 @@ function Passport({ node, nodes, edges, onSelect }: { node: Node; nodes: Node[];
     ['name', node.name, cited(node.name_provenance) ?? node.provenance],
     ['technology', node.technology, cited(node.technology_provenance) ?? node.provenance],
     ['description', node.description, cited(node.description_provenance) ?? node.provenance],
-    ['code', node.dir ? (node.dir === '.' ? 'the repository root' : `${node.dir}/`) : undefined, cited(node.dir_provenance)],
+    ['code', node.dir ? (node.dir === '.' ? 'the repository root' : component && node.files?.length === 1 ? node.dir : `${node.dir}/`) : undefined, cited(node.dir_provenance)],
+    ['size', node.files ? `${node.files.length} ${node.files.length === 1 ? 'file' : 'files'} · ${(node.lines ?? 0).toLocaleString()} lines` : undefined, undefined],
     ['inside', node.parent ? name(node.parent) : undefined, undefined],
     ['networks', node.networks?.length ? node.networks.join(', ') : undefined, undefined],
   ]
@@ -154,13 +189,44 @@ function Passport({ node, nodes, edges, onSelect }: { node: Node; nodes: Node[];
           })}
         <div className="fact">
           <div className="fact-row">
-            <span className="fact-key">declared at</span>
+            <span className="fact-key">{component ? 'found at' : 'declared at'}</span>
             <span className="fact-value">
               <Cite p={node.provenance} />
             </span>
           </div>
         </div>
+        {opens !== undefined && onOpen && (
+          <div className="fact">
+            <div className="fact-row">
+              <span className="fact-key">inside</span>
+              <span className="fact-value">
+                <button className="text-link" onClick={() => onOpen(node.id)}>
+                  {opens} components, from its code ⤵
+                </button>
+              </span>
+            </div>
+          </div>
+        )}
       </section>
+
+      {component && node.files && node.files.length > 0 && (
+        <section className="inspector-section">
+          <details className="files">
+            <summary>
+              <Eyebrow>
+                {node.files.length} {node.files.length === 1 ? 'file' : 'files'}
+              </Eyebrow>
+            </summary>
+            <ul className="file-list">
+              {node.files.map((f) => (
+                <li key={f}>
+                  <Cite p={{ file: f, line: 1 }} compact />
+                </li>
+              ))}
+            </ul>
+          </details>
+        </section>
+      )}
 
       {(out.length > 0 || into.length > 0) && (
         <section className="inspector-section">
@@ -202,7 +268,11 @@ function EdgePassport({ edge: e, nodes, onSelect }: { edge: Edge; nodes: Node[];
         </div>
         <div className="passport-chips">
           <TruthChip state="proven" />
-          {e.traffic ? (
+          {e.weight ? (
+            <span className="kind-chip hue-grey" title="One part of the code imports the other">
+              import
+            </span>
+          ) : e.traffic ? (
             <span className="kind-chip hue-grey" title="A host or port was configured, so something flows">
               traffic
             </span>
@@ -228,6 +298,17 @@ function EdgePassport({ edge: e, nodes, onSelect }: { edge: Edge; nodes: Node[];
                 <Cite p={e.label_provenance} compact />
               </div>
             )}
+          </div>
+        )}
+        {e.weight !== undefined && (
+          <div className="fact">
+            <div className="fact-row">
+              <span className="fact-key">imports</span>
+              <span className="fact-value">
+                {e.weight} {e.weight === 1 ? 'import' : 'imports'}
+                {sources.length < e.weight && <span className="muted"> · the first in each importing file is cited, at most ten</span>}
+              </span>
+            </div>
           </div>
         )}
         {e.technology && (

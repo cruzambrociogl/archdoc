@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DocsResponse, ModelResponse, Node, Provenance, SavedView } from '../api'
-import { useApi } from '../api'
+import { componentLevel, useApi } from '../api'
 import type { Route, Screen } from '../route'
 import { kindStyle } from '../ui/kinds'
 import { TruthMark } from '../ui/marks'
@@ -57,7 +57,12 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
     const inContainer = new Set((m.container.nodes ?? []).map((n) => n.id))
     const nodes = m.model.nodes ?? []
     const name = (id: string) => nodes.find((n) => n.id === id)?.name ?? id
-    const open = (n: Node) => props.go({ screen: 'explorer', level: inContainer.has(n.id) ? 'container' : 'context', focus: n.id })
+    const levelOf = (id: string) => {
+      const n = nodes.find((x) => x.id === id)
+      if (n?.kind === 'component' && n.parent) return componentLevel(n.parent)
+      return inContainer.has(id) ? 'container' : 'context'
+    }
+    const open = (n: Node) => props.go({ screen: 'explorer', level: levelOf(n.id), focus: n.id })
 
     const hits: Hit[] = []
     for (const n of nodes) {
@@ -71,7 +76,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
       })
     }
     for (const e of m.model.edges ?? []) {
-      const level = inContainer.has(e.from) && inContainer.has(e.to) ? 'container' : 'context'
+      const level = levelOf(e.from) === levelOf(e.to) ? levelOf(e.from) : 'context'
       hits.push({
         group: 'Relationships',
         key: `e:${e.from}>${e.to}`,

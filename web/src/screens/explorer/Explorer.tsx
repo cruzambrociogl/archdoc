@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, ViewportPortal, useReactFlow, useStore } from '@xyflow/react'
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
-import type { DiffResponse, SceneResponse, Version } from '../../api'
-import { action, source, useApi } from '../../api'
+import type { DiffResponse, Opening, SceneResponse, Version } from '../../api'
+import { action, componentLevel, componentOf, source, useApi } from '../../api'
 import type { Route } from '../../route'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
@@ -14,12 +14,16 @@ import type { Delta, Draft, ElementData } from './scene'
 import { arrangeDraft, membersOf, toDelta, toFlow } from './scene'
 import { SaveView } from './SaveView'
 
-export type Level = 'context' | 'container'
+/** "context", "container", or "component:<container id>" — one container's components. */
+export type Level = string
 
-const levels: [Level, string][] = [
+const levels: [string, string][] = [
   ['context', 'Context'],
   ['container', 'Containers'],
+  ['component', 'Components'],
 ]
+
+const levelOf = (raw?: string): Level => (raw === 'context' || componentOf(raw) ? raw! : 'container')
 
 type Go = (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void
 
@@ -39,10 +43,10 @@ export function Explorer(props: {
   editable: boolean
   onViewsChanged: () => void
 }) {
-  const level: Level = props.route.level === 'context' ? 'context' : 'container'
+  const level = levelOf(props.route.level)
   const [reload, setReload] = useState(0)
   const q = props.version ? `&version=${props.version}` : ''
-  const scene = useApi<SceneResponse>(`/api/scene?view=${level}${q}${reload ? `#${reload}` : ''}`)
+  const scene = useApi<SceneResponse>(`/api/scene?view=${encodeURIComponent(level)}${q}${reload ? `#${reload}` : ''}`)
   const selected = props.route.focus ?? null
   // Only the latest version can be arranged: an arrangement is for the architecture as it is now.
   const editable = props.editable && props.version === null
@@ -51,7 +55,7 @@ export function Explorer(props: {
   const current = scene.data?.version
   const compare = props.route.from !== undefined && props.route.from !== current ? props.route.from : undefined
   const diff = useApi<DiffResponse>(compare !== undefined && current !== undefined ? `/api/diff?from=${compare}&to=${current}` : null)
-  const before = useApi<SceneResponse>(compare !== undefined ? `/api/scene?view=${level}&version=${compare}` : null)
+  const before = useApi<SceneResponse>(compare !== undefined ? `/api/scene?view=${encodeURIComponent(level)}&version=${compare}` : null)
   const delta = useMemo(() => (diff.data ? toDelta(diff.data, before.data) : undefined), [diff.data, before.data])
 
   const select = (id: string | null) =>
@@ -92,6 +96,7 @@ export function Explorer(props: {
             editable={editable}
             delta={delta}
             reload={() => setReload((n) => n + 1)}
+            open={(id) => props.go({ screen: 'explorer', level: componentLevel(id), from: props.route.from })}
           />
         </ReactFlowProvider>
       )}
@@ -112,6 +117,11 @@ function Toolbar(props: {
 }) {
   const q = props.version ? `&version=${props.version}` : ''
   const [saving, setSaving] = useState(false)
+  const openings = props.scene?.components ?? []
+  const inside = componentOf(props.level)
+  // The Components tab opens the selected container when it has components, else the first that does.
+  const componentTarget = openings.find((o) => o.id === props.route.focus)?.id ?? inside ?? openings[0]?.id
+  const tab = inside ? 'component' : props.level
   return (
     <div className="explorer-toolbar">
       <div className="segmented" role="tablist" aria-label="C4 level">
@@ -119,14 +129,21 @@ function Toolbar(props: {
           <button
             key={id}
             role="tab"
-            aria-selected={props.level === id}
-            className={props.level === id ? 'on' : ''}
-            onClick={() => props.go({ screen: 'explorer', level: id }, { keep: true })}
+            aria-selected={tab === id}
+            className={tab === id ? 'on' : ''}
+            disabled={id === 'component' && !componentTarget}
+            title={id === 'component' && !componentTarget ? 'No container’s code was read' : undefined}
+            onClick={() =>
+              id === 'component'
+                ? componentTarget && props.go({ screen: 'explorer', level: componentLevel(componentTarget), from: props.route.from })
+                : props.go({ screen: 'explorer', level: id }, { keep: true })
+            }
           >
             {label}
           </button>
         ))}
       </div>
+      {inside && <ContainerPicker openings={openings} current={inside} go={props.go} route={props.route} />}
       <label className={`tool compare ${props.route.from !== undefined ? 'on' : ''}`} title="Mark on the diagram what changed since another version">
         <span className="mono strong">Δ</span>
         <select
@@ -151,7 +168,12 @@ function Toolbar(props: {
           Save view…
         </button>
       )}
-      <a className="tool" href={source(`/api/svg?view=${props.level}${q}`)} download={`${props.level}.svg`} title="The same scene, as the committed SVG">
+      <a
+        className="tool"
+        href={source(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
+        download={`${props.level.replace(/^component:[^:]*:/, 'component-').replace(/[:/]/g, '-')}.svg`}
+        title="The same scene, as the committed SVG"
+      >
         Export SVG
       </a>
       {saving && (
@@ -170,6 +192,22 @@ function Toolbar(props: {
   )
 }
 
+/** At the component level: which container's inside is shown, and the others whose code was read. */
+function ContainerPicker(props: { openings: Opening[]; current: string; go: Go; route: Route }) {
+  return (
+    <label className="tool compare" title="The container whose components are shown">
+      <span className="muted">inside</span>
+      <select value={props.current} onChange={(e) => props.go({ screen: 'explorer', level: componentLevel(e.target.value), from: props.route.from })}>
+        {props.openings.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name} · {o.components} components
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 /** The arrangement bar, the canvas and the inspector, sharing one draft. */
 function Arranged(props: {
   scene: SceneResponse
@@ -180,8 +218,10 @@ function Arranged(props: {
   editable: boolean
   delta?: Delta
   reload: () => void
+  open: (container: string) => void
 }) {
   const { scene } = props
+  const opens = useMemo(() => new Map(scene.components.map((o) => [o.id, o.components])), [scene.components])
   const [draft, setDraft] = useState<Draft>({})
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<{ text: string; conflict: boolean } | null>(null)
@@ -245,12 +285,16 @@ function Arranged(props: {
             editable={props.editable}
             setDraft={setDraft}
             delta={props.delta}
+            opens={opens}
+            open={props.open}
           />
         </div>
         <Inspector
           model={scene.model}
           id={props.selected}
           onSelect={props.onSelect}
+          opens={opens}
+          onOpen={props.open}
           changes={props.selected && props.delta ? { from: props.delta.from, mark: props.delta.nodes.get(props.selected) ?? props.delta.edges.get(props.selected), list: props.delta.changes.get(props.selected) ?? [] } : undefined}
         />
       </div>
@@ -339,6 +383,8 @@ function Canvas(props: {
   editable: boolean
   setDraft: (d: Draft | ((d: Draft) => Draft)) => void
   delta?: Delta
+  opens: Map<string, number>
+  open: (container: string) => void
 }) {
   const { scene, route, selected } = props
   const find = route.q ?? ''
@@ -349,8 +395,8 @@ function Canvas(props: {
   const dragStart = useRef<DragStart | null>(null)
 
   const { nodes, edges } = useMemo(
-    () => toFlow(scene, props.layout, { selected, focus, find, placed: props.placed, isNew: props.isNew, editable: props.editable, delta: props.delta }),
-    [scene, props.layout, selected, focus, find, props.placed, props.isNew, props.editable, props.delta],
+    () => toFlow(scene, props.layout, { selected, focus, find, placed: props.placed, isNew: props.isNew, editable: props.editable, delta: props.delta, opens: props.opens }),
+    [scene, props.layout, selected, focus, find, props.placed, props.isNew, props.editable, props.delta, props.opens],
   )
 
   const setRoute = (patch: Partial<Route>) =>
@@ -451,6 +497,8 @@ function Canvas(props: {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodeClick={(_, n) => n.type === 'element' && props.onSelect(n.id)}
+        onNodeDoubleClick={(_, n) => n.type === 'element' && props.opens.has(n.id) && props.open(n.id)}
+        zoomOnDoubleClick={false}
         onEdgeClick={(_, e) => props.onSelect(e.id)}
         onPaneClick={() => props.onSelect(null)}
         onNodeDragStart={(_, n) => startDrag(n)}
@@ -520,14 +568,13 @@ function ZoomControls({ editable }: { editable: boolean }) {
 function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; selected: string | null; route: Route; delta?: Delta }) {
   const n = scene.model.nodes?.length ?? 0
   const e = scene.model.edges?.length ?? 0
+  const inside = componentOf(scene.view)
   const url = [`level=${scene.view}`, selected && `focus=${selected}`, route.q && `q=${route.q}`, route.dim && 'dim=1', route.from !== undefined && `from=${route.from}`]
     .filter(Boolean)
     .join('&')
   return (
     <div className="explorer-status">
-      <span>
-        {n} elements · {e} relationships
-      </span>
+      <span>{inside ? `${n} components of ${scene.model.name} · ${e} uses, each an import` : `${n} elements · ${e} relationships`}</span>
       <span>v{scene.version}</span>
       {delta && (
         <span className="status-delta">

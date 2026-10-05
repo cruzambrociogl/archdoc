@@ -15,6 +15,8 @@ export interface ElementData extends Record<string, unknown> {
   isNew: boolean
   /** Its change against the compared version, if one is set. */
   delta?: Mark
+  /** A container whose code was read: how many components it opens onto. */
+  opens?: number
 }
 
 export interface BoundaryData extends Record<string, unknown> {
@@ -117,7 +119,7 @@ export const edgeKey = (e: { from: string; to: string }) => `${e.from}>${e.to}`
 export function toFlow(
   sc: SceneResponse,
   layout: Layout,
-  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; editable: boolean; delta?: Delta },
+  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; editable: boolean; delta?: Delta; opens?: Map<string, number> },
 ) {
   const nodes = sc.model.nodes ?? []
   const edges = sc.model.edges ?? []
@@ -125,8 +127,11 @@ export function toFlow(
   const q = opts.find.trim().toLowerCase()
 
   // What stays lit when focusing: the selection and its direct neighbours.
+  // A component view is dense — every import between two directories is an arrow — so selecting a
+  // component focuses on it without being asked.
+  const focus = opts.focus || sc.view.startsWith('component:')
   const near = new Set<string>()
-  if (opts.focus && opts.selected && byId.has(opts.selected)) {
+  if (focus && opts.selected && byId.has(opts.selected)) {
     near.add(opts.selected)
     for (const e of edges) {
       if (e.from === opts.selected) near.add(e.to)
@@ -165,7 +170,7 @@ export function toFlow(
       position: { x: b.rect.x, y: b.rect.y },
       width: b.rect.w,
       height: b.rect.h,
-      data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id) } satisfies ElementData,
+      data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id), opens: opts.opens?.get(n.id) } satisfies ElementData,
       selected: opts.selected === n.id,
       draggable: opts.editable,
     })

@@ -1,5 +1,5 @@
 import type { CoverageResponse, DiffResponse, ModelResponse, Node, Provenance, Run, Summary, Version } from '../api'
-import { bytes, useApi } from '../api'
+import { bytes, componentLevel, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
 import { kindStyle } from '../ui/kinds'
@@ -20,8 +20,10 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
   if (m.error) return <Failure error={m.error} />
   if (!m.data) return <Loading />
   const { model, container, context } = m.data
-  const nodes = model.nodes ?? []
-  const edges = model.edges ?? []
+  // Configuration's view of the system; the components read from code are counted on their own.
+  const parts = new Set((model.nodes ?? []).filter((n) => n.kind === 'component').map((n) => n.id))
+  const nodes = (model.nodes ?? []).filter((n) => !parts.has(n.id))
+  const edges = (model.edges ?? []).filter((e) => !parts.has(e.from) && !parts.has(e.to))
   const system = (context.nodes ?? []).find((n) => n.kind === 'system')
 
   const count = (pred: (n: Node) => boolean) => nodes.filter(pred).length
@@ -84,6 +86,13 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
         <Stat n={stores} label="data stores and queues" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />
         <Stat n={externals} label="external systems" onClick={() => props.go({ screen: 'explorer', level: 'context' })} />
         <Stat n={edges.length} label="relationships" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />
+        {parts.size > 0 && (
+          <Stat
+            n={parts.size}
+            label={`components in ${m.data.components.length} ${m.data.components.length === 1 ? 'container' : 'containers'}, from the code`}
+            onClick={() => props.go({ screen: 'explorer', level: componentLevel(m.data!.components[0]) })}
+          />
+        )}
         <Stat n={props.summary.versions} label={props.summary.versions === 1 ? 'version' : 'versions'} onClick={() => props.go({ screen: 'changes' })} />
       </div>
 

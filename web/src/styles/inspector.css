@@ -189,3 +189,32 @@
   color: var(--accent);
   cursor: pointer;
 }
+
+/* A component's files: folded, because a directory can hold a hundred and sixty of them. */
+.files summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.files summary::-webkit-details-marker {
+  display: none;
+}
+.files summary::before {
+  content: '▸ ';
+  color: var(--muted);
+}
+.files[open] summary::before {
+  content: '▾ ';
+}
+.file-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+}
+.file-list li {
+  padding: 2px 0;
+}

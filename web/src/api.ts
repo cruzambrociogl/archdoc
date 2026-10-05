@@ -28,6 +28,9 @@ export interface Node {
   /** The application's own code, and what ties it to this element (a manifest, a build line). */
   dir?: string
   dir_provenance?: Provenance
+  /** A component's files, in path order, and their total lines. */
+  files?: string[]
+  lines?: number
   provenance: Provenance
 }
 
@@ -39,6 +42,8 @@ export interface Edge {
   technology?: string
   traffic?: boolean
   provenance: Provenance[] | null
+  /** How many imports a component edge stands for; its provenance cites one per importing file, at most ten. */
+  weight?: number
 }
 
 export interface Model {
@@ -73,7 +78,20 @@ export interface ModelResponse {
   model: Model
   context: Model
   container: Model
+  /** The containers that have a component view. */
+  components: string[]
 }
+
+/** A container whose code was read: it opens onto its components. */
+export interface Opening {
+  id: string
+  name: string
+  components: number
+}
+
+/** The component view of a container is the level `component:<container id>`. */
+export const componentLevel = (id: string) => `component:${id}`
+export const componentOf = (level?: string) => (level?.startsWith('component:') ? level.slice('component:'.length) : undefined)
 
 // The layout a view is drawn at (internal/archdoc/layout.go), and the scene that pairs them.
 export interface Point {
@@ -99,9 +117,11 @@ export interface Layout {
 
 export interface SceneResponse {
   version: number
-  view: 'context' | 'container'
+  /** "context", "container", or "component:<container id>". */
+  view: string
   model: Model
   layout: Layout
+  components: Opening[]
   /** How layout.yaml met this view: what a person placed, what is new since, what names nothing. */
   arrangement: { file: string; hash: string; placed: string[]; new: string[]; stale: string[] }
 }

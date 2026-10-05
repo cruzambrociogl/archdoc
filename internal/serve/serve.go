@@ -283,8 +283,9 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 	}
 	send(w, map[string]any{
 		"version": v.ID, "view": name, "model": view, "layout": l,
-		// The containers that have a component view, so a container can say it opens.
-		"components": orEmpty(v.Model.Components()),
+		// The containers that have a component view, so a container can say it opens and the
+		// component level can offer the others.
+		"components": opens(v.Model),
 		"arrangement": map[string]any{"file": arrange.Dir + "/" + arrange.LayoutFile, "hash": hash,
 			"placed": rep.Placed, "new": rep.New, "stale": rep.Stale},
 	})
@@ -350,6 +351,28 @@ func engineLayout(ctx context.Context, v *store.Version, name string) (archdoc.M
 		}
 	}
 	return view.Model, l, nil
+}
+
+// opening is a container with a component view: its name, and how many components it has.
+type opening struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Components int    `json:"components"`
+}
+
+func opens(m archdoc.Model) []opening {
+	count := map[string]int{}
+	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Component {
+			count[n.Parent]++
+		}
+	}
+	out := []opening{}
+	for _, id := range m.Components() {
+		c, _ := m.Node(id)
+		out = append(out, opening{ID: id, Name: c.Name, Components: count[id]})
+	}
+	return out
 }
 
 func orEmpty(s []string) []string {

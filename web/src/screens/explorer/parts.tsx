@@ -20,7 +20,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
   return (
     <div
       className={`el el-${k.hue} ${n.evidence === 'referenced' ? 'el-referenced' : ''} ${selected ? 'el-selected' : ''} ${data.dim ? 'is-dim' : ''} ${data.match ? 'el-match' : ''} ${data.delta ? `el-delta-${data.delta}` : ''}`}
-      title={`${n.name} · ${k.label}${n.technology ? ` · ${n.technology}` : ''}`}
+      title={`${n.name} · ${k.label}${n.technology ? ` · ${n.technology}` : ''}${n.files ? ` · ${n.files.length} files, ${(n.lines ?? 0).toLocaleString()} lines` : ''}`}
     >
       {/* Edges follow stored routes; these handles only satisfy the graph library. */}
       <Handle type="target" position={Position.Top} className="el-handle" isConnectable={false} />
@@ -29,6 +29,11 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
       {data.placed && <span className="el-placed" title="Placed by a person · layout.yaml — presentation, not fact" />}
       {data.isNew && <span className="el-new">new · placed automatically</span>}
       {data.delta && <DeltaTag mark={data.delta} />}
+      {data.opens !== undefined && (
+        <span className="el-opens" title={`Double-click to open its ${data.opens} components`}>
+          ⤵ {data.opens}
+        </span>
+      )}
       <div className="el-body">
         <div className="el-head">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round">
@@ -37,6 +42,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
           <span className="el-name">{n.name}</span>
         </div>
         {detail && <div className="el-tech">{tech}</div>}
+
         {detail && n.description && (
           <div className={`el-desc ${interp ? 'el-desc-interp' : ''}`}>
             {interp && <span className="mark mark-interpreted" />}
@@ -69,6 +75,7 @@ export function RoutedEdge({ id, data, selected }: EdgeProps<FlowEdge<RouteData>
         className={`route ${selected ? 'route-selected' : ''} ${data.dim ? 'is-dim' : ''}`}
         markerEnd={selected ? 'url(#ad-arrow-selected)' : 'url(#ad-arrow)'}
         interactionWidth={14}
+        style={e.weight && e.weight > 1 ? { strokeWidth: Math.min(4, 1.2 + Math.log2(e.weight) * 0.4) } : undefined}
       />
       {text && data.labelAt && (
         <EdgeLabelRenderer>
