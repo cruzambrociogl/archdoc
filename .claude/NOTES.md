@@ -73,6 +73,9 @@ raised, not quietly promoted over it.
 - [ ] The surface design's settings panel assumes `.archdoc/config.yaml` and flags that do not exist
       (`--egress`, `--model`, `--provider`, `--effort`, `--rules`, `--out`); today only `--label`,
       `--site`, `--stdout`, `--explain-gaps`, `--port`. The panel shows only what exists until they land
+- [ ] A repository generated before `.archdoc/sections.json` existed (Mastodon, on this machine) reports
+      every untouched stub as "may be stale": without the recorded size and mtime the engine cannot tell a
+      stub from a written section. Regenerating fixes it; worth saying so in the completeness view
 - [ ] Relationships are not clickable on the canvas (the SVG groups boxes, not arrows); they are
       inspected from either end in the inspector. Fine for the review; revisit if it confuses
 
