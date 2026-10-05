@@ -2,9 +2,12 @@
 // model, and the web app that displays it (SUR-07 to SUR-15).
 //
 // The app is thin in authority (docs/stack-decision.md §2.5): every endpoint here reads what the
-// engine already computed and stored. Nothing is laid out, derived or decided in the browser, and
-// the canvas draws the very SVG the engine writes into the repository — which is what keeps the
-// browser picture and the committed one identical.
+// engine already computed and stored. Nothing is laid out, derived or decided in the browser: the
+// explorer draws the scene the engine stored — the same layout the committed SVG is drawn from —
+// which is what keeps the browser picture and the committed one identical.
+//
+// The few endpoints that run or write something are actions, and every one passes the gate in
+// guard.go (surface-spec §11.5).
 //
 // This package listens; it does not call out. CI exempts it from the network rule because it
 // serves localhost, and the only outbound request it can make is the dev build's proxy to the
@@ -42,8 +45,9 @@ const docsDir = "docs/architecture"
 
 // Server answers for one repository.
 type Server struct {
-	root string
-	mux  *http.ServeMux
+	root  string
+	mux   *http.ServeMux
+	token string // this run's session token; see guard.go
 }
 
 // New prepares a server for the repository at root. It needs history to exist: the app displays
@@ -57,7 +61,8 @@ func New(root string) (*Server, error) {
 		return nil, fmt.Errorf("no archdoc history in %s — run 'archdoc generate %s' first", abs, root)
 	}
 
-	s := &Server{root: abs, mux: http.NewServeMux()}
+	s := &Server{root: abs, mux: http.NewServeMux(), token: newToken()}
+	s.mux.HandleFunc("GET /api/session", s.session)
 	s.mux.HandleFunc("GET /api/summary", s.summary)
 	s.mux.HandleFunc("GET /api/versions", s.versions)
 	s.mux.HandleFunc("GET /api/model", s.model)

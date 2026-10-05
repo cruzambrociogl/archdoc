@@ -226,6 +226,41 @@ export function useApi<T>(path: string | null, as: 'json' | 'text' = 'json') {
   }
 }
 
+// ——— actions ———
+// Anything that runs or writes goes through action(): a POST carrying this session's token, which
+// the server checks together with the Origin (internal/serve/guard.go, surface-spec §11.5). The
+// token is fetched once per page from /api/session, which answers same-origin pages only.
+
+let session: Promise<string> | null = null
+
+function token(): Promise<string> {
+  session ??= request('/api/session')
+    .then((r) => r.json())
+    .then((s: { token: string }) => s.token)
+    .catch((e) => {
+      session = null
+      throw e
+    })
+  return session
+}
+
+export async function action<T>(path: string, body?: unknown): Promise<T> {
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Archdoc-Token': await token() },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  const text = await r.text()
+  let data: unknown = undefined
+  try {
+    data = text ? JSON.parse(text) : undefined
+  } catch {
+    /* not JSON */
+  }
+  if (!r.ok) throw new Error((data as { error?: string } | undefined)?.error ?? r.statusText)
+  return data as T
+}
+
 /** The repository's absolute path, so every citation can open in the editor. */
 export const RootContext = createContext('')
 
