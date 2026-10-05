@@ -141,8 +141,41 @@ func migrate(db *sql.DB) error {
 // Fingerprint is the content hash that decides whether a model is a new version. Exported so a
 // caller can ask "is this architecture unchanged?" before doing work — laying it out, say — that
 // an unchanged architecture has already had done.
+//
+// It hashes the architecture, not the model's encoding: what each element and relationship is and
+// states, without the provenance that cites it. Two consequences, both deliberate (F-50). A field
+// added to the model's schema no longer mints a version for every repository on its next run; and
+// a citation whose line moved, because someone edited around it, is not a change of architecture.
+// A field that does carry architecture must be added here when it is added to the model.
 func Fingerprint(m archdoc.Model) (string, error) {
-	encoded, err := json.Marshal(m)
+	type node struct {
+		ID, Name, Kind, Description, Technology, Evidence, Parent string
+		Networks                                                  []string
+	}
+	type edge struct {
+		From, To, Label, Technology string
+		Traffic                     bool
+	}
+	type network struct {
+		Name     string
+		Internal bool
+	}
+	arch := struct {
+		Name     string
+		Nodes    []node
+		Edges    []edge
+		Networks []network
+	}{Name: m.Name}
+	for _, n := range m.Nodes {
+		arch.Nodes = append(arch.Nodes, node{n.ID, n.Name, string(n.Kind), n.Description, n.Technology, string(n.Evidence), n.Parent, n.Networks})
+	}
+	for _, e := range m.Edges {
+		arch.Edges = append(arch.Edges, edge{e.From, e.To, e.Label, e.Technology, e.Traffic})
+	}
+	for _, nw := range m.Networks {
+		arch.Networks = append(arch.Networks, network{nw.Name, nw.Internal})
+	}
+	encoded, err := json.Marshal(arch)
 	if err != nil {
 		return "", err
 	}
@@ -150,12 +183,17 @@ func Fingerprint(m archdoc.Model) (string, error) {
 	return hex.EncodeToString(sum[:]), nil
 }
 
-// Save records a model, unless the latest version already holds exactly this one.
+// Save records a model, unless the latest version already holds this architecture.
 //
 // A run that changes nothing does not create a version. That is what keeps history meaningful:
 // with AC-7 guaranteeing byte-identical output across runs, recording every run would fill the
 // log with entries that differ in nothing but their timestamp, and a diff between two of them
 // would be empty. `changed` reports which happened.
+//
+// A run that finds the same architecture still refreshes what the latest version carries about
+// it — its citations, its layouts, the commit they are true at — so the evidence a reader follows
+// is the current one, and a layout computed by a newer engine is kept (F-51). The version keeps its
+// number and the time it was first recorded.
 func (s *Store) Save(m archdoc.Model, layouts map[string]archdoc.Layout, commit, tool string) (id int64, changed bool, err error) {
 	encoded, err := json.Marshal(m)
 	if err != nil {
@@ -174,8 +212,27 @@ func (s *Store) Save(m archdoc.Model, layouts map[string]archdoc.Layout, commit,
 	if err != nil {
 		return 0, false, err
 	}
-	if latest != nil && latest.Fingerprint == fingerprint {
-		return latest.ID, false, nil
+	// The latest version's fingerprint is recomputed from its model rather than read from the
+	// column, so a change to what counts as architecture never mints a version by itself.
+	same := false
+	if latest != nil {
+		was, err := Fingerprint(latest.Model)
+		if err != nil {
+			return 0, false, err
+		}
+		same = was == fingerprint
+	}
+	if same {
+		if layouts == nil {
+			// A caller with no layouts (a scan, a test) keeps the stored ones.
+			laid, err = json.Marshal(latest.Layouts)
+			if err != nil {
+				return 0, false, err
+			}
+		}
+		_, err = s.db.Exec(`UPDATE versions SET commit_sha = ?, tool = ?, fingerprint = ?, model = ?, layouts = ? WHERE id = ?`,
+			commit, tool, fingerprint, string(encoded), string(laid), latest.ID)
+		return latest.ID, false, err
 	}
 
 	res, err := s.db.Exec(

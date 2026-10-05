@@ -174,3 +174,73 @@ func TestHistorySurvivesReopening(t *testing.T) {
 		t.Errorf("got %q back", v.Model.Name)
 	}
 }
+
+// F-50: a citation whose line moved is not a change of architecture — no version is recorded — but
+// the stored version follows it, with the commit it is true at, so a reader's link lands on the
+// right line. A layout from a newer engine is kept the same way (F-51).
+func TestSameArchitectureRefreshesItsEvidence(t *testing.T) {
+	s := history(t)
+	first := model("example")
+	id, _, err := s.Save(first, map[string]archdoc.Layout{"container": {Version: 1}}, "abc123", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	moved := model("example")
+	moved.Nodes[0].Prov.Line = 9
+	again, changed, err := s.Save(moved, map[string]archdoc.Layout{"container": {Version: 2}}, "def456", "test")
+	if err != nil || changed || again != id {
+		t.Fatalf("a moved citation recorded a version: changed=%v id=%d err=%v", changed, again, err)
+	}
+
+	v, err := s.Latest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Model.Nodes[0].Prov.Line != 9 || v.Commit != "def456" {
+		t.Errorf("the stored version kept stale evidence: line %d at %s", v.Model.Nodes[0].Prov.Line, v.Commit)
+	}
+	if v.Layouts["container"].Version != 2 {
+		t.Errorf("the newer layout was not kept: %+v", v.Layouts)
+	}
+
+	// A save without layouts — a scan — keeps the stored ones.
+	if _, _, err := s.Save(moved, nil, "def456", "test"); err != nil {
+		t.Fatal(err)
+	}
+	if v, _ := s.Latest(); v.Layouts["container"].Version != 2 {
+		t.Error("a save without layouts dropped the stored ones")
+	}
+}
+
+// What is architecture does change the fingerprint; what only cites it does not.
+func TestFingerprintIsTheArchitecture(t *testing.T) {
+	a, _ := Fingerprint(model("example"))
+	cited := model("example")
+	cited.Nodes[0].Prov = archdoc.Provenance{File: "elsewhere.yml", Line: 40}
+	b, _ := Fingerprint(cited)
+	if a != b {
+		t.Error("moving a citation changed the fingerprint")
+	}
+	described := model("example")
+	described.Nodes[0].Description = "Serves the API"
+	c, _ := Fingerprint(described)
+	if a == c {
+		t.Error("a new description did not change the fingerprint")
+	}
+}
+
+// History written before the fingerprint changed — its column holds the old hash — does not gain a
+// version just because archdoc was upgraded.
+func TestAnUpgradeDoesNotMintAVersion(t *testing.T) {
+	s := history(t)
+	if _, _, err := s.Save(model("example"), nil, "abc123", "test"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.db.Exec(`UPDATE versions SET fingerprint = 'from-an-older-archdoc'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, changed, err := s.Save(model("example"), nil, "abc123", "test"); err != nil || changed {
+		t.Errorf("an upgrade recorded a version (err=%v)", err)
+	}
+}
