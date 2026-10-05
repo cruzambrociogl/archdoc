@@ -472,10 +472,10 @@ Rules are applied *before* validation, so a rule can never produce an invalid mo
 | SUR-02 | `archdoc scan` — extraction only. Fast, free, offline, no LLM | DET |
 | SUR-03 | `archdoc generate` — full pipeline → version + docs | mixed |
 | SUR-04 | `archdoc diff <ref> [<ref>]` | DET (+ optional LLM prose) |
-| SUR-05 | `archdoc export --format <fmt>` | DET |
+| SUR-05 | `archdoc export --format <fmt>` — `--site` (the published app) built 2026-10-05; other formats remain | DET |
 | SUR-06 | `archdoc history` | DET |
 | SUR-07 | `archdoc serve` — local web app | DET |
-| SUR-08 | Web: canvas with C4 level switch | DET |
+| SUR-08 | Web: canvas with C4 level switch — drawn by the app from the engine's stored scene, the committed SVG its export (`surface-spec.md` S-2) | DET |
 | SUR-09 | Web: inspector with provenance | DET |
 | SUR-10 | Web: version timeline and diff viewer | DET |
 | SUR-11 | Web: rules viewer | DET |
@@ -483,6 +483,17 @@ Rules are applied *before* validation, so a rule can never produce an invalid mo
 | SUR-15 | Web: **completeness view** — human-owned sections with empty/filled/stale status, each linking out to the file in the editor | DET |
 | SUR-13 | Cost and token reporting per run | DET |
 | SUR-14 | **Egress reporting** — print exactly what left the machine | DET |
+| SUR-16 | Web: **arrange a diagram and keep it** — `.archdoc/layout.yaml`, re-applied on every run, the committed SVG included (S-6) | DET |
+| SUR-17 | Web: **saved views** — named level, selection, search and focus in `.archdoc/views.yaml` (S-7) | DET |
+| SUR-18 | Web: **change overlay** — what changed since any version, marked on the diagram (§5.2 of the spec) | DET |
+| SUR-19 | Web: **search** over elements, relationships, the files that prove them, documents and views | DET |
+| SUR-20 | Web: **coverage view** — OUT-12 as a screen | DET |
+| SUR-21 | **Published mode** — the same app as static files, no actions, citations on the repository host (§3 of the spec) | DET |
+| SUR-22 | **Action gate** — every action a POST with this server's Origin and the session token (§11.5 of the spec) | DET |
+
+> SUR-16 to SUR-22 were added on 2026-10-05 from `docs/surface-spec.md`, whose decisions S-1 to
+> S-7 and C-1 to C-5 are recorded in `decisions.md`. The spec holds the detail; this table holds
+> the IDs.
 
 ### 4.11 Output and deliverables — `OUT`
 
@@ -496,11 +507,13 @@ land on disk are fixed. See §8 for the contract these implement.
 | OUT-03 | **Never read human-owned files** either — they are linked, not parsed | DET |
 | OUT-04 | Stamp every generated file with source commit, model version, and rules applied | DET |
 | OUT-05 | Emit `index.md` linking generated and human-owned sections into one document | DET |
-| OUT-06 | Emit static-site config (`mkdocs.yml`) so the docs build unmodified | DET |
+| OUT-06 | Emit static-site config (`mkdocs.yml`) so the docs build unmodified — now the plain fallback to OUT-11 | DET |
 | OUT-07 | Guarantee the output renders with archdoc absent — GitHub-native Mermaid, embedded SVG, no build step required | DET |
 | OUT-08 | Generate **contextual stubs** for human-owned sections — questions derived from the model, not generic TODOs | DET |
 | OUT-09 | Report **completeness** — which human sections are empty, filled, or stale; arc42 conformance percentage | DET |
 | OUT-10 | Detect **staleness** — a human section whose last commit predates architectural changes affecting it | DET |
+| OUT-11 | **Published site** — `archdoc export --site` writes the web app and one version's data to `.archdoc/site/`, a build product CI rebuilds | DET |
+| OUT-12 | **Coverage as data** — `.archdoc/coverage.json`, the same report the committed coverage page is rendered from | DET |
 
 > **OUT-02 and OUT-03 are the ones that decide whether anyone keeps using the tool.** A
 > documentation generator that eats a person's writing gets uninstalled once. Strict
@@ -711,15 +724,20 @@ rather than a rewrite — and costs nothing to keep open now.
 .archdoc/
   config.yaml                    committed  — no secrets; API keys live in the environment
   rules.yaml                     committed  — your corrections
-  model.<db>                     ignored    — rebuildable index
+  layout.yaml                    committed  — how you arranged the diagrams (SUR-16)
+  views.yaml                     committed  — the views you named (SUR-17)
+  model.json                     committed  — the current model, as generate wrote it
+  coverage.json                  committed  — what could not be resolved (OUT-12)
+  history.db                     ignored    — rebuildable index
+  site/                          ignored    — the published site, rebuilt by CI (OUT-11)
 docs/architecture/
-  index.md                       generated  — links both sets
+  index.generated.md             generated  — links both sets
   0N-*.generated.md              generated  — tool-owned, overwritten every run
   0N-*.md                        human      — never read, never written
-  diagrams/*.svg                 generated  — exact app layout
-  diagrams/*.mmd                 generated  — portable, hand-editable
-  model.json                     generated  — the canonical artifact, one per version
-  mkdocs.yml                     generated  — optional site build
+  coverage.generated.md          generated  — what archdoc could not see
+  context.svg, container.svg     generated  — the app's scene, as arranged
+  context.mmd, container.mmd     generated  — portable, hand-editable
+  mkdocs.yml                     generated  — optional site build, with --site
 ```
 
 The generated/human split is the **regeneration boundary** (§8) — the single most
@@ -774,10 +792,13 @@ No standard asks for a PDF.
 |---|---|---|---|
 | 1 | `model.json` | Machine truth. Not for reading. | Committed |
 | 2 | **Markdown + diagram sources** | **The primary human deliverable** | Committed in `docs/architecture/` |
-| 3 | Static site | Browsable, searchable, shareable | Generated from layer 2 |
-| 4 | `archdoc serve` | Explore, drill into code, compare versions | Local only |
+| 3 | Published site | Browsable, searchable, shareable — the app, without its actions | Built from layers 1 and 2 by `export --site`; MkDocs is the fallback |
+| 4 | `archdoc serve` | Explore, drill into code, compare versions, arrange | Local only |
 
-> **Markdown is the deliverable. The app is the workbench.**
+> **Markdown is the deliverable for reference documentation. The published app is how a team
+> reads it; the live app is where you work.** Amended 2026-10-05 (`decisions.md`, S-1): layer 3
+> was an MkDocs build of the Markdown, and is now the same app as layer 4, built as static files
+> from the model — so the site and the workbench cannot disagree.
 
 The app does what markdown cannot — click a box and land in the source, scrub a version
 timeline, see fact distinguished from interpretation. But the app is where *you* work. What
@@ -868,7 +889,7 @@ it.
 | Surface | Role | Writes |
 |---|---|---|
 | **The person's editor** | Author human sections and rules | The only writer of human content |
-| **`archdoc serve`** | Explore, inspect provenance, verify, see gaps | Only the model and generated files |
+| **`archdoc serve`** | Explore, inspect provenance, verify, see gaps, arrange | `.archdoc/layout.yaml` and `views.yaml`, on an explicit save; `rules.yaml`, append-only, once the correction composer lands (C-2) |
 | **Site / GitHub** | Read the finished document | Nothing |
 
 One application, and in R1.a it is a **workbench, not an editor**. No automated code path
@@ -882,6 +903,14 @@ general editor — it exists because the moment you notice a gap is while lookin
 diagram, and sending the author elsewhere at that moment throws away the context that
 prompted the writing. The invariant that matters is unchanged and is what NFR-11 now states
 precisely: **nothing automated ever writes human content.**
+
+**Since 2026-10-05 the app also writes archdoc's own presentation files** — an arrangement, a
+named view — and, once built, appends a correction to `rules.yaml` (`decisions.md`, C-2). Each is
+an explicit save, behind the action gate (SUR-22), refused when the file changed after the page
+loaded it (ANS-04's hash check). None of them is a human-owned section: those are still never read
+or written by anything automated. The definition places `rules.yaml` in `.archdoc/`; the code still
+reads it from the repository root, which must be reconciled before the composer is built
+(`.claude/NOTES.md`).
 
 ### What archdoc owes the human author
 
