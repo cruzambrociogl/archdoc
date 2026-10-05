@@ -85,7 +85,8 @@ func export(args []string, out io.Writer) error {
 
 	fmt.Fprintf(out, "wrote %s — %d files, %.1f MB\n", siteDir, len(names), float64(size)/1e6)
 	fmt.Fprintf(out, "Deploy the folder to any static host (GitHub Pages works), or preview it with a static server,\n")
-	fmt.Fprintf(out, "e.g. 'python3 -m http.server -d %s'. Browsers will not load its data from a file:// page.\n", filepath.Join(root, siteDir))
+	fmt.Fprintf(out, "e.g. 'python3 -m http.server 8080 -d %s', then http://localhost:8080.\n", filepath.Join(root, siteDir))
+	fmt.Fprintf(out, "Browsers will not load its data from a file:// page.\n")
 	return nil
 }
 
