@@ -7,6 +7,8 @@ import { useRoute } from './route'
 import { useTheme } from './theme'
 import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
+import { Palette } from './shell/Palette'
+import { Shortcuts } from './shell/Shortcuts'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
 import { Changes } from './screens/Changes'
@@ -30,6 +32,8 @@ export function App() {
   const [theme, nextTheme] = useTheme()
   const [navOpen, setNavOpen] = useState(false)
   const [viewsKey, setViewsKey] = useState(0)
+  const [searching, setSearching] = useState(false)
+  const [keys, setKeys] = useState(false)
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
 
   // The screen the explorer returns to.
@@ -39,17 +43,27 @@ export function App() {
     setNavOpen(false)
   }, [route.screen])
 
-  // E opens the explorer; Esc leaves it. Never while typing.
+  // ⌘K searches; E opens the explorer; Esc leaves it; ? shows the shortcuts. Never while typing.
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearching((s) => !s)
+        return
+      }
       const t = e.target as HTMLElement
       if (e.metaKey || e.ctrlKey || e.altKey || t.closest('input, select, textarea, [contenteditable]')) return
+      if (searching || keys || document.querySelector('.dialog-scrim')) return
       if ((e.key === 'e' || e.key === 'E') && route.screen !== 'explorer') go({ screen: 'explorer' })
       else if (e.key === 'Escape' && route.screen === 'explorer') go({ screen: prev.current })
+      else if (e.key === '/' && route.screen !== 'explorer') {
+        e.preventDefault()
+        setSearching(true)
+      } else if (e.key === '?') setKeys(true)
     }
     window.addEventListener('keydown', on)
     return () => window.removeEventListener('keydown', on)
-  }, [route.screen, go])
+  }, [route.screen, go, searching, keys])
 
   useEffect(() => {
     const repo = summary.data?.name
@@ -74,6 +88,7 @@ export function App() {
           onMenu={() => setNavOpen((o) => !o)}
           theme={theme}
           onTheme={nextTheme}
+          onSearch={() => setSearching(true)}
         />
         <div className="shell-body">
           <Nav summary={s} route={route} go={go} open={navOpen} views={views.data?.views ?? []} />
@@ -90,6 +105,8 @@ export function App() {
           </main>
         </div>
       </div>
+      <Palette open={searching} onClose={() => setSearching(false)} go={go} views={views.data?.views ?? []} version={version} />
+      {keys && <Shortcuts onClose={() => setKeys(false)} />}
     </RootContext.Provider>
   )
 }

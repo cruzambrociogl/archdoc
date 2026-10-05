@@ -6,9 +6,9 @@ const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'The
 const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
 
 /**
- * The top bar. It carries only controls that work today: search, the status pill and the
- * run/publish/git/settings actions arrive with the features behind them (surface-spec §11), not
- * before as dead buttons.
+ * The top bar. It carries only controls that work today: the status pill and the run, publish,
+ * git and settings actions arrive with the features behind them (surface-spec §11), not before as
+ * dead buttons.
  */
 export function TopBar(props: {
   summary: Summary
@@ -20,6 +20,7 @@ export function TopBar(props: {
   onMenu: () => void
   theme: Theme
   onTheme: () => void
+  onSearch: () => void
 }) {
   const { summary: s, route, go } = props
   const inExplorer = route.screen === 'explorer'
@@ -53,7 +54,15 @@ export function TopBar(props: {
         </select>
       </label>
 
-      <div className="topbar-spacer" />
+      <div className="topbar-spacer">
+        <button className="search-box" onClick={props.onSearch} title="Search everything (⌘K)">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+            <path d="M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10z M10.5 10.5L14 14" />
+          </svg>
+          <span className="search-text">Search elements, files, documents…</span>
+          <kbd>⌘K</kbd>
+        </button>
+      </div>
 
       {inExplorer ? (
         <button className="btn btn-outline" onClick={props.onBack} title="Leave the explorer (Esc)">
