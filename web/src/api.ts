@@ -135,6 +135,22 @@ export interface CoverageResponse {
   gaps: { rule: string; gaps: { rule: string; element: string; message: string }[] }[]
   unconnected: string[]
   limits: { limit: string; needed: string }[]
+  /** Each running application's code: read, with how its imports resolved, or not read yet. */
+  code?: CodeRead[]
+}
+
+export interface CodeRead {
+  app: string
+  container: string
+  language: string
+  read: boolean
+  root?: string
+  files: number
+  lines: number
+  components: number
+  imports: Partial<Record<'path' | 'alias' | 'module' | 'package' | 'unresolved', number>>
+  unresolved: { spec: string; provenance: Provenance }[]
+  partial: string[]
 }
 
 export interface SavedView {

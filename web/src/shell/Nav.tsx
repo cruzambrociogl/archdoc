@@ -1,4 +1,5 @@
 import type { CoverageResponse, SavedView, Summary } from '../api'
+import { componentLevel } from '../api'
 import type { Route, Screen } from '../route'
 
 interface Item {
@@ -14,13 +15,15 @@ interface Item {
 
 /**
  * The left navigation. A view appears only when there is evidence behind it (surface-spec §2,
- * rule 3): components, features, flows, the data model and dependencies arrive with the code
- * lenses, and are absent until then rather than shown empty.
+ * rule 3): components appear once some container's code was read; features, flows, the data model
+ * and dependencies arrive with their lenses, and are absent until then rather than shown empty.
  */
 export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Route>) => void; open: boolean; views: SavedView[]; coverage?: CoverageResponse }) {
   const { summary: s, route, go } = props
   const inExplorer = route.screen === 'explorer'
   const level = route.level ?? 'container'
+  // Earned: a container whose code was read opens onto its components.
+  const firstInside = props.coverage?.code?.find((c) => c.read && c.container && c.components > 0)?.container
 
   const items: Item[] = [
     { label: 'Overview', screen: 'overview', depth: 0 },
@@ -30,6 +33,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
       ? ([
           { label: 'Context', screen: 'explorer', level: 'context', depth: 2 },
           { label: 'Containers', screen: 'explorer', level: 'container', depth: 2 },
+          ...(firstInside ? [{ label: 'Components', screen: 'explorer', level: componentLevel(firstInside), depth: 2 }] : []),
         ] as Item[])
       : []),
     ...(props.views.length
@@ -51,7 +55,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
         const active = it.view
           ? inExplorer && level === it.view.level && (route.focus ?? '') === (it.view.focus ?? '') && (route.q ?? '') === (it.view.find ?? '') && (route.dim === '1') === !!it.view.dim
           : it.level
-            ? inExplorer && level === it.level
+            ? inExplorer && (level === it.level || (it.label === 'Components' && level.startsWith('component:')))
             : it.screen === route.screen
         return (
           <div key={i}>

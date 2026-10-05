@@ -1,12 +1,52 @@
 import { useState } from 'react'
-import type { CoverageResponse } from '../api'
-import { useApi } from '../api'
+import type { CodeRead, CoverageResponse } from '../api'
+import { componentLevel, useApi } from '../api'
+import { Cite } from '../ui/Cite'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
 
 const ruleNames: Record<string, string> = {
   'VAL-03': 'Relationships that state no protocol',
   'VAL-06': 'Elements missing a description or a technology',
+}
+
+function CodeRow({ c, go }: { c: CodeRead; go: (r: Partial<Route>) => void }) {
+  if (!c.read) {
+    return (
+      <div className="read-row">
+        <div className="mono small">
+          {c.app}/ <span className="muted">· not read</span>
+        </div>
+        <div className="read-why">
+          <TruthMark state="unresolved" /> {c.language}: archdoc has no reader for it yet, so this container's inside is not drawn.
+        </div>
+      </div>
+    )
+  }
+  const own = (c.imports.path ?? 0) + (c.imports.alias ?? 0) + (c.imports.module ?? 0)
+  return (
+    <div className="read-row">
+      <div className="mono small">
+        {c.root}/{' '}
+        {c.container && (
+          <button className="text-link" onClick={() => go({ screen: 'explorer', level: componentLevel(c.container) })}>
+            · {c.components} components
+          </button>
+        )}
+      </div>
+      <div className="read-why">
+        {c.language} · {c.files.toLocaleString()} files · {c.lines.toLocaleString()} lines · {own.toLocaleString()} imports of its own code resolved,{' '}
+        {(c.imports.package ?? 0).toLocaleString()} of packages
+        {c.unresolved.length > 0 ? ` · ${c.unresolved.length} unresolved` : ' · none unresolved'}
+        {c.partial.length > 0 && ` · ${c.partial.length} ${c.partial.length === 1 ? 'file' : 'files'} parsed in part`}
+      </div>
+      {c.unresolved.map((u, i) => (
+        <div key={i} className="read-why">
+          <TruthMark state="unresolved" /> <span className="mono">{u.spec}</span> <Cite p={u.provenance} compact />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 /**
@@ -93,7 +133,20 @@ export function Coverage(props: { go: (r: Partial<Route>) => void }) {
         </section>
 
         <section>
-          <Eyebrow>What was read</Eyebrow>
+          {(r.code ?? []).length > 0 && (
+            <>
+              <Eyebrow>What code was read</Eyebrow>
+              <p className="lede-quiet">
+                Each running application's own code, parsed. An import is resolved by path, by an alias its configuration declares, or as a module of its own
+                package; one that names its own code and matches no file is listed.
+              </p>
+              {r.code!.map((c) => (
+                <CodeRow key={c.app} c={c} go={props.go} />
+              ))}
+              <div className="eyebrow coverage-sub">Files</div>
+            </>
+          )}
+          {!(r.code ?? []).length && <Eyebrow>What was read</Eyebrow>}
           {r.read.map((f) => (
             <div key={f.file} className="read-row">
               <div className="mono small">
