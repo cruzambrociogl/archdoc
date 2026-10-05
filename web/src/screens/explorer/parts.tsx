@@ -4,7 +4,7 @@
 import { BaseEdge, EdgeLabelRenderer, Handle, Position, useStore } from '@xyflow/react'
 import type { EdgeProps, NodeProps, Node as FlowNode, Edge as FlowEdge } from '@xyflow/react'
 import { kindStyle } from '../../ui/kinds'
-import type { BoundaryData, ElementData, RouteData } from './scene'
+import type { BoundaryData, Delta, ElementData, Mark, RouteData } from './scene'
 
 // Below this zoom a box shows only its name and icon (semantic zoom, "Surface Foundations" 6.4).
 const DETAIL_ZOOM = 0.85
@@ -19,7 +19,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
 
   return (
     <div
-      className={`el el-${k.hue} ${n.evidence === 'referenced' ? 'el-referenced' : ''} ${selected ? 'el-selected' : ''} ${data.dim ? 'is-dim' : ''} ${data.match ? 'el-match' : ''}`}
+      className={`el el-${k.hue} ${n.evidence === 'referenced' ? 'el-referenced' : ''} ${selected ? 'el-selected' : ''} ${data.dim ? 'is-dim' : ''} ${data.match ? 'el-match' : ''} ${data.delta ? `el-delta-${data.delta}` : ''}`}
       title={`${n.name} · ${k.label}${n.technology ? ` · ${n.technology}` : ''}`}
     >
       {/* Edges follow stored routes; these handles only satisfy the graph library. */}
@@ -28,6 +28,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
       <div className="el-cap" />
       {data.placed && <span className="el-placed" title="Placed by a person · layout.yaml — presentation, not fact" />}
       {data.isNew && <span className="el-new">new · placed automatically</span>}
+      {data.delta && <DeltaTag mark={data.delta} />}
       <div className="el-body">
         <div className="el-head">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round">
@@ -75,11 +76,55 @@ export function RoutedEdge({ id, data, selected }: EdgeProps<FlowEdge<RouteData>
             className={`route-label nodrag nopan ${selected ? 'route-label-selected' : ''} ${data.dim ? 'is-dim' : ''}`}
             style={{ transform: `translate(-50%, -50%) translate(${data.labelAt.x}px, ${data.labelAt.y}px)` }}
           >
+            {data.delta && <DeltaTag mark={data.delta} inline />}
             {interp && <span className="mark mark-interpreted" />}
             <span className={interp ? 'route-label-interp' : ''}>{text}</span>
           </div>
         </EdgeLabelRenderer>
       )}
+    </>
+  )
+}
+
+const glyphs: Record<Mark, string> = { added: '+', changed: '±', words: '±' }
+const titles: Record<Mark, string> = {
+  added: 'Appeared since the compared version',
+  changed: 'Changed since the compared version',
+  words: 'Only words changed since the compared version — a name, a description or a label',
+}
+
+/** The corner tag of a change: solid for structure, hollow for words only. */
+export function DeltaTag({ mark, inline }: { mark: Mark; inline?: boolean }) {
+  return (
+    <span className={`delta-mark ${mark === 'words' ? 'hollow' : ''} ${inline ? 'inline' : ''}`} title={titles[mark]}>
+      {glyphs[mark]}
+    </span>
+  )
+}
+
+/** What disappeared, ghosted at its last position: dashed, struck through, tagged −. */
+export function Ghosts({ delta }: { delta: Delta }) {
+  return (
+    <>
+      <svg className="ghost-paths" style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }} width={1} height={1}>
+        {delta.ghostPaths.map((p) => (
+          <path key={p.key} d={p.d} className="ghost-path">
+            <title>{`${p.key.replace('>', ' → ')} disappeared since v${delta.from}`}</title>
+          </path>
+        ))}
+      </svg>
+      {delta.ghosts.map((g) => (
+        <div
+          key={g.id}
+          className="ghost"
+          style={{ position: 'absolute', left: g.rect.x, top: g.rect.y, width: g.rect.w, height: g.rect.h }}
+          title={`${g.name} disappeared since v${delta.from}`}
+        >
+          <span className="delta-mark">−</span>
+          <div className="ghost-name">{g.name}</div>
+          {g.tech && <div className="ghost-tech">{g.tech}</div>}
+        </div>
+      ))}
     </>
   )
 }

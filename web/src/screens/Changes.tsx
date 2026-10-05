@@ -76,7 +76,7 @@ export function Changes(props: { versions: Version[]; route: Route; go: (r: Part
               </label>
               <span className="muted">→</span>
               <span className="compare-fixed mono">{label(to)}</span>
-              <button className="text-link compare-show" onClick={() => props.go({ screen: 'explorer', v: props.route.v })}>
+              <button className="text-link compare-show" onClick={() => props.go({ screen: 'explorer', v: props.route.v, from: base })}>
                 Show on diagram
               </button>
             </div>

@@ -3,7 +3,7 @@
 // app draws the same arrangement as the committed SVG (surface-spec §10.1).
 
 import type { Edge as FlowEdge, Node as FlowNode } from '@xyflow/react'
-import type { Edge, Layout, Node, Point, Rect, SceneResponse } from '../../api'
+import type { Change, DiffResponse, Edge, Layout, Node, Point, Rect, SceneResponse } from '../../api'
 
 export interface ElementData extends Record<string, unknown> {
   node: Node
@@ -13,6 +13,8 @@ export interface ElementData extends Record<string, unknown> {
   placed: boolean
   /** Added since the arrangement was saved, so the engine placed it. */
   isNew: boolean
+  /** Its change against the compared version, if one is set. */
+  delta?: Mark
 }
 
 export interface BoundaryData extends Record<string, unknown> {
@@ -26,6 +28,74 @@ export interface RouteData extends Record<string, unknown> {
   d: string
   labelAt?: Point
   dim: boolean
+  delta?: Mark
+}
+
+// ——— the change overlay (surface-spec §5.2, §6.7) ———
+// Change is stroke weight and a corner tag, never a third hue, and never the truth-state forms.
+// Structural change (appeared, rewired, a technology or kind changed) takes a solid tag; a change
+// of words only (a name, a description, a label) takes a hollow one, so a relabel never reads as a
+// rewiring. What disappeared is ghosted at its last position.
+
+export type Mark = 'added' | 'changed' | 'words'
+
+const wordFields = new Set(['name', 'description', 'label'])
+
+export interface Delta {
+  from: number
+  to: number
+  nodes: Map<string, Mark>
+  edges: Map<string, Mark>
+  changes: Map<string, Change[]>
+  ghosts: { id: string; name: string; tech?: string; rect: Rect }[]
+  ghostPaths: { key: string; d: string }[]
+  count: { added: number; changed: number; removed: number; words: number }
+}
+
+/** The diff between two versions, as marks on this scene, and ghosts from the compared one. */
+export function toDelta(diff: DiffResponse, before: SceneResponse | undefined): Delta {
+  const x = diff.diff
+  const nodes = new Map<string, Mark>()
+  const edges = new Map<string, Mark>()
+  const changes = new Map<string, Change[]>()
+
+  for (const n of x.added_nodes ?? []) nodes.set(n.id, 'added')
+  for (const e of x.added_edges ?? []) edges.set(edgeKey(e), 'added')
+  for (const c of x.changed ?? []) {
+    const id = c.element.includes(' → ') ? c.element.replace(' → ', '>') : c.element
+    changes.set(id, [...(changes.get(id) ?? []), c])
+    const isEdge = id.includes('>')
+    const map = isEdge ? edges : nodes
+    const mark: Mark = wordFields.has(c.field) ? 'words' : 'changed'
+    if (map.get(id) !== 'added' && map.get(id) !== 'changed') map.set(id, mark)
+  }
+
+  const oldBoxes = new Map((before?.layout.boxes ?? []).map((b) => [b.id, b.rect]))
+  const oldPaths = new Map((before?.layout.paths ?? []).map((p) => [edgeKey(p), p]))
+  const ghosts = (x.removed_nodes ?? [])
+    .filter((n) => oldBoxes.has(n.id))
+    .map((n) => ({ id: n.id, name: n.name, tech: n.technology, rect: oldBoxes.get(n.id)! }))
+  const ghostPaths = (x.removed_edges ?? [])
+    .map((e) => oldPaths.get(edgeKey(e)))
+    .filter((p): p is NonNullable<typeof p> => !!p)
+    .map((p) => ({ key: edgeKey(p), d: curvePath(p.curve, p.tip) }))
+
+  const marks = [...nodes.values(), ...edges.values()]
+  return {
+    from: diff.from,
+    to: diff.to,
+    nodes,
+    edges,
+    changes,
+    ghosts,
+    ghostPaths,
+    count: {
+      added: marks.filter((m) => m === 'added').length,
+      changed: marks.filter((m) => m === 'changed').length,
+      removed: (x.removed_nodes ?? []).length + (x.removed_edges ?? []).length,
+      words: marks.filter((m) => m === 'words').length,
+    },
+  }
 }
 
 /** A Graphviz Bézier chain — a start point, then groups of three — as an SVG path, ending at the tip. */
@@ -47,7 +117,7 @@ export const edgeKey = (e: { from: string; to: string }) => `${e.from}>${e.to}`
 export function toFlow(
   sc: SceneResponse,
   layout: Layout,
-  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; editable: boolean },
+  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; editable: boolean; delta?: Delta },
 ) {
   const nodes = sc.model.nodes ?? []
   const edges = sc.model.edges ?? []
@@ -95,7 +165,7 @@ export function toFlow(
       position: { x: b.rect.x, y: b.rect.y },
       width: b.rect.w,
       height: b.rect.h,
-      data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id) } satisfies ElementData,
+      data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id) } satisfies ElementData,
       selected: opts.selected === n.id,
       draggable: opts.editable,
     })
@@ -113,7 +183,7 @@ export function toFlow(
       source: e.from,
       target: e.to,
       type: 'routed',
-      data: { edge: e, d: curvePath(p.curve, p.tip), labelAt: p.label_at, dim: !lit || (!!q && dimNode(byId.get(e.from)!) && dimNode(byId.get(e.to)!)) } satisfies RouteData,
+      data: { edge: e, d: curvePath(p.curve, p.tip), labelAt: p.label_at, dim: !lit || (!!q && dimNode(byId.get(e.from)!) && dimNode(byId.get(e.to)!)), delta: opts.delta?.edges.get(key) } satisfies RouteData,
       selected: opts.selected === key,
     })
   }

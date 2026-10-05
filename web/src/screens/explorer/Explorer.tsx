@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, useReactFlow, useStore } from '@xyflow/react'
+import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, ViewportPortal, useReactFlow, useStore } from '@xyflow/react'
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
-import type { SceneResponse } from '../../api'
+import type { DiffResponse, SceneResponse, Version } from '../../api'
 import { action, useApi } from '../../api'
 import type { Route } from '../../route'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
 import { Inspector } from '../Inspector'
 import { Legend } from './Legend'
-import { Markers, edgeTypes, nodeTypes } from './parts'
-import type { Draft, ElementData } from './scene'
-import { arrangeDraft, membersOf, toFlow } from './scene'
+import { Ghosts, Markers, edgeTypes, nodeTypes } from './parts'
+import type { Delta, Draft, ElementData } from './scene'
+import { arrangeDraft, membersOf, toDelta, toFlow } from './scene'
 import { SaveView } from './SaveView'
 
 export type Level = 'context' | 'container'
@@ -31,7 +31,14 @@ type Go = (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void
  * the engine draws it everywhere. Level, selection, search and focus live in the URL, which is
  * what a saved view (S-7) records.
  */
-export function Explorer(props: { version: number | null; route: Route; go: Go; editable: boolean; onViewsChanged: () => void }) {
+export function Explorer(props: {
+  version: number | null
+  versions: Version[]
+  route: Route
+  go: Go
+  editable: boolean
+  onViewsChanged: () => void
+}) {
   const level: Level = props.route.level === 'context' ? 'context' : 'container'
   const [reload, setReload] = useState(0)
   const q = props.version ? `&version=${props.version}` : ''
@@ -40,12 +47,29 @@ export function Explorer(props: { version: number | null; route: Route; go: Go; 
   // Only the latest version can be arranged: an arrangement is for the architecture as it is now.
   const editable = props.editable && props.version === null
 
+  // The change overlay: the diff against the compared version, and that version's scene for ghosts.
+  const current = scene.data?.version
+  const compare = props.route.from !== undefined && props.route.from !== current ? props.route.from : undefined
+  const diff = useApi<DiffResponse>(compare !== undefined && current !== undefined ? `/api/diff?from=${compare}&to=${current}` : null)
+  const before = useApi<SceneResponse>(compare !== undefined ? `/api/scene?view=${level}&version=${compare}` : null)
+  const delta = useMemo(() => (diff.data ? toDelta(diff.data, before.data) : undefined), [diff.data, before.data])
+
   const select = (id: string | null) =>
-    props.go({ screen: 'explorer', level: props.route.level, focus: id ?? undefined, q: props.route.q, dim: props.route.dim }, { replace: true })
+    props.go({ screen: 'explorer', level: props.route.level, focus: id ?? undefined, q: props.route.q, dim: props.route.dim, from: props.route.from }, { replace: true })
 
   return (
     <div className="explorer">
-      <Toolbar level={level} version={props.version} go={props.go} route={props.route} editable={editable} scene={scene.data} onViewsChanged={props.onViewsChanged} />
+      <Toolbar
+        level={level}
+        version={props.version}
+        versions={props.versions}
+        current={current}
+        go={props.go}
+        route={props.route}
+        editable={editable}
+        scene={scene.data}
+        onViewsChanged={props.onViewsChanged}
+      />
       {scene.error && (
         <div className="explorer-state">
           <Failure error={scene.error} />
@@ -66,6 +90,7 @@ export function Explorer(props: { version: number | null; route: Route; go: Go; 
             selected={selected}
             onSelect={select}
             editable={editable}
+            delta={delta}
             reload={() => setReload((n) => n + 1)}
           />
         </ReactFlowProvider>
@@ -77,6 +102,8 @@ export function Explorer(props: { version: number | null; route: Route; go: Go; 
 function Toolbar(props: {
   level: Level
   version: number | null
+  versions: Version[]
+  current?: number
   go: Go
   route: Route
   editable: boolean
@@ -100,6 +127,24 @@ function Toolbar(props: {
           </button>
         ))}
       </div>
+      <label className={`tool compare ${props.route.from !== undefined ? 'on' : ''}`} title="Mark on the diagram what changed since another version">
+        <span className="mono strong">Δ</span>
+        <select
+          value={props.route.from ?? ''}
+          onChange={(e) => props.go({ screen: 'explorer', from: e.target.value ? Number(e.target.value) : undefined }, { keep: true, replace: true })}
+        >
+          <option value="">Compare with…</option>
+          {[...props.versions]
+            .sort((a, b) => b.id - a.id)
+            .filter((v) => v.id !== props.current)
+            .map((v) => (
+              <option key={v.id} value={v.id}>
+                v{v.id} · {new Date(v.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                {v.commit ? ` · ${v.commit.slice(0, 7)}` : ''}
+              </option>
+            ))}
+        </select>
+      </label>
       <div className="toolbar-gap" />
       {props.editable && (
         <button className="tool" onClick={() => setSaving(true)} title="Name this view — level, selection, search and focus — and keep it in views.yaml">
@@ -133,6 +178,7 @@ function Arranged(props: {
   selected: string | null
   onSelect: (id: string | null) => void
   editable: boolean
+  delta?: Delta
   reload: () => void
 }) {
   const { scene } = props
@@ -198,11 +244,17 @@ function Arranged(props: {
             onSelect={props.onSelect}
             editable={props.editable}
             setDraft={setDraft}
+            delta={props.delta}
           />
         </div>
-        <Inspector model={scene.model} id={props.selected} onSelect={props.onSelect} />
+        <Inspector
+          model={scene.model}
+          id={props.selected}
+          onSelect={props.onSelect}
+          changes={props.selected && props.delta ? { from: props.delta.from, mark: props.delta.nodes.get(props.selected) ?? props.delta.edges.get(props.selected), list: props.delta.changes.get(props.selected) ?? [] } : undefined}
+        />
       </div>
-      <StatusBar scene={scene} selected={props.selected} route={props.route} />
+      <StatusBar scene={scene} selected={props.selected} route={props.route} delta={props.delta} />
     </>
   )
 }
@@ -286,6 +338,7 @@ function Canvas(props: {
   onSelect: (id: string | null) => void
   editable: boolean
   setDraft: (d: Draft | ((d: Draft) => Draft)) => void
+  delta?: Delta
 }) {
   const { scene, route, selected } = props
   const find = route.q ?? ''
@@ -296,12 +349,12 @@ function Canvas(props: {
   const dragStart = useRef<DragStart | null>(null)
 
   const { nodes, edges } = useMemo(
-    () => toFlow(scene, props.layout, { selected, focus, find, placed: props.placed, isNew: props.isNew, editable: props.editable }),
-    [scene, props.layout, selected, focus, find, props.placed, props.isNew, props.editable],
+    () => toFlow(scene, props.layout, { selected, focus, find, placed: props.placed, isNew: props.isNew, editable: props.editable, delta: props.delta }),
+    [scene, props.layout, selected, focus, find, props.placed, props.isNew, props.editable, props.delta],
   )
 
   const setRoute = (patch: Partial<Route>) =>
-    props.go({ screen: 'explorer', level: route.level, focus: route.focus, q: route.q, dim: route.dim, ...patch }, { replace: true })
+    props.go({ screen: 'explorer', level: route.level, focus: route.focus, q: route.q, dim: route.dim, from: route.from, ...patch }, { replace: true })
 
   // A new scene — another level or version — is framed whole.
   useEffect(() => {
@@ -404,11 +457,14 @@ function Canvas(props: {
         elementsSelectable
         minZoom={0.1}
         maxZoom={2.5}
-        fitView
-        fitViewOptions={{ padding: 0.08, maxZoom: 1.2 }}
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={18} size={1.2} color="var(--canvas-dot)" />
+        {props.delta && (
+          <ViewportPortal>
+            <Ghosts delta={props.delta} />
+          </ViewportPortal>
+        )}
         <MiniMap
           pannable
           zoomable
@@ -455,16 +511,23 @@ function ZoomControls({ editable }: { editable: boolean }) {
   )
 }
 
-function StatusBar({ scene, selected, route }: { scene: SceneResponse; selected: string | null; route: Route }) {
+function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; selected: string | null; route: Route; delta?: Delta }) {
   const n = scene.model.nodes?.length ?? 0
   const e = scene.model.edges?.length ?? 0
-  const url = [`level=${scene.view}`, selected && `focus=${selected}`, route.q && `q=${route.q}`, route.dim && 'dim=1'].filter(Boolean).join('&')
+  const url = [`level=${scene.view}`, selected && `focus=${selected}`, route.q && `q=${route.q}`, route.dim && 'dim=1', route.from !== undefined && `from=${route.from}`]
+    .filter(Boolean)
+    .join('&')
   return (
     <div className="explorer-status">
       <span>
         {n} elements · {e} relationships
       </span>
       <span>v{scene.version}</span>
+      {delta && (
+        <span className="status-delta">
+          Δ v{delta.from} → v{delta.to} · +{delta.count.added} · ±{delta.count.changed} · −{delta.count.removed} · {delta.count.words} words only
+        </span>
+      )}
       <span className="status-url">#{url}</span>
     </div>
   )

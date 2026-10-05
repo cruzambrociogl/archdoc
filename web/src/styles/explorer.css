@@ -637,3 +637,117 @@
     transition: none;
   }
 }
+
+/* ——— the change overlay: weight and a corner tag, no third hue (§6.7) ——— */
+
+.el-delta-added,
+.el-delta-changed {
+  border-width: 3px;
+}
+.el-delta-words {
+  border-width: 2px;
+}
+.delta-mark {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid #15201e;
+  background: #15201e;
+  color: #fbfcfc;
+  font: 700 11px/17px var(--font-mono);
+  text-align: center;
+  z-index: 2;
+}
+.delta-mark.hollow {
+  background: #ffffff;
+  color: #15201e;
+}
+.delta-mark.inline {
+  position: static;
+  display: inline-block;
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+  line-height: 14px;
+}
+.inspector .delta-mark.inline {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.inspector .delta-mark.inline.hollow {
+  background: transparent;
+  color: var(--ink);
+}
+
+.ghost {
+  box-sizing: border-box;
+  border: 1.5px dashed #6d7a77;
+  border-radius: 3px;
+  background: #fbfcfc;
+  opacity: 0.75;
+  padding: 10px 11px;
+  color: #46514f;
+  pointer-events: auto;
+}
+.ghost-name {
+  font: 600 12.5px var(--font-sans);
+  text-decoration: line-through;
+}
+.ghost-tech {
+  margin-top: 4px;
+  font: 10.5px var(--font-mono);
+}
+.ghost-path {
+  fill: none;
+  stroke: #98a2a0;
+  stroke-width: 1.25;
+  stroke-dasharray: 4 3;
+}
+
+.tool.compare {
+  gap: 6px;
+  padding: 2px 4px 2px 10px;
+}
+.tool.compare select {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: 12px var(--font-sans);
+  padding: 3px 2px;
+  cursor: pointer;
+}
+.tool.compare.on select option {
+  color: var(--ink);
+  background: var(--chip);
+}
+.status-delta {
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 0 6px;
+}
+
+.change-note {
+  margin: 12px 16px 0;
+  padding: 9px 11px;
+  border: 1px solid var(--ink);
+}
+.change-note-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+.change-note-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+  align-items: baseline;
+  overflow-wrap: anywhere;
+}

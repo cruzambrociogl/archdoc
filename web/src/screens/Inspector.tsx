@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Edge, Model, Node, Provenance } from '../api'
+import type { Change, Edge, Model, Node, Provenance } from '../api'
 import { Cite } from '../ui/Cite'
 import { KindTile } from '../ui/KindTile'
 import { kindStyle } from '../ui/kinds'
@@ -10,7 +10,9 @@ import { Eyebrow, TruthChip, TruthMark } from '../ui/marks'
  * value carries its own citation. The element itself is always proven — existence comes only from
  * extraction — so only its values can be interpreted, and they are marked one by one.
  */
-export function Inspector({ model, id, onSelect }: { model: Model; id: string | null; onSelect: (id: string) => void }) {
+type Changes = { from: number; mark?: 'added' | 'changed' | 'words'; list: Change[] }
+
+export function Inspector({ model, id, onSelect, changes }: { model: Model; id: string | null; onSelect: (id: string) => void; changes?: Changes }) {
   const nodes = model.nodes ?? []
   const edges = model.edges ?? []
   const node = nodes.find((n) => n.id === id)
@@ -23,6 +25,7 @@ export function Inspector({ model, id, onSelect }: { model: Model; id: string | 
         <Eyebrow>Inspector</Eyebrow>
         <span className="mono muted small">{what}</span>
       </div>
+      {(node || edge) && changes?.mark && <ChangeNote changes={changes} />}
       {node ? (
         <Passport node={node} nodes={nodes} edges={edges} onSelect={onSelect} />
       ) : edge ? (
@@ -31,6 +34,28 @@ export function Inspector({ model, id, onSelect }: { model: Model; id: string | 
         <Index nodes={nodes} edges={edges} onSelect={onSelect} />
       )}
     </aside>
+  )
+}
+
+/** What changed about the selection since the compared version. */
+function ChangeNote({ changes }: { changes: Changes }) {
+  const label = changes.mark === 'added' ? 'Appeared' : changes.mark === 'words' ? 'Words only' : 'Changed'
+  return (
+    <div className="change-note">
+      <div className="change-note-head">
+        <span className={`delta-mark inline ${changes.mark === 'words' ? 'hollow' : ''}`}>{changes.mark === 'added' ? '+' : '±'}</span>
+        <span className="strong">{label}</span>
+        <span className="mono muted small">since v{changes.from}</span>
+      </div>
+      {changes.list.map((c, i) => (
+        <div key={i} className="change-note-row">
+          <span className="fact-key">{c.field}</span>
+          <span className="mono small">
+            {c.before || '—'} → {c.after || '—'}
+          </span>
+        </div>
+      ))}
+    </div>
   )
 }
 

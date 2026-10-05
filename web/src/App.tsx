@@ -81,7 +81,7 @@ export function App() {
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
             {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} />}
             {route.screen === 'explorer' && (
-              <Explorer version={version} route={route} go={go} editable onViewsChanged={() => setViewsKey((k) => k + 1)} />
+              <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable onViewsChanged={() => setViewsKey((k) => k + 1)} />
             )}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
