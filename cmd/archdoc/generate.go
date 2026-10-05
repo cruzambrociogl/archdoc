@@ -9,9 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/arrange"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
@@ -168,8 +170,24 @@ func generate(args []string, out io.Writer) error {
 		render.CoverageFile: render.Coverage(m, *facts, reported(result), meta),
 	}
 	if meta.Pictures {
-		generated["context.svg"] = render.SVG(m.Context(), layouts["context"])
-		generated["container.svg"] = render.SVG(m.Container(), layouts["container"])
+		// The committed pictures show the diagrams as a person arranged them in the app
+		// (layout.yaml); the engine's own layout is what is stored, so resetting loses nothing.
+		arrangement, _, err := arrange.LoadLayout(facts.Root)
+		if err != nil {
+			fmt.Fprintf(out, "warning: %v — drawing the engine's layout instead\n", err)
+			arrangement = arrange.Arrangement{}
+		}
+		for _, view := range []struct {
+			name string
+			m    archdoc.Model
+		}{{"context", m.Context()}, {"container", m.Container()}} {
+			l, rep := arrange.Apply(view.name, layouts[view.name], arrangement)
+			generated[view.name+".svg"] = render.SVG(view.m, l)
+			if len(rep.Stale) > 0 {
+				fmt.Fprintf(out, "%s/%s: %d saved position(s) in the %s view match nothing: %s\n",
+					arrange.Dir, arrange.LayoutFile, len(rep.Stale), view.name, strings.Join(rep.Stale, ", "))
+			}
+		}
 	}
 	for name, content := range render.Arc42(m, *facts, plan, meta) {
 		generated[name] = content

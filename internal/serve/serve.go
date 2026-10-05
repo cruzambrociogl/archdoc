@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/arrange"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
@@ -76,6 +77,12 @@ func New(root string) (*Server, error) {
 	s.mux.HandleFunc("GET /api/docs/{name}", s.doc)
 	s.mux.HandleFunc("GET /api/completeness", s.completeness)
 	s.mux.HandleFunc("GET /api/questions", s.questions)
+	s.mux.HandleFunc("GET /api/views", s.views)
+
+	// Actions — each one behind the gate (guard.go).
+	s.mux.HandleFunc("/api/layout", s.action(s.saveLayout))
+	s.mux.HandleFunc("/api/layout/reset", s.action(s.resetLayout))
+	s.mux.HandleFunc("/api/views/save", s.action(s.saveView))
 	s.mux.Handle("/", s.frontend())
 	return s, nil
 }
@@ -236,19 +243,24 @@ func (s *Server) model(w http.ResponseWriter, r *http.Request) {
 
 // scene is a view with the layout it is drawn at — what the app draws, and what the committed SVG
 // is drawn from. Both come from laidOut, so the page and the repository show one arrangement
-// (surface-spec §10.1).
+// (surface-spec §10.1). The report says what a person placed, what is new since, and which saved
+// positions name nothing; the hash is the layout.yaml the page must hand back to save.
 func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
-	v, name, view, l, err := s.laidOut(r)
+	v, name, view, l, rep, hash, err := s.laidOut(r)
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	send(w, map[string]any{"version": v.ID, "view": name, "model": view, "layout": l})
+	send(w, map[string]any{
+		"version": v.ID, "view": name, "model": view, "layout": l,
+		"arrangement": map[string]any{"file": arrange.Dir + "/" + arrange.LayoutFile, "hash": hash,
+			"placed": rep.Placed, "new": rep.New, "stale": rep.Stale},
+	})
 }
 
 // svg draws a view exactly as the committed SVG draws it — the export of the same scene.
 func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
-	_, _, view, l, err := s.laidOut(r)
+	_, _, view, l, _, _, err := s.laidOut(r)
 	if err != nil {
 		fail(w, err)
 		return
@@ -257,12 +269,16 @@ func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(render.SVG(view, l)))
 }
 
-// laidOut resolves the requested version and view, with its stored layout when there is a current
-// one, computing one only when the stored layout is missing or from an older engine.
-func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model, archdoc.Layout, error) {
+// laidOut resolves the requested version and view at the layout it is drawn at: the stored one
+// when it is current, computed only when missing or from an older engine — then arranged as a
+// person placed it in layout.yaml.
+func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model, archdoc.Layout, arrange.Report, string, error) {
+	none := func(err error) (*store.Version, string, archdoc.Model, archdoc.Layout, arrange.Report, string, error) {
+		return nil, "", archdoc.Model{}, archdoc.Layout{}, arrange.Report{}, "", err
+	}
 	v, err := s.version(r, "version")
 	if err != nil {
-		return nil, "", archdoc.Model{}, archdoc.Layout{}, err
+		return none(err)
 	}
 
 	name := r.URL.Query().Get("view")
@@ -273,17 +289,22 @@ func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model
 	case "container", "":
 		name, view = "container", v.Model.Container()
 	default:
-		return nil, "", archdoc.Model{}, archdoc.Layout{}, fmt.Errorf("unknown view %q", name)
+		return none(fmt.Errorf("unknown view %q", name))
 	}
 
 	l, ok := v.Layouts[name]
 	if !ok || l.Version != render.LayoutVersion {
 		l, err = render.Layout(r.Context(), view, name == "container")
 		if err != nil {
-			return nil, "", archdoc.Model{}, archdoc.Layout{}, err
+			return none(err)
 		}
 	}
-	return v, name, view, l, nil
+	a, hash, err := arrange.LoadLayout(s.root)
+	if err != nil {
+		return none(err)
+	}
+	arranged, rep := arrange.Apply(name, l, a)
+	return v, name, view, arranged, rep, hash, nil
 }
 
 func (s *Server) diff(w http.ResponseWriter, r *http.Request) {
