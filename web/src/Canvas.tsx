@@ -10,9 +10,14 @@ type View = 'container' | 'context'
  * nothing itself. Every element in it is a <g id="…">, which is all the page needs to make it
  * clickable.
  */
-export function Canvas({ version }: { version: number | null }) {
-  const [view, setView] = useState<View>('container')
-  const [selected, setSelected] = useState<string | null>(null)
+export function Canvas(props: {
+  version: number | null
+  level: View
+  selected: string | null
+  onLevel: (v: View) => void
+  onSelect: (id: string | null) => void
+}) {
+  const { version, level: view, selected, onLevel: setView, onSelect: setSelected } = props
   const [fit, setFit] = useState(true)
   const q = version ? `&version=${version}` : ''
   const svg = useApi<string>(`/api/svg?view=${view}${q}`, 'text')

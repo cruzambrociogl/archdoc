@@ -1,0 +1,302 @@
+/* The frame every screen sits in: top bar, left navigation, main column (surface-spec §4.1). */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--t-body);
+}
+
+kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  opacity: 0.7;
+}
+
+/* ——— top bar ——— */
+
+.topbar {
+  flex: 0 0 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+  min-width: 0;
+}
+.topbar-spacer {
+  flex: 1;
+}
+.topbar-menu {
+  display: none;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+}
+.brand-mark {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.brand-repo {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.version-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 9px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.version-pick select {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  padding: 5px 2px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font: 600 12.5px var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.btn-ink {
+  background: var(--ink);
+  color: var(--on-ink);
+  border: 1px solid var(--ink);
+}
+.btn-ink:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.btn-outline {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  font-weight: 400;
+}
+.btn-outline:hover {
+  border-color: var(--accent);
+}
+
+.icon-btn {
+  width: 30px;
+  height: 28px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--chip);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  flex: 0 0 auto;
+}
+
+.mode-badge {
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+/* ——— body ——— */
+
+.shell-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+.nav {
+  flex: 0 0 200px;
+  width: 200px;
+  background: var(--panel);
+  border-right: 1px solid var(--rule);
+  overflow: auto;
+  padding: 12px 0;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--ink);
+  font: 400 13px var(--font-sans);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.nav-item:hover {
+  background: var(--hover);
+}
+.nav-item.depth-1 {
+  padding-left: 22px;
+  font-size: 12.5px;
+}
+.nav-item.depth-2 {
+  padding-left: 36px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.nav-item.active {
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--hover);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.nav-header {
+  cursor: default;
+  font-weight: 600;
+  font-size: var(--t-eyebrow);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 10px;
+}
+.nav-header:hover {
+  background: none;
+}
+.nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-badge {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.nav-divider {
+  height: 1px;
+  background: var(--rule);
+  margin: 10px 14px;
+}
+.nav-scrim {
+  display: none;
+}
+
+.shell-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+  background: var(--surface);
+}
+.shell-main.page {
+  padding: 28px 36px 56px;
+}
+.shell-main.bleed {
+  padding: 12px 14px;
+}
+
+/* Narrow: the navigation becomes a drawer (surface-spec §4.1). */
+@media (max-width: 1100px) {
+  .topbar-menu {
+    display: block;
+  }
+  .nav {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.15s ease;
+    box-shadow: none;
+  }
+  .nav.open {
+    transform: none;
+    box-shadow: 0 20px 40px -20px rgba(21, 32, 30, 0.5);
+  }
+  .nav-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: rgba(21, 32, 30, 0.16);
+  }
+  .shell-main.page {
+    padding: 20px 16px 48px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    gap: 8px;
+    padding: 0 8px;
+  }
+  .version-pick .mono,
+  .brand-repo,
+  .btn kbd,
+  .btn-text,
+  .mode-badge {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav {
+    transition: none;
+  }
+}
+
+@media print {
+  .topbar,
+  .nav,
+  .nav-scrim {
+    display: none;
+  }
+  .shell,
+  .shell-main {
+    height: auto;
+    overflow: visible;
+    background: #fff;
+  }
+}
