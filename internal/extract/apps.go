@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/code"
 )
 
 // Applications, found by their manifests (F-02, vision D-5).
@@ -391,4 +392,23 @@ func goMod(root, rel string) *archdoc.App {
 	}
 	app.Role, app.Why = archdoc.RoleLibrary, "a Go module with no main package"
 	return app
+}
+
+// sources reads the code of every application that runs as a container (F-03). A package nested
+// inside another's directory is its own; the reader leaves it to its own manifest.
+func sources(root string, apps []archdoc.App) []archdoc.Source {
+	dirs := make([]string, 0, len(apps))
+	for _, a := range apps {
+		dirs = append(dirs, a.Dir)
+	}
+	var out []archdoc.Source
+	for _, a := range apps {
+		if !a.Role.Container() {
+			continue
+		}
+		if src, ok := code.Read(root, a, dirs); ok {
+			out = append(out, src)
+		}
+	}
+	return out
 }

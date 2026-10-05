@@ -209,6 +209,60 @@ type FactSet struct {
 	// relative, or empty when none was found. Sample is set when it is a sample — example.env,
 	// .env.example, .env.sample — whose values are defaults a real deployment may override.
 	Interpolation *EnvSource `json:"interpolation,omitempty"`
+
+	// Sources are the code of each application that runs as a container, read with a parser
+	// (F-03): its files and what each one imports. Applications in a language archdoc does not
+	// read yet have none, and coverage says so.
+	Sources []Source `json:"sources,omitempty"`
+}
+
+// Source is what archdoc read of one application's own code.
+type Source struct {
+	App  string `json:"app"`  // the application's directory, repository-relative
+	Root string `json:"root"` // where its code starts — src/, its Python package, or the directory itself
+	// Files are in path order; tests, type declarations and other applications nested inside are
+	// not read.
+	Files []SourceFile `json:"files"`
+}
+
+// SourceFile is one file and what it imports.
+type SourceFile struct {
+	Path     string   `json:"path"` // repository-relative
+	Language string   `json:"language"`
+	Lines    int      `json:"lines"`
+	Imports  []Import `json:"imports,omitempty"`
+	// Partial is set when the parser recovered from something it could not read in the file;
+	// what it did read is still reported, and the gap is coverage, not a guess.
+	Partial bool `json:"partial,omitempty"`
+}
+
+// Resolution is how an import was tied to what it names (vision D-4: the provenance of a link
+// records how it was resolved, because a path and a convention are not equally strong evidence).
+type Resolution string
+
+const (
+	// ByPath: a relative import, joined to the importing file's directory.
+	ByPath Resolution = "path"
+	// ByAlias: a path alias the application's configuration declares (tsconfig paths, baseUrl)
+	// or its framework defines ($lib in SvelteKit).
+	ByAlias Resolution = "alias"
+	// ByModule: a Python absolute import, found as a module of the application's own package.
+	ByModule Resolution = "module"
+	// ByPackage: not the application's own code — a dependency, the standard library, or a
+	// framework's virtual module. Package names it.
+	ByPackage Resolution = "package"
+	// Unresolved: it looks like the application's own code and no file matches. Kept, so the gap
+	// is visible rather than silently dropped (vision D-6).
+	Unresolved Resolution = "unresolved"
+)
+
+// Import is one thing a file imports, at the line that imports it.
+type Import struct {
+	Spec    string     `json:"spec"`              // as written: "./album.service", "src/utils/misc", ".core"
+	Target  string     `json:"target,omitempty"`  // the repository file it resolves to
+	Package string     `json:"package,omitempty"` // for ByPackage: "@nestjs/common", "fastapi"
+	How     Resolution `json:"how"`
+	Prov    Provenance `json:"provenance"`
 }
 
 // AppRole is what a manifest's package is, judged from what it depends on and declares.

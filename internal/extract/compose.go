@@ -63,6 +63,7 @@ func Scan(root string) (*archdoc.FactSet, error) {
 	// Applications are found whether or not there is a Compose file: most repositories are
 	// code, and a repository with no Compose file at all still has applications to document.
 	fs.Apps = Apps(abs)
+	fs.Sources = sources(abs, fs.Apps)
 
 	if chosen == "" {
 		return fs, nil // nothing more to extract; the candidate list still explains why

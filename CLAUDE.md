@@ -101,6 +101,7 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 |---|---|
 | `internal/archdoc` | Core types, and the view projections over them |
 | `internal/extract` | Discovery, and every file archdoc reads |
+| `internal/code` | Source code: parsing (tree-sitter, five grammars) and imports, called by extract |
 | `internal/model` | Facts → graph |
 | `internal/validate` | The gate — every change to the model passes through it |
 | `internal/rules` | `rules.yaml` — corrections that survive regeneration |

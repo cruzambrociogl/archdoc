@@ -679,7 +679,10 @@ the answer for a file to attach or open offline, if it is ever wanted.
 **2026-10-05 — Parsing code: gotreesitter, pure Go (F-01, D-4)**
 The binary must stay one static file with no cgo (NFR-10), and every Go tree-sitter binding but one
 needs cgo. gotreesitter is a pure-Go tree-sitter runtime that loads the upstream grammars' parse
-tables, with build tags that embed only the grammars archdoc ships. Measured before choosing:
+tables. Its `grammars` package embeds all 206 grammars and takes over ten minutes to compile, so
+`internal/code` imports one package per grammar instead (`grammars/typescript`, `tsx`, `javascript`,
+`python`, `svelte`): a plain `go build` in seconds, no build tags, and +11 MB on the binary (35 → 46
+MB). Measured before choosing:
 Immich's server, 543 TypeScript files (3.4 MB), parsed in 1.0 s, finding 47 controllers and 301
 routes each at its line; 7 files carry one known grammar gap (a tagged template with a type argument,
 Kysely's ``sql<T>`…` ``), recovered locally inside SQL bodies archdoc never reads. Python: Immich's
