@@ -65,6 +65,14 @@ raised, not quietly promoted over it.
       Mastodon remains). Immich is needed for the hand-drawn reference (F-44) and the Code Wiki /
       DeepWiki comparison (F-43); Supabase is the scale case. Re-clone at the pinned revisions in
       `docs/survey-test-subjects.md` §Method before the evidence sprint (20 Oct)
+- [ ] `rules.yaml` is read from the repository root (`internal/rules`, `Name`), but
+      `product-definition.md` §7 places it at `.archdoc/rules.yaml` — the definition wins. Matters
+      now: C-2 lets the app append to it, and the root is outside the closed write set. Move it into
+      `.archdoc/` before building the correction composer; update §8 "Who writes what" (rules are no
+      longer editor-only) when C-2 is folded into the definition
+- [ ] The surface design's settings panel assumes `.archdoc/config.yaml` and flags that do not exist
+      (`--egress`, `--model`, `--provider`, `--effort`, `--rules`, `--out`); today only `--label`,
+      `--site`, `--stdout`, `--explain-gaps`, `--port`. The panel shows only what exists until they land
 - [ ] Relationships are not clickable on the canvas (the SVG groups boxes, not arrows); they are
       inspected from either end in the inspector. Fine for the review; revisit if it confuses
 
