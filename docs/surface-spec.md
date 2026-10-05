@@ -154,7 +154,7 @@ one application, run in two modes.**
 | | **Live** — `archdoc serve` | **Published** — `archdoc export --site` |
 |---|---|---|
 | What it is | The app, served from the binary, reading the store through `/api` | The same app, built as static files with the data baked in as JSON |
-| Who sees it | The developer, on their machine | Their team, from GitHub Pages or any static host; or a folder opened from disk |
+| Who sees it | The developer, on their machine | Their team, from GitHub Pages or any static host — previewed locally with any static server (not from `file://`: decided 2026-10-05) |
 | Data | Every version in the store | The current version, plus the change since a chosen earlier version |
 | "Open the line" | `vscode://` to the local file (today's behaviour) | A link to the file and line at the commit on the repository's host, when a remote is known; otherwise the path as text |
 | Rules screen | Full: rules, operations, findings | Read-only list of the corrections in force |

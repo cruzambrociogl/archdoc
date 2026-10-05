@@ -666,3 +666,12 @@ time), and the app drew the stored scene with React Flow in 177 ms, every route 
 wheel-zooming and panning zoomed in held 60 fps (95th-percentile frame 16.7 ms) in headless Chrome
 without a GPU, with no errors. The renderer is not the limit at this size; legibility is — fitting
 300 boxes needs 10% zoom — which is what D-11's capped overviews and focus views are for.
+
+**2026-10-05 — The published site is served, not opened from disk**
+surface-spec §3 said the published site could be "a folder opened from disk". It cannot, cheaply:
+browsers refuse to load the app's ES-module scripts and its fonts from a file:// page, not only its
+data, so supporting it would mean building the whole app — the live one included — as classic
+scripts, and still losing the fonts. The site exists to be hosted (GitHub Pages, any static host,
+built by CI), and previewing it locally is one command (`python3 -m http.server 8080 -d …`), which
+export prints. The spec is corrected. A single self-contained HTML export (vision D-10, F-23) remains
+the answer for a file to attach or open offline, if it is ever wanted.
