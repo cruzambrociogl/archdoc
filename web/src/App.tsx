@@ -9,7 +9,7 @@ import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
-import { Timeline } from './Timeline'
+import { Changes } from './screens/Changes'
 import { Rules } from './Rules'
 import { Docs } from './Docs'
 import { Completeness } from './Completeness'
@@ -88,9 +88,7 @@ export function App() {
                 onSelect={(focus) => go({ screen: 'explorer', level: route.level, focus: focus ?? undefined }, { replace: true })}
               />
             )}
-            {route.screen === 'changes' && (
-              <Timeline versions={versions.data ?? []} onOpen={(v) => go({ screen: 'explorer', v })} />
-            )}
+            {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && (
               <>
                 <Docs />
