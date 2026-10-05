@@ -30,16 +30,18 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │  3  DERIVE     facts → one graph                 │ ✅
    │                kinds · edges · actors · external │
    │                                                  │
-   │  4  REFINE     your rules.yaml corrections       │ ✅
+   │  4  REFINE     your .archdoc/rules.yaml          │ ✅
    │                                                  │
    │  5  LABEL      ← the LLM, and only here          │ 🟡
    │                names, descriptions, groupings    │
    │                                                  │
    │  6  VALIDATE   reject contradictions             │ ✅
    │                                                  │
-   │  7  STORE      a version when it changed (SQLite)│ ✅
+   │  7  STORE      a version when the architecture   │ ✅
+   │                changed (SQLite), layout stored   │
    │                                                  │
-   │  8  RENDER     C4 SVG + Mermaid, layout stored   │ ✅
+   │  8  RENDER     C4 SVG as you arranged it,        │ ✅
+   │                Mermaid, arc42, coverage report   │
    └──────────────────────────────────────────────────┘
                           │
                           ▼
@@ -48,12 +50,22 @@ A quick orientation. The authoritative versions are §11 (pipeline) and §8 (out
    │  docs/architecture/                              │
    │     ├── index.generated.md   both diagrams       │
    │     ├── 01..12  arc42 — 5 generated, 7 yours     │
+   │     ├── coverage.generated.md  what it missed    │
    │     ├── *.mmd   diagrams as text                 │
    │     └── *.svg   the drawn C4 diagrams            │
    │  .archdoc/                                       │
-   │     ├── model.json   committed — the record      │
-   │     └── history.db   local cache, git-ignored    │
+   │     ├── model.json     committed — the record    │
+   │     ├── coverage.json  committed — as data       │
+   │     ├── rules.yaml · layout.yaml · views.yaml    │
+   │     │                  committed — yours         │
+   │     └── history.db     local cache, git-ignored  │
    └──────────────────────────────────────────────────┘
+                          │
+              ┌───────────┴────────────┐
+              ▼                        ▼
+       archdoc serve            archdoc export --site
+       the live app             the same app, static,
+       (this machine)           for a team (.archdoc/site)
 ```
 
 ---
@@ -107,7 +119,7 @@ question.
 | **3 Component** | 🟡 R1.b | Needs a new evidence source: build manifests or static analysis |
 | 4 Code | ❌ Never | Out of scope by design. C4 itself suggests UML here |
 | 5 Dynamic | ❌ Not planned | Needs call-flow analysis or runtime traces; we read static configuration |
-| 6 Deployment | ⚠️ If orchestrator manifests return | Compose alone yields a shallow one — a host containing containers. Real value arrives with Kubernetes, which is R2 |
+| 6 Deployment | 🟡 As a table, arc42 §7 (F-15) | What Compose states — the image each container runs, published ports, networks, what the repository mounts in — every row cited. A drawn deployment diagram earns its place with orchestrator manifests, which are R2 |
 | 7 System Landscape | ❌ **Structurally impossible** | §3's vantage point: archdoc sees inside *one* repository and treats everything else as opaque. A landscape needs to see inside many. archdoc would be a **participant** in that pattern — the thing that produces one team's model for a shared catalog |
 
 **Two is the right target, not a shortfall.** C4's author, on the same point: *"Most
@@ -200,21 +212,28 @@ is as good as the environment**, and the environment is usually somewhere else.
 | 1 Discover | `internal/extract` | Content-sniff for recall, reject fragments for precision |
 | 2 Extract | `internal/extract` | Two passes — O-8 established that positions do not survive the merge. Also reads what the compose file *points at*: dotenv files it names, and gateway configs it mounts |
 | 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws |
-| 4 Refine | `internal/rules` | `rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment. Compiles to the same operations the semantic layer emits |
-| 5 Label | `internal/semantic` | The only package permitted outbound calls. Opt-in with `--label`; built and tested offline, not yet run against the live API |
+| 4 Refine | `internal/rules` | `.archdoc/rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment. Compiles to the same operations the semantic layer emits |
+| 5 Label | `internal/semantic` | The only package permitted outbound calls. Opt-in with `--label`; run live on Supabase, where structure was identical with it on and off (AC-2) |
 | 6 Validate | `internal/validate` | Every rule traceable to a failure seen in the draw.io experiment. Two severities: wrong is refused, thin is published and reported |
-| 7 Store | `internal/store` | SQLite, cgo-free. A run that changes nothing records nothing |
-| 8 Render | `internal/render` | Graphviz places, archdoc draws the C4 SVG from stored coordinates; Mermaid kept as text |
+| 7 Store | `internal/store` | SQLite, cgo-free. A version is a change of *architecture*: a run that changes nothing records nothing, and a moved citation refreshes the latest version instead of minting one |
+| 8 Render | `internal/render` | Graphviz places, archdoc draws the C4 SVG from stored coordinates, as arranged; Mermaid kept as text; the coverage report as a page and as data |
+| — Arrange | `internal/arrange` | `layout.yaml` and `views.yaml`: where a person put the boxes, and the views they named. Applied over the stored layout, never instead of it |
+| — Serve, export | `internal/serve` | The API, the action gate, and the published site built by asking the API's own handlers |
 
-## Two ways in, one engine
+## Three ways in, one engine
 
 ```
 archdoc scan | generate | history | runs       the command line
-archdoc serve                                  the same engine, in a browser
+archdoc serve                                  the same engine, in a browser — this machine only
+archdoc export --site                          the same app as static files, for a team
 ```
 
-The web app holds no logic — it renders what the engine already computed. That is what stops
-the two surfaces from drifting into two implementations.
+The web app holds no logic — it renders what the engine already computed. It draws each diagram
+from the engine's *scene*: the view plus the layout stored for it, arranged as a person saved it,
+which is also what the committed SVG is drawn from. That is what stops the surfaces drifting into
+separate implementations, and what makes the published site the same as the live one: its data is
+the live API's responses, written to files. The app's few writes — an arrangement, a named view —
+pass a gate that admits only its own page. The surface in full: `surface-spec.md`.
 
 ---
 

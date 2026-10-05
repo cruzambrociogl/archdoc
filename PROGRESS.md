@@ -70,6 +70,18 @@ designed in Claude Design. Built on `develop`, every screen driven in a browser.
 | §11.5 action gate | ✓ Origin + session token on every action |
 | §11 run, publish, git, settings controls; correction composer (C-2) | · not started |
 
+### Loose ends closed — 5 Oct
+
+| | |
+|---|---|
+| F-50 | ✓ a version is a change of architecture; the fingerprint is recomputed, so upgrades mint nothing |
+| F-51 | ✓ a same-architecture run refreshes the version's citations, layouts and commit |
+| F-52 | ✓ generated files archdoc no longer writes are removed |
+| F-53 | ✓ the interpolation dotenv file is reported, and a sample is called one |
+| `rules.yaml` | ✓ moved to `.archdoc/`; the root one is still read, with a note |
+| Completeness | ✓ "unknown" where archdoc has no record of the stub; a published site judged by size |
+| Export in CI | ✓ builds from the committed `model.json` when there is no history |
+
 ### Superseded — do not implement as written
 
 Two catalog entries are contradicted by later decisions. Recorded here so they are not

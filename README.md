@@ -31,7 +31,21 @@ Two rules govern the design:
 
 ## Status
 
-**Early.** Release R1.a is in progress, targeted at 9 October 2026. It draws:
+**R1.a is built; the surface was redesigned on 4–5 October 2026.** Today archdoc reads
+*configuration* — Compose, `.env`, gateway configs — and documents the containers it finds. Reading
+the *code* itself (components, data models, flows) is the next phase, from 27 October; the plan and
+its reasoning are in [`docs/vision.md`](docs/vision.md) and
+[`docs/delivery-schedule.md`](docs/delivery-schedule.md) §7. Delivery is 11 December 2026.
+
+What it does now:
+
+| | |
+|---|---|
+| `archdoc generate` | C4 context and container diagrams, twelve arc42 sections and a coverage report, every element cited at its line |
+| `archdoc serve` | The web app: the diagrams drawn interactively, every value's citation, what changed between any two versions, the documents, what archdoc could not see |
+| `archdoc export --site` | The same app as a static site a team opens without archdoc — GitHub Pages, any static host |
+
+It draws:
 
 ```console
 $ archdoc generate ./immich
@@ -125,16 +139,21 @@ The full survey is in [`docs/survey-test-subjects.md`](docs/survey-test-subjects
 
 ## Building
 
-Requires Go 1.27. Contributors need Node for the web frontend; users do not.
+Requires Go 1.27 and, to build the web app, Node 24. The app is compiled into the binary, so
+*using* archdoc needs neither — only building it does.
 
 ```console
 git clone https://github.com/cruzambrociogl/archdoc.git
 cd archdoc
+(cd web && npm ci && npm run build)   # the web app, embedded into the binary
 go test ./...
 go build -o ./archdoc ./cmd/archdoc
 ```
 
-The built binary is git-ignored, so it can sit in the working copy.
+The built binary is git-ignored, so it can sit in the working copy. A binary built without the web
+step still works on the command line; `serve` then says what to run. Working on the app itself,
+`go build -tags dev` proxies to Vite (`cd web && npm run dev`) so a change shows on reload —
+[`web/README.md`](web/README.md) has the rest.
 
 ## Running it on the test subjects
 
@@ -175,13 +194,20 @@ docs/architecture/
 ├── 06-runtime-view.generated.md        says plainly what configuration cannot know
 ├── 07-deployment-view.generated.md
 ├── 12-glossary.generated.md
+├── coverage.generated.md               what archdoc read, and what it could not resolve
 ├── 02, 04, 08–11                       yours
-├── context.svg · container.svg          the drawn C4 diagrams
+├── context.svg · container.svg          the drawn C4 diagrams, as you arranged them
 └── context.mmd · container.mmd          the same, as editable text
 .archdoc/
 ├── model.json                          committed — the durable record
-└── history.db                          local cache, git-ignored by archdoc
+├── coverage.json                       committed — the coverage report, as data
+├── rules.yaml                          committed — your corrections, if any
+├── layout.yaml · views.yaml            committed — arrangements and views saved in the app
+├── history.db                          local cache, git-ignored by archdoc
+└── site/                               the published site, git-ignored — CI builds it
 ```
+
+Generated files archdoc no longer writes are removed on the next run; nothing else ever is.
 
 To see the diagrams, open `index.generated.md` in VS Code and press `⇧⌘V` — Mermaid renders
 natively, with no build step and no site generator.
@@ -225,6 +251,78 @@ for i in 1 2 3 4 5; do ./archdoc generate ../subjects/supabase --stdout | md5; d
 
 One line of output means five identical runs.
 
+### Exploring it in the app
+
+```console
+./archdoc serve ../subjects/supabase      # http://localhost:7474 — this machine only
+```
+
+| Screen | What it answers |
+|---|---|
+| **Overview** | What the system is, how much of it is interpreted, what has ever left the machine, what changed |
+| **Explorer** | The diagrams, drawn from the engine's stored layout. Click a box or an arrow: every value with the line that proves it. `/` finds, *Focus* dims everything but the neighbours, *Compare with…* marks what changed since another version. Drag boxes into a readable arrangement and *Save* — it goes into `.archdoc/layout.yaml` and the committed SVG follows. *Save view…* names what you are looking at |
+| **Changes** | Any two versions side by side — structural change kept apart from changed words |
+| **Documents** | The arc42 sections. Generated ones render here; yours are never opened — the app shows their state and, for one nobody has started, the questions this system raises |
+| **Coverage** | What archdoc could not see: every gap by rule, what nothing connects to, the files it passed over, and the limits of reading configuration at all |
+| **Corrections** | What `rules.yaml` changed, and the rules that matched nothing |
+| **Network runs** | Every request that ever left the machine, exactly as sent |
+
+`⌘K` searches everything — type a file path to see what it proves. `?` lists the shortcuts.
+
+### Correcting it
+
+A correction is a rule in `.archdoc/rules.yaml`, applied on every run, so it survives
+regeneration — and a person's correction always wins over the model's:
+
+```yaml
+rules:
+  - match: { name: supavisor }
+    set: { kind: proxy, description: Pools Postgres connections }
+  - match: { image: "*/vector*" }
+    exclude: true
+```
+
+Every value a rule sets cites the line that set it. (A `rules.yaml` at the repository root, where it
+lived before 5 October, is still read; archdoc says to move it.)
+
+### Publishing it
+
+```console
+./archdoc export --site ../subjects/supabase
+python3 -m http.server 8080 -d ../subjects/supabase/.archdoc/site    # preview
+```
+
+The published site is the same app with no controls: one version, what changed since the previous
+one (`--since <version>` to choose), citations opening on GitHub at the commit when the repository
+has a GitHub, GitLab, Codeberg or Bitbucket origin. It needs a host — browsers will not load it from
+a `file://` page. It builds from the committed `.archdoc/model.json` when there is no history, so CI
+needs no key and regenerates nothing. A GitHub Pages workflow, in the documented repository:
+
+```yaml
+name: Architecture site
+on: { push: { branches: [main] } }
+permissions: { contents: read, pages: write, id-token: write }
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    environment: { name: github-pages, url: "${{ steps.deploy.outputs.page_url }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: { repository: cruzambrociogl/archdoc, path: .archdoc-tool }
+      - uses: actions/setup-go@v5
+        with: { go-version-file: .archdoc-tool/go.mod }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: cd .archdoc-tool/web && npm ci && npm run build
+      - run: cd .archdoc-tool && go build -o "$RUNNER_TEMP/archdoc" ./cmd/archdoc
+      - run: '"$RUNNER_TEMP/archdoc" export --site .'
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: .archdoc/site }
+      - id: deploy
+        uses: actions/deploy-pages@v4
+```
+
 ### What each subject shows
 
 | | What to look for |
@@ -241,10 +339,13 @@ view is as good as the environment — which is usually somewhere else.**
 | | |
 |---|---|
 | [`docs/how-it-works.md`](docs/how-it-works.md) | **The pipeline on one screen** — start here |
-| [`docs/product-definition.md`](docs/product-definition.md) | What the product is — 109 capabilities, the output contract, nine acceptance criteria. Technology-free by design |
+| [`docs/product-definition.md`](docs/product-definition.md) | What the product is — the capabilities, the output contract, nine acceptance criteria. Technology-free by design |
+| [`docs/surface-spec.md`](docs/surface-spec.md) | The web app and the published site — every screen, the design system, the two modes, what the app may do |
+| [`web/README.md`](web/README.md) | Working on the web app |
+| [`docs/vision.md`](docs/vision.md) | Where archdoc goes next: the code as evidence |
 | [`docs/stack-decision.md`](docs/stack-decision.md) | What it is built with, and why, including the rejected alternatives |
 | [`docs/survey-test-subjects.md`](docs/survey-test-subjects.md) | The evidence both rest on |
-| [`docs/delivery-schedule.md`](docs/delivery-schedule.md) | The plan through 9 October |
+| [`docs/delivery-schedule.md`](docs/delivery-schedule.md) | The plan through 11 December |
 | [`docs/decisions.md`](docs/decisions.md) | Decision log — read before proposing anything that seems obvious |
 | [`PROGRESS.md`](PROGRESS.md) | What is done, and which gate is next |
 
