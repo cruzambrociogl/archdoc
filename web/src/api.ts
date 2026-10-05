@@ -236,7 +236,9 @@ export function staticName(apiPath: string): string {
   const ext = p === 'svg' ? '.svg' : '.json'
   const q = new URLSearchParams(query)
   const keys = [...new Set([...q.keys()])].sort()
-  const tail = keys.length ? '@' + keys.map((k) => `${k}=${q.get(k)}`).join(',') : ''
+  // A view name may hold an element ID ("component:app:packages/cli"): no slash or colon in a file name.
+  const safe = (v: string | null) => (v ?? '').replace(/\//g, '_').replace(/:/g, '~')
+  const tail = keys.length ? '@' + keys.map((k) => `${k}=${safe(q.get(k))}`).join(',') : ''
   return `data/${p.replace(/\//g, '_')}${tail}${ext}`
 }
 

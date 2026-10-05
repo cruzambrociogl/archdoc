@@ -3,6 +3,7 @@ package render
 import (
 	"fmt"
 	"html"
+	"math"
 	"strings"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -23,7 +24,7 @@ func SVG(view archdoc.Model, l archdoc.Layout) string {
 		num(-margin), num(-margin), num(l.Width+2*margin), num(l.Height+2*margin),
 		num(l.Width+2*margin), num(l.Height+2*margin))
 
-	b.WriteString(`<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#707070"/></marker></defs>` + "\n")
+	b.WriteString(`<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerUnits="userSpaceOnUse" markerWidth="9.6" markerHeight="9.6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#707070"/></marker></defs>` + "\n")
 	fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="%s" fill="#ffffff"/>`+"\n",
 		num(-margin), num(-margin), num(l.Width+2*margin), num(l.Height+2*margin))
 
@@ -65,13 +66,10 @@ func SVG(view archdoc.Model, l archdoc.Layout) string {
 		if p.Tip != nil {
 			fmt.Fprintf(&d, " L%s,%s", num(p.Tip.X), num(p.Tip.Y))
 		}
-		fmt.Fprintf(&b, `<path d="%s" fill="none" stroke="#707070" stroke-width="1.2" marker-end="url(#arrow)"/>`+"\n", d.String())
-
-		if p.LabelAt == nil {
-			continue
-		}
 		e, ok := edgeOf(view, p.From, p.To)
-		if !ok {
+		fmt.Fprintf(&b, `<path d="%s" fill="none" stroke="#707070" stroke-width="%s" marker-end="url(#arrow)"/>`+"\n", d.String(), num(strokeWidth(e)))
+
+		if p.LabelAt == nil || !ok {
 			continue
 		}
 		lines := wrap(edgeText(e), labelChars, 3)
@@ -109,6 +107,9 @@ func box(n archdoc.Node, r archdoc.Rect) string {
 		fill, stroke, text, dash = "#ffffff", "#8b8b8b", "#3d3d3d", ` stroke-dasharray="5 3"`
 	case n.Kind == archdoc.Datastore:
 		fill, stroke = "#2574b8", "#0b4884"
+	case n.Kind == archdoc.Component:
+		// C4's component blue: lighter than the container it sits in, with dark text.
+		fill, stroke, text = "#85bbf0", "#5d82a8", "#0b2a4a"
 	}
 
 	var b strings.Builder
@@ -149,11 +150,22 @@ func svgTypeLabel(n archdoc.Node) string {
 		kind = "External System"
 	case archdoc.System:
 		kind = "Software System"
+	case archdoc.Component:
+		kind = "Component"
 	}
 	if n.Technology == "" {
 		return "[" + kind + "]"
 	}
 	return "[" + kind + ": " + n.Technology + "]"
+}
+
+// strokeWidth thickens an arrow that stands for many imports: 1.2 for one, growing with the
+// logarithm of the count, never past 4.
+func strokeWidth(e archdoc.Edge) float64 {
+	if e.Weight <= 1 {
+		return 1.2
+	}
+	return math.Min(4, 1.2+math.Log2(float64(e.Weight))*0.4)
 }
 
 func italic(p archdoc.Provenance) string {

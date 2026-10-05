@@ -19,6 +19,8 @@ func TestStaticNames(t *testing.T) {
 		"/api/svg?view=context":               "data/svg@view=context.svg",
 		"/api/docs/index.generated.md":        "data/docs/index.generated.md",
 		"/api/diff?from=1&to=2":               "data/diff@from=1,to=2.json",
+		// A component view's name holds an element ID, escaped as the query carries it.
+		"/api/scene?view=component%3Aapp%3Apackages%2Fcli": "data/scene@view=component~app~packages_cli.json",
 	}
 	for in, want := range cases {
 		if got := StaticName(in); got != want {

@@ -155,6 +155,9 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 		// top of the boundary fits it — a first version drew labels at the bottom-left instead,
 		// where nested boundaries share an edge and their labels collided.
 		label := view.Name + " [Software System]"
+		if view.Boundary != "" {
+			label = view.Boundary
+		}
 		clusters["cluster_system"] = archdoc.Boundary{Name: view.Name, System: true, Label: label}
 		fmt.Fprintf(&b, "  subgraph cluster_system {\n    label=%s;\n", quote(label))
 		if groups := boundaries(view, inside); groups != nil {

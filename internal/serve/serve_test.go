@@ -132,7 +132,7 @@ func TestCanvasIsTheEngineSVG(t *testing.T) {
 	if !strings.Contains(string(b), `<g id="svc:api">`) {
 		t.Error("an element is not addressable by its id")
 	}
-	if code, _ := get(t, ts, "/api/svg?view=nonsense"); code != 400 {
+	if code, _ := get(t, ts, "/api/svg?view=nonsense"); code != 404 {
 		t.Errorf("an unknown view was accepted: %d", code)
 	}
 }
@@ -165,7 +165,7 @@ func TestSceneCarriesTheLayout(t *testing.T) {
 			t.Errorf("%s has no box in the layout", n.ID)
 		}
 	}
-	if code, _ := get(t, ts, "/api/scene?view=nonsense"); code != 400 {
+	if code, _ := get(t, ts, "/api/scene?view=nonsense"); code != 404 {
 		t.Errorf("an unknown view was accepted: %d", code)
 	}
 }

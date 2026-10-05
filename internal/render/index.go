@@ -43,6 +43,17 @@ func Index(m archdoc.Model, plan []Section, meta Meta) string {
 	b.WriteString("\n## Containers\n\n")
 	b.WriteString(figure(meta, "Containers", "container.svg", Mermaid(m.Container(), true)))
 
+	// One component view per container whose code was read: what it is made of, from its code.
+	if views := Views(m)[2:]; len(views) > 0 {
+		b.WriteString("\n## Components\n\n")
+		b.WriteString("Inside each container whose code archdoc reads: its parts, and which uses which. Every\n")
+		b.WriteString("arrow is an import, cited at its line in `.archdoc/model.json`.\n")
+		for _, v := range views {
+			fmt.Fprintf(&b, "\n### %s\n\n", v.Model.Name)
+			b.WriteString(figure(meta, v.Title, v.File+".svg", Mermaid(v.Model, v.Group)))
+		}
+	}
+
 	b.WriteString("\n## Sections\n\n")
 	generated, human := 0, 0
 	for _, s := range plan {

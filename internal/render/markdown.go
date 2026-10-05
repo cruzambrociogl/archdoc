@@ -204,6 +204,8 @@ func typeName(k archdoc.Kind) string {
 		return "Container (queue)"
 	case archdoc.Proxy:
 		return "Infrastructure"
+	case archdoc.Component:
+		return "Component"
 	default:
 		return "Container"
 	}

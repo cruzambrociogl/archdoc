@@ -165,11 +165,13 @@ func generate(args []string, out io.Writer) error {
 	// Tool-owned output, overwritten in full.
 	generated := map[string]string{
 		render.IndexFile: index,
-		"context.mmd":    render.Mermaid(m.Context(), false),
-		"container.mmd":  render.Mermaid(m.Container(), true),
 		// OUT-09's other half: a document set that says where its own evidence runs out. No
 		// competitor in this space publishes what it missed.
 		render.CoverageFile: render.Coverage(m, *facts, reported(result), meta),
+	}
+	views := render.Views(m)
+	for _, v := range views {
+		generated[v.File+".mmd"] = render.Mermaid(v.Model, v.Group)
 	}
 	if meta.Pictures {
 		// The committed pictures show the diagrams as a person arranged them in the app
@@ -179,15 +181,16 @@ func generate(args []string, out io.Writer) error {
 			fmt.Fprintf(out, "warning: %v — drawing the engine's layout instead\n", err)
 			arrangement = arrange.Arrangement{}
 		}
-		for _, view := range []struct {
-			name string
-			m    archdoc.Model
-		}{{"context", m.Context()}, {"container", m.Container()}} {
-			l, rep := arrange.Apply(view.name, layouts[view.name], arrangement)
-			generated[view.name+".svg"] = render.SVG(view.m, l)
+		for _, view := range views {
+			stored, ok := layouts[view.Name]
+			if !ok {
+				continue
+			}
+			l, rep := arrange.Apply(view.Name, stored, arrangement)
+			generated[view.File+".svg"] = render.SVG(view.Model, l)
 			if len(rep.Stale) > 0 {
 				fmt.Fprintf(out, "%s/%s: %d saved position(s) in the %s view match nothing: %s\n",
-					arrange.Dir, arrange.LayoutFile, len(rep.Stale), view.name, strings.Join(rep.Stale, ", "))
+					arrange.Dir, arrange.LayoutFile, len(rep.Stale), view.Name, strings.Join(rep.Stale, ", "))
 			}
 		}
 	}
@@ -404,8 +407,8 @@ func logRun(root string, rec *semantic.Recorder, rep semantic.Report, started ti
 	return id
 }
 
-// layoutViews returns the positions for the context and container views: the stored ones when
-// history already holds this exact architecture, freshly computed ones otherwise.
+// layoutViews returns the positions for every view: the stored ones when history already holds
+// this exact architecture, freshly computed ones otherwise.
 //
 // A layout failure is reported and does not stop the run. The documentation falls back to the
 // Mermaid diagrams, which need no layout — a missing picture is a gap, and a run that refused to
@@ -415,10 +418,14 @@ func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc
 		defer h.Close()
 		if latest, err := h.Latest(); err == nil && latest != nil {
 			if fp, err := store.Fingerprint(m); err == nil && fp == latest.Fingerprint {
-				c1, okCtx := latest.Layouts["context"]
-				c2, okCon := latest.Layouts["container"]
 				// Only a layout from the running engine is reused; an older one is recomputed.
-				if okCtx && okCon && c1.Version == render.LayoutVersion && c2.Version == render.LayoutVersion {
+				current := true
+				for _, v := range render.Views(m) {
+					if l, ok := latest.Layouts[v.Name]; !ok || l.Version != render.LayoutVersion {
+						current = false
+					}
+				}
+				if current {
 					return latest.Layouts
 				}
 			}
@@ -426,17 +433,16 @@ func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc
 	}
 
 	ctx := context.Background()
-	contextLayout, err := render.Layout(ctx, m.Context(), false)
-	if err != nil {
-		fmt.Fprintf(out, "layout unavailable, Mermaid diagrams only: %v\n", err)
-		return nil
+	layouts := map[string]archdoc.Layout{}
+	for _, v := range render.Views(m) {
+		l, err := render.Layout(ctx, v.Model, v.Group)
+		if err != nil {
+			fmt.Fprintf(out, "layout unavailable, Mermaid diagrams only: %v\n", err)
+			return nil
+		}
+		layouts[v.Name] = l
 	}
-	containerLayout, err := render.Layout(ctx, m.Container(), true)
-	if err != nil {
-		fmt.Fprintf(out, "layout unavailable, Mermaid diagrams only: %v\n", err)
-		return nil
-	}
-	return map[string]archdoc.Layout{"context": contextLayout, "container": containerLayout}
+	return layouts
 }
 
 // citations names the rules that were applied, for the stamp OUT-04 puts on every generated
@@ -467,7 +473,7 @@ func orphans(root string, written map[string]string) []string {
 	var out []string
 	for _, e := range entries {
 		name := e.Name()
-		if e.IsDir() || (!strings.HasSuffix(name, ".generated.md") && !ours[name]) {
+		if e.IsDir() || (!strings.HasSuffix(name, ".generated.md") && !ours[name] && !render.ComponentFile(name)) {
 			continue
 		}
 		if _, ok := written[name]; !ok {

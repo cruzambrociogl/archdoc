@@ -263,6 +263,7 @@ func (s *Server) model(w http.ResponseWriter, r *http.Request) {
 	send(w, map[string]any{
 		"version": v.ID, "created_at": v.CreatedAt, "commit": v.Commit,
 		"model": v.Model, "context": v.Model.Context(), "container": v.Model.Container(),
+		"components": orEmpty(v.Model.Components()),
 	})
 }
 
@@ -272,12 +273,18 @@ func (s *Server) model(w http.ResponseWriter, r *http.Request) {
 // positions name nothing; the hash is the layout.yaml the page must hand back to save.
 func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 	v, name, view, l, rep, hash, err := s.laidOut(r)
+	if errors.Is(err, errNoView) {
+		notFound(w, err.Error())
+		return
+	}
 	if err != nil {
 		fail(w, err)
 		return
 	}
 	send(w, map[string]any{
 		"version": v.ID, "view": name, "model": view, "layout": l,
+		// The containers that have a component view, so a container can say it opens.
+		"components": orEmpty(v.Model.Components()),
 		"arrangement": map[string]any{"file": arrange.Dir + "/" + arrange.LayoutFile, "hash": hash,
 			"placed": rep.Placed, "new": rep.New, "stale": rep.Stale},
 	})
@@ -286,6 +293,10 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 // svg draws a view exactly as the committed SVG draws it — the export of the same scene.
 func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
 	_, _, view, l, _, _, err := s.laidOut(r)
+	if errors.Is(err, errNoView) {
+		notFound(w, err.Error())
+		return
+	}
 	if err != nil {
 		fail(w, err)
 		return
@@ -321,25 +332,31 @@ func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model
 	return v, name, view, arranged, rep, hash, nil
 }
 
+// errNoView is a view the version does not have: a container with no component view, or one
+// from another version.
+var errNoView = errors.New("no such view")
+
 // engineLayout is a version's view at the engine's own layout: the stored one when current.
 func engineLayout(ctx context.Context, v *store.Version, name string) (archdoc.Model, archdoc.Layout, error) {
-	var view archdoc.Model
-	switch name {
-	case "context":
-		view = v.Model.Context()
-	case "container":
-		view = v.Model.Container()
-	default:
-		return archdoc.Model{}, archdoc.Layout{}, fmt.Errorf("unknown view %q", name)
+	view, ok := render.ViewOf(v.Model, name)
+	if !ok {
+		return archdoc.Model{}, archdoc.Layout{}, fmt.Errorf("%w: %q in version %d", errNoView, name, v.ID)
 	}
 	l, ok := v.Layouts[name]
 	if !ok || l.Version != render.LayoutVersion {
 		var err error
-		if l, err = render.Layout(ctx, view, name == "container"); err != nil {
+		if l, err = render.Layout(ctx, view.Model, view.Group); err != nil {
 			return archdoc.Model{}, archdoc.Layout{}, err
 		}
 	}
-	return view, l, nil
+	return view.Model, l, nil
+}
+
+func orEmpty(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }
 
 func (s *Server) diff(w http.ResponseWriter, r *http.Request) {

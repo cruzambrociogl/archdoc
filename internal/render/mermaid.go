@@ -36,7 +36,11 @@ func Mermaid(m archdoc.Model, group bool) string {
 	}
 
 	if len(inside) > 0 {
-		fmt.Fprintf(&b, "\n    subgraph boundary[%q]\n", m.Name)
+		label := m.Name
+		if m.Boundary != "" {
+			label = m.Boundary
+		}
+		fmt.Fprintf(&b, "\n    subgraph boundary[%q]\n", label)
 
 		if groups := boundaries(m, inside); groups != nil {
 			// Networks nest, so the boundary does too: the reader sees which containers a
@@ -149,6 +153,8 @@ func typeLabel(n archdoc.Node) string {
 		kind = "External System"
 	case archdoc.System:
 		kind = "Software System"
+	case archdoc.Component:
+		kind = "Component"
 	}
 
 	if n.Technology == "" {

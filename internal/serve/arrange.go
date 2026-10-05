@@ -9,6 +9,7 @@ import (
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/arrange"
+	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/store"
 )
 
@@ -184,17 +185,12 @@ func (s *Server) viewIDs(view string) (map[string]bool, error) {
 	if err != nil {
 		return nil, err
 	}
-	var m archdoc.Model
-	switch view {
-	case "context":
-		m = v.Model.Context()
-	case "container":
-		m = v.Model.Container()
-	default:
+	vw, ok := render.ViewOf(v.Model, view)
+	if !ok {
 		return nil, fmt.Errorf("unknown view %q", view)
 	}
 	ids := map[string]bool{}
-	for _, n := range m.Nodes {
+	for _, n := range vw.Model.Nodes {
 		ids[n.ID] = true
 	}
 	return ids, nil

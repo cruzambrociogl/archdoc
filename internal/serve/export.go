@@ -29,6 +29,8 @@ import (
 //	/api/docs/x.md             → data/docs/x.md
 //	/api/svg?view=container    → data/svg@view=container.svg
 //	/api/scene?view=c&version=3 → data/scene@version=3,view=c.json   (query keys sorted)
+var fileSafe = strings.NewReplacer("/", "_", ":", "~")
+
 func StaticName(apiPath string) string {
 	p, rawQuery, _ := strings.Cut(strings.TrimPrefix(apiPath, "/api/"), "?")
 	if strings.HasPrefix(p, "docs/") {
@@ -47,7 +49,9 @@ func StaticName(apiPath string) string {
 		sort.Strings(keys)
 		parts := make([]string, 0, len(keys))
 		for _, k := range keys {
-			parts = append(parts, k+"="+q.Get(k))
+			// A component view's name holds an element ID — "component:app:packages/cli" — and a
+			// file name may hold neither a slash nor, on every system, a colon.
+			parts = append(parts, k+"="+fileSafe.Replace(q.Get(k)))
 		}
 		name += "@" + strings.Join(parts, ",")
 	}
@@ -124,15 +128,18 @@ func Export(root string, since int64) (map[string][]byte, error) {
 	}
 
 	paths := []string{"/api/summary", "/api/model", "/api/rules", "/api/docs", "/api/views", "/api/runs"}
-	for _, view := range []string{"context", "container"} {
-		paths = append(paths, "/api/scene?view="+view, "/api/svg?view="+view)
+	views := render.Views(latest.Model)
+	for _, view := range views {
+		q := url.QueryEscape(view.Name)
+		paths = append(paths, "/api/scene?view="+q, "/api/svg?view="+q)
 	}
 	versions := []int64{latest.ID}
+	var optional []string // the baseline may not have every view the latest has
 	if base != 0 {
 		versions = append(versions, base)
 		paths = append(paths, fmt.Sprintf("/api/diff?from=%d&to=%d", base, latest.ID))
-		for _, view := range []string{"context", "container"} {
-			paths = append(paths, fmt.Sprintf("/api/scene?view=%s&version=%d", view, base))
+		for _, view := range views {
+			optional = append(optional, fmt.Sprintf("/api/scene?view=%s&version=%d", url.QueryEscape(view.Name), base))
 		}
 	}
 	for _, v := range versions {
@@ -145,6 +152,11 @@ func Export(root string, since int64) (map[string][]byte, error) {
 	}
 	for _, p := range paths {
 		if err := put(p, false); err != nil {
+			return nil, err
+		}
+	}
+	for _, p := range optional {
+		if err := put(p, true); err != nil {
 			return nil, err
 		}
 	}
@@ -218,13 +230,13 @@ func seedHistory(root string) (string, func(), error) {
 	cleanup := func() { os.RemoveAll(dir) }
 
 	layouts := map[string]archdoc.Layout{}
-	for name, view := range map[string]archdoc.Model{"context": m.Context(), "container": m.Container()} {
-		l, err := render.Layout(context.Background(), view, name == "container")
+	for _, view := range render.Views(m) {
+		l, err := render.Layout(context.Background(), view.Model, view.Group)
 		if err != nil {
 			cleanup()
 			return "", nil, err
 		}
-		layouts[name] = l
+		layouts[view.Name] = l
 	}
 	h, err := store.Open(dir)
 	if err != nil {

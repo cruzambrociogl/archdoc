@@ -163,6 +163,10 @@ type Model struct {
 	// Networks carries what the file declared about each network, so a view can name a
 	// boundary and cite the line that created it.
 	Networks []Network `json:"networks,omitempty"`
+
+	// Boundary is what a view's enclosing box says, when it is not the system: a component view
+	// is drawn inside its container — "immich-server [Container: NestJS · TypeScript]".
+	Boundary string `json:"boundary,omitempty"`
 }
 
 // Normalise puts a freshly built model into the shape every view expects: one edge per pair of
@@ -269,6 +273,11 @@ func (m Model) Component(of string) Model {
 	view.Networks = nil
 	if c, ok := m.Node(of); ok {
 		view.Name = c.Name
+		view.Boundary = c.Name + " [Container"
+		if c.Technology != "" {
+			view.Boundary += ": " + c.Technology
+		}
+		view.Boundary += "]"
 	}
 	return view
 }
