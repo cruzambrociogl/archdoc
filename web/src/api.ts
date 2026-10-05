@@ -99,6 +99,22 @@ export interface SceneResponse {
   view: 'context' | 'container'
   model: Model
   layout: Layout
+  /** How layout.yaml met this view: what a person placed, what is new since, what names nothing. */
+  arrangement: { file: string; hash: string; placed: string[]; new: string[]; stale: string[] }
+}
+
+export interface SavedView {
+  name: string
+  level: string
+  focus?: string
+  find?: string
+  dim?: boolean
+}
+
+export interface ViewsResponse {
+  file: string
+  hash: string
+  views: SavedView[]
 }
 
 export interface Change {
@@ -204,6 +220,7 @@ async function request(path: string): Promise<Response> {
 
 /** Fetches path whenever it changes; null fetches nothing. Stale answers are never shown. */
 export function useApi<T>(path: string | null, as: 'json' | 'text' = 'json') {
+  // A path that differs only by a trailing `#n` is fetched again: that is how a screen reloads.
   const [state, setState] = useState<{ path?: string; data?: T; error?: string }>({})
   useEffect(() => {
     if (!path) return

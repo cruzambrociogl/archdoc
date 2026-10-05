@@ -150,7 +150,6 @@
   border: 1.5px solid var(--hue);
   background: var(--fill);
   border-radius: var(--radius-box);
-  overflow: hidden;
   cursor: pointer;
   color: var(--canvas-ink);
   font-family: var(--font-sans);
@@ -174,12 +173,51 @@
 .el-cap {
   height: 3px;
   background: var(--hue);
+  border-radius: 1px 1px 0 0;
 }
 .el-referenced .el-cap {
   display: none;
 }
 .el-body {
   padding: 8px 11px;
+  height: calc(100% - 3px);
+  overflow: hidden;
+}
+/* Placed by a person: a quiet corner mark — presentation, so no truth-state form, hue or tag. */
+.el-placed,
+.placed-mark {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--k-grey);
+  border-bottom: 1.5px solid var(--k-grey);
+}
+.el-placed {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+}
+.el-new {
+  position: absolute;
+  left: -1.5px;
+  top: -21px;
+  padding: 1px 6px;
+  background: #ffffff;
+  border: 1px solid #c8cfcd;
+  font: 9.5px var(--font-mono);
+  color: var(--canvas-muted);
+  white-space: nowrap;
+}
+.react-flow__node.draggable .el {
+  cursor: grab;
+}
+.react-flow__node.dragging .el {
+  cursor: grabbing;
+  box-shadow: 0 10px 24px -14px rgba(21, 32, 30, 0.5);
+}
+.boundary-draggable {
+  pointer-events: all;
+  cursor: grab;
 }
 .el-head {
   display: flex;
@@ -436,6 +474,120 @@
 }
 .legend-swatch.dashed {
   border-style: dashed;
+}
+
+/* ——— the arrangement bar (S-6) ——— */
+
+.arrangement-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 32px;
+  padding: 6px 14px;
+  background: var(--chip);
+  border-bottom: 1px solid var(--hair);
+  font-size: 12px;
+}
+.arrangement-bar.dirty {
+  background: var(--surface);
+  border-bottom-color: var(--ink);
+}
+.arr-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.arrangement-bar.dirty .arr-title {
+  font-weight: 600;
+}
+.arr-detail {
+  flex: 1 1 120px;
+  min-width: 0;
+  font: 10.5px var(--font-mono);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.arr-stale,
+.arr-problem {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  background: var(--chip);
+  font: 10.5px var(--font-mono);
+}
+.arr-problem {
+  border-color: var(--ink);
+}
+.arr-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* ——— dialogs ——— */
+
+.dialog-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(21, 32, 30, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.dialog {
+  width: min(440px, 100%);
+  background: var(--chip);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow-dialog);
+  padding: 18px 20px 16px;
+  color: var(--ink);
+}
+.dialog-input {
+  display: block;
+  width: 100%;
+  margin: 12px 0 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  font: 14px var(--font-sans);
+  outline: 0;
+}
+.dialog-yaml {
+  margin: 0;
+  background: #15201e;
+  color: #c8cfcd;
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre;
+  overflow: auto;
+}
+.dialog-note {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 10px 0 0;
+}
+.dialog-error {
+  font-size: 12px;
+  color: var(--accent);
+  margin: 10px 0 0;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .explorer-status {

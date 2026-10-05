@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Summary, Version } from './api'
+import type { Summary, Version, ViewsResponse } from './api'
 import { RootContext, useApi } from './api'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
@@ -29,6 +29,8 @@ export function App() {
   const [route, go] = useRoute()
   const [theme, nextTheme] = useTheme()
   const [navOpen, setNavOpen] = useState(false)
+  const [viewsKey, setViewsKey] = useState(0)
+  const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
 
   // The screen the explorer returns to.
   const prev = useRef<Screen>('overview')
@@ -74,18 +76,12 @@ export function App() {
           onTheme={nextTheme}
         />
         <div className="shell-body">
-          <Nav summary={s} route={route} go={go} open={navOpen} />
+          <Nav summary={s} route={route} go={go} open={navOpen} views={views.data?.views ?? []} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
             {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} />}
             {route.screen === 'explorer' && (
-              <Explorer
-                version={version}
-                level={route.level === 'context' ? 'context' : 'container'}
-                selected={route.focus ?? null}
-                onLevel={(level) => go({ screen: 'explorer', level }, { keep: true })}
-                onSelect={(focus) => go({ screen: 'explorer', level: route.level, focus: focus ?? undefined }, { replace: true })}
-              />
+              <Explorer version={version} route={route} go={go} editable onViewsChanged={() => setViewsKey((k) => k + 1)} />
             )}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}

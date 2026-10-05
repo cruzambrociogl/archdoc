@@ -3,12 +3,16 @@
 // app draws the same arrangement as the committed SVG (surface-spec §10.1).
 
 import type { Edge as FlowEdge, Node as FlowNode } from '@xyflow/react'
-import type { Edge, Node, Point, SceneResponse } from '../../api'
+import type { Edge, Layout, Node, Point, Rect, SceneResponse } from '../../api'
 
 export interface ElementData extends Record<string, unknown> {
   node: Node
   dim: boolean
   match: boolean
+  /** Moved by a person and not saved yet. Presentation, not truth. */
+  placed: boolean
+  /** Added since the arrangement was saved, so the engine placed it. */
+  isNew: boolean
 }
 
 export interface BoundaryData extends Record<string, unknown> {
@@ -40,7 +44,11 @@ export const edgeKey = (e: { from: string; to: string }) => `${e.from}>${e.to}`
  * The flow graph for a scene. `focus` dims what is not one hop from the selection; `find` dims
  * what does not match the search. Dimming is presentation only — nothing is hidden or moved.
  */
-export function toFlow(sc: SceneResponse, opts: { selected: string | null; focus: boolean; find: string }) {
+export function toFlow(
+  sc: SceneResponse,
+  layout: Layout,
+  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; editable: boolean },
+) {
   const nodes = sc.model.nodes ?? []
   const edges = sc.model.edges ?? []
   const byId = new Map(nodes.map((n) => [n.id, n]))
@@ -62,7 +70,7 @@ export function toFlow(sc: SceneResponse, opts: { selected: string | null; focus
   const flowNodes: FlowNode[] = []
 
   // Boundaries first and underneath; largest first, so a network sits above the system around it.
-  const groups = [...(sc.layout.groups ?? [])].sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h)
+  const groups = [...(layout.groups ?? [])].sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h)
   groups.forEach((g, i) => {
     flowNodes.push({
       id: `boundary:${g.name}`,
@@ -72,13 +80,13 @@ export function toFlow(sc: SceneResponse, opts: { selected: string | null; focus
       height: g.rect.h,
       data: { label: g.label || g.name, system: !!g.system, internal: !!g.internal } satisfies BoundaryData,
       selectable: false,
-      draggable: false,
+      draggable: opts.editable,
       focusable: false,
       zIndex: -100 + i,
     })
   })
 
-  for (const b of sc.layout.boxes ?? []) {
+  for (const b of layout.boxes ?? []) {
     const n = byId.get(b.id)
     if (!n) continue
     flowNodes.push({
@@ -87,13 +95,13 @@ export function toFlow(sc: SceneResponse, opts: { selected: string | null; focus
       position: { x: b.rect.x, y: b.rect.y },
       width: b.rect.w,
       height: b.rect.h,
-      data: { node: n, dim: dimNode(n), match: !!q && matches(n) } satisfies ElementData,
+      data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id) } satisfies ElementData,
       selected: opts.selected === n.id,
-      draggable: false,
+      draggable: opts.editable,
     })
   }
 
-  const paths = new Map((sc.layout.paths ?? []).map((p) => [edgeKey(p), p]))
+  const paths = new Map((layout.paths ?? []).map((p) => [edgeKey(p), p]))
   const flowEdges: FlowEdge[] = []
   for (const e of edges) {
     const p = paths.get(edgeKey(e))
@@ -111,4 +119,87 @@ export function toFlow(sc: SceneResponse, opts: { selected: string | null; focus
   }
 
   return { nodes: flowNodes, edges: flowEdges }
+}
+
+// ——— a draft arrangement, previewed ———
+// While a person drags, the app previews what the engine will draw once the arrangement is saved.
+// This is the engine's arrange.Apply (internal/arrange/arrange.go), ported: boxes move, boundaries
+// regrow around what they contained, relationships whose ends moved together keep their curve,
+// and the others are drawn straight between the boxes. After saving, the engine's own result
+// replaces the preview.
+
+
+export type Draft = Record<string, Point>
+
+const ARROW = 8
+
+export function arrangeDraft(l: Layout, draft: Draft): Layout {
+  const ids = Object.keys(draft)
+  if (!ids.length) return l
+  const boxes = l.boxes ?? []
+  const before = new Map(boxes.map((b) => [b.id, b.rect]))
+  const after = new Map(boxes.map((b) => [b.id, draft[b.id] ? { ...b.rect, x: Math.max(0, draft[b.id].x), y: Math.max(0, draft[b.id].y) } : b.rect]))
+
+  const inside = (r: Rect, o: Rect) => r.x >= o.x && r.y >= o.y && r.x + r.w <= o.x + o.w && r.y + r.h <= o.y + o.h
+  const bounds = (members: string[], m: Map<string, Rect>): Rect => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+    for (const id of members) {
+      const r = m.get(id)!
+      x0 = Math.min(x0, r.x); y0 = Math.min(y0, r.y); x1 = Math.max(x1, r.x + r.w); y1 = Math.max(y1, r.y + r.h)
+    }
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+  }
+
+  const groups = (l.groups ?? []).map((g) => {
+    const members = boxes.filter((b) => inside(b.rect, g.rect)).map((b) => b.id)
+    if (!members.length || !members.some((id) => before.get(id) !== after.get(id))) return g
+    const was = bounds(members, before), now = bounds(members, after)
+    const rect = { x: now.x - (was.x - g.rect.x), y: now.y - (was.y - g.rect.y), w: now.w + (g.rect.w - was.w), h: now.h + (g.rect.h - was.h) }
+    return { ...g, rect, label_at: { x: g.label_at.x + rect.x - g.rect.x, y: g.label_at.y + rect.y - g.rect.y } }
+  })
+
+  const delta = (id: string): Point => {
+    const b = before.get(id)!, a = after.get(id)!
+    return { x: a.x - b.x, y: a.y - b.y }
+  }
+  const paths = (l.paths ?? []).map((p) => {
+    const df = delta(p.from), dt = delta(p.to)
+    if (!df.x && !df.y && !dt.x && !dt.y) return p
+    if (df.x === dt.x && df.y === dt.y) {
+      const mv = (q: Point) => ({ x: q.x + df.x, y: q.y + df.y })
+      return { ...p, curve: p.curve.map(mv), tip: p.tip && mv(p.tip), label_at: p.label_at && mv(p.label_at) }
+    }
+    const f = after.get(p.from)!, t = after.get(p.to)!
+    const c1 = { x: f.x + f.w / 2, y: f.y + f.h / 2 }, c2 = { x: t.x + t.w / 2, y: t.y + t.h / 2 }
+    const start = clip(c1, c2, f), tip = clip(c2, c1, t)
+    const dx = tip.x - start.x, dy = tip.y - start.y, len = Math.hypot(dx, dy)
+    const end = len > ARROW ? { x: tip.x - (dx / len) * ARROW, y: tip.y - (dy / len) * ARROW } : tip
+    const at = (k: number) => ({ x: start.x + (end.x - start.x) * k, y: start.y + (end.y - start.y) * k })
+    return {
+      ...p,
+      curve: [start, at(1 / 3), at(2 / 3), end],
+      tip: p.tip ? tip : undefined,
+      label_at: p.label_at ? { x: (start.x + tip.x) / 2, y: (start.y + tip.y) / 2 } : undefined,
+    }
+  })
+
+  return { ...l, boxes: boxes.map((b) => ({ id: b.id, rect: after.get(b.id)! })), groups, paths }
+}
+
+function clip(c: Point, toward: Point, r: Rect): Point {
+  const dx = toward.x - c.x, dy = toward.y - c.y
+  if (!dx && !dy) return c
+  const sx = dx ? r.w / 2 / Math.abs(dx) : Infinity
+  const sy = dy ? r.h / 2 / Math.abs(dy) : Infinity
+  const s = Math.min(sx, sy)
+  return { x: c.x + dx * s, y: c.y + dy * s }
+}
+
+/** The boxes a boundary contained as the engine drew it — what moves when the boundary is dragged. */
+export function membersOf(l: Layout, boundary: string): string[] {
+  const g = (l.groups ?? []).find((x) => x.name === boundary)
+  if (!g) return []
+  return (l.boxes ?? [])
+    .filter((b) => b.rect.x >= g.rect.x && b.rect.y >= g.rect.y && b.rect.x + b.rect.w <= g.rect.x + g.rect.w && b.rect.y + b.rect.h <= g.rect.y + g.rect.h)
+    .map((b) => b.id)
 }

@@ -26,6 +26,8 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
       <Handle type="target" position={Position.Top} className="el-handle" isConnectable={false} />
       <Handle type="source" position={Position.Bottom} className="el-handle" isConnectable={false} />
       <div className="el-cap" />
+      {data.placed && <span className="el-placed" title="Placed by a person · layout.yaml — presentation, not fact" />}
+      {data.isNew && <span className="el-new">new · placed automatically</span>}
       <div className="el-body">
         <div className="el-head">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round">
@@ -45,9 +47,9 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
   )
 }
 
-export function BoundaryNode({ data }: NodeProps<FlowNode<BoundaryData>>) {
+export function BoundaryNode({ data, draggable }: NodeProps<FlowNode<BoundaryData>>) {
   return (
-    <div className={`boundary ${data.system ? 'boundary-system' : 'boundary-network'}`}>
+    <div className={`boundary ${data.system ? 'boundary-system' : 'boundary-network'} ${draggable ? 'boundary-draggable' : ''}`}>
       <span className="boundary-label">{data.label}</span>
     </div>
   )
