@@ -7,7 +7,7 @@ import { useRoute } from './route'
 import { useTheme } from './theme'
 import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
-import { Canvas } from './Canvas'
+import { Explorer } from './screens/explorer/Explorer'
 import { Timeline } from './Timeline'
 import { Rules } from './Rules'
 import { Docs } from './Docs'
@@ -76,10 +76,10 @@ export function App() {
         <div className="shell-body">
           <Nav summary={s} route={route} go={go} open={navOpen} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
-          <main className={`shell-main ${route.screen === 'explorer' ? 'bleed' : 'page'}`}>
+          <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
             {route.screen === 'overview' && <p className="muted">Overview arrives in the next step.</p>}
             {route.screen === 'explorer' && (
-              <Canvas
+              <Explorer
                 version={version}
                 level={route.level === 'context' ? 'context' : 'container'}
                 selected={route.focus ?? null}

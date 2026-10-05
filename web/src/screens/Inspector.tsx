@@ -14,14 +14,22 @@ export function Inspector({ model, id, onSelect }: { model: Model; id: string | 
   const nodes = model.nodes ?? []
   const edges = model.edges ?? []
   const node = nodes.find((n) => n.id === id)
+  const edge = node ? undefined : edges.find((e) => `${e.from}>${e.to}` === id)
+  const what = node ? kindStyle(node.kind).label.toLowerCase() : edge ? 'relationship' : `${nodes.length} elements`
 
   return (
     <aside className="inspector">
       <div className="inspector-head">
         <Eyebrow>Inspector</Eyebrow>
-        <span className="mono muted small">{node ? kindStyle(node.kind).label.toLowerCase() : `${nodes.length} elements`}</span>
+        <span className="mono muted small">{what}</span>
       </div>
-      {node ? <Passport node={node} nodes={nodes} edges={edges} onSelect={onSelect} /> : <Index nodes={nodes} edges={edges} onSelect={onSelect} />}
+      {node ? (
+        <Passport node={node} nodes={nodes} edges={edges} onSelect={onSelect} />
+      ) : edge ? (
+        <EdgePassport edge={edge} nodes={nodes} onSelect={onSelect} />
+      ) : (
+        <Index nodes={nodes} edges={edges} onSelect={onSelect} />
+      )}
     </aside>
   )
 }
@@ -145,6 +153,74 @@ function Passport({ node, nodes, edges, onSelect }: { node: Node; nodes: Node[];
           {copied ? 'Link copied' : 'Copy link'}
         </button>
       </div>
+    </>
+  )
+}
+
+/** An arrow is first-class (F-55): its ends, what it says, and every line that proves it. */
+function EdgePassport({ edge: e, nodes, onSelect }: { edge: Edge; nodes: Node[]; onSelect: (id: string) => void }) {
+  const name = (id: string) => nodes.find((n) => n.id === id)?.name ?? id
+  const interp = e.label_provenance?.origin === 'model'
+  const sources = e.provenance ?? []
+  return (
+    <>
+      <div className="passport-head">
+        <div className="passport-name">
+          <button className="relation-other" onClick={() => onSelect(e.from)}>
+            {name(e.from)}
+          </button>{' '}
+          <span className="muted">→</span>{' '}
+          <button className="relation-other" onClick={() => onSelect(e.to)}>
+            {name(e.to)}
+          </button>
+        </div>
+        <div className="passport-chips">
+          <TruthChip state="proven" />
+          {e.traffic ? (
+            <span className="kind-chip hue-grey" title="A host or port was configured, so something flows">
+              traffic
+            </span>
+          ) : (
+            <span className="kind-chip hue-grey dashed" title="depends_on: one service starts before the other — not evidence that anything flows">
+              start order only
+            </span>
+          )}
+        </div>
+      </div>
+      <section className="inspector-section">
+        <Eyebrow>Facts</Eyebrow>
+        {e.label && (
+          <div className="fact">
+            <div className="fact-row">
+              <span className="fact-key">label</span>
+              <span className={`fact-value ${interp ? 'interpreted' : ''}`}>
+                {interp && <TruthMark state="interpreted" />} {e.label}
+              </span>
+            </div>
+            {cited(e.label_provenance) && (
+              <div className="fact-cite">
+                <Cite p={e.label_provenance} compact />
+              </div>
+            )}
+          </div>
+        )}
+        {e.technology && (
+          <div className="fact">
+            <div className="fact-row">
+              <span className="fact-key">protocol</span>
+              <span className="fact-value">{e.technology}</span>
+            </div>
+          </div>
+        )}
+        <div className="fact">
+          <div className="fact-row">
+            <span className="fact-key">{sources.length > 1 ? `proven by ${sources.length}` : 'proven by'}</span>
+            <span className="fact-value relation-cites">
+              {sources.length ? sources.map((p, i) => <Cite key={i} p={p} />) : <span className="cite cite-missing">no source recorded</span>}
+            </span>
+          </div>
+        </div>
+      </section>
     </>
   )
 }

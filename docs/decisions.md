@@ -658,3 +658,11 @@ uncommitted files and their diff, and the command to copy (C-4). Control from th
 **deferred**, not refused (C-5). Because the app now acts, every action is a `POST` requiring the
 app's own Origin and a per-session token: the Host check stops cross-site reads, not cross-site form
 posts. `docs/surface-spec.md` §11.
+
+**2026-10-05 — React Flow confirmed at Immich scale (S-5)**
+Measured, not assumed: a synthetic repository of 300 Compose services across 8 networks went
+through the real pipeline (301 elements, 571 relationships, Graphviz layout in 12 s at generate
+time), and the app drew the stored scene with React Flow in 177 ms, every route included. Panning,
+wheel-zooming and panning zoomed in held 60 fps (95th-percentile frame 16.7 ms) in headless Chrome
+without a GPU, with no errors. The renderer is not the limit at this size; legibility is — fitting
+300 boxes needs 10% zoom — which is what D-11's capped overviews and focus views are for.

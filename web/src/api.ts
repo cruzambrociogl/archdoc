@@ -72,6 +72,35 @@ export interface ModelResponse {
   container: Model
 }
 
+// The layout a view is drawn at (internal/archdoc/layout.go), and the scene that pairs them.
+export interface Point {
+  x: number
+  y: number
+}
+
+export interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export interface Layout {
+  version: number
+  width: number
+  height: number
+  boxes: { id: string; rect: Rect }[] | null
+  groups?: { name: string; label?: string; internal?: boolean; system?: boolean; rect: Rect; label_at: Point }[] | null
+  paths?: { from: string; to: string; curve: Point[]; tip?: Point; label_at?: Point }[] | null
+}
+
+export interface SceneResponse {
+  version: number
+  view: 'context' | 'container'
+  model: Model
+  layout: Layout
+}
+
 export interface Change {
   element: string
   field: string

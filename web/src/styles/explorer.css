@@ -1,0 +1,487 @@
+/* The architecture explorer (surface-spec §5.2, "Surface Screens" explorer). The canvas keeps its
+   paper colours in both themes: it is the same drawing as the exported one. */
+
+.explorer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.explorer-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+.toolbar-gap {
+  flex: 1;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--rule);
+  background: var(--chip);
+}
+.segmented button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 5px 11px;
+  font: 600 10.5px var(--font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.segmented button.on {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--chip);
+  color: var(--ink);
+  font: 12px var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tool:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+.tool.on {
+  background: var(--ink);
+  color: var(--on-ink);
+  border-color: var(--ink);
+}
+.tool:disabled {
+  color: var(--faint);
+  cursor: not-allowed;
+}
+
+.explorer-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+.explorer-body .inspector {
+  flex: 0 0 330px;
+  width: 330px;
+}
+
+.explorer-canvas {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+  background: var(--canvas);
+  color: var(--canvas-ink);
+}
+.explorer-state {
+  padding: 24px;
+}
+
+.canvas-tools {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+}
+.find {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  width: 170px;
+  border: 1px solid #c8cfcd;
+  background: #fbfcfc;
+  color: #46514f;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.find input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: 12px var(--font-sans);
+  color: #15201e;
+}
+.canvas-tools .tool {
+  background: #fbfcfc;
+  border-color: #c8cfcd;
+  color: #15201e;
+}
+.canvas-tools .tool.on {
+  background: #15201e;
+  color: #fbfcfc;
+}
+.canvas-tools .tool:disabled {
+  color: #98a2a0;
+}
+
+/* ——— the diagram's parts ——— */
+
+.ad-markers {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.el {
+  --hue: var(--k-slate);
+  --fill: var(--k-slate-fill);
+  --tint-ink: var(--k-slate-ink);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--hue);
+  background: var(--fill);
+  border-radius: var(--radius-box);
+  overflow: hidden;
+  cursor: pointer;
+  color: var(--canvas-ink);
+  font-family: var(--font-sans);
+  transition: opacity 0.12s;
+}
+.el-teal { --hue: var(--k-teal); --fill: var(--k-teal-fill); --tint-ink: var(--k-teal-ink); }
+.el-green { --hue: var(--k-green); --fill: var(--k-green-fill); --tint-ink: var(--k-green-ink); }
+.el-violet { --hue: var(--k-violet); --fill: var(--k-violet-fill); --tint-ink: var(--k-violet-ink); }
+.el-grey { --hue: var(--k-grey); --fill: var(--k-grey-fill); --tint-ink: var(--k-grey-ink); }
+.el-referenced {
+  border-style: dashed;
+}
+.el-selected {
+  outline: 2px solid var(--canvas-accent);
+  outline-offset: 2px;
+  overflow: visible;
+}
+.el-match {
+  box-shadow: 0 0 0 3px rgba(163, 31, 98, 0.18);
+}
+.el-cap {
+  height: 3px;
+  background: var(--hue);
+}
+.el-referenced .el-cap {
+  display: none;
+}
+.el-body {
+  padding: 8px 11px;
+}
+.el-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--hue);
+}
+.el-head svg {
+  flex: 0 0 15px;
+}
+.el-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--canvas-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.el-tech {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--tint-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.el-desc {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--canvas-muted);
+}
+.el-desc-interp {
+  font-style: italic;
+  color: var(--k-slate-ink);
+}
+.el-desc .mark-interpreted {
+  width: 5px;
+  height: 5px;
+  border-color: var(--k-slate);
+  position: relative;
+  top: -1px;
+}
+.el-handle {
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+}
+
+.boundary {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px dashed var(--boundary-line);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.boundary-system {
+  background: var(--boundary-fill);
+}
+.boundary-network {
+  background: rgba(255, 255, 255, 0.35);
+}
+.boundary-label {
+  position: absolute;
+  left: 12px;
+  top: 9px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--canvas-muted);
+  white-space: nowrap;
+}
+
+/* React Flow's own edge colours, set through its variables so its selection rules use ours. */
+.explorer-canvas .react-flow {
+  --xy-edge-stroke-default: var(--edge);
+  --xy-edge-stroke-width-default: 1.25;
+  --xy-edge-stroke-selected-default: var(--canvas-accent);
+}
+.explorer-canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 2;
+}
+.explorer-canvas .react-flow__edge:not(.selected):hover .react-flow__edge-path {
+  stroke: var(--canvas-ink);
+}
+.route-label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 5px;
+  background: #ffffff;
+  border: 1px solid transparent;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--canvas-ink);
+  white-space: nowrap;
+  pointer-events: all;
+  cursor: pointer;
+}
+.route-label-selected {
+  border-color: var(--canvas-accent);
+}
+.route-label-interp {
+  font-style: italic;
+  color: var(--k-slate-ink);
+}
+.route-label .mark-interpreted {
+  width: 5px;
+  height: 5px;
+  border-color: var(--k-slate);
+}
+
+.is-dim {
+  opacity: 0.22;
+}
+
+/* ——— chrome over the canvas ——— */
+
+.minimap.react-flow__minimap {
+  background: #fbfcfc;
+  border: 1px solid #c8cfcd;
+}
+.minimap .react-flow__minimap-mask {
+  stroke: var(--canvas-accent);
+  stroke-width: 1.5;
+}
+
+.zoom {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.zoom-readout {
+  position: absolute;
+  left: 82px;
+  bottom: 14px;
+  z-index: 5;
+  padding: 3px 6px;
+  background: rgba(255, 255, 255, 0.92);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: #46514f;
+  pointer-events: none;
+}
+.zoom-buttons {
+  display: flex;
+  flex-direction: column;
+  background: #fbfcfc;
+  border: 1px solid #c8cfcd;
+}
+.zoom-buttons button {
+  width: 30px;
+  height: 28px;
+  border: 0;
+  border-bottom: 1px solid #e3e6e5;
+  background: transparent;
+  color: #15201e;
+  font-size: 15px;
+  cursor: pointer;
+}
+.zoom-buttons button:last-child {
+  border-bottom: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: #46514f;
+}
+
+.legend-toggle {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 6;
+  padding: 3px 8px;
+  border: 1px solid #c8cfcd;
+  background: rgba(255, 255, 255, 0.92);
+  color: #46514f;
+  font: 11.5px var(--font-sans);
+  cursor: pointer;
+}
+.legend {
+  position: absolute;
+  left: 14px;
+  bottom: 44px;
+  z-index: 7;
+  width: 280px;
+  background: #fbfcfc;
+  border: 1px solid #c8cfcd;
+  box-shadow: var(--shadow-pop);
+  padding: 14px 16px;
+  color: #15201e;
+  /* the legend sits on the canvas, so it keeps the canvas's light colours */
+  --ink: #15201e;
+  --muted: #46514f;
+  --interp: #3f5b72;
+  --interp-ink: #2c4658;
+  --unres: #8a6512;
+}
+.legend-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.legend-head button {
+  border: 0;
+  background: none;
+  color: #46514f;
+  cursor: pointer;
+  font-size: 14px;
+}
+.legend-grid {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 9px 10px;
+  align-items: center;
+  font-size: 12px;
+}
+.legend-grid > .mark {
+  justify-self: center;
+}
+.legend-unres {
+  color: #6e500c;
+}
+.legend-rule {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: #e3e6e5;
+}
+.legend-swatch {
+  justify-self: center;
+  width: 18px;
+  height: 11px;
+  border: 1.5px solid;
+  border-radius: 2px;
+}
+.legend-swatch.filled {
+  width: 13px;
+  height: 13px;
+}
+.legend-swatch.dashed {
+  border-style: dashed;
+}
+
+.explorer-status {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 7px 14px;
+  background: var(--panel);
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.status-url {
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 50%;
+}
+
+/* Narrow: the inspector becomes an overlay that opens with a selection. */
+@media (max-width: 1100px) {
+  .explorer-body {
+    position: relative;
+  }
+  .explorer-body .inspector {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
+    width: min(330px, 88%);
+    box-shadow: 0 20px 40px -20px rgba(21, 32, 30, 0.5);
+  }
+  .explorer-body.nothing-selected .inspector {
+    display: none;
+  }
+  .minimap.react-flow__minimap {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .el {
+    transition: none;
+  }
+}

@@ -48,16 +48,10 @@ button.link { border: 0; background: none; padding: 0; color: var(--accent); tex
 .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .toolbar h2 { margin: 0; }
 
-.canvas-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
 .split { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }
 @media (max-width: 900px) { .canvas-layout, .split { grid-template-columns: 1fr; } }
 
 /* The diagram keeps its own colours in both themes: it is the committed picture. */
-.canvas { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: auto; max-height: calc(100vh - 170px); padding: 8px; }
-.canvas.fit svg { max-width: 100%; height: auto; }
-.canvas g[id] { cursor: pointer; }
-.canvas g[id]:hover rect { stroke: #f59e0b; }
-.canvas g.selected rect { stroke: #f59e0b; stroke-width: 4; }
 
 
 

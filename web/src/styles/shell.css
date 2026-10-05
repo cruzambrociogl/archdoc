@@ -232,8 +232,8 @@ kbd {
 .shell-main.page {
   padding: 28px 36px 56px;
 }
-.shell-main.bleed {
-  padding: 12px 14px;
+.shell-main.full {
+  overflow: hidden;
 }
 
 /* Narrow: the navigation becomes a drawer (surface-spec §4.1). */
