@@ -78,6 +78,7 @@ func New(root string) (*Server, error) {
 	s.mux.HandleFunc("GET /api/completeness", s.completeness)
 	s.mux.HandleFunc("GET /api/questions", s.questions)
 	s.mux.HandleFunc("GET /api/views", s.views)
+	s.mux.HandleFunc("GET /api/coverage", s.coverage)
 
 	// Actions — each one behind the gate (guard.go).
 	s.mux.HandleFunc("/api/layout", s.action(s.saveLayout))
@@ -130,6 +131,23 @@ func ListenAndServe(ctx context.Context, root string, port int, ready func(url s
 }
 
 // ——— the API ———
+
+// coverage serves the coverage report as generate computed it (.archdoc/coverage.json): what was
+// read, what could not be resolved, and what the evidence cannot state. The same data the committed
+// coverage page is rendered from.
+func (s *Server) coverage(w http.ResponseWriter, r *http.Request) {
+	b, err := os.ReadFile(filepath.Join(s.root, ".archdoc", render.CoverageJSONFile))
+	if errors.Is(err, os.ErrNotExist) {
+		notFound(w, "no coverage report yet — run archdoc generate with this version of archdoc")
+		return
+	}
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
+}
 
 // questions serves the questions a human-owned section raises, regenerated from the model of the
 // requested version. The section's file is never opened (OUT-03); the stub it started from was

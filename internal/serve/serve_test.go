@@ -245,6 +245,19 @@ func TestQuestionsComeFromTheModel(t *testing.T) {
 	}
 }
 
+// Coverage is served as generate wrote it, and its absence says what to do rather than failing.
+func TestCoverageIsServedAsWritten(t *testing.T) {
+	ts, root := server(t)
+	if code, b := get(t, ts, "/api/coverage"); code != 404 || !strings.Contains(string(b), "generate") {
+		t.Errorf("no report yet: %d %s", code, b)
+	}
+	os.MkdirAll(filepath.Join(root, ".archdoc"), 0o755)
+	os.WriteFile(filepath.Join(root, ".archdoc", render.CoverageJSONFile), []byte(`{"items":3,"complete":2}`), 0o644)
+	if code, b := get(t, ts, "/api/coverage"); code != 200 || !strings.Contains(string(b), `"items":3`) {
+		t.Errorf("report: %d %s", code, b)
+	}
+}
+
 func TestCompletenessReportsSections(t *testing.T) {
 	ts, root := server(t)
 	os.WriteFile(filepath.Join(root, docsDir, "04-solution-strategy.md"), []byte("written\n"), 0o644)

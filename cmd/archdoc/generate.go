@@ -29,6 +29,8 @@ const (
 	docsDir  = "docs/architecture"
 	stateDir = ".archdoc"
 	modelOut = stateDir + "/model.json"
+	// coverageOut is the coverage report as data, committed beside model.json.
+	coverageOut = stateDir + "/" + render.CoverageJSONFile
 )
 
 func generate(args []string, out io.Writer) error {
@@ -209,6 +211,17 @@ func generate(args []string, out io.Writer) error {
 		return err
 	}
 	fmt.Fprintf(out, "wrote %s\n", modelOut)
+
+	// The coverage report as data, beside the model: what the app and the published site show,
+	// computed by the same function as the committed coverage page, so the two cannot disagree.
+	coverage, err := json.MarshalIndent(render.BuildCoverage(m, *facts, reported(result)), "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := write(facts.Root, coverageOut, string(coverage)+"\n"); err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "wrote %s\n", coverageOut)
 
 	// OUT-02 and OUT-03 — the regeneration boundary. A human-owned section is created once,
 	// with questions derived from this model, and after that archdoc neither reads nor writes
