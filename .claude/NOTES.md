@@ -76,6 +76,12 @@ raised, not quietly promoted over it.
 - [ ] A repository generated before `.archdoc/sections.json` existed (Mastodon, on this machine) reports
       every untouched stub as "may be stale": without the recorded size and mtime the engine cannot tell a
       stub from a written section. Regenerating fixes it; worth saying so in the completeness view
+- [ ] The published site cannot be opened from disk: browsers refuse to fetch data/ from a file://
+      page, so it needs a static host or `python3 -m http.server`. surface-spec §3 says "or a folder
+      opened from disk" — either inline the data as scripts for file://, or correct the spec
+- [ ] Completeness on a published site is computed from file mtimes where export ran; in CI every file
+      is freshly checked out, so "written" and "may be stale" mean little there. Decide what the
+      published Documents screen should claim about human sections
 - [ ] Relationships are not clickable on the canvas (the SVG groups boxes, not arrows); they are
       inspected from either end in the inspector. Fine for the review; revisit if it confuses
 
