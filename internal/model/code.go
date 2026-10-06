@@ -37,6 +37,7 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 		}
 		m.Entries = append(m.Entries, routes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, fastapiRoutes(src, container, componentOf)...)
+		m.Entries = append(m.Entries, pages(src, container, componentOf)...)
 
 		for _, f := range src.Files {
 			for _, h := range f.Hosts {
@@ -342,4 +343,75 @@ func childRouter(f archdoc.SourceFile, expr string, routers map[routerKey]archdo
 		}
 	}
 	return routerKey{}, false
+}
+
+// SvelteKit's endpoint exports, by the HTTP method each one answers.
+var kitMethods = map[string]bool{"GET": true, "POST": true, "PUT": true, "PATCH": true, "DELETE": true, "OPTIONS": true, "HEAD": true}
+
+// pages reads a front end's pages and endpoints from where its framework declares them: SvelteKit
+// by file — a +page.svelte under src/routes is a page at its directory's path, a +server.ts an
+// endpoint for each method it exports — and TanStack Router by call, createFileRoute("/items").
+// A SvelteKit route group, (user), is not part of the path; a TanStack layout, _layout, is not either.
+func pages(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
+	_, local, _ := strings.Cut(container, ":")
+	routesDir := src.Root + "/routes/"
+	var out []archdoc.Entry
+	seen := map[string]bool{}
+	add := func(e archdoc.Entry) {
+		prefix := "page:"
+		if e.Kind == "http" {
+			prefix = "route:"
+		}
+		e.ID = prefix + local + " " + strings.TrimPrefix(e.Method+" ", "PAGE ") + e.Path
+		if seen[e.ID] {
+			return
+		}
+		seen[e.ID] = true
+		e.Container, e.Component = container, componentOf[e.Prov.File]
+		out = append(out, e)
+	}
+	for _, f := range src.Files {
+		if rel, ok := strings.CutPrefix(f.Path, routesDir); ok {
+			dir, base := path.Split(rel)
+			at := kitPath(dir)
+			switch {
+			case base == "+page.svelte":
+				add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: at, Handler: rel, Prov: archdoc.Provenance{File: f.Path, Line: 1}})
+			case strings.HasPrefix(base, "+server."):
+				for _, x := range f.Exports {
+					if kitMethods[x.Value] {
+						add(archdoc.Entry{Kind: "http", Method: x.Value, Path: at, Handler: rel + " " + x.Value, Prov: x.Prov})
+					}
+				}
+			}
+		}
+		for _, p := range f.Pages {
+			add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: tanstackPath(p.Value), Handler: strings.TrimPrefix(f.Path, src.Root+"/"), Prov: p.Prov})
+		}
+	}
+	return out
+}
+
+// kitPath is a SvelteKit route directory as a path: groups dropped, parameters as written.
+func kitPath(dir string) string {
+	var segs []string
+	for _, s := range strings.Split(strings.Trim(dir, "/"), "/") {
+		if s == "" || strings.HasPrefix(s, "(") && strings.HasSuffix(s, ")") {
+			continue
+		}
+		segs = append(segs, s)
+	}
+	return "/" + strings.Join(segs, "/")
+}
+
+// tanstackPath is a createFileRoute path without its pathless layouts: /_layout/items is /items.
+func tanstackPath(p string) string {
+	var segs []string
+	for _, s := range strings.Split(strings.Trim(p, "/"), "/") {
+		if s == "" || strings.HasPrefix(s, "_") {
+			continue
+		}
+		segs = append(segs, s)
+	}
+	return "/" + strings.Join(segs, "/")
 }

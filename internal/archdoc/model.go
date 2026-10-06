@@ -1,6 +1,9 @@
 package archdoc
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // Kind is what a node *is*, which decides whether it may appear in a given view. §MDL-07.
 //
@@ -255,6 +258,17 @@ type Entry struct {
 	// resolved by name, or an expression archdoc could not resolve, kept in braces.
 	PathNote string     `json:"path_note,omitempty"`
 	Prov     Provenance `json:"provenance"`
+}
+
+// Group is how a feature list groups an entry: a route by the class or module that handles it, a
+// page by the first segment of its path.
+func (e Entry) Group() string {
+	if e.Kind == "page" {
+		first, _, _ := strings.Cut(strings.TrimPrefix(e.Path, "/"), "/")
+		return "Pages /" + first
+	}
+	cls, _, _ := strings.Cut(e.Handler, ".")
+	return cls
 }
 
 // Symbol is a named thing in the code, resolved to where it is declared. How says how the name

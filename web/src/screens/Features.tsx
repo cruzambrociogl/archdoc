@@ -24,7 +24,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
       !find || [e.method, e.path, e.handler, e.summary ?? ''].some((s) => s.toLowerCase().includes(find))
     const byContainer = new Map<string, Map<string, Entry[]>>()
     for (const e of entries.filter(hit)) {
-      const cls = e.handler.split('.')[0]
+      const cls = groupOf(e)
       const c = byContainer.get(e.container) ?? new Map<string, Entry[]>()
       c.set(cls, [...(c.get(cls) ?? []), e])
       byContainer.set(e.container, c)
@@ -44,6 +44,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
   const flows = new Map((model.flows ?? []).map((f) => [f.entry, f]))
   const name = (id?: string) => (id ? (nodes.get(id)?.name ?? id) : '')
   const described = entries.filter((e) => e.summary).length
+  const pageCount = entries.filter((e) => e.kind === 'page').length
   const containers = new Set(entries.map((e) => e.container)).size
   const shown = groups.reduce((n, g) => n + g.classes.reduce((k, [, es]) => k + es.length, 0), 0)
   const setFind = (v: string) => props.go({ screen: 'features', q: v || undefined, focus: open }, { replace: true })
@@ -59,8 +60,9 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
         </p>
       ) : (
         <p className="lede">
-          {entries.length} routes, read from the code of {containers === 1 ? name(entries[0].container) : `${containers} containers`}. {described} of them are described by
-          the code itself — a summary its decorators state — and the rest show only their handler: nothing here is written by a model.
+          {entries.length - pageCount} routes{pageCount ? ` and ${pageCount} pages` : ''}, read from the code of{' '}
+          {containers === 1 ? name(entries[0].container) : `${containers} containers`}. {described} are described by the code itself — a summary its
+          decorators state, or a docstring — and the rest show only what handles them: nothing here is written by a model.
         </p>
       )}
 
@@ -209,3 +211,6 @@ function Fact({ k, children }: { k: string; children: React.ReactNode }) {
 }
 
 const componentName = (id: string) => id.slice(id.indexOf('/') + 1)
+
+/** Mirrors archdoc.Entry.Group in Go: a route by its handling class or module, a page by its first path segment. */
+const groupOf = (e: Entry) => (e.kind === 'page' ? `Pages /${e.path.replace(/^\//, '').split('/')[0]}` : e.handler.split('.')[0])

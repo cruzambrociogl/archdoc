@@ -19,6 +19,8 @@ type facts struct {
 	consts  []archdoc.Constant
 	routers []archdoc.Router
 	incs    []archdoc.Include
+	exports []archdoc.Literal
+	pages   []archdoc.Literal
 }
 
 func (f *facts) add(g facts) {
@@ -29,6 +31,8 @@ func (f *facts) add(g facts) {
 	f.consts = append(f.consts, g.consts...)
 	f.routers = append(f.routers, g.routers...)
 	f.incs = append(f.incs, g.incs...)
+	f.exports = append(f.exports, g.exports...)
+	f.pages = append(f.pages, g.pages...)
 	if f.prefix == nil {
 		f.prefix = g.prefix
 	}
@@ -62,9 +66,21 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 			switch n.Type(l) {
 			case "import_statement", "export_statement":
 				for i := 0; i < n.ChildCount(); i++ {
-					if c := n.Child(i); c.Type(l) == "string" {
+					c := n.Child(i)
+					switch c.Type(l) {
+					case "string":
 						p := at(c)
 						out.imports = append(out.imports, rawImport{spec: unquote(text(c)), line: p.Line, column: p.Column})
+					case "function_declaration", "generator_function_declaration":
+						if c.NamedChildCount() > 0 {
+							out.exports = append(out.exports, archdoc.Literal{Value: text(c.NamedChild(0)), Prov: at(c)})
+						}
+					case "lexical_declaration", "variable_declaration":
+						for j := 0; j < c.NamedChildCount(); j++ {
+							if v := c.NamedChild(j); v.Type(l) == "variable_declarator" && v.NamedChildCount() > 0 {
+								out.exports = append(out.exports, archdoc.Literal{Value: text(v.NamedChild(0)), Prov: at(v)})
+							}
+						}
 					}
 				}
 			case "class_declaration", "abstract_class_declaration":
@@ -106,6 +122,10 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					if first != nil && first.Type(l) == "string" {
 						p := at(first)
 						out.imports = append(out.imports, rawImport{spec: unquote(text(first)), line: p.Line, column: p.Column})
+					}
+				case callee == "createFileRoute":
+					if first != nil && first.Type(l) == "string" {
+						out.pages = append(out.pages, archdoc.Literal{Value: unquote(text(first)), Prov: at(first)})
 					}
 				case strings.HasSuffix(callee, "setGlobalPrefix"):
 					if first != nil && first.Type(l) == "string" {

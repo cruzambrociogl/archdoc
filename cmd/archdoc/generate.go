@@ -295,7 +295,13 @@ func generate(args []string, out io.Writer) error {
 		fmt.Fprintf(out, "%d tables in %s, %d %s between them, from the code\n", n, containers(len(m.Datas())), references, keys)
 	}
 	if len(m.Entries) > 0 || len(m.Unresolved) > 0 {
-		fmt.Fprintf(out, "%d routes, and %d calls whose target is computed at run time\n", len(m.Entries), len(m.Unresolved))
+		pages := 0
+		for _, e := range m.Entries {
+			if e.Kind == "page" {
+				pages++
+			}
+		}
+		fmt.Fprintf(out, "%d routes, %d pages, and %d calls whose target is computed at run time\n", len(m.Entries)-pages, pages, len(m.Unresolved))
 	}
 
 	if created > 0 {

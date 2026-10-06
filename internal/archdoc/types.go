@@ -249,6 +249,11 @@ type SourceFile struct {
 	// items.router). Together they give a route its full path.
 	Routers  []Router  `json:"routers,omitempty"`
 	Includes []Include `json:"includes,omitempty"`
+	// Exports are the names a module exports — a SvelteKit +server.ts's GET and POST.
+	Exports []Literal `json:"exports,omitempty"`
+	// Pages are the paths a file declares a page at by a call: TanStack Router's
+	// createFileRoute("/_layout/items").
+	Pages []Literal `json:"pages,omitempty"`
 	// Partial is set when the parser recovered from something it could not read in the file;
 	// what it did read is still reported, and the gap is coverage, not a guess.
 	Partial bool `json:"partial,omitempty"`

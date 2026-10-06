@@ -30,7 +30,7 @@ func Features(m archdoc.Model, meta Meta) string {
 		if e.Summary != "" {
 			described++
 		}
-		cls, _, _ := strings.Cut(e.Handler, ".")
+		cls := e.Group()
 		if groups[e.Container] == nil {
 			groups[e.Container] = map[string][]archdoc.Entry{}
 		}
@@ -40,20 +40,24 @@ func Features(m archdoc.Model, meta Meta) string {
 	var b strings.Builder
 	b.WriteString("# Features\n\n")
 	b.WriteString(meta.stamp())
-	fmt.Fprintf(&b, "What the system does, read from its code: %d routes, %d described by the code itself — a\n", len(m.Entries), described)
+	fmt.Fprintf(&b, "What the system does, read from its code: %d routes and pages, %d described by the code itself — a\n", len(m.Entries), described)
 	b.WriteString("summary its decorators state. A route with none shows only its handler; nothing here is\n")
 	b.WriteString("written by a model.\n")
 	for _, c := range sortedKeys(groups) {
 		fmt.Fprintf(&b, "\n## %s\n", name(c))
 		for _, cls := range sortedKeys(groups[c]) {
 			fmt.Fprintf(&b, "\n### %s\n\n", strings.TrimSuffix(cls, "Controller"))
-			b.WriteString("| Route | What it does | Handler | Declared at |\n|---|---|---|---|\n")
+			b.WriteString("| Route | What it does | Handled by | Declared at |\n|---|---|---|---|\n")
 			for _, e := range groups[c][cls] {
 				what := "—"
 				if e.Summary != "" {
 					what = cited(e.Summary, e.SummaryProv)
 				}
-				fmt.Fprintf(&b, "| `%s %s` | %s | `%s` | `%s` |\n", e.Method, e.Path, what, e.Handler, e.Prov)
+				route := e.Method + " " + e.Path
+				if e.Kind == "page" {
+					route = e.Path
+				}
+				fmt.Fprintf(&b, "| `%s` | %s | `%s` | `%s` |\n", route, what, e.Handler, e.Prov)
 			}
 		}
 	}

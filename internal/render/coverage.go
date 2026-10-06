@@ -50,8 +50,9 @@ type CoverageReport struct {
 	// Unresolved is what the code does that could not be tied to an element: calls whose
 	// address is computed at run time.
 	Unresolved []archdoc.Unresolved `json:"unresolved"`
-	// Routes counts the entries the code declares.
+	// Routes and Pages count the entries the code declares.
 	Routes int `json:"routes"`
+	Pages  int `json:"pages"`
 	// Tables counts the tables the code declares, and TablesIn names the containers that declare
 	// them — each has a data view.
 	Tables   int      `json:"tables"`
@@ -156,7 +157,13 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 	}
 	r.Code = codeRead(m, facts)
 	r.Unresolved = append([]archdoc.Unresolved{}, m.Unresolved...)
-	r.Routes = len(m.Entries)
+	for _, e := range m.Entries {
+		if e.Kind == "page" {
+			r.Pages++
+		} else {
+			r.Routes++
+		}
+	}
 	r.TablesIn = append([]string{}, m.Datas()...)
 	for _, n := range m.Nodes {
 		if n.Kind == archdoc.Table {
@@ -384,7 +391,7 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 		counts = append(counts, Count{"Tables the code declares", fmt.Sprint(tables)})
 	}
 	if len(m.Entries) > 0 {
-		counts = append(counts, Count{"Routes the code declares", fmt.Sprint(len(m.Entries))})
+		counts = append(counts, Count{"Routes and pages the code declares", fmt.Sprint(len(m.Entries))})
 	}
 	if len(m.Unresolved) > 0 {
 		counts = append(counts, Count{"Calls whose target is computed at run time", fmt.Sprint(len(m.Unresolved))})

@@ -168,8 +168,9 @@ export interface CoverageResponse {
   code?: CodeRead[]
   /** Calls whose target is computed at run time. */
   unresolved?: Unresolved[]
-  /** How many routes the code declares. */
+  /** How many routes and pages the code declares. */
   routes?: number
+  pages?: number
   tables?: number
   tables_in?: string[]
 }
