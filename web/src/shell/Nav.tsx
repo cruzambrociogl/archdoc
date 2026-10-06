@@ -21,7 +21,7 @@ interface Item {
 export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Route>) => void; open: boolean; views: SavedView[]; coverage?: CoverageResponse }) {
   const { summary: s, route, go } = props
   const inExplorer = route.screen === 'explorer'
-  const level = route.level ?? 'container'
+  const level = route.level ?? 'context'
   // Earned: a container whose code was read opens onto its components.
   const firstInside = props.coverage?.code?.find((c) => c.read && c.container && c.components > 0)?.container
 

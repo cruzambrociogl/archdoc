@@ -66,7 +66,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
       {data.isNew && <span className="el-new">new · placed automatically</span>}
       {data.delta && <DeltaTag mark={data.delta} />}
       {data.opens !== undefined && (
-        <span className="el-opens" title={`Double-click to open its ${data.opens} components`}>
+        <span className="el-opens" title={`Double-click to open its ${data.opens} ${n.kind === 'system' ? 'containers' : 'components'}`}>
           ⤵ {data.opens}
         </span>
       )}

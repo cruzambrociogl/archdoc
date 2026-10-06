@@ -288,6 +288,8 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 		"components": opens(v.Model, archdoc.Component, v.Model.Components()),
 		// The containers whose code declares tables: they open onto a data view.
 		"data": opens(v.Model, archdoc.Table, v.Model.Datas()),
+		// How many containers the system box opens onto, in the context view.
+		"containers": containers(v.Model),
 		"arrangement": map[string]any{"file": arrange.Dir + "/" + arrange.LayoutFile, "hash": hash,
 			"placed": rep.Placed, "new": rep.New, "stale": rep.Stale},
 	})
@@ -375,6 +377,16 @@ func opens(m archdoc.Model, kind archdoc.Kind, containers []string) []opening {
 		out = append(out, opening{ID: id, Name: c.Name, Components: count[id]})
 	}
 	return out
+}
+
+func containers(m archdoc.Model) int {
+	n := 0
+	for _, x := range m.Nodes {
+		if x.Kind.Container() {
+			n++
+		}
+	}
+	return n
 }
 
 func orEmpty(s []string) []string {

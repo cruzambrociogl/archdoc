@@ -251,7 +251,7 @@ function Passport({
               <span className="fact-key">inside</span>
               <span className="fact-value">
                 <button className="text-link" onClick={() => onOpen(node.id)}>
-                  {opens} components, from its code ⤵
+                  {node.kind === 'system' ? `${opens} containers ⤵` : `${opens} components, from its code ⤵`}
                 </button>
               </span>
             </div>

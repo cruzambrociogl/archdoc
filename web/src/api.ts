@@ -160,6 +160,8 @@ export interface SceneResponse {
   components: Opening[]
   /** Containers whose code declares tables; `components` here counts their tables. */
   data: Opening[]
+  /** How many elements the container view holds: what the system box opens onto. */
+  containers: number
   /** How layout.yaml met this view: what a person placed, what is new since, what names nothing. */
   arrangement: { file: string; hash: string; placed: string[]; new: string[]; stale: string[] }
 }

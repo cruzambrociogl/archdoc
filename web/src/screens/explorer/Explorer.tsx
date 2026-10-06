@@ -24,7 +24,9 @@ const levels: [string, string][] = [
   ['data', 'Data'],
 ]
 
-const levelOf = (raw?: string): Level => (raw === 'context' || insideOf(raw) ? raw! : 'container')
+// With no level named, the explorer opens where C4 starts — the system in its context — and each
+// level opens onto the next: the system onto its containers, a container onto its components.
+const levelOf = (raw?: string): Level => (raw === 'container' || insideOf(raw) ? raw! : 'context')
 
 type Go = (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void
 
@@ -97,7 +99,11 @@ export function Explorer(props: {
             editable={editable}
             delta={delta}
             reload={() => setReload((n) => n + 1)}
-            open={(id) => props.go({ screen: 'explorer', level: componentLevel(id), from: props.route.from })}
+            open={(id) =>
+              level === 'context'
+                ? props.go({ screen: 'explorer', level: 'container', from: props.route.from })
+                : props.go({ screen: 'explorer', level: componentLevel(id), from: props.route.from })
+            }
           />
         </ReactFlowProvider>
       )}
@@ -234,7 +240,12 @@ function Arranged(props: {
   open: (container: string) => void
 }) {
   const { scene } = props
-  const opens = useMemo(() => new Map(scene.components.map((o) => [o.id, o.components])), [scene.components])
+  const opens = useMemo(() => {
+    const m = new Map(scene.components.map((o) => [o.id, o.components]))
+    // In the context view, the system box opens onto the containers.
+    if (scene.view === 'context') for (const n of scene.model.nodes ?? []) if (n.kind === 'system') m.set(n.id, scene.containers ?? 0)
+    return m
+  }, [scene])
   const holds = useMemo(() => new Map((scene.data ?? []).map((o) => [o.id, o.components])), [scene.data])
   const [draft, setDraft] = useState<Draft>({})
   const [busy, setBusy] = useState(false)
