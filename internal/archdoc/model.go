@@ -204,6 +204,29 @@ type Model struct {
 
 	// Flows are what happens when an entry is called, followed through the code (F-12).
 	Flows []Flow `json:"flows,omitempty"`
+
+	// Explanations are model-written prose about an element — what a component does — every
+	// sentence citing the facts it rests on (F-19, F-36). Interpretation, marked as such.
+	Explanations []Explanation `json:"explanations,omitempty"`
+}
+
+// Explanation is what the model wrote about one element, and what it was given to write it.
+// Fingerprint identifies those facts: while they are unchanged, the explanation is reused rather
+// than asked for again (F-30), so a run with no change costs nothing and changes nothing.
+type Explanation struct {
+	Element     string     `json:"element"`
+	Claims      []Claim    `json:"claims"`
+	Fingerprint string     `json:"fingerprint"`
+	Prov        Provenance `json:"provenance"` // Origin Semantic; the note names the model
+}
+
+// Claim is one sentence and the facts it cites. Every cite resolves to a fact archdoc gave the
+// model, each with the line that proves it; a sentence that cited nothing, or something it was
+// not given, was refused before it got here (F-36).
+type Claim struct {
+	Text  string       `json:"text"`
+	Facts []string     `json:"facts"` // the facts as the model saw them
+	Cites []Provenance `json:"cites"` // where each is proven
 }
 
 // Flow is the calls an entry sets off, in the order the code makes them: from its handler into
@@ -397,6 +420,18 @@ func (m Model) inside(of string, kind Kind) Model {
 	}
 	view := m.project(keep, nil, func(id string) string { return id })
 	view.Networks = nil
+	// What the code says about the parts on view travels with them: the routes a component
+	// handles, and what the model wrote about each.
+	for _, e := range m.Entries {
+		if keep[e.Component] {
+			view.Entries = append(view.Entries, e)
+		}
+	}
+	for _, x := range m.Explanations {
+		if keep[x.Element] {
+			view.Explanations = append(view.Explanations, x)
+		}
+	}
 	if c, ok := m.Node(of); ok {
 		view.Name = c.Name
 		view.Boundary = c.Name + " [Container"

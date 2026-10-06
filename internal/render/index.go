@@ -56,7 +56,7 @@ func Index(m archdoc.Model, plan []Section, meta Meta) string {
 	if len(components) > 0 {
 		b.WriteString("\n## Components\n\n")
 		b.WriteString("Inside each container whose code archdoc reads: its parts, and which uses which. Every\n")
-		b.WriteString("arrow is an import, cited at its line in `.archdoc/model.json`.\n")
+		fmt.Fprintf(&b, "arrow is an import, cited at its line in `.archdoc/model.json`; [each part](%s) has its page.\n", ComponentsFile)
 		for _, v := range components {
 			fmt.Fprintf(&b, "\n### %s\n\n", v.Model.Name)
 			b.WriteString(figure(meta, v.Title, v.File+".svg", Mermaid(v.Model, v.Group)))

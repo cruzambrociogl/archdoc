@@ -241,3 +241,14 @@
 .column-fact .fact-cite {
   margin-top: 3px;
 }
+
+/* A model-written sentence: interpreted, so slate and italic, then the lines it cites. */
+.claim {
+  margin: 0 0 10px;
+}
+.claim p {
+  margin: 0 0 4px;
+  font-style: italic;
+  color: var(--interp-ink);
+  line-height: 1.45;
+}

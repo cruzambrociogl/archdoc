@@ -257,3 +257,24 @@ func Mermaidish(m archdoc.Model) string {
 	}
 	return b.String()
 }
+
+// F-36: a model-written claim stands only on cited lines.
+func TestClaimsMustCiteLines(t *testing.T) {
+	m := archdoc.Model{Nodes: []archdoc.Node{{ID: "cmp:a", Name: "a", Kind: archdoc.Component, Parent: "svc:x",
+		Prov: archdoc.Provenance{File: "a.ts", Line: 1}}}}
+	m.Nodes = append(m.Nodes, archdoc.Node{ID: "svc:x", Name: "x", Kind: archdoc.Application, Technology: "Go",
+		TechProv: archdoc.Provenance{File: "go.mod", Line: 1}, Description: "d", DescProv: archdoc.Provenance{File: "go.mod", Line: 1},
+		Prov: archdoc.Provenance{File: "c.yml", Line: 1}})
+	m.Explanations = []archdoc.Explanation{{Element: "cmp:a", Prov: archdoc.Provenance{Origin: archdoc.Semantic, Note: "m"},
+		Claims: []archdoc.Claim{
+			{Text: "Cited.", Cites: []archdoc.Provenance{{File: "a.ts", Line: 3}}},
+			{Text: "Uncited."},
+		}}}
+	r := Model(m)
+	if r.OK() {
+		t.Fatal("an uncited claim was accepted")
+	}
+	if !strings.Contains(r.Error(), "claim 2 cites no fact") {
+		t.Errorf("%s", r.Error())
+	}
+}

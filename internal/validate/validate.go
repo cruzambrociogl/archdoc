@@ -201,6 +201,26 @@ func Model(m archdoc.Model) Result {
 			r.add("VAL-05", Error, u.What, "unresolved call has no provenance", u.Prov)
 		}
 	}
+
+	// F-36 — a model-written sentence stands only on facts: every claim cites at least one, and
+	// every one it cites is a line in a file. A claim with nothing under it is refused, whatever
+	// produced it.
+	for _, x := range m.Explanations {
+		if !seen[x.Element] {
+			r.add("VAL-02", Error, x.Element, "explanation of an undefined element", x.Prov)
+		}
+		for i, c := range x.Claims {
+			if len(c.Cites) == 0 {
+				r.add("VAL-09", Error, x.Element, fmt.Sprintf("claim %d cites no fact: %q", i+1, c.Text), x.Prov)
+			}
+			for _, p := range c.Cites {
+				if p.File == "" || p.Line == 0 || p.Origin.Interpretation() {
+					r.add("VAL-09", Error, x.Element, fmt.Sprintf("claim %d cites something that is not a line read from a file", i+1), x.Prov)
+					break
+				}
+			}
+		}
+	}
 	for _, e := range m.Edges {
 		id := e.From + " → " + e.To
 		first := archdoc.Provenance{}

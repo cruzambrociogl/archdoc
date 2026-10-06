@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Change, Edge, Model, Node, Provenance } from '../api'
+import type { Change, Edge, Entry, Explanation, Model, Node, Provenance } from '../api'
 import { Cite } from '../ui/Cite'
 import { KindTile } from '../ui/KindTile'
 import { kindStyle } from '../ui/kinds'
@@ -52,6 +52,8 @@ export function Inspector({
           node={node}
           nodes={nodes}
           edges={edges}
+          explanation={(model.explanations ?? []).find((x) => x.element === node.id)}
+          entries={(model.entries ?? []).filter((e) => e.component === node.id)}
           onSelect={onSelect}
           container={model.name}
           opens={opens?.get(node.id)}
@@ -116,6 +118,8 @@ function Passport({
   node,
   nodes,
   edges,
+  explanation,
+  entries,
   onSelect,
   container,
   opens,
@@ -126,6 +130,8 @@ function Passport({
   node: Node
   nodes: Node[]
   edges: Edge[]
+  explanation?: Explanation
+  entries: Entry[]
   onSelect: (id: string) => void
   /** The view's name: in a component view, the container every component is inside. */
   container: string
@@ -183,6 +189,27 @@ function Passport({
           </span>
         </div>
       </div>
+
+      {explanation && (
+        <section className="inspector-section">
+          <Eyebrow>What it does · interpreted</Eyebrow>
+          {explanation.claims.map((c, i) => (
+            <div key={i} className="claim">
+              <p className="interpreted">
+                <TruthMark state="interpreted" /> {c.text}
+              </p>
+              <div className="relation-cites">
+                {c.cites.map((p, j) => (
+                  <span key={j} title={c.facts[j]}>
+                    <Cite p={p} compact />
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+          <p className="small muted">Written by {explanation.provenance.note} from the facts archdoc read; every sentence cites them.</p>
+        </section>
+      )}
 
       <section className="inspector-section">
         <Eyebrow>Facts</Eyebrow>
@@ -268,6 +295,23 @@ function Passport({
               </div>
             </div>
           ))}
+        </section>
+      )}
+
+      {entries.length > 0 && (
+        <section className="inspector-section">
+          <Eyebrow>
+            Handles {entries.length} {entries.length === 1 ? 'route' : 'routes'}
+          </Eyebrow>
+          <ul className="file-list">
+            {entries.slice(0, 12).map((e) => (
+              <li key={e.id} className="mono small">
+                {e.kind === 'page' ? '' : `${e.method} `}
+                {e.path}
+              </li>
+            ))}
+            {entries.length > 12 && <li className="small muted">and {entries.length - 12} more on the Features screen</li>}
+          </ul>
         </section>
       )}
 

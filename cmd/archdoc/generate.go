@@ -41,6 +41,7 @@ func generate(args []string, out io.Writer) error {
 	gaps := fs.Bool("explain-gaps", false, "list what the configuration does not state")
 	site := fs.Bool("site", false, "also write mkdocs.yml, so the documents build as a static site")
 	label := fs.Bool("label", false, "ask Claude for names, descriptions and edge labels")
+	explain := fs.Bool("explain", false, "ask Claude what each component does, every sentence cited (remembered answers are reused without it)")
 
 	flags, positional := partitionArgs(fs, args)
 	if err := fs.Parse(flags); err != nil {
@@ -114,6 +115,38 @@ func generate(args []string, out io.Writer) error {
 		}
 	}
 
+	// F-19, F-30 — what each component does. Answers remembered against their facts apply on every
+	// run, with no request; --explain asks only about components whose facts are new or changed.
+	memory, err := loadMemory(facts.Root)
+	if err != nil {
+		return err
+	}
+	var asker semantic.Completer
+	var rec *semantic.Recorder
+	if *explain {
+		rec = &semantic.Recorder{}
+		asker = semantic.ClaudeWith(semantic.Model, semantic.ExplainSchema(), rec)
+	}
+	started := time.Now()
+	explained, remembered, xrep, err := semantic.Explain(context.Background(), asker, semantic.Model, m, memory)
+	if *explain {
+		runID := logRun(facts.Root, rec, xrep.Report, started, err, out)
+		if err == nil {
+			fmt.Fprintf(out, "explained by %s: %d component(s) asked, %d remembered, %d sentence(s) refused for want of a citation\n",
+				xrep.Model, xrep.Asked, xrep.Remembered, xrep.Refused)
+			if c, ok := semantic.Cost(xrep.Model, xrep.InputTokens, xrep.OutputTokens); ok {
+				fmt.Fprintf(out, "sent %d request(s), %d bytes, names only · $%.4f\n", len(rec.Exchanges()), rec.Bytes(), c)
+			}
+			if runID > 0 {
+				fmt.Fprintf(out, "run %d logged — 'archdoc runs %s --show %d' prints exactly what was sent\n", runID, root, runID)
+			}
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("explaining failed, nothing written: %w", err)
+	}
+	m = explained
+
 	// VAL-08: nothing is written unless the whole model is sound. A documentation generator
 	// that emits a diagram it knows to be wrong is worse than one that emits nothing, because
 	// the reader cannot tell.
@@ -172,6 +205,9 @@ func generate(args []string, out io.Writer) error {
 	if features := render.Features(m, meta); features != "" {
 		generated[render.FeaturesFile] = features
 	}
+	if components := render.Components(m, meta); components != "" {
+		generated[render.ComponentsFile] = components
+	}
 	views := render.Views(m)
 	for _, v := range views {
 		generated[v.File+".mmd"] = render.Mermaid(v.Model, v.Group)
@@ -225,6 +261,15 @@ func generate(args []string, out io.Writer) error {
 
 	if err := write(facts.Root, modelOut, encode(m)); err != nil {
 		return err
+	}
+	if len(remembered) > 0 || len(memory) > 0 {
+		b, err := json.MarshalIndent(remembered, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := write(facts.Root, memoryOut, string(b)+"\n"); err != nil {
+			return err
+		}
 	}
 	fmt.Fprintf(out, "wrote %s\n", modelOut)
 
@@ -557,4 +602,23 @@ func sortedKeys(m map[string]string) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// memoryOut keeps the model's answers against the facts they were given (F-30): reused while the
+// facts are unchanged, so explanations are as stable as the code they describe.
+const memoryOut = stateDir + "/interpretations.json"
+
+func loadMemory(root string) (semantic.Memory, error) {
+	b, err := os.ReadFile(filepath.Join(root, memoryOut))
+	if os.IsNotExist(err) {
+		return semantic.Memory{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var m semantic.Memory
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, fmt.Errorf("%s: %w", memoryOut, err)
+	}
+	return m, nil
 }

@@ -66,6 +66,15 @@ export interface Model {
   entries?: Entry[]
   unresolved?: Unresolved[]
   flows?: Flow[]
+  explanations?: Explanation[]
+}
+
+/** What a model wrote about an element, every sentence citing the lines it rests on (F-19, F-36). */
+export interface Explanation {
+  element: string
+  claims: { text: string; facts: string[]; cites: Provenance[] }[]
+  fingerprint: string
+  provenance: Provenance
 }
 
 /** What an entry sets off, followed through the code (F-12). */

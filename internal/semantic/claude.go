@@ -26,6 +26,12 @@ import (
 //     request, the API re-runs it on Anthropic's recommended fallback instead of returning an
 //     empty refusal. A refusal that still gets through is reported, not guessed around.
 func Claude(model string, rec *Recorder, extra ...option.RequestOption) Completer {
+	return ClaudeWith(model, Schema(), rec, extra...)
+}
+
+// ClaudeWith is Claude answering in another schema — an explanation's sentences rather than a
+// labelling run's operations.
+func ClaudeWith(model string, schema map[string]any, rec *Recorder, extra ...option.RequestOption) Completer {
 	// A key created at organisation level rather than inside a workspace must name the
 	// workspace on every request. Keys created inside a workspace need nothing extra, so
 	// the header is sent only when the variable is set.
@@ -68,7 +74,7 @@ func Claude(model string, rec *Recorder, extra ...option.RequestOption) Complete
 			System:    []anthropic.BetaTextBlockParam{{Text: system}},
 			Messages:  msgs,
 			OutputConfig: anthropic.BetaOutputConfigParam{
-				Format: anthropic.BetaJSONOutputFormatParam{Schema: Schema()},
+				Format: anthropic.BetaJSONOutputFormatParam{Schema: schema},
 			},
 			Fallbacks: anthropic.BetaFallbacksParamUnion{OfDefault: constant.ValueOf[constant.Default]()},
 			Betas:     []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01},
