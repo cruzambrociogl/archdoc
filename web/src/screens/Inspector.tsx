@@ -97,7 +97,11 @@ function Index({ nodes, edges, onSelect, parts }: { nodes: Node[]; edges: Edge[]
     <div className="inspector-body">
       <p className="inspector-hint">Select a box. Every value it shows carries the line that proves it.</p>
       <Eyebrow>
-        {parts ? `${nodes.length} components · ${edges.length} uses` : `${nodes.length} elements · ${edges.length} relationships`}
+        {parts
+          ? nodes[0].kind === 'table'
+            ? `${nodes.length} tables · ${edges.length} foreign keys`
+            : `${nodes.length} components · ${edges.length} uses`
+          : `${nodes.length} elements · ${edges.length} relationships`}
       </Eyebrow>
       <ul className="index-list">
         {nodes.map((n) => (
