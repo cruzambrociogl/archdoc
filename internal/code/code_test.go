@@ -236,8 +236,8 @@ func TestNestFacts(t *testing.T) {
 	if len(ctl.Injects) != 2 || ctl.Injects[0].Value != "AssetService" || ctl.Injects[1].Value != "Repository" || ctl.Injects[0].Prov.Line != 4 {
 		t.Errorf("injects %+v", ctl.Injects)
 	}
-	if len(ctl.Methods) != 1 || ctl.Methods[0].Name != "get" {
-		t.Fatalf("methods %+v (an undecorated method is not recorded)", ctl.Methods)
+	if len(ctl.Methods) != 2 || ctl.Methods[0].Name != "get" || ctl.Methods[1].Name != "helper" || len(ctl.Methods[1].Decorators) != 0 {
+		t.Fatalf("methods %+v", ctl.Methods)
 	}
 	get := ctl.Methods[0].Decorators
 	if get[0].Name != "Get" || get[0].Arg != ":id" || get[1].Summary != "Get an asset" || get[1].SummaryProv.Line != 6 {
@@ -383,5 +383,35 @@ func TestFieldFacts(t *testing.T) {
 	}
 	if f := fields["owner"]; f.Decorators[0].Name != "Relationship" {
 		t.Errorf("owner %+v", f)
+	}
+}
+
+// What a method does to its own object, and the tables its queries name — what a flow follows.
+func TestMethodBodies(t *testing.T) {
+	root := tree(t, map[string]string{
+		"server/src/album.service.ts": "export class AlbumService extends BaseService {\n" +
+			"  constructor(protected albumRepository: AlbumRepository, private logger: Logger) { super() }\n" +
+			"  async getAll(id: string) {\n" +
+			"    await this.requireAccess(id);\n" +
+			"    const rows = await this.albumRepository.getAll(id);\n" +
+			"    return this.db.selectFrom('album').where('id', '=', id).execute();\n" +
+			"  }\n" +
+			"}\n",
+	})
+	src, _ := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
+	c := src.Files[0].Classes[0]
+	if len(c.Params) != 2 || c.Params[0].Name != "albumRepository" || c.Params[0].Type != "AlbumRepository" {
+		t.Errorf("params %+v", c.Params)
+	}
+	m := c.Methods[0]
+	if m.Name != "getAll" || m.Prov.Line != 3 || m.EndLine != 7 {
+		t.Errorf("method %s at %d–%d", m.Name, m.Prov.Line, m.EndLine)
+	}
+	if len(m.Invokes) != 2 || m.Invokes[0].Object != "" || m.Invokes[0].Method != "requireAccess" ||
+		m.Invokes[1].Object != "albumRepository" || m.Invokes[1].Method != "getAll" || m.Invokes[1].Prov.Line != 5 {
+		t.Errorf("invokes %+v", m.Invokes)
+	}
+	if len(m.Queries) != 1 || m.Queries[0].Table != "album" || m.Queries[0].Op != "reads" || m.Queries[0].Prov.Line != 6 {
+		t.Errorf("queries %+v", m.Queries)
 	}
 }

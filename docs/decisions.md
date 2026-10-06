@@ -690,4 +690,6 @@ machine-learning service (31 files) and the FastAPI template's backend (40 files
 every route found. The alternative — an importable fork of Microsoft's typescript-go — would add type
 information but only for TypeScript, from an unofficial fork of internal packages; it stays the
 candidate for D-4's later "resolved by type" upgrade. Syntax is the baseline, and provenance records
-how a link was resolved.
+how a link was resolved. A second gap, found following flows: a call with type arguments after `await` —
+`await this.predict<T>(a, b)` — is read as two comparisons; `internal/code` recognises that shape as
+the call it is (`misreadGenericCall`), since a comparison is never followed by an argument list.

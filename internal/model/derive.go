@@ -188,6 +188,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 	}
 
 	fromCode(&m, f.Sources, componentOf, declared)
+	flows(&m, f.Sources, componentOf)
 
 	return m.Normalise()
 }

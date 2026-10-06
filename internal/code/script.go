@@ -191,8 +191,11 @@ func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 					}
 					if name == "constructor" {
 						c.Injects = injected(m, l, src, at)
-					} else if len(pending) > 0 {
-						c.Methods = append(c.Methods, archdoc.Method{Name: name, Decorators: pending, Prov: at(m)})
+						c.Params = params(m, l, src, at)
+					} else {
+						meth := archdoc.Method{Name: name, Decorators: pending, Prov: at(m), EndLine: at(m).Line + int(m.EndPoint().Row-m.StartPoint().Row)}
+						meth.Invokes, meth.Queries = body(m, l, src, at)
+						c.Methods = append(c.Methods, meth)
 					}
 					pending = nil
 				case "public_field_definition":
@@ -253,6 +256,108 @@ func injected(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 		}
 	}
 	return out
+}
+
+// params lists a constructor's parameters by name and type: (private service: AlbumService).
+func params(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Param {
+	var out []archdoc.Param
+	for i := 0; i < ctor.ChildCount(); i++ {
+		ps := ctor.Child(i)
+		if ps.Type(l) != "formal_parameters" {
+			continue
+		}
+		for j := 0; j < ps.NamedChildCount(); j++ {
+			p := ps.NamedChild(j)
+			var name, typ string
+			for k := 0; k < p.ChildCount(); k++ {
+				switch ch := p.Child(k); ch.Type(l) {
+				case "identifier":
+					name = ch.Text(src)
+				case "type_annotation":
+					if ch.NamedChildCount() > 0 {
+						ty := ch.NamedChild(0)
+						typ = ty.Text(src)
+						if ty.Type(l) == "generic_type" && ty.NamedChildCount() > 0 {
+							typ = ty.NamedChild(0).Text(src)
+						}
+					}
+				}
+			}
+			if name != "" && typ != "" {
+				out = append(out, archdoc.Param{Name: name, Type: typ, Prov: at(p)})
+			}
+		}
+	}
+	return out
+}
+
+// Query builders' table methods: Kysely's, and the verb each one is.
+var queryOps = map[string]string{"selectFrom": "reads", "insertInto": "writes", "updateTable": "updates", "deleteFrom": "deletes", "mergeInto": "writes"}
+
+// body reads what a method does to its own object, and which tables its queries name.
+func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (invokes []archdoc.Invocation, queries []archdoc.Query) {
+	walk(m, func(n *ts.Node) {
+		if fn := misreadGenericCall(n, l); fn != nil {
+			// await this.predict<T>(…), read by the parser as (await this.predict) < T > (…).
+			if fn.Type(l) == "member_expression" && fn.NamedChildCount() == 2 {
+				prop, obj := fn.NamedChild(1).Text(src), fn.NamedChild(0)
+				switch {
+				case obj.Type(l) == "this":
+					invokes = append(invokes, archdoc.Invocation{Method: prop, Prov: at(n)})
+				case obj.Type(l) == "member_expression" && obj.NamedChildCount() == 2 && obj.NamedChild(0).Type(l) == "this":
+					invokes = append(invokes, archdoc.Invocation{Object: obj.NamedChild(1).Text(src), Method: prop, Prov: at(n)})
+				}
+			}
+			return
+		}
+		if n.Type(l) != "call_expression" || n.ChildCount() < 2 {
+			return
+		}
+		fn := n.Child(0)
+		if fn.Type(l) != "member_expression" || fn.NamedChildCount() < 2 {
+			return
+		}
+		prop := fn.NamedChild(fn.NamedChildCount() - 1).Text(src)
+		if op, ok := queryOps[prop]; ok {
+			if args := n.Child(1); args.NamedChildCount() > 0 {
+				if t, ok := literal(args.NamedChild(0), l, src); ok {
+					t, _, _ = strings.Cut(t, " as ") // 'album_user as au': the alias is the query's, not the table's
+					queries = append(queries, archdoc.Query{Table: strings.TrimSpace(t), Op: op, Prov: at(n)})
+				}
+			}
+			return
+		}
+		obj := fn.NamedChild(0)
+		switch {
+		case obj.Type(l) == "this":
+			invokes = append(invokes, archdoc.Invocation{Method: prop, Prov: at(n)})
+		case obj.Type(l) == "member_expression" && obj.NamedChildCount() == 2 && obj.NamedChild(0).Type(l) == "this":
+			invokes = append(invokes, archdoc.Invocation{Object: obj.NamedChild(1).Text(src), Method: prop, Prov: at(n)})
+		}
+	})
+	return invokes, queries
+}
+
+// misreadGenericCall recognises a call with type arguments that the parser read as two
+// comparisons — `await this.predict<T>(a, b)` as `(await this.predict) < T > (a, b)` — a known
+// gap in the TypeScript grammar's runtime (docs/decisions.md, 5 Oct), and returns the function the
+// call names. A real comparison is never followed by a parenthesised argument list.
+func misreadGenericCall(n *ts.Node, l *ts.Language) *ts.Node {
+	if n.Type(l) != "binary_expression" || n.ChildCount() != 3 || n.Child(1).Type(l) != ">" {
+		return nil
+	}
+	if n.Child(2).Type(l) != "parenthesized_expression" {
+		return nil
+	}
+	left := n.Child(0)
+	if left.Type(l) != "binary_expression" || left.ChildCount() != 3 || left.Child(1).Type(l) != "<" {
+		return nil
+	}
+	fn := left.Child(0)
+	if fn.Type(l) == "await_expression" && fn.NamedChildCount() > 0 {
+		fn = fn.NamedChild(0)
+	}
+	return fn
 }
 
 // decoratorOf reads @Name, @Name('arg'), @Name({ path: 'arg', summary: '…' }).

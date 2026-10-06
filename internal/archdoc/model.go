@@ -198,6 +198,38 @@ type Model struct {
 	// Unresolved is what the code does that archdoc saw and could not tie to an element: a call
 	// to an address computed at run time. Shown, never dropped (D-6, F-32).
 	Unresolved []Unresolved `json:"unresolved,omitempty"`
+
+	// Flows are what happens when an entry is called, followed through the code (F-12).
+	Flows []Flow `json:"flows,omitempty"`
+}
+
+// Flow is the calls an entry sets off, in the order the code makes them: from its handler into
+// the classes it is given, down to the tables their queries name and the calls that leave the
+// container. Followed by name — a field's declared type — to a fixed depth; Cut says it was cut.
+type Flow struct {
+	Entry        string        `json:"entry"`
+	Participants []Participant `json:"participants"`
+	Steps        []Step        `json:"steps"`
+	Cut          bool          `json:"cut,omitempty"`
+}
+
+// Participant is a lifeline in a flow: a class, a table, or a call whose target is unknown.
+type Participant struct {
+	ID        string `json:"id"` // "AlbumService", "table:album", "unresolved"
+	Name      string `json:"name"`
+	Kind      string `json:"kind"` // "class", "table", "unresolved"
+	Component string `json:"component,omitempty"`
+	Element   string `json:"element,omitempty"` // a table's node, when the model has it
+}
+
+// Step is one call in a flow, at the line that makes it.
+type Step struct {
+	From  string     `json:"from"`
+	To    string     `json:"to"`
+	Call  string     `json:"call"` // "getAll", "reads"
+	Depth int        `json:"depth"`
+	Note  string     `json:"note,omitempty"`
+	Prov  Provenance `json:"provenance"`
 }
 
 // Entry is one way into the system: an HTTP route, its handler, and what the handler is given.

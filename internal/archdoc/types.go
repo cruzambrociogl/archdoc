@@ -279,9 +279,11 @@ type Class struct {
 	// Fields are its declared fields: a TypeScript property with its decorators, a Python
 	// annotated assignment with the call that defines it (SQLModel's Field, SQLAlchemy's Column).
 	Fields []Field `json:"fields,omitempty"`
-	// Injects are the types its constructor takes — in NestJS, what the container injects.
+	// Injects are the types its constructor takes — in NestJS, what the container injects — and
+	// Params the same parameters by name: this.albumRepository is an AlbumRepository.
 	Injects []Literal  `json:"injects,omitempty"`
-	Methods []Method   `json:"methods,omitempty"` // the decorated ones
+	Params  []Param    `json:"params,omitempty"`
+	Methods []Method   `json:"methods,omitempty"`
 	Prov    Provenance `json:"provenance"`
 }
 
@@ -296,11 +298,37 @@ type Field struct {
 	Prov       Provenance  `json:"provenance"`
 }
 
-// Method is a decorated method — a route handler, a job handler, an event listener.
+// Param is a constructor parameter: its name and its type.
+type Param struct {
+	Name string     `json:"name"`
+	Type string     `json:"type"`
+	Prov Provenance `json:"provenance"`
+}
+
+// Method is a method: its decorators — a route handler's, a job handler's — what it invokes on
+// its own object, and the tables it queries. EndLine closes the span its calls are found in.
 type Method struct {
-	Name       string      `json:"name"`
-	Decorators []Decorator `json:"decorators"`
-	Prov       Provenance  `json:"provenance"`
+	Name       string       `json:"name"`
+	Decorators []Decorator  `json:"decorators,omitempty"`
+	Invokes    []Invocation `json:"invokes,omitempty"`
+	Queries    []Query      `json:"queries,omitempty"`
+	EndLine    int          `json:"end_line,omitempty"`
+	Prov       Provenance   `json:"provenance"`
+}
+
+// Invocation is a call a method makes on its own object: this.albumRepository.getAll(…) is Object
+// albumRepository and Method getAll; this.requireAccess(…) has no Object.
+type Invocation struct {
+	Object string     `json:"object,omitempty"`
+	Method string     `json:"method"`
+	Prov   Provenance `json:"provenance"`
+}
+
+// Query is a table a method's query builder names: .selectFrom('album') reads album.
+type Query struct {
+	Table string     `json:"table"`
+	Op    string     `json:"op"` // "reads", "writes", "updates", "deletes"
+	Prov  Provenance `json:"provenance"`
 }
 
 // Decorator is one decorator as written: @Get(':id') is Get with argument ":id". Summary is a
