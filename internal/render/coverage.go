@@ -47,6 +47,9 @@ type CoverageReport struct {
 	Limits      []Limit  `json:"limits"`
 	// Code is what was read of each running application's code, in directory order.
 	Code []CodeRead `json:"code"`
+	// Unresolved is what the code does that could not be tied to an element: calls whose
+	// address is computed at run time.
+	Unresolved []archdoc.Unresolved `json:"unresolved"`
 }
 
 // CodeRead is one application's code: how much was read, and how what it imports was resolved.
@@ -146,6 +149,7 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 		}
 	}
 	r.Code = codeRead(m, facts)
+	r.Unresolved = append([]archdoc.Unresolved{}, m.Unresolved...)
 
 	r.Unconnected = unconnected(m.Container())
 	if r.Unconnected == nil {
@@ -228,6 +232,14 @@ func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) str
 			}
 		}
 		b.WriteString("\n")
+	}
+	if len(r.Unresolved) > 0 {
+		b.WriteString("\n## Calls whose target is computed at run time\n\n")
+		b.WriteString("The code makes these calls; nothing in it names where they go. They are listed rather\n")
+		b.WriteString("than drawn, and no arrow is guessed for them.\n\n")
+		for _, u := range r.Unresolved {
+			fmt.Fprintf(&b, "- `%s` — `%s`\n", u.What, u.Prov)
+		}
 	}
 
 	b.WriteString("\n## What configuration cannot state\n\n")
@@ -345,6 +357,12 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 			Count{"Components, read from the code", fmt.Sprint(parts)},
 			Count{"… and uses between them, each an import", fmt.Sprint(uses)})
 	}
+	if len(m.Entries) > 0 {
+		counts = append(counts, Count{"Routes the code declares", fmt.Sprint(len(m.Entries))})
+	}
+	if len(m.Unresolved) > 0 {
+		counts = append(counts, Count{"Calls whose target is computed at run time", fmt.Sprint(len(m.Unresolved))})
+	}
 	return counts
 }
 
@@ -390,7 +408,7 @@ func codeRead(m archdoc.Model, facts archdoc.FactSet) []CodeRead {
 				}
 				for _, i := range f.Imports {
 					c.Imports[i.How]++
-					if i.How == archdoc.Unresolved {
+					if i.How == archdoc.NoMatch {
 						c.Unresolved = append(c.Unresolved, i)
 					}
 				}

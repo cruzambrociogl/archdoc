@@ -32,7 +32,10 @@ const (
 	minSplit  = 50 // files: below this an application is small enough to read as it is laid out
 )
 
-func components(m *archdoc.Model, sources []archdoc.Source) {
+// components adds each source's components and their uses, and returns the component every
+// file belongs to.
+func components(m *archdoc.Model, sources []archdoc.Source) map[string]string {
+	componentOf := map[string]string{}
 	containerOf := map[string]archdoc.Node{}
 	for _, n := range m.Nodes {
 		if n.Dir != "" && n.Kind == archdoc.Application {
@@ -98,6 +101,12 @@ func components(m *archdoc.Model, sources []archdoc.Source) {
 			})
 		}
 
+		for file, key := range group {
+			if parts[key] != nil {
+				componentOf[file] = prefix + key
+			}
+		}
+
 		type link struct {
 			cited  map[string]archdoc.Provenance // importing file → its first import of the other
 			weight int
@@ -146,6 +155,7 @@ func components(m *archdoc.Model, sources []archdoc.Source) {
 			})
 		}
 	}
+	return componentOf
 }
 
 // grouping assigns each file of a source to its component, keyed by the component's path under

@@ -105,7 +105,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 		})
 	}
 
-	components(&m, f.Sources)
+	componentOf := components(&m, f.Sources)
 
 	external := map[string]archdoc.Node{}
 	var actor *archdoc.Node
@@ -185,6 +185,8 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 	for _, id := range sortedKeys(external) {
 		m.Nodes = append(m.Nodes, external[id])
 	}
+
+	fromCode(&m, f.Sources, componentOf, declared)
 
 	return m.Normalise()
 }

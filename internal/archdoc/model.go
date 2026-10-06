@@ -167,6 +167,57 @@ type Model struct {
 	// Boundary is what a view's enclosing box says, when it is not the system: a component view
 	// is drawn inside its container — "immich-server [Container: NestJS · TypeScript]".
 	Boundary string `json:"boundary,omitempty"`
+
+	// Entries are the ways into the system its code declares — HTTP routes, today (F-04, F-13).
+	// They are what the system does, read from where it says so; the features a reader looks for.
+	Entries []Entry `json:"entries,omitempty"`
+
+	// Unresolved is what the code does that archdoc saw and could not tie to an element: a call
+	// to an address computed at run time. Shown, never dropped (D-6, F-32).
+	Unresolved []Unresolved `json:"unresolved,omitempty"`
+}
+
+// Entry is one way into the system: an HTTP route, its handler, and what the handler is given.
+type Entry struct {
+	// ID is what the entry is — its container, method and path — so moving the handler to another
+	// file is not a new feature (F-31).
+	ID      string `json:"id"`
+	Kind    string `json:"kind"` // "http"
+	Method  string `json:"method"`
+	Path    string `json:"path"`
+	Handler string `json:"handler"` // "AlbumController.getAllAlbums"
+	// Summary is the code's own description of the route — a summary its decorators state.
+	Summary     string     `json:"summary,omitempty"`
+	SummaryProv Provenance `json:"summary_provenance,omitempty"`
+	Container   string     `json:"container"`
+	Component   string     `json:"component,omitempty"`
+	// Uses are what the handler's class is given — NestJS's injected services — each resolved by
+	// name to where it is declared.
+	Uses []Symbol `json:"uses,omitempty"`
+	// PrefixProv cites the global prefix the path begins with, when one was applied.
+	PrefixProv Provenance `json:"prefix_provenance,omitempty"`
+	// PathNote says how a part of the path was resolved when it was not written out: a constant
+	// resolved by name, or an expression archdoc could not resolve, kept in braces.
+	PathNote string     `json:"path_note,omitempty"`
+	Prov     Provenance `json:"provenance"`
+}
+
+// Symbol is a named thing in the code, resolved to where it is declared. How says how the name
+// was tied: by name means a class of that name was found in the application's own code (D-4).
+type Symbol struct {
+	Name      string     `json:"name"`
+	Component string     `json:"component,omitempty"`
+	How       string     `json:"how"` // "name", or "unresolved" when no such class was found
+	Prov      Provenance `json:"provenance"`
+}
+
+// Unresolved is one thing the code does that could not be tied to an element.
+type Unresolved struct {
+	Container string     `json:"container"`
+	Component string     `json:"component,omitempty"`
+	What      string     `json:"what"` // "fetch(new URL('predict', url))"
+	Note      string     `json:"note"`
+	Prov      Provenance `json:"provenance"`
 }
 
 // Normalise puts a freshly built model into the shape every view expects: one edge per pair of

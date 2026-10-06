@@ -99,21 +99,22 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 			continue
 		}
 		f := archdoc.SourceFile{Path: p, Language: languageOf(p, python), Lines: lines(content)}
-		var raw []rawImport
+		var got facts
 		switch f.Language {
 		case "Python":
-			raw, f.Partial = pythonImports(content)
+			got, f.Partial = pythonFacts(content, p)
 		case "Svelte":
-			raw, f.Partial = svelteImports(content)
+			got, f.Partial = svelteFacts(content, p)
 		default:
-			raw, f.Partial = scriptImports(content, f.Language)
+			got, f.Partial = scriptFacts(content, p, f.Language, 0)
 		}
-		for _, imp := range raw {
+		for _, imp := range got.imports {
 			for _, res := range r.resolve(p, imp) {
 				res.Prov = archdoc.Provenance{File: p, Line: imp.line, Column: imp.column}
 				f.Imports = append(f.Imports, res)
 			}
 		}
+		f.Classes, f.Hosts, f.Calls, f.Prefix, f.Constants = got.classes, got.hosts, got.calls, got.prefix, got.consts
 		src.Files = append(src.Files, f)
 	}
 	return src, true

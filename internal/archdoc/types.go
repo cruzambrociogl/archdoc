@@ -231,6 +231,19 @@ type SourceFile struct {
 	Language string   `json:"language"`
 	Lines    int      `json:"lines"`
 	Imports  []Import `json:"imports,omitempty"`
+	// Classes are the classes the file declares, with their decorators and what their constructor
+	// takes — how NestJS says what a class is and what is injected into it. Functions decorated
+	// at the top level (FastAPI's @router.get) are recorded as methods of a class with no name.
+	Classes []Class `json:"classes,omitempty"`
+	// Hosts are network locations the code names in a literal: a URL, or a host property's value.
+	Hosts []HostRef `json:"hosts,omitempty"`
+	// Calls are outbound HTTP calls whose target is computed at run time — kept, unresolved (D-6).
+	Calls []Call `json:"calls,omitempty"`
+	// Prefix is a global route prefix the file sets — NestJS's app.setGlobalPrefix('api').
+	Prefix *Literal `json:"prefix,omitempty"`
+	// Constants are string enum members the file declares, by qualified name — RouteKey.Asset is
+	// "assets" — so a decorator that names one can be resolved by name.
+	Constants []Constant `json:"constants,omitempty"`
 	// Partial is set when the parser recovered from something it could not read in the file;
 	// what it did read is still reported, and the gap is coverage, not a guess.
 	Partial bool `json:"partial,omitempty"`
@@ -251,10 +264,72 @@ const (
 	// ByPackage: not the application's own code — a dependency, the standard library, or a
 	// framework's virtual module. Package names it.
 	ByPackage Resolution = "package"
-	// Unresolved: it looks like the application's own code and no file matches. Kept, so the gap
+	// NoMatch: it looks like the application's own code and no file matches. Kept, so the gap
 	// is visible rather than silently dropped (vision D-6).
-	Unresolved Resolution = "unresolved"
+	NoMatch Resolution = "unresolved"
 )
+
+// Class is a class a file declares.
+type Class struct {
+	Name       string      `json:"name"`
+	Decorators []Decorator `json:"decorators,omitempty"`
+	// Injects are the types its constructor takes — in NestJS, what the container injects.
+	Injects []Literal  `json:"injects,omitempty"`
+	Methods []Method   `json:"methods,omitempty"` // the decorated ones
+	Prov    Provenance `json:"provenance"`
+}
+
+// Method is a decorated method — a route handler, a job handler, an event listener.
+type Method struct {
+	Name       string      `json:"name"`
+	Decorators []Decorator `json:"decorators"`
+	Prov       Provenance  `json:"provenance"`
+}
+
+// Decorator is one decorator as written: @Get(':id') is Get with argument ":id". Summary is a
+// `summary:` the decorator's options state — Swagger's @ApiOperation, or a project's own — which
+// is the code describing itself, cited, not interpretation.
+type Decorator struct {
+	Name        string     `json:"name"`          // "Get", "Controller", "router.get"
+	Arg         string     `json:"arg,omitempty"` // the first argument, when it is a string literal
+	HasArg      bool       `json:"has_arg,omitempty"`
+	ArgExpr     string     `json:"arg_expr,omitempty"` // the first argument as written, when it is not
+	Summary     string     `json:"summary,omitempty"`
+	SummaryProv Provenance `json:"summary_provenance,omitempty"`
+	Prov        Provenance `json:"provenance"`
+}
+
+// Constant is a named string value: an enum member.
+type Constant struct {
+	Name  string     `json:"name"` // "RouteKey.Asset"
+	Value string     `json:"value"`
+	Prov  Provenance `json:"provenance"`
+}
+
+// Literal is a value as written, at its line.
+type Literal struct {
+	Value string     `json:"value"`
+	Prov  Provenance `json:"provenance"`
+}
+
+// HostRef is a network location the code names: "http://immich-machine-learning:3003", or the
+// 'redis' in `host: env.REDIS_HOSTNAME || 'redis'`.
+type HostRef struct {
+	Host   string     `json:"host"`
+	Port   string     `json:"port,omitempty"`
+	Scheme string     `json:"scheme,omitempty"`
+	Value  string     `json:"value"`            // the literal
+	Called bool       `json:"called,omitempty"` // the literal is the target of an HTTP call itself
+	Prov   Provenance `json:"provenance"`
+}
+
+// Call is an outbound HTTP call — fetch, axios, requests — whose target is an expression, not a
+// literal: "calls something at new URL('predict', url)".
+type Call struct {
+	Callee string     `json:"callee"` // "fetch", "axios.post", "requests.get"
+	Target string     `json:"target"` // the expression, as written, shortened
+	Prov   Provenance `json:"provenance"`
+}
 
 // Import is one thing a file imports, at the line that imports it.
 type Import struct {

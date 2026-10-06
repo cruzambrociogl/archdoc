@@ -284,6 +284,9 @@ func generate(args []string, out io.Writer) error {
 		fmt.Fprintf(out, "%d components in %d containers, %d uses between them, from the code\n",
 			components, len(m.Components()), uses)
 	}
+	if len(m.Entries) > 0 || len(m.Unresolved) > 0 {
+		fmt.Fprintf(out, "%d routes, and %d calls whose target is computed at run time\n", len(m.Entries), len(m.Unresolved))
+	}
 
 	if created > 0 {
 		fmt.Fprintf(out, "%d section(s) created for you to write — see %s\n",

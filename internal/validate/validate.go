@@ -186,6 +186,21 @@ func Model(m archdoc.Model) Result {
 	for _, n := range m.Nodes {
 		component[n.ID] = n.Kind == archdoc.Component
 	}
+
+	// P1 for what the code declares: a route, and anything left unresolved, cites its line.
+	for _, e := range m.Entries {
+		if !e.Prov.Known() {
+			r.add("VAL-05", Error, e.ID, "route has no provenance", e.Prov)
+		}
+		if !seen[e.Container] {
+			r.add("VAL-02", Error, e.ID, fmt.Sprintf("route in undefined container %q", e.Container), e.Prov)
+		}
+	}
+	for _, u := range m.Unresolved {
+		if !u.Prov.Known() {
+			r.add("VAL-05", Error, u.What, "unresolved call has no provenance", u.Prov)
+		}
+	}
 	for _, e := range m.Edges {
 		id := e.From + " → " + e.To
 		first := archdoc.Provenance{}

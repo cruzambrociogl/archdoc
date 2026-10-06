@@ -68,7 +68,7 @@ func (r *tsResolver) resolve(file string, imp rawImport) []archdoc.Import {
 		} else if r.asset(base) {
 			return nil // a stylesheet, an image, JSON: not code, so not a dependency between parts
 		} else {
-			out.How = archdoc.Unresolved
+			out.How = archdoc.NoMatch
 		}
 		return []archdoc.Import{out}
 	}
@@ -99,7 +99,7 @@ func (r *tsResolver) resolve(file string, imp rawImport) []archdoc.Import {
 		if strings.Contains(a.pattern, "*") && strings.TrimSuffix(a.pattern, "*") == "" {
 			continue
 		}
-		out.How = archdoc.Unresolved
+		out.How = archdoc.NoMatch
 		return []archdoc.Import{out}
 	}
 	out.How, out.Package = archdoc.ByPackage, packageName(spec)
@@ -324,7 +324,7 @@ func (r *pyResolver) resolve(file string, imp rawImport) []archdoc.Import {
 	if t, ok := r.module(modPath); ok {
 		return []archdoc.Import{{Spec: spec, Target: t, How: how}}
 	}
-	return []archdoc.Import{{Spec: spec, How: archdoc.Unresolved}}
+	return []archdoc.Import{{Spec: spec, How: archdoc.NoMatch}}
 }
 
 func joinSpec(mod, name string) string {
