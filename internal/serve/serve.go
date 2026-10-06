@@ -285,7 +285,9 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 		"version": v.ID, "view": name, "model": view, "layout": l,
 		// The containers that have a component view, so a container can say it opens and the
 		// component level can offer the others.
-		"components": opens(v.Model),
+		"components": opens(v.Model, archdoc.Component, v.Model.Components()),
+		// The containers whose code declares tables: they open onto a data view.
+		"data": opens(v.Model, archdoc.Table, v.Model.Datas()),
 		"arrangement": map[string]any{"file": arrange.Dir + "/" + arrange.LayoutFile, "hash": hash,
 			"placed": rep.Placed, "new": rep.New, "stale": rep.Stale},
 	})
@@ -360,15 +362,15 @@ type opening struct {
 	Components int    `json:"components"`
 }
 
-func opens(m archdoc.Model) []opening {
+func opens(m archdoc.Model, kind archdoc.Kind, containers []string) []opening {
 	count := map[string]int{}
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind == kind {
 			count[n.Parent]++
 		}
 	}
 	out := []opening{}
-	for _, id := range m.Components() {
+	for _, id := range containers {
 		c, _ := m.Node(id)
 		out = append(out, opening{ID: id, Name: c.Name, Components: count[id]})
 	}

@@ -121,7 +121,7 @@ func (r *Result) sort() {
 var kinds = map[archdoc.Kind]bool{
 	archdoc.Application: true, archdoc.Datastore: true, archdoc.Queue: true,
 	archdoc.Proxy: true, archdoc.External: true, archdoc.System: true, archdoc.Actor: true,
-	archdoc.Component: true,
+	archdoc.Component: true, archdoc.Table: true,
 }
 
 // Model checks a whole model against every rule.
@@ -174,7 +174,7 @@ func Model(m archdoc.Model) Result {
 		// Components are exempt: their descriptions are interpretation's work at a level the
 		// semantic layer does not yet reach, and fifty "no description" warnings would bury the
 		// gaps a reader can act on. What was read of the code is reported as coverage instead.
-		if n.Description == "" && n.Kind != archdoc.Actor && n.Kind != archdoc.Component {
+		if n.Description == "" && n.Kind != archdoc.Actor && !n.Kind.Part() {
 			r.add("VAL-06", Warning, n.ID, "no description", n.Prov)
 		}
 		if n.Technology == "" && n.Kind.Container() {
@@ -184,7 +184,7 @@ func Model(m archdoc.Model) Result {
 
 	component := map[string]bool{}
 	for _, n := range m.Nodes {
-		component[n.ID] = n.Kind == archdoc.Component
+		component[n.ID] = n.Kind.Part()
 	}
 
 	// P1 for what the code declares: a route, and anything left unresolved, cites its line.

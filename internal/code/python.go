@@ -74,12 +74,13 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 					name = text(def.NamedChild(0))
 				}
 				if def.Type(l) == "class_definition" {
-					out.classes = append(out.classes, archdoc.Class{Name: name, Decorators: decorators, Prov: at(def)})
-					return
+					return // read as a class below, with its decorators
 				}
 				// A method of a class is recorded with the class only when the class itself is;
 				// a decorated function anywhere else is the module's.
 				module.Methods = append(module.Methods, archdoc.Method{Name: name, Decorators: decorators, Prov: at(def)})
+			case "class_definition":
+				out.classes = append(out.classes, pyClass(n, l, src, at))
 			case "call":
 				if n.ChildCount() < 2 {
 					return
@@ -122,6 +123,106 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 		out.hosts[i].Called = called[out.hosts[i].Prov]
 	}
 	return out, partial
+}
+
+// pyClass reads a class: its bases and keyword arguments — class User(UserBase, table=True) — its
+// decorators, and the fields its body declares.
+func pyClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Class {
+	c := archdoc.Class{Prov: at(n)}
+	if p := n.Parent(); p != nil && p.Type(l) == "decorated_definition" {
+		for i := 0; i < p.NamedChildCount(); i++ {
+			if d := p.NamedChild(i); d.Type(l) == "decorator" {
+				c.Decorators = append(c.Decorators, pyDecorator(d, l, src, at))
+			}
+		}
+	}
+	for i := 0; i < n.NamedChildCount(); i++ {
+		ch := n.NamedChild(i)
+		switch ch.Type(l) {
+		case "identifier":
+			if c.Name == "" {
+				c.Name = ch.Text(src)
+			}
+		case "argument_list":
+			for j := 0; j < ch.NamedChildCount(); j++ {
+				a := ch.NamedChild(j)
+				switch a.Type(l) {
+				case "identifier", "attribute":
+					c.Extends = append(c.Extends, a.Text(src))
+				case "keyword_argument":
+					if a.NamedChildCount() >= 2 {
+						if c.Options == nil {
+							c.Options = map[string]string{}
+						}
+						c.Options[a.NamedChild(0).Text(src)] = pyValue(a.NamedChild(1), l, src)
+					}
+				}
+			}
+		case "block":
+			for j := 0; j < ch.NamedChildCount(); j++ {
+				st := ch.NamedChild(j)
+				if st.Type(l) == "expression_statement" && st.NamedChildCount() > 0 {
+					st = st.NamedChild(0)
+				}
+				if st.Type(l) != "assignment" || st.NamedChildCount() < 2 {
+					continue
+				}
+				f := archdoc.Field{Name: st.NamedChild(0).Text(src), Prov: at(st)}
+				value := st.NamedChild(st.NamedChildCount() - 1)
+				for k := 1; k < st.NamedChildCount(); k++ {
+					if t := st.NamedChild(k); t.Type(l) == "type" {
+						f.Type = t.Text(src)
+					}
+				}
+				switch value.Type(l) {
+				case "call":
+					f.Decorators = []archdoc.Decorator{pyCall(value, l, src, at)}
+				case "string":
+					f.Value, _ = pyString(value, l, src)
+				}
+				if value == st.NamedChild(0) || (f.Type == "" && len(f.Decorators) == 0 && f.Value == "") {
+					continue
+				}
+				c.Fields = append(c.Fields, f)
+			}
+		}
+	}
+	return c
+}
+
+// pyCall reads a call the way a decorator is read: Field(foreign_key="user.id", nullable=False).
+func pyCall(e *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Decorator {
+	out := archdoc.Decorator{Name: e.Child(0).Text(src), Prov: at(e)}
+	if e.ChildCount() < 2 {
+		return out
+	}
+	args := e.Child(1)
+	for i := 0; i < args.NamedChildCount(); i++ {
+		a := args.NamedChild(i)
+		if a.Type(l) == "keyword_argument" && a.NamedChildCount() >= 2 {
+			if out.Options == nil {
+				out.Options = map[string]string{}
+			}
+			out.Options[a.NamedChild(0).Text(src)] = pyValue(a.NamedChild(1), l, src)
+			continue
+		}
+		if i == 0 {
+			if v, ok := pyString(a, l, src); ok {
+				out.Arg, out.HasArg = v, true
+			} else if a.Type(l) == "identifier" || a.Type(l) == "attribute" {
+				out.Target = a.Text(src)
+			}
+		}
+	}
+	return out
+}
+
+// pyValue is a keyword argument's value: a string's content, or anything else as written.
+func pyValue(n *ts.Node, l *ts.Language, src []byte) string {
+	if v, ok := pyString(n, l, src); ok {
+		return v
+	}
+	return n.Text(src)
 }
 
 // pyDecorator reads @name, @router.get("/items/{id}", summary="…").

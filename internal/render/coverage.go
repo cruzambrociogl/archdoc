@@ -306,8 +306,12 @@ func sourcesRead(facts archdoc.FactSet) []ReadFile {
 // knownCounts is the one place the documents say how much of themselves is backed by what.
 func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 	component := components(m)
-	declared, referenced, parts, uses, elements := 0, 0, 0, 0, 0
+	declared, referenced, parts, tables, uses, elements := 0, 0, 0, 0, 0, 0
 	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Table {
+			tables++
+			continue
+		}
 		if component[n.ID] {
 			parts++
 			continue
@@ -321,9 +325,15 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 	}
 
 	withProtocol, relationships := 0, 0
+	isComponent := map[string]bool{}
+	for _, n := range m.Nodes {
+		isComponent[n.ID] = n.Kind == archdoc.Component
+	}
 	for _, e := range m.Edges {
 		if component[e.From] || component[e.To] {
-			uses++
+			if isComponent[e.From] && isComponent[e.To] {
+				uses++
+			}
 			continue
 		}
 		relationships++
@@ -360,6 +370,9 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 			Count{"Components, read from the code", fmt.Sprint(parts)},
 			Count{"… and uses between them, each an import", fmt.Sprint(uses)})
 	}
+	if tables > 0 {
+		counts = append(counts, Count{"Tables the code declares", fmt.Sprint(tables)})
+	}
 	if len(m.Entries) > 0 {
 		counts = append(counts, Count{"Routes the code declares", fmt.Sprint(len(m.Entries))})
 	}
@@ -372,7 +385,7 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 func components(m archdoc.Model) map[string]bool {
 	out := map[string]bool{}
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind.Part() {
 			out[n.ID] = true
 		}
 	}
@@ -387,7 +400,7 @@ func codeRead(m archdoc.Model, facts archdoc.FactSet) []CodeRead {
 	for _, n := range m.Nodes {
 		if n.Kind == archdoc.Component {
 			count[n.Parent]++
-		} else if n.Dir != "" {
+		} else if n.Dir != "" && !n.Kind.Part() {
 			containerOf[n.Dir] = n.ID
 		}
 	}

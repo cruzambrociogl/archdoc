@@ -96,8 +96,61 @@ func SVG(view archdoc.Model, l archdoc.Layout) string {
 	return b.String()
 }
 
+// tableBox draws a table: its name in a header band, then a line per column — the name, its
+// type, and marks for a primary key (PK), a foreign key (FK) and a nullable column (?).
+func tableBox(n archdoc.Node, r archdoc.Rect) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, `<g id="%s">`+"\n", esc(n.ID))
+	fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="%s" rx="4" fill="#ffffff" stroke="#5d82a8" stroke-width="1.2"/>`+"\n",
+		num(r.X), num(r.Y), num(r.W), num(r.H))
+	head := boxPad + nameLine + 2
+	fmt.Fprintf(&b, `<path d="M%s,%s h%s v%s h%s z" fill="#dbe7f3"/>`+"\n", num(r.X+0.6), num(r.Y+0.6), num(r.W-1.2), num(head), num(-(r.W - 1.2)))
+	fmt.Fprintf(&b, `<text x="%s" y="%s" font-size="12.5" font-weight="bold" fill="#0b2a4a">%s</text>`+"\n",
+		num(r.X+boxPad), num(r.Y+boxPad+nameLine-4), esc(n.Name))
+	y := r.Y + head + 4
+	for i, c := range n.Columns {
+		if i == tableRows && len(n.Columns) > tableRows+1 {
+			y += textLine
+			fmt.Fprintf(&b, `<text x="%s" y="%s" font-size="10" fill="#6d7a77">… %d more</text>`+"\n",
+				num(r.X+boxPad), num(y-2), len(n.Columns)-tableRows)
+			break
+		}
+		y += textLine
+		mark := ""
+		switch {
+		case c.Primary && c.References != "":
+			mark = "PK FK"
+		case c.Primary:
+			mark = "PK"
+		case c.References != "":
+			mark = "FK"
+		}
+		name := c.Name
+		if c.Nullable {
+			name += "?"
+		}
+		fmt.Fprintf(&b, `<text x="%s" y="%s" font-size="10" fill="#15201e" font-family="Menlo, monospace">%s</text>`+"\n",
+			num(r.X+boxPad), num(y-2), esc(name))
+		right := strings.TrimSpace(mark + " " + clip(c.Type, 14))
+		fmt.Fprintf(&b, `<text x="%s" y="%s" font-size="9.5" fill="#6d7a77" text-anchor="end" font-family="Menlo, monospace">%s</text>`+"\n",
+			num(r.X+r.W-boxPad), num(y-2), esc(right))
+	}
+	b.WriteString("</g>\n")
+	return b.String()
+}
+
+func clip(s string, n int) string {
+	if len(s) > n {
+		return s[:n-1] + "…"
+	}
+	return s
+}
+
 // box draws one element in C4 style.
 func box(n archdoc.Node, r archdoc.Rect) string {
+	if n.Kind == archdoc.Table {
+		return tableBox(n, r)
+	}
 	fill, stroke, text, dash := "#1168bd", "#0b4884", "#ffffff", ""
 	switch {
 	case n.Kind == archdoc.Actor:

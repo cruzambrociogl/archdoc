@@ -326,3 +326,62 @@ func TestPythonDecorators(t *testing.T) {
 		t.Errorf("%+v", m)
 	}
 }
+
+// Table classes: a TypeScript field with its decorators, a relation's target, literal options;
+// a Python class's bases, keyword arguments and fields with their defining calls.
+func TestFieldFacts(t *testing.T) {
+	root := tree(t, map[string]string{
+		"server/src/album.table.ts": "@Table({ name: 'album' })\n" +
+			"export class AlbumTable extends Base {\n" +
+			"  @ForeignKeyColumn(() => AssetTable, { nullable: true, onDelete: 'SET NULL' })\n" +
+			"  thumbnailId!: string | null;\n" +
+			"  @Column({ type: 'text' }) description!: string;\n" +
+			"}\n",
+		"api/app/__init__.py": "",
+		"api/app/models.py": "class Item(ItemBase, table=True):\n" +
+			"    __tablename__ = \"items\"\n" +
+			"    owner_id: uuid.UUID = Field(foreign_key=\"user.id\", nullable=False)\n" +
+			"    owner: User | None = Relationship(back_populates=\"items\")\n",
+	})
+	ts, _ := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
+	c := ts.Files[0].Classes[0]
+	if c.Name != "AlbumTable" || len(c.Extends) != 1 || c.Extends[0] != "Base" || c.Decorators[0].Options["name"] != "album" {
+		t.Errorf("class %+v", c)
+	}
+	if len(c.Fields) != 2 {
+		t.Fatalf("fields %+v", c.Fields)
+	}
+	fk := c.Fields[0]
+	if fk.Name != "thumbnailId" || fk.Type != "string | null" || fk.Decorators[0].Target != "AssetTable" || fk.Decorators[0].Options["nullable"] != "true" || fk.Prov.Line != 3 {
+		t.Errorf("foreign key field %+v", fk)
+	}
+	if d := c.Fields[1]; d.Name != "description" || d.Decorators[0].Options["type"] != "text" {
+		t.Errorf("column field %+v", d)
+	}
+
+	py, _ := Read(root, archdoc.App{Dir: "api", Name: "app", Language: "Python"}, nil)
+	var item archdoc.Class
+	for _, f := range py.Files {
+		for _, cl := range f.Classes {
+			if cl.Name == "Item" {
+				item = cl
+			}
+		}
+	}
+	if len(item.Extends) != 1 || item.Extends[0] != "ItemBase" || item.Options["table"] != "True" {
+		t.Errorf("class %+v", item)
+	}
+	fields := map[string]archdoc.Field{}
+	for _, f := range item.Fields {
+		fields[f.Name] = f
+	}
+	if fields["__tablename__"].Value != "items" {
+		t.Errorf("__tablename__ %+v", fields["__tablename__"])
+	}
+	if f := fields["owner_id"]; f.Type != "uuid.UUID" || f.Decorators[0].Name != "Field" || f.Decorators[0].Options["foreign_key"] != "user.id" || f.Decorators[0].Options["nullable"] != "False" {
+		t.Errorf("owner_id %+v", f)
+	}
+	if f := fields["owner"]; f.Decorators[0].Name != "Relationship" {
+		t.Errorf("owner %+v", f)
+	}
+}

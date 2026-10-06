@@ -106,6 +106,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 	}
 
 	componentOf := components(&m, f.Sources)
+	tables(&m, f.Sources)
 
 	external := map[string]archdoc.Node{}
 	var actor *archdoc.Node

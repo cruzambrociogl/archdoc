@@ -179,7 +179,7 @@ func describe(m archdoc.Model) (string, error) {
 	// component needs its code in the prompt (F-19), not a directory's name.
 	inside := map[string]bool{}
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind.Part() {
 			inside[n.ID] = true
 			continue
 		}

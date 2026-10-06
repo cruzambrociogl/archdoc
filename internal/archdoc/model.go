@@ -29,7 +29,16 @@ const (
 	// Python module — inside the container named by Parent (F-03). It appears only in that
 	// container's component view.
 	Component Kind = "component"
+	// Table is a table the code declares — a class it marks as one, with its columns — inside the
+	// container whose code declares it (F-07). It appears only in that container's data view.
+	Table Kind = "table"
 )
+
+// Part reports whether this kind lives inside a container, read from its code, rather than being
+// one of the elements configuration describes: a component, a table.
+func (k Kind) Part() bool {
+	return k == Component || k == Table
+}
 
 // Container reports whether this kind is a C4 container.
 //
@@ -46,7 +55,7 @@ func (k Kind) rank() int {
 	switch k {
 	case Actor:
 		return 0
-	case System, Application, Component:
+	case System, Application, Component, Table:
 		return 1
 	case Datastore:
 		return 2
@@ -101,6 +110,9 @@ type Node struct {
 	Files []string `json:"files,omitempty"`
 	Lines int      `json:"lines,omitempty"`
 
+	// Columns are a table's columns, in the order the code declares them.
+	Columns []Column `json:"columns,omitempty"`
+
 	// DescProv and TechProv are separate from Prov because they can come from somewhere
 	// else. A node is proven by the line that declares it; its technology may come from the
 	// catalog and its description from the model. PRV-05 must tell a reader which parts of a
@@ -109,6 +121,17 @@ type Node struct {
 	TechProv Provenance `json:"technology_provenance,omitempty"`
 
 	Prov Provenance `json:"provenance"`
+}
+
+// Column is one column of a table: its name and type as the code declares them, and the table
+// it references when it is a foreign key.
+type Column struct {
+	Name       string     `json:"name"`
+	Type       string     `json:"type,omitempty"`
+	Primary    bool       `json:"primary,omitempty"`
+	Nullable   bool       `json:"nullable,omitempty"`
+	References string     `json:"references,omitempty"` // a table node's ID
+	Prov       Provenance `json:"provenance"`
 }
 
 // Edge is a directed relationship between two nodes.
@@ -280,7 +303,7 @@ func (m Model) Context() Model {
 
 	keep := map[string]bool{}
 	for _, n := range m.Nodes {
-		if n.Kind == Component {
+		if n.Kind.Part() {
 			continue // a part of a container is inside the system twice over; it has no say in the box
 		}
 		if n.Kind == Actor || n.Evidence == Referenced {
@@ -313,10 +336,16 @@ func (m Model) Context() Model {
 
 // Component projects one container into its C4 component view (F-10): the components whose
 // parent it is, and how they use each other. The view is named after the container.
-func (m Model) Component(of string) Model {
+func (m Model) Component(of string) Model { return m.inside(of, Component) }
+
+// Data projects one container into its data view (F-11): the tables its code declares, and the
+// foreign keys between them.
+func (m Model) Data(of string) Model { return m.inside(of, Table) }
+
+func (m Model) inside(of string, kind Kind) Model {
 	keep := map[string]bool{}
 	for _, n := range m.Nodes {
-		if n.Kind == Component && n.Parent == of {
+		if n.Kind == kind && n.Parent == of {
 			keep[n.ID] = true
 		}
 	}
@@ -334,10 +363,15 @@ func (m Model) Component(of string) Model {
 }
 
 // Components lists the containers that have a component view, in model order.
-func (m Model) Components() []string {
+func (m Model) Components() []string { return m.holding(Component) }
+
+// Datas lists the containers that have a data view, in model order.
+func (m Model) Datas() []string { return m.holding(Table) }
+
+func (m Model) holding(kind Kind) []string {
 	has := map[string]bool{}
 	for _, n := range m.Nodes {
-		if n.Kind == Component && n.Parent != "" {
+		if n.Kind == kind && n.Parent != "" {
 			has[n.Parent] = true
 		}
 	}

@@ -265,27 +265,30 @@ func generate(args []string, out io.Writer) error {
 		return err
 	}
 
-	elements, relationships, components, uses := 0, 0, 0, 0
-	isComponent := map[string]bool{}
+	// Configuration's elements first; then what the code adds inside them.
+	kind := map[string]archdoc.Kind{}
+	count := map[archdoc.Kind]int{}
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
-			components++
-			isComponent[n.ID] = true
-		} else {
-			elements++
-		}
+		kind[n.ID] = n.Kind
+		count[n.Kind]++
 	}
+	elements, relationships, uses, references := len(m.Nodes)-count[archdoc.Component]-count[archdoc.Table], 0, 0, 0
 	for _, e := range m.Edges {
-		if isComponent[e.From] && isComponent[e.To] {
+		switch {
+		case kind[e.From] == archdoc.Component:
 			uses++
-		} else {
+		case kind[e.From] == archdoc.Table:
+			references++
+		default:
 			relationships++
 		}
 	}
 	fmt.Fprintf(out, "\n%d elements, %d relationships, from %s\n", elements, relationships, m.Source)
-	if components > 0 {
-		fmt.Fprintf(out, "%d components in %d containers, %d uses between them, from the code\n",
-			components, len(m.Components()), uses)
+	if n := count[archdoc.Component]; n > 0 {
+		fmt.Fprintf(out, "%d components in %s, %d uses between them, from the code\n", n, containers(len(m.Components())), uses)
+	}
+	if n := count[archdoc.Table]; n > 0 {
+		fmt.Fprintf(out, "%d tables in %s, %d foreign keys between them, from the code\n", n, containers(len(m.Datas())), references)
 	}
 	if len(m.Entries) > 0 || len(m.Unresolved) > 0 {
 		fmt.Fprintf(out, "%d routes, and %d calls whose target is computed at run time\n", len(m.Entries), len(m.Unresolved))
@@ -488,6 +491,13 @@ func orphans(root string, written map[string]string) []string {
 	}
 	sort.Strings(out) // AC-7: the same report every run
 	return out
+}
+
+func containers(n int) string {
+	if n == 1 {
+		return "1 container"
+	}
+	return fmt.Sprintf("%d containers", n)
 }
 
 func reported(r validate.Result) []render.Gap {

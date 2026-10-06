@@ -272,11 +272,28 @@ const (
 // Class is a class a file declares.
 type Class struct {
 	Name       string      `json:"name"`
+	Extends    []string    `json:"extends,omitempty"` // the classes it extends, by name
 	Decorators []Decorator `json:"decorators,omitempty"`
+	// Options are a Python class's keyword arguments — SQLModel's table=True — as written.
+	Options map[string]string `json:"options,omitempty"`
+	// Fields are its declared fields: a TypeScript property with its decorators, a Python
+	// annotated assignment with the call that defines it (SQLModel's Field, SQLAlchemy's Column).
+	Fields []Field `json:"fields,omitempty"`
 	// Injects are the types its constructor takes — in NestJS, what the container injects.
 	Injects []Literal  `json:"injects,omitempty"`
 	Methods []Method   `json:"methods,omitempty"` // the decorated ones
 	Prov    Provenance `json:"provenance"`
+}
+
+// Field is one declared field of a class. A Python field's defining call is recorded as its one
+// decorator — Field(foreign_key="user.id") reads like @Column({ foreignKey: … }) — and Value is a
+// plain literal it is assigned, as in __tablename__ = "users".
+type Field struct {
+	Name       string      `json:"name"`
+	Type       string      `json:"type,omitempty"` // the annotation, as written
+	Decorators []Decorator `json:"decorators,omitempty"`
+	Value      string      `json:"value,omitempty"`
+	Prov       Provenance  `json:"provenance"`
 }
 
 // Method is a decorated method — a route handler, a job handler, an event listener.
@@ -290,13 +307,18 @@ type Method struct {
 // `summary:` the decorator's options state — Swagger's @ApiOperation, or a project's own — which
 // is the code describing itself, cited, not interpretation.
 type Decorator struct {
-	Name        string     `json:"name"`          // "Get", "Controller", "router.get"
-	Arg         string     `json:"arg,omitempty"` // the first argument, when it is a string literal
-	HasArg      bool       `json:"has_arg,omitempty"`
-	ArgExpr     string     `json:"arg_expr,omitempty"` // the first argument as written, when it is not
-	Summary     string     `json:"summary,omitempty"`
-	SummaryProv Provenance `json:"summary_provenance,omitempty"`
-	Prov        Provenance `json:"provenance"`
+	Name    string `json:"name"`          // "Get", "Controller", "router.get"
+	Arg     string `json:"arg,omitempty"` // the first argument, when it is a string literal
+	HasArg  bool   `json:"has_arg,omitempty"`
+	ArgExpr string `json:"arg_expr,omitempty"` // the first argument as written, when it is not
+	// Target is the class a first argument like () => AssetTable names — a relation's other end.
+	Target string `json:"target,omitempty"`
+	// Options are the literal values of its options object or keyword arguments, as written:
+	// { nullable: true, type: 'text' }, foreign_key="user.id".
+	Options     map[string]string `json:"options,omitempty"`
+	Summary     string            `json:"summary,omitempty"`
+	SummaryProv Provenance        `json:"summary_provenance,omitempty"`
+	Prov        Provenance        `json:"provenance"`
 }
 
 // Constant is a named string value: an enum member.

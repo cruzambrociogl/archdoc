@@ -120,7 +120,32 @@ func boxLines(n archdoc.Node) (name, kind string, desc []string) {
 	return n.Name, svgTypeLabel(n), wrap(n.Description, descChars, descMax)
 }
 
+// A table is drawn with its columns, one line each, up to tableRows; the rest are counted.
+const (
+	tableWidth = 236.0
+	tableRows  = 14
+)
+
+func boxWidthOf(n archdoc.Node) float64 {
+	if n.Kind == archdoc.Table {
+		return tableWidth
+	}
+	return boxWidth
+}
+
+// tableLines is how many column lines a table's box holds: every column, or tableRows of them
+// and a line saying how many more.
+func tableLines(n archdoc.Node) int {
+	if len(n.Columns) > tableRows+1 {
+		return tableRows + 1
+	}
+	return len(n.Columns)
+}
+
 func boxHeight(n archdoc.Node) float64 {
+	if n.Kind == archdoc.Table {
+		return boxPad*2 + nameLine + 6 + float64(tableLines(n))*textLine
+	}
 	_, _, desc := boxLines(n)
 	h := boxPad*2 + nameLine + textLine
 	if len(desc) > 0 {
@@ -142,7 +167,7 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 
 	node := func(indent string, n archdoc.Node) {
 		fmt.Fprintf(&b, "%s%s [label=\"\", width=%.3f, height=%.3f];\n",
-			indent, ids[n.ID], boxWidth/pointsPerIn, boxHeight(n)/pointsPerIn)
+			indent, ids[n.ID], boxWidthOf(n)/pointsPerIn, boxHeight(n)/pointsPerIn)
 	}
 
 	inside, outside := partition(view.Nodes, group)

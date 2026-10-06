@@ -23,6 +23,9 @@ import (
 // group is the system boundary: true for a container view, where the declared containers sit
 // inside a box, and false for a context view, where the system is already one node.
 func Mermaid(m archdoc.Model, group bool) string {
+	if len(m.Nodes) > 0 && m.Nodes[0].Kind == archdoc.Table {
+		return mermaidER(m)
+	}
 	var b strings.Builder
 
 	ids := identifiers(m)
@@ -161,6 +164,63 @@ func typeLabel(n archdoc.Node) string {
 		return "[" + kind + "]"
 	}
 	return "[" + kind + ": " + escape(n.Technology) + "]"
+}
+
+// mermaidER renders a data view as Mermaid's entity-relationship diagram: each table with its
+// columns, keys marked, and a line per foreign key — "many rows here reference one there".
+func mermaidER(m archdoc.Model) string {
+	var b strings.Builder
+	b.WriteString("erDiagram\n")
+	word := func(s string) string {
+		var out strings.Builder
+		for _, r := range s {
+			if r == '_' || r == '-' || r >= '0' && r <= '9' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' {
+				out.WriteRune(r)
+			} else {
+				out.WriteRune('_')
+			}
+		}
+		if out.Len() == 0 {
+			return "unknown"
+		}
+		return strings.Trim(out.String(), "_")
+	}
+	name := map[string]string{}
+	for _, n := range m.Nodes {
+		name[n.ID] = word(n.Name)
+	}
+	for _, n := range m.Nodes {
+		fmt.Fprintf(&b, "    %s {\n", name[n.ID])
+		for _, c := range n.Columns {
+			keys := []string{}
+			if c.Primary {
+				keys = append(keys, "PK")
+			}
+			if c.References != "" {
+				keys = append(keys, "FK")
+			}
+			line := word(c.Type) + " " + word(c.Name)
+			if len(keys) > 0 {
+				line += " " + strings.Join(keys, ", ")
+			}
+			if c.Nullable {
+				line += ` "nullable"`
+			}
+			fmt.Fprintf(&b, "        %s\n", line)
+		}
+		b.WriteString("    }\n")
+	}
+	for _, e := range m.Edges {
+		shape, label := "}o--||", e.Label
+		switch label {
+		case "relates to":
+			shape = "}o--o{"
+		case "":
+			label = "references" // Mermaid's ER syntax requires one; a data view draws none
+		}
+		fmt.Fprintf(&b, "    %s %s %s : %q\n", name[e.From], shape, name[e.To], label)
+	}
+	return b.String()
 }
 
 func edgeLabel(e archdoc.Edge) string {

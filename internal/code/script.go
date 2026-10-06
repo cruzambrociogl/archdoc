@@ -168,6 +168,12 @@ func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 			if c.Name == "" {
 				c.Name = ch.Text(src)
 			}
+		case "class_heritage":
+			walk(ch, func(h *ts.Node) {
+				if h.Type(l) == "extends_clause" && h.NamedChildCount() > 0 {
+					c.Extends = append(c.Extends, h.NamedChild(0).Text(src))
+				}
+			})
 		case "class_body":
 			var pending []archdoc.Decorator
 			for j := 0; j < ch.ChildCount(); j++ {
@@ -187,6 +193,25 @@ func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 						c.Injects = injected(m, l, src, at)
 					} else if len(pending) > 0 {
 						c.Methods = append(c.Methods, archdoc.Method{Name: name, Decorators: pending, Prov: at(m)})
+					}
+					pending = nil
+				case "public_field_definition":
+					f := archdoc.Field{Prov: at(m), Decorators: pending}
+					for k := 0; k < m.ChildCount(); k++ {
+						part := m.Child(k)
+						switch part.Type(l) {
+						case "decorator":
+							f.Decorators = append(f.Decorators, decoratorOf(part, l, src, at))
+						case "property_identifier":
+							f.Name = part.Text(src)
+						case "type_annotation":
+							if part.NamedChildCount() > 0 {
+								f.Type = part.NamedChild(0).Text(src)
+							}
+						}
+					}
+					if len(f.Decorators) > 0 {
+						c.Fields = append(c.Fields, f)
 					}
 					pending = nil
 				case "{", "}", ";", "comment":
@@ -251,6 +276,11 @@ func decoratorOf(d *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 		if i == 0 {
 			if v, ok := literal(a, l, src); ok {
 				out.Arg, out.HasArg = v, true
+			} else if a.Type(l) == "arrow_function" {
+				// () => AssetTable: the class at a relation's other end.
+				if body := a.NamedChild(a.NamedChildCount() - 1); body != nil && body.Type(l) == "identifier" {
+					out.Target = body.Text(src)
+				}
 			} else if a.Type(l) != "object" {
 				out.ArgExpr = a.Text(src)
 			}
@@ -266,8 +296,18 @@ func decoratorOf(d *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 			key, value := unquote(pair.NamedChild(0).Text(src)), pair.NamedChild(1)
 			v, ok := literal(value, l, src)
 			if !ok {
+				switch value.Type(l) {
+				case "true", "false", "number", "null":
+					v, ok = value.Text(src), true
+				}
+			}
+			if !ok {
 				continue
 			}
+			if out.Options == nil {
+				out.Options = map[string]string{}
+			}
+			out.Options[key] = v
 			switch key {
 			case "summary":
 				out.Summary, out.SummaryProv = v, at(value)
