@@ -1089,3 +1089,70 @@ button.runs-row:hover {
     padding-left: 12px;
   }
 }
+
+/* ——— a flow, as a sequence diagram (F-12) ——— */
+.feature-flow {
+  margin-top: 10px;
+}
+.sequence-scroll {
+  overflow-x: auto;
+  margin: 6px 0 4px;
+  border: 1px solid var(--rule-soft);
+  background: var(--canvas);
+}
+.sequence svg {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+.seq-part rect {
+  fill: var(--k-slate-fill);
+  stroke: var(--k-slate);
+  stroke-width: 1.2;
+}
+.seq-table rect {
+  fill: var(--k-teal-fill);
+  stroke: var(--k-teal);
+}
+.seq-unresolved rect,
+.seq-part.seq-unresolved rect {
+  fill: var(--unres-fill);
+  stroke: var(--unres);
+  stroke-dasharray: 3 2;
+}
+.seq-part text {
+  fill: var(--canvas-ink);
+  font-weight: 600;
+}
+.seq-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--canvas-accent);
+}
+.seq-life {
+  stroke: var(--rule);
+  stroke-dasharray: 4 3;
+}
+.seq-step line,
+.seq-step path {
+  stroke: var(--edge);
+  stroke-width: 1.2;
+}
+.seq-step text {
+  fill: var(--canvas-muted);
+}
+.seq-step.seq-unresolved line {
+  stroke: var(--unres);
+  stroke-dasharray: 3 2;
+}
+.sequence-steps summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.sequence-steps ol {
+  margin: 6px 0 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 3px;
+}

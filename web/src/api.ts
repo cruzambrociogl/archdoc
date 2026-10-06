@@ -65,6 +65,15 @@ export interface Model {
   edges: Edge[] | null
   entries?: Entry[]
   unresolved?: Unresolved[]
+  flows?: Flow[]
+}
+
+/** What an entry sets off, followed through the code (F-12). */
+export interface Flow {
+  entry: string
+  participants: { id: string; name: string; kind: 'class' | 'table' | 'unresolved'; component?: string; element?: string }[]
+  steps: { from: string; to: string; call: string; depth: number; note?: string; provenance: Provenance }[]
+  cut?: boolean
 }
 
 export interface Summary {

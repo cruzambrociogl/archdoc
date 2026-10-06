@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
-import type { Entry, ModelResponse, Node } from '../api'
-import { componentLevel, useApi } from '../api'
+import type { Entry, Flow, ModelResponse, Node } from '../api'
+import { componentLevel, dataLevel, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
+import { Sequence } from '../ui/Sequence'
 
 /**
  * What the system does (F-13), read from where its code says so: every route a container serves,
@@ -40,6 +41,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
   const entries = model.entries ?? []
   const unresolved = model.unresolved ?? []
   const nodes = new Map((model.nodes ?? []).map((n) => [n.id, n]))
+  const flows = new Map((model.flows ?? []).map((f) => [f.entry, f]))
   const name = (id?: string) => (id ? (nodes.get(id)?.name ?? id) : '')
   const described = entries.filter((e) => e.summary).length
   const containers = new Set(entries.map((e) => e.container)).size
@@ -91,7 +93,15 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
                 )}
               </div>
               {es.map((e) => (
-                <FeatureRow key={e.id} e={e} open={open === e.id} onToggle={() => toggle(e.id)} nodes={nodes} />
+                <FeatureRow
+                  key={e.id}
+                  e={e}
+                  open={open === e.id}
+                  onToggle={() => toggle(e.id)}
+                  nodes={nodes}
+                  flow={flows.get(e.id)}
+                  onTable={(id) => props.go({ screen: 'explorer', level: dataLevel(g.container), focus: id })}
+                />
               ))}
             </div>
           ))}
@@ -117,7 +127,21 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
   )
 }
 
-function FeatureRow({ e, open, onToggle, nodes }: { e: Entry; open: boolean; onToggle: () => void; nodes: Map<string, Node> }) {
+function FeatureRow({
+  e,
+  open,
+  onToggle,
+  nodes,
+  flow,
+  onTable,
+}: {
+  e: Entry
+  open: boolean
+  onToggle: () => void
+  nodes: Map<string, Node>
+  flow?: Flow
+  onTable: (id: string) => void
+}) {
   return (
     <div className={`feature ${open ? 'open' : ''}`}>
       <button className="feature-row" onClick={onToggle} aria-expanded={open}>
@@ -162,6 +186,12 @@ function FeatureRow({ e, open, onToggle, nodes }: { e: Entry; open: boolean; onT
                 ))}
               </span>
             </Fact>
+          )}
+          {flow && (
+            <div className="feature-flow">
+              <Eyebrow>What it sets off</Eyebrow>
+              <Sequence flow={flow} onTable={onTable} />
+            </div>
           )}
         </div>
       )}
