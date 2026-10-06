@@ -200,3 +200,20 @@ func TestRisksStubNoticesAnUnconnectedContainer(t *testing.T) {
 		t.Errorf("an unconnected container is not raised as a risk:\n%s", out)
 	}
 }
+
+// Once the code was read, the runtime view draws flows — the ones reaching the most participants,
+// chosen by that rule — as sequence diagrams.
+func TestRuntimeViewDrawsFlowsFromTheCode(t *testing.T) {
+	m := fixture()
+	m.Entries = []archdoc.Entry{{ID: "route:api GET /a", Method: "GET", Path: "/a", Handler: "A.get", Prov: archdoc.Provenance{File: "a.ts", Line: 3}}}
+	m.Flows = []archdoc.Flow{{Entry: "route:api GET /a",
+		Participants: []archdoc.Participant{{ID: "A", Name: "A", Kind: "class"}, {ID: "table:t", Name: "t", Kind: "table"}},
+		Steps:        []archdoc.Step{{From: "A", To: "table:t", Call: "reads", Prov: archdoc.Provenance{File: "a.ts", Line: 4}}}}}
+	out := Arc42(m, fixtureFacts(), Sections(), meta())["06-runtime-view.generated.md"]
+	if !strings.Contains(out, "sequenceDiagram") || !strings.Contains(out, "p0->>p1: reads") || !strings.Contains(out, "### GET /a") {
+		t.Errorf("the runtime view does not draw the flow:\n%s", out)
+	}
+	if strings.Contains(out, "cannot fill this section") {
+		t.Error("the runtime view still says it cannot be filled")
+	}
+}

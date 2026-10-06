@@ -175,6 +175,9 @@ func buildingBlockSection(m archdoc.Model, meta Meta) string {
 // evidence that would be needed — is more useful than an invented sequence diagram, and it is
 // what OUT-01 means by stubbing with an explicit note.
 func runtimeSection(m archdoc.Model) string {
+	if len(m.Flows) > 0 {
+		return runtimeFromCode(m)
+	}
 	var b strings.Builder
 
 	b.WriteString("**archdoc cannot fill this section from configuration.**\n\n")
@@ -359,4 +362,72 @@ func yesNo(b bool) string {
 		return "yes"
 	}
 	return "no"
+}
+
+// shownFlows is how many flows the runtime view draws; the rest are in the app and the model.
+const shownFlows = 8
+
+// runtimeFromCode is the runtime view once the code was read: the flows that reach the most
+// participants, each as a sequence diagram — chosen by that rule alone, stated, so the choice is
+// not a judgement — and where to find the rest.
+func runtimeFromCode(m archdoc.Model) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Read from the code: %d routes followed from their handler into the classes they are given,\n", len(m.Flows))
+	b.WriteString("down to the tables their queries name and the calls that leave the container — each step at\n")
+	b.WriteString("its line, resolved by the declared type of the field it calls through.\n\n")
+	fmt.Fprintf(&b, "Below are the %d flows that reach the most participants; every route's flow is on the\n", min(shownFlows, len(m.Flows)))
+	b.WriteString("Features screen of `archdoc serve` and in `.archdoc/model.json`. What a flow cannot see —\n")
+	b.WriteString("failure handling, queued work picked up elsewhere, calls through functions rather than\n")
+	b.WriteString("objects — is not drawn.\n")
+
+	flows := append([]archdoc.Flow(nil), m.Flows...)
+	sort.SliceStable(flows, func(i, j int) bool {
+		if a, c := len(flows[i].Participants), len(flows[j].Participants); a != c {
+			return a > c
+		}
+		return flows[i].Entry < flows[j].Entry
+	})
+	entries := map[string]archdoc.Entry{}
+	for _, e := range m.Entries {
+		entries[e.ID] = e
+	}
+	for i, f := range flows {
+		if i == shownFlows {
+			break
+		}
+		e := entries[f.Entry]
+		fmt.Fprintf(&b, "\n### %s %s\n\n", e.Method, e.Path)
+		if e.Summary != "" {
+			fmt.Fprintf(&b, "%s. ", cited(e.Summary, e.SummaryProv))
+		}
+		fmt.Fprintf(&b, "Handled by `%s`, `%s`.\n\n", e.Handler, e.Prov)
+		b.WriteString(fence(FlowMermaid(f)))
+		if f.Cut {
+			b.WriteString("\nCut at four calls deep or forty steps.\n")
+		}
+	}
+	return b.String()
+}
+
+// FlowMermaid renders a flow as a Mermaid sequence diagram.
+func FlowMermaid(f archdoc.Flow) string {
+	var b strings.Builder
+	b.WriteString("sequenceDiagram\n")
+	id := map[string]string{}
+	for i, p := range f.Participants {
+		key := fmt.Sprintf("p%d", i)
+		id[p.ID] = key
+		name := p.Name
+		switch p.Kind {
+		case "table":
+			name = p.Name + " (table)"
+		case "unresolved":
+			name = "address computed at run time"
+		}
+		fmt.Fprintf(&b, "    participant %s as %s\n", key, strings.NewReplacer(";", ",", "#", "").Replace(name))
+	}
+	for _, s := range f.Steps {
+		fmt.Fprintf(&b, "    %s->>%s: %s\n", id[s.From], id[s.To], strings.NewReplacer(";", ",", "#", "", ":", " ").Replace(s.Call))
+	}
+	return b.String()
 }
