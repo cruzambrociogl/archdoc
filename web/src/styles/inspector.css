@@ -218,3 +218,26 @@
 .file-list li {
   padding: 2px 0;
 }
+
+/* A table's columns: the name as the code writes it — not uppercased like a fact key — and its type. */
+.column-fact {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--hair);
+}
+.column-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.column-name {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.column-type {
+  text-align: right;
+}
+.column-fact .fact-cite {
+  margin-top: 3px;
+}

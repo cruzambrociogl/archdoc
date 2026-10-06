@@ -52,6 +52,10 @@ type CoverageReport struct {
 	Unresolved []archdoc.Unresolved `json:"unresolved"`
 	// Routes counts the entries the code declares.
 	Routes int `json:"routes"`
+	// Tables counts the tables the code declares, and TablesIn names the containers that declare
+	// them — each has a data view.
+	Tables   int      `json:"tables"`
+	TablesIn []string `json:"tables_in"`
 }
 
 // CodeRead is one application's code: how much was read, and how what it imports was resolved.
@@ -153,6 +157,12 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 	r.Code = codeRead(m, facts)
 	r.Unresolved = append([]archdoc.Unresolved{}, m.Unresolved...)
 	r.Routes = len(m.Entries)
+	r.TablesIn = append([]string{}, m.Datas()...)
+	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Table {
+			r.Tables++
+		}
+	}
 
 	r.Unconnected = unconnected(m.Container())
 	if r.Unconnected == nil {

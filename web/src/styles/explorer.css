@@ -764,3 +764,49 @@
   align-items: baseline;
   overflow-wrap: anywhere;
 }
+
+/* A table, as the engine sized it: a 28px header band (boxPad + name line), then 13px rows. */
+.el-table {
+  padding: 0;
+  background: var(--canvas);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.tbl-head {
+  height: 28px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  background: var(--k-teal-fill);
+  color: var(--k-teal-ink);
+  font-weight: 600;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tbl-cols {
+  padding: 4px 10px 0;
+}
+.tbl-col {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  height: 13px;
+  line-height: 13px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--canvas-ink);
+  white-space: nowrap;
+}
+.tbl-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tbl-type,
+.tbl-more {
+  color: var(--canvas-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -3,7 +3,7 @@ import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, V
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
 import type { DiffResponse, Opening, SceneResponse, Version } from '../../api'
-import { action, componentLevel, componentOf, source, useApi } from '../../api'
+import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, source, useApi } from '../../api'
 import type { Route } from '../../route'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
@@ -21,9 +21,10 @@ const levels: [string, string][] = [
   ['context', 'Context'],
   ['container', 'Containers'],
   ['component', 'Components'],
+  ['data', 'Data'],
 ]
 
-const levelOf = (raw?: string): Level => (raw === 'context' || componentOf(raw) ? raw! : 'container')
+const levelOf = (raw?: string): Level => (raw === 'context' || insideOf(raw) ? raw! : 'container')
 
 type Go = (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void
 
@@ -117,11 +118,14 @@ function Toolbar(props: {
 }) {
   const q = props.version ? `&version=${props.version}` : ''
   const [saving, setSaving] = useState(false)
-  const openings = props.scene?.components ?? []
-  const inside = componentOf(props.level)
-  // The Components tab opens the selected container when it has components, else the first that does.
-  const componentTarget = openings.find((o) => o.id === props.route.focus)?.id ?? inside ?? openings[0]?.id
-  const tab = inside ? 'component' : props.level
+  // The Components and Data tabs open the selected container when it has them, else the one on
+  // screen, else the first that does.
+  const lens = componentOf(props.level) ? 'component' : dataOf(props.level) ? 'data' : props.level
+  const inside = insideOf(props.level)
+  const openings = { component: props.scene?.components ?? [], data: props.scene?.data ?? [] }
+  const targetOf = (list: Opening[]) => list.find((o) => o.id === props.route.focus)?.id ?? list.find((o) => o.id === inside)?.id ?? list[0]?.id
+  const target = { component: targetOf(openings.component), data: targetOf(openings.data) }
+  const tab = lens
   return (
     <div className="explorer-toolbar">
       <div className="segmented" role="tablist" aria-label="C4 level">
@@ -131,11 +135,11 @@ function Toolbar(props: {
             role="tab"
             aria-selected={tab === id}
             className={tab === id ? 'on' : ''}
-            disabled={id === 'component' && !componentTarget}
-            title={id === 'component' && !componentTarget ? 'No container’s code was read' : undefined}
+            disabled={(id === 'component' || id === 'data') && !target[id]}
+            title={id === 'component' && !target.component ? 'No container’s code was read' : id === 'data' && !target.data ? 'No code declares a table' : undefined}
             onClick={() =>
-              id === 'component'
-                ? componentTarget && props.go({ screen: 'explorer', level: componentLevel(componentTarget), from: props.route.from })
+              id === 'component' || id === 'data'
+                ? target[id] && props.go({ screen: 'explorer', level: (id === 'data' ? dataLevel : componentLevel)(target[id]!), from: props.route.from })
                 : props.go({ screen: 'explorer', level: id }, { keep: true })
             }
           >
@@ -143,7 +147,16 @@ function Toolbar(props: {
           </button>
         ))}
       </div>
-      {inside && <ContainerPicker openings={openings} current={inside} go={props.go} route={props.route} />}
+      {inside && (lens === 'component' || lens === 'data') && (
+        <ContainerPicker
+          openings={openings[lens]}
+          current={inside}
+          go={props.go}
+          route={props.route}
+          level={lens === 'data' ? dataLevel : componentLevel}
+          noun={lens === 'data' ? 'tables' : 'components'}
+        />
+      )}
       <label className={`tool compare ${props.route.from !== undefined ? 'on' : ''}`} title="Mark on the diagram what changed since another version">
         <span className="mono strong">Δ</span>
         <select
@@ -171,7 +184,7 @@ function Toolbar(props: {
       <a
         className="tool"
         href={source(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
-        download={`${props.level.replace(/^component:[^:]*:/, 'component-').replace(/[:/]/g, '-')}.svg`}
+        download={`${props.level.replace(/^(component|data):[^:]*:/, '$1-').replace(/[:/]/g, '-')}.svg`}
         title="The same scene, as the committed SVG"
       >
         Export SVG
@@ -193,14 +206,14 @@ function Toolbar(props: {
 }
 
 /** At the component level: which container's inside is shown, and the others whose code was read. */
-function ContainerPicker(props: { openings: Opening[]; current: string; go: Go; route: Route }) {
+function ContainerPicker(props: { openings: Opening[]; current: string; go: Go; route: Route; level: (id: string) => string; noun: string }) {
   return (
-    <label className="tool compare" title="The container whose components are shown">
+    <label className="tool compare" title={`The container whose ${props.noun} are shown`}>
       <span className="muted">inside</span>
-      <select value={props.current} onChange={(e) => props.go({ screen: 'explorer', level: componentLevel(e.target.value), from: props.route.from })}>
+      <select value={props.current} onChange={(e) => props.go({ screen: 'explorer', level: props.level(e.target.value), from: props.route.from })}>
         {props.openings.map((o) => (
           <option key={o.id} value={o.id}>
-            {o.name} · {o.components} components
+            {o.name} · {o.components} {props.noun}
           </option>
         ))}
       </select>
@@ -222,6 +235,7 @@ function Arranged(props: {
 }) {
   const { scene } = props
   const opens = useMemo(() => new Map(scene.components.map((o) => [o.id, o.components])), [scene.components])
+  const holds = useMemo(() => new Map((scene.data ?? []).map((o) => [o.id, o.components])), [scene.data])
   const [draft, setDraft] = useState<Draft>({})
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<{ text: string; conflict: boolean } | null>(null)
@@ -295,6 +309,8 @@ function Arranged(props: {
           onSelect={props.onSelect}
           opens={opens}
           onOpen={props.open}
+          holds={holds}
+          onOpenData={(id) => props.go({ screen: 'explorer', level: dataLevel(id), from: props.route.from })}
           changes={props.selected && props.delta ? { from: props.delta.from, mark: props.delta.nodes.get(props.selected) ?? props.delta.edges.get(props.selected), list: props.delta.changes.get(props.selected) ?? [] } : undefined}
         />
       </div>
@@ -568,13 +584,20 @@ function ZoomControls({ editable }: { editable: boolean }) {
 function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; selected: string | null; route: Route; delta?: Delta }) {
   const n = scene.model.nodes?.length ?? 0
   const e = scene.model.edges?.length ?? 0
-  const inside = componentOf(scene.view)
+  const parts = componentOf(scene.view)
+  const tables = dataOf(scene.view)
   const url = [`level=${scene.view}`, selected && `focus=${selected}`, route.q && `q=${route.q}`, route.dim && 'dim=1', route.from !== undefined && `from=${route.from}`]
     .filter(Boolean)
     .join('&')
   return (
     <div className="explorer-status">
-      <span>{inside ? `${n} components of ${scene.model.name} · ${e} uses, each an import` : `${n} elements · ${e} relationships`}</span>
+      <span>
+        {parts
+          ? `${n} components of ${scene.model.name} · ${e} uses, each an import`
+          : tables
+            ? `${n} tables of ${scene.model.name} · ${e} foreign keys`
+            : `${n} elements · ${e} relationships`}
+      </span>
       <span>v{scene.version}</span>
       {delta && (
         <span className="status-delta">

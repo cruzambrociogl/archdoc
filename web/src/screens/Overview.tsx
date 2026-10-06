@@ -1,5 +1,5 @@
 import type { CoverageResponse, DiffResponse, ModelResponse, Node, Provenance, Run, Summary, Version } from '../api'
-import { bytes, componentLevel, useApi } from '../api'
+import { bytes, componentLevel, dataLevel, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
 import { kindStyle } from '../ui/kinds'
@@ -22,8 +22,10 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
   const { model, container, context } = m.data
   // Configuration's view of the system; the components read from code are counted on their own.
   const parts = new Set((model.nodes ?? []).filter((n) => n.kind === 'component').map((n) => n.id))
-  const nodes = (model.nodes ?? []).filter((n) => !parts.has(n.id))
-  const edges = (model.edges ?? []).filter((e) => !parts.has(e.from) && !parts.has(e.to))
+  const tables = (model.nodes ?? []).filter((n) => n.kind === 'table')
+  const tableIds = new Set(tables.map((n) => n.id))
+  const nodes = (model.nodes ?? []).filter((n) => !parts.has(n.id) && !tableIds.has(n.id))
+  const edges = (model.edges ?? []).filter((e) => !parts.has(e.from) && !parts.has(e.to) && !tableIds.has(e.from))
   const system = (context.nodes ?? []).find((n) => n.kind === 'system')
 
   const count = (pred: (n: Node) => boolean) => nodes.filter(pred).length
@@ -92,6 +94,9 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
             label={`components in ${m.data.components.length} ${m.data.components.length === 1 ? 'container' : 'containers'}, from the code`}
             onClick={() => props.go({ screen: 'explorer', level: componentLevel(m.data!.components[0]) })}
           />
+        )}
+        {tables.length > 0 && (
+          <Stat n={tables.length} label="tables, from the code" onClick={() => props.go({ screen: 'explorer', level: dataLevel(tables[0].parent!) })} />
         )}
         <Stat n={props.summary.versions} label={props.summary.versions === 1 ? 'version' : 'versions'} onClick={() => props.go({ screen: 'changes' })} />
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DocsResponse, ModelResponse, Node, Provenance, SavedView } from '../api'
-import { componentLevel, useApi } from '../api'
+import { componentLevel, dataLevel, useApi } from '../api'
 import type { Route, Screen } from '../route'
 import { kindStyle } from '../ui/kinds'
 import { TruthMark } from '../ui/marks'
@@ -62,6 +62,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
     const levelOf = (id: string) => {
       const n = nodes.find((x) => x.id === id)
       if (n?.kind === 'component' && n.parent) return componentLevel(n.parent)
+      if (n?.kind === 'table' && n.parent) return dataLevel(n.parent)
       return inContainer.has(id) ? 'container' : 'context'
     }
     const open = (n: Node) => props.go({ screen: 'explorer', level: levelOf(n.id), focus: n.id })

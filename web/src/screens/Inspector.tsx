@@ -19,6 +19,8 @@ export function Inspector({
   changes,
   opens,
   onOpen,
+  holds,
+  onOpenData,
 }: {
   model: Model
   id: string | null
@@ -27,13 +29,16 @@ export function Inspector({
   /** Containers whose code was read, and how many components each opens onto. */
   opens?: Map<string, number>
   onOpen?: (id: string) => void
+  /** Containers whose code declares tables, and how many. */
+  holds?: Map<string, number>
+  onOpenData?: (id: string) => void
 }) {
   const nodes = model.nodes ?? []
   const edges = model.edges ?? []
   const node = nodes.find((n) => n.id === id)
   const edge = node ? undefined : edges.find((e) => `${e.from}>${e.to}` === id)
-  const parts = nodes.length > 0 && nodes.every((n) => n.kind === 'component')
-  const what = node ? kindStyle(node.kind).label.toLowerCase() : edge ? (edge.weight ? 'import' : 'relationship') : `${nodes.length} ${parts ? 'components' : 'elements'}`
+  const parts = nodes.length > 0 && nodes.every((n) => n.kind === 'component' || n.kind === 'table')
+  const what = node ? kindStyle(node.kind).label.toLowerCase() : edge ? (edge.weight ? 'import' : 'relationship') : `${nodes.length} ${parts ? (nodes[0].kind === 'table' ? 'tables' : 'components') : 'elements'}`
 
   return (
     <aside className="inspector">
@@ -43,7 +48,17 @@ export function Inspector({
       </div>
       {(node || edge) && changes?.mark && <ChangeNote changes={changes} />}
       {node ? (
-        <Passport node={node} nodes={nodes} edges={edges} onSelect={onSelect} container={model.name} opens={opens?.get(node.id)} onOpen={onOpen} />
+        <Passport
+          node={node}
+          nodes={nodes}
+          edges={edges}
+          onSelect={onSelect}
+          container={model.name}
+          opens={opens?.get(node.id)}
+          onOpen={onOpen}
+          holds={holds?.get(node.id)}
+          onOpenData={onOpenData}
+        />
       ) : edge ? (
         <EdgePassport edge={edge} nodes={nodes} onSelect={onSelect} />
       ) : (
@@ -105,6 +120,8 @@ function Passport({
   container,
   opens,
   onOpen,
+  holds,
+  onOpenData,
 }: {
   node: Node
   nodes: Node[]
@@ -114,6 +131,8 @@ function Passport({
   container: string
   opens?: number
   onOpen?: (id: string) => void
+  holds?: number
+  onOpenData?: (id: string) => void
 }) {
   const name = (id: string) => nodes.find((n) => n.id === id)?.name ?? (id === node.parent ? container : id)
   const component = node.kind === 'component'
@@ -127,8 +146,8 @@ function Passport({
     ['name', node.name, cited(node.name_provenance) ?? node.provenance],
     ['technology', node.technology, cited(node.technology_provenance) ?? node.provenance],
     ['description', node.description, cited(node.description_provenance) ?? node.provenance],
-    ['code', node.dir ? (node.dir === '.' ? 'the repository root' : component && node.files?.length === 1 ? node.dir : `${node.dir}/`) : undefined, cited(node.dir_provenance)],
-    ['size', node.files ? `${node.files.length} ${node.files.length === 1 ? 'file' : 'files'} · ${(node.lines ?? 0).toLocaleString()} lines` : undefined, undefined],
+    ['code', node.dir ? (node.dir === '.' ? 'the repository root' : node.kind === 'table' || (component && node.files?.length === 1) ? node.dir : `${node.dir}/`) : undefined, cited(node.dir_provenance)],
+    ['size', component && node.files ? `${node.files.length} ${node.files.length === 1 ? 'file' : 'files'} · ${(node.lines ?? 0).toLocaleString()} lines` : undefined, undefined],
     ['inside', node.parent ? name(node.parent) : undefined, undefined],
     ['networks', node.networks?.length ? node.networks.join(', ') : undefined, undefined],
   ]
@@ -207,7 +226,50 @@ function Passport({
             </div>
           </div>
         )}
+        {holds !== undefined && onOpenData && (
+          <div className="fact">
+            <div className="fact-row">
+              <span className="fact-key">data</span>
+              <span className="fact-value">
+                <button className="text-link" onClick={() => onOpenData(node.id)}>
+                  {holds} tables its code declares ⤵
+                </button>
+              </span>
+            </div>
+          </div>
+        )}
       </section>
+
+      {node.columns && node.columns.length > 0 && (
+        <section className="inspector-section">
+          <Eyebrow>{node.columns.length} columns</Eyebrow>
+          {node.columns.map((c) => (
+            <div className="column-fact" key={c.name}>
+              <div className="column-row">
+                <span className="mono column-name">
+                  {c.name}
+                  {c.nullable ? '?' : ''}
+                </span>
+                <span className="column-type">
+                  <span className="mono small">{[c.primary && 'PK', c.type].filter(Boolean).join(' ')}</span>
+                  {c.references && (
+                    <>
+                      {' '}
+                      <span className="muted small">→</span>{' '}
+                      <button className="relation-other" onClick={() => onSelect(c.references!)}>
+                        {name(c.references)}
+                      </button>
+                    </>
+                  )}
+                </span>
+              </div>
+              <div className="fact-cite">
+                <Cite p={c.provenance} compact />
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
 
       {component && node.files && node.files.length > 0 && (
         <section className="inspector-section">

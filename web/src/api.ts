@@ -31,6 +31,18 @@ export interface Node {
   /** A component's files, in path order, and their total lines. */
   files?: string[]
   lines?: number
+  /** A table's columns, as the code declares them. */
+  columns?: Column[]
+  provenance: Provenance
+}
+
+export interface Column {
+  name: string
+  type?: string
+  primary?: boolean
+  nullable?: boolean
+  /** The table it references, by element ID. */
+  references?: string
   provenance: Provenance
 }
 
@@ -91,9 +103,13 @@ export interface Opening {
   components: number
 }
 
-/** The component view of a container is the level `component:<container id>`. */
+/** The component view of a container is the level `component:<container id>`; its data view `data:<container id>`. */
 export const componentLevel = (id: string) => `component:${id}`
+export const dataLevel = (id: string) => `data:${id}`
 export const componentOf = (level?: string) => (level?.startsWith('component:') ? level.slice('component:'.length) : undefined)
+export const dataOf = (level?: string) => (level?.startsWith('data:') ? level.slice('data:'.length) : undefined)
+/** The container a level is inside of, whichever lens. */
+export const insideOf = (level?: string) => componentOf(level) ?? dataOf(level)
 
 // The layout a view is drawn at (internal/archdoc/layout.go), and the scene that pairs them.
 export interface Point {
@@ -124,6 +140,8 @@ export interface SceneResponse {
   model: Model
   layout: Layout
   components: Opening[]
+  /** Containers whose code declares tables; `components` here counts their tables. */
+  data: Opening[]
   /** How layout.yaml met this view: what a person placed, what is new since, what names nothing. */
   arrangement: { file: string; hash: string; placed: string[]; new: string[]; stale: string[] }
 }
@@ -143,6 +161,8 @@ export interface CoverageResponse {
   unresolved?: Unresolved[]
   /** How many routes the code declares. */
   routes?: number
+  tables?: number
+  tables_in?: string[]
 }
 
 /** A way into the system its code declares — an HTTP route (F-04, F-13). */

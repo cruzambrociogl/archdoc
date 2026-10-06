@@ -10,7 +10,43 @@ import type { BoundaryData, Delta, ElementData, Mark, RouteData } from './scene'
 const DETAIL_ZOOM = 0.85
 const zoomSelector = (s: { transform: [number, number, number] }) => s.transform[2] >= DETAIL_ZOOM
 
+/** A table: its name in a header band, then a line per column, as the committed SVG draws it. */
+function TableNode({ data, selected }: { data: ElementData; selected: boolean }) {
+  const n = data.node
+  const cols = n.columns ?? []
+  const rows = cols.length > TABLE_ROWS + 1 ? cols.slice(0, TABLE_ROWS) : cols
+  return (
+    <div
+      className={`el el-teal el-table ${selected ? 'el-selected' : ''} ${data.dim ? 'is-dim' : ''} ${data.match ? 'el-match' : ''} ${data.delta ? `el-delta-${data.delta}` : ''}`}
+      title={`${n.name} · ${cols.length} columns`}
+    >
+      <Handle type="target" position={Position.Top} className="el-handle" isConnectable={false} />
+      <Handle type="source" position={Position.Bottom} className="el-handle" isConnectable={false} />
+      {data.delta && <DeltaTag mark={data.delta} />}
+      <div className="tbl-head">{n.name}</div>
+      <div className="tbl-cols">
+        {rows.map((c) => (
+          <div key={c.name} className="tbl-col">
+            <span className="tbl-name">
+              {c.name}
+              {c.nullable ? '?' : ''}
+            </span>
+            <span className="tbl-type">
+              {[c.primary && 'PK', c.references && 'FK', c.type].filter(Boolean).join(' ')}
+            </span>
+          </div>
+        ))}
+        {rows.length < cols.length && <div className="tbl-col tbl-more">… {cols.length - rows.length} more</div>}
+      </div>
+    </div>
+  )
+}
+
+// The engine draws this many columns, and counts the rest (internal/render/layout.go tableRows).
+const TABLE_ROWS = 14
+
 export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>) {
+  if (data.node.kind === 'table') return <TableNode data={data} selected={!!selected} />
   const n = data.node
   const k = kindStyle(n.kind)
   const detail = useStore(zoomSelector)

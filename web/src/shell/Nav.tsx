@@ -1,5 +1,5 @@
 import type { CoverageResponse, SavedView, Summary } from '../api'
-import { componentLevel } from '../api'
+import { componentLevel, dataLevel } from '../api'
 import type { Route, Screen } from '../route'
 
 interface Item {
@@ -34,6 +34,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
           { label: 'Context', screen: 'explorer', level: 'context', depth: 2 },
           { label: 'Containers', screen: 'explorer', level: 'container', depth: 2 },
           ...(firstInside ? [{ label: 'Components', screen: 'explorer', level: componentLevel(firstInside), depth: 2 }] : []),
+          ...(props.coverage?.tables_in?.length ? [{ label: 'Data', screen: 'explorer', level: dataLevel(props.coverage.tables_in[0]), depth: 2 }] : []),
         ] as Item[])
       : []),
     // Earned: present once the code declared a route.
@@ -57,7 +58,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
         const active = it.view
           ? inExplorer && level === it.view.level && (route.focus ?? '') === (it.view.focus ?? '') && (route.q ?? '') === (it.view.find ?? '') && (route.dim === '1') === !!it.view.dim
           : it.level
-            ? inExplorer && (level === it.level || (it.label === 'Components' && level.startsWith('component:')))
+            ? inExplorer && (level === it.level || (it.label === 'Components' && level.startsWith('component:')) || (it.label === 'Data' && level.startsWith('data:')))
             : it.screen === route.screen
         return (
           <div key={i}>

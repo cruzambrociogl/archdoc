@@ -30,6 +30,7 @@ const kinds: Record<string, KindStyle> = {
   external: { label: 'External system', hue: 'violet', icon: icons.external },
   application: { label: 'Container', hue: 'slate', icon: icons.container },
   component: { label: 'Component', hue: 'slate', icon: icons.component },
+  table: { label: 'Table', hue: 'teal', icon: icons.entity },
   proxy: { label: 'Proxy', hue: 'slate', icon: icons.proxy },
   datastore: { label: 'Data store', hue: 'teal', icon: icons.datastore },
   queue: { label: 'Queue', hue: 'teal', icon: icons.queue },
