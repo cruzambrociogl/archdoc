@@ -12,6 +12,7 @@ import { Shortcuts } from './shell/Shortcuts'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
 import { Coverage } from './screens/Coverage'
+import { Features } from './screens/Features'
 import { Changes } from './screens/Changes'
 import { Corrections } from './screens/Corrections'
 import { Documents } from './screens/Documents'
@@ -20,6 +21,7 @@ import { NetworkRuns } from './screens/NetworkRuns'
 const titles: Record<Screen, string> = {
   overview: 'Overview',
   explorer: 'Explorer',
+  features: 'Features',
   changes: 'Changes',
   docs: 'Documents',
   coverage: 'Coverage',
@@ -103,6 +105,7 @@ export function App() {
             {route.screen === 'explorer' && (
               <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={!published} onViewsChanged={() => setViewsKey((k) => k + 1)} />
             )}
+            {route.screen === 'features' && <Features version={version} route={route} go={go} />}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
             {route.screen === 'coverage' && <Coverage go={go} />}

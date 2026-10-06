@@ -8,7 +8,7 @@ import { TruthMark } from '../ui/marks'
 type Go = (r: Partial<Route>) => void
 
 interface Hit {
-  group: 'Elements' | 'Relationships' | 'Files' | 'Documents' | 'Saved views' | 'Screens'
+  group: 'Elements' | 'Relationships' | 'Features' | 'Files' | 'Documents' | 'Saved views' | 'Screens'
   key: string
   title: string
   meta: string
@@ -22,6 +22,8 @@ interface Hit {
 const screenNames: [Screen, string][] = [
   ['overview', 'Overview'],
   ['explorer', 'Explorer'],
+  ['features', 'Features'],
+  ['coverage', 'Coverage'],
   ['changes', 'Changes'],
   ['docs', 'Documents'],
   ['rules', 'Corrections'],
@@ -88,6 +90,18 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
       })
     }
 
+    // Every route the code declares, by its path and what the code says it does.
+    for (const e of m.model.entries ?? []) {
+      hits.push({
+        group: 'Features',
+        key: `r:${e.id}`,
+        title: `${e.method} ${e.path}`,
+        meta: e.summary ?? e.handler,
+        cite: at(e.provenance),
+        go: () => props.go({ screen: 'features', focus: e.id }),
+      })
+    }
+
     // Every file that proves something, and what it proves.
     const files = new Map<string, string[]>()
     const note = (p: Provenance | undefined, what: string) => {
@@ -138,7 +152,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
         return { h, score }
       })
       .filter((x) => x.score >= 0)
-    const order = ['Elements', 'Relationships', 'Files', 'Documents', 'Saved views', 'Screens']
+    const order = ['Elements', 'Relationships', 'Features', 'Files', 'Documents', 'Saved views', 'Screens']
     scored.sort((a, b) => order.indexOf(a.h.group) - order.indexOf(b.h.group) || a.score - b.score || a.h.title.localeCompare(b.h.title))
     // At most eight a group, so one large group cannot hide the others.
     const per = new Map<string, number>()

@@ -36,6 +36,8 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
           ...(firstInside ? [{ label: 'Components', screen: 'explorer', level: componentLevel(firstInside), depth: 2 }] : []),
         ] as Item[])
       : []),
+    // Earned: present once the code declared a route.
+    ...(props.coverage?.routes ? ([{ label: 'Features', screen: 'features', depth: 1, badge: `${props.coverage.routes} routes` }] as Item[]) : []),
     ...(props.views.length
       ? ([{ label: 'Saved views', depth: 1, header: true }, ...props.views.map((v) => ({ label: v.name, view: v, depth: 2, badge: 'view' }))] as Item[])
       : []),

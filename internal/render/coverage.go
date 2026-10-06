@@ -50,6 +50,8 @@ type CoverageReport struct {
 	// Unresolved is what the code does that could not be tied to an element: calls whose
 	// address is computed at run time.
 	Unresolved []archdoc.Unresolved `json:"unresolved"`
+	// Routes counts the entries the code declares.
+	Routes int `json:"routes"`
 }
 
 // CodeRead is one application's code: how much was read, and how what it imports was resolved.
@@ -150,6 +152,7 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 	}
 	r.Code = codeRead(m, facts)
 	r.Unresolved = append([]archdoc.Unresolved{}, m.Unresolved...)
+	r.Routes = len(m.Entries)
 
 	r.Unconnected = unconnected(m.Container())
 	if r.Unconnected == nil {

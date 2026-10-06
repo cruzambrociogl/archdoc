@@ -51,6 +51,8 @@ export interface Model {
   source: string
   nodes: Node[] | null
   edges: Edge[] | null
+  entries?: Entry[]
+  unresolved?: Unresolved[]
 }
 
 export interface Summary {
@@ -137,6 +139,36 @@ export interface CoverageResponse {
   limits: { limit: string; needed: string }[]
   /** Each running application's code: read, with how its imports resolved, or not read yet. */
   code?: CodeRead[]
+  /** Calls whose target is computed at run time. */
+  unresolved?: Unresolved[]
+  /** How many routes the code declares. */
+  routes?: number
+}
+
+/** A way into the system its code declares — an HTTP route (F-04, F-13). */
+export interface Entry {
+  id: string
+  kind: string
+  method: string
+  path: string
+  handler: string
+  summary?: string
+  summary_provenance?: Provenance
+  container: string
+  component?: string
+  uses?: { name: string; component?: string; how: string; provenance: Provenance }[]
+  prefix_provenance?: Provenance
+  path_note?: string
+  provenance: Provenance
+}
+
+/** Something the code does that could not be tied to an element (D-6). */
+export interface Unresolved {
+  container: string
+  component?: string
+  what: string
+  note: string
+  provenance: Provenance
 }
 
 export interface CodeRead {
