@@ -128,3 +128,34 @@ func TestFastAPIRoutes(t *testing.T) {
 		t.Errorf("path note %q", e.PathNote)
 	}
 }
+
+// Pages where their framework declares them: SvelteKit by file, groups dropped; a +server.ts
+// by its exported methods; TanStack Router by createFileRoute, layouts dropped.
+func TestPages(t *testing.T) {
+	fs := &archdoc.FactSet{Name: "x",
+		Apps: []archdoc.App{{Name: "web", Dir: "web", Manifest: "web/package.json", Role: archdoc.RoleWeb, Prov: cite("web/package.json", 1)}},
+		Sources: []archdoc.Source{{App: "web", Root: "web/src", Files: []archdoc.SourceFile{
+			{Path: "web/src/routes/+page.svelte", Language: "Svelte", Lines: 3},
+			{Path: "web/src/routes/(user)/albums/[albumId=id]/+page.svelte", Language: "Svelte", Lines: 3},
+			{Path: "web/src/routes/api/health/+server.ts", Language: "TypeScript", Lines: 3,
+				Exports: []archdoc.Literal{{Value: "GET", Prov: cite("web/src/routes/api/health/+server.ts", 2)}, {Value: "helper"}}},
+			{Path: "web/src/lib/items.tsx", Language: "TSX", Lines: 3,
+				Pages: []archdoc.Literal{{Value: "/_layout/items", Prov: cite("web/src/lib/items.tsx", 4)}}},
+		}}},
+	}
+	ids := map[string]archdoc.Entry{}
+	for _, e := range Derive(fs).Entries {
+		ids[e.ID] = e
+	}
+	for _, want := range []string{"page:web /", "page:web /albums/[albumId=id]", "route:web GET /api/health", "page:web /items"} {
+		if _, ok := ids[want]; !ok {
+			t.Errorf("no %s in %v", want, ids)
+		}
+	}
+	if len(ids) != 4 {
+		t.Errorf("%d entries, want 4 (helper is not a method)", len(ids))
+	}
+	if g := ids["page:web /albums/[albumId=id]"].Group(); g != "Pages /albums" {
+		t.Errorf("group %q", g)
+	}
+}
