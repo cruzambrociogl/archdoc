@@ -693,3 +693,12 @@ candidate for D-4's later "resolved by type" upgrade. Syntax is the baseline, an
 how a link was resolved. A second gap, found following flows: a call with type arguments after `await` —
 `await this.predict<T>(a, b)` — is read as two comparisons; `internal/code` recognises that shape as
 the call it is (`misreadGenericCall`), since a comparison is never followed by an argument list.
+
+**2026-10-06 — What leaves the machine about code: names, not text (D-8, F-35)**
+An explanation request (`--explain`) carries a component's facts as a numbered list, and the list is
+names only: the component's, its files' paths, the components it uses and is used by with import
+counts, its routes by method, path and handler, its tables and their column names. It carries no line
+of code, no string the code holds — not the route summaries its decorators state, not docstrings,
+though both would help the prose — and no provenance. Strings in code are where people write
+things they did not mean to publish; names are what a reader of the repository's tree already sees.
+`internal/semantic/explain_test.go` holds the line. Revisit only with the person who owns the data.
