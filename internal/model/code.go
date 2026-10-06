@@ -36,6 +36,7 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 			continue
 		}
 		m.Entries = append(m.Entries, routes(src, container, componentOf)...)
+		m.Entries = append(m.Entries, fastapiRoutes(src, container, componentOf)...)
 
 		for _, f := range src.Files {
 			for _, h := range f.Hosts {
@@ -170,4 +171,175 @@ func routes(src archdoc.Source, container string, componentOf map[string]string)
 		}
 	}
 	return out
+}
+
+// FastAPI's route decorators: @router.get("/{id}") on a function, the verb after the router.
+var fastapiVerbs = map[string]string{"get": "GET", "post": "POST", "put": "PUT", "patch": "PATCH",
+	"delete": "DELETE", "head": "HEAD", "options": "OPTIONS", "api_route": "ANY", "websocket": "WS"}
+
+type routerKey struct{ file, name string }
+
+// fastapiRoutes reads a FastAPI application's routes: each decorated function under the router
+// it is declared on, that router under every router it is included into, up to the application —
+// router = APIRouter(prefix="/items"), api_router.include_router(items.router),
+// app.include_router(api_router, prefix=settings.API_V1_STR). A prefix written as a setting is
+// resolved by name to the class field that declares it; an include inside an if says so.
+func fastapiRoutes(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
+	routers := map[routerKey]archdoc.Router{}
+	values := map[string]archdoc.Field{} // a class field's literal, by name: API_V1_STR = "/api/v1"
+	files := map[string]archdoc.SourceFile{}
+	for _, f := range src.Files {
+		files[f.Path] = f
+		for _, r := range f.Routers {
+			routers[routerKey{f.Path, r.Var}] = r
+		}
+		for _, c := range f.Classes {
+			for _, fl := range c.Fields {
+				if fl.Value != "" {
+					if _, seen := values[fl.Name]; !seen {
+						values[fl.Name] = fl
+					}
+				}
+			}
+		}
+	}
+	if len(routers) == 0 {
+		return nil
+	}
+
+	type link struct {
+		parent routerKey
+		prefix string
+		notes  []string
+		cond   string
+		prov   archdoc.Provenance
+	}
+	included := map[routerKey]link{}
+	for _, f := range src.Files {
+		for _, inc := range f.Includes {
+			parent := routerKey{f.Path, inc.Parent}
+			if _, ok := routers[parent]; !ok {
+				continue
+			}
+			child, ok := childRouter(f, inc.Child, routers)
+			if !ok {
+				continue
+			}
+			l := link{parent: parent, prefix: inc.Prefix, cond: inc.Condition, prov: inc.Prov}
+			if inc.PrefixExpr != "" {
+				name := inc.PrefixExpr[strings.LastIndex(inc.PrefixExpr, ".")+1:]
+				if v, ok := values[name]; ok {
+					l.prefix = v.Value
+					l.notes = append(l.notes, inc.PrefixExpr+" is \""+v.Value+"\", resolved by name at "+v.Prov.String())
+				} else {
+					l.prefix = "{" + inc.PrefixExpr + "}"
+					l.notes = append(l.notes, inc.PrefixExpr+" could not be resolved")
+				}
+			}
+			included[child] = l
+		}
+	}
+
+	// prefixOf walks a router up to the application that includes it.
+	prefixOf := func(k routerKey) (string, []string, bool) {
+		var parts, notes []string
+		seen := map[routerKey]bool{}
+		for depth := 0; depth < 10 && !seen[k]; depth++ {
+			seen[k] = true
+			r := routers[k]
+			if r.Prefix != "" {
+				parts = append([]string{r.Prefix}, parts...)
+			}
+			if r.Kind == "FastAPI" {
+				return path.Join(append([]string{"/"}, parts...)...), notes, true
+			}
+			l, ok := included[k]
+			if !ok {
+				break
+			}
+			if l.prefix != "" {
+				parts = append([]string{l.prefix}, parts...)
+			}
+			notes = append(notes, l.notes...)
+			if l.cond != "" {
+				notes = append(notes, "included only when "+l.cond+", at "+l.prov.String())
+			}
+			k = l.parent
+		}
+		notes = append(notes, "its router is not included into an application archdoc found")
+		return path.Join(append([]string{"/"}, parts...)...), notes, false
+	}
+
+	_, local, _ := strings.Cut(container, ":")
+	var out []archdoc.Entry
+	seen := map[string]bool{}
+	for _, f := range src.Files {
+		stem := strings.TrimSuffix(path.Base(f.Path), ".py")
+		for _, c := range f.Classes {
+			for _, meth := range c.Methods {
+				for _, d := range meth.Decorators {
+					dot := strings.LastIndex(d.Name, ".")
+					if dot < 0 {
+						continue
+					}
+					verb, ok := fastapiVerbs[d.Name[dot+1:]]
+					key := routerKey{f.Path, d.Name[:dot]}
+					if _, isRouter := routers[key]; !ok || !isRouter {
+						continue
+					}
+					prefix, notes, _ := prefixOf(key)
+					e := archdoc.Entry{Kind: "http", Method: verb, Path: path.Join(prefix, d.Arg), Handler: stem + "." + meth.Name,
+						Container: container, Component: componentOf[f.Path], PathNote: strings.Join(notes, "; "), Prov: d.Prov}
+					if strings.HasSuffix(d.Arg, "/") && e.Path != "/" {
+						e.Path += "/" // FastAPI tells /items from /items/; so does the route
+					}
+					switch {
+					case d.Summary != "":
+						e.Summary, e.SummaryProv = d.Summary, d.SummaryProv
+					case meth.Doc != "":
+						e.Summary, e.SummaryProv = meth.Doc, meth.DocProv
+					}
+					e.ID = "route:" + local + " " + e.Method + " " + e.Path
+					if seen[e.ID] {
+						e.ID += " " + e.Handler
+					}
+					seen[e.ID] = true
+					out = append(out, e)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// childRouter resolves what an include names: items.router — the router in the module the file
+// imports as items — or a router the file itself declares.
+func childRouter(f archdoc.SourceFile, expr string, routers map[routerKey]archdoc.Router) (routerKey, bool) {
+	if mod, name, ok := strings.Cut(expr, "."); ok {
+		for _, imp := range f.Imports {
+			if imp.Target == "" {
+				continue
+			}
+			spec := imp.Spec[strings.LastIndex(imp.Spec, ".")+1:]
+			if spec == mod {
+				k := routerKey{imp.Target, name}
+				_, ok := routers[k]
+				return k, ok
+			}
+		}
+		return routerKey{}, false
+	}
+	k := routerKey{f.Path, expr}
+	if _, ok := routers[k]; ok {
+		return k, true
+	}
+	// from app.api.main import api_router: a router another module declares, imported by name.
+	for _, imp := range f.Imports {
+		if k := (routerKey{imp.Target, expr}); imp.Target != "" {
+			if _, ok := routers[k]; ok {
+				return k, true
+			}
+		}
+	}
+	return routerKey{}, false
 }

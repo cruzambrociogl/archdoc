@@ -115,6 +115,7 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 			}
 		}
 		f.Classes, f.Hosts, f.Calls, f.Prefix, f.Constants = got.classes, got.hosts, got.calls, got.prefix, got.consts
+		f.Routers, f.Includes = got.routers, got.incs
 		src.Files = append(src.Files, f)
 	}
 	return src, true

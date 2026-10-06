@@ -244,6 +244,11 @@ type SourceFile struct {
 	// Constants are string enum members the file declares, by qualified name — RouteKey.Asset is
 	// "assets" — so a decorator that names one can be resolved by name.
 	Constants []Constant `json:"constants,omitempty"`
+	// Routers are the FastAPI routers and applications the file creates — router = APIRouter(
+	// prefix="/items") — and Includes what it includes into them: api_router.include_router(
+	// items.router). Together they give a route its full path.
+	Routers  []Router  `json:"routers,omitempty"`
+	Includes []Include `json:"includes,omitempty"`
 	// Partial is set when the parser recovered from something it could not read in the file;
 	// what it did read is still reported, and the gap is coverage, not a guess.
 	Partial bool `json:"partial,omitempty"`
@@ -298,6 +303,26 @@ type Field struct {
 	Prov       Provenance  `json:"provenance"`
 }
 
+// Router is a router or an application a file creates, by the variable that holds it.
+type Router struct {
+	Var    string     `json:"var"`
+	Kind   string     `json:"kind"` // "APIRouter", "FastAPI"
+	Prefix string     `json:"prefix,omitempty"`
+	Prov   Provenance `json:"provenance"`
+}
+
+// Include is one router included into another: parent.include_router(child, prefix=…). Prefix is
+// the literal, or PrefixExpr the expression when it is not one; Condition is the test of an if the
+// include sits in, when it does — a router included only in development.
+type Include struct {
+	Parent     string     `json:"parent"`
+	Child      string     `json:"child"` // "items.router", "api_router"
+	Prefix     string     `json:"prefix,omitempty"`
+	PrefixExpr string     `json:"prefix_expr,omitempty"`
+	Condition  string     `json:"condition,omitempty"`
+	Prov       Provenance `json:"provenance"`
+}
+
 // Param is a constructor parameter: its name and its type.
 type Param struct {
 	Name string     `json:"name"`
@@ -313,7 +338,10 @@ type Method struct {
 	Invokes    []Invocation `json:"invokes,omitempty"`
 	Queries    []Query      `json:"queries,omitempty"`
 	EndLine    int          `json:"end_line,omitempty"`
-	Prov       Provenance   `json:"provenance"`
+	// Doc is the first line of a Python function's docstring: the code describing itself.
+	Doc     string     `json:"doc,omitempty"`
+	DocProv Provenance `json:"doc_provenance,omitempty"`
+	Prov    Provenance `json:"provenance"`
 }
 
 // Invocation is a call a method makes on its own object: this.albumRepository.getAll(…) is Object

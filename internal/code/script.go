@@ -17,6 +17,8 @@ type facts struct {
 	calls   []archdoc.Call
 	prefix  *archdoc.Literal
 	consts  []archdoc.Constant
+	routers []archdoc.Router
+	incs    []archdoc.Include
 }
 
 func (f *facts) add(g facts) {
@@ -25,6 +27,8 @@ func (f *facts) add(g facts) {
 	f.hosts = append(f.hosts, g.hosts...)
 	f.calls = append(f.calls, g.calls...)
 	f.consts = append(f.consts, g.consts...)
+	f.routers = append(f.routers, g.routers...)
+	f.incs = append(f.incs, g.incs...)
 	if f.prefix == nil {
 		f.prefix = g.prefix
 	}

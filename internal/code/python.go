@@ -76,9 +76,11 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 				if def.Type(l) == "class_definition" {
 					return // read as a class below, with its decorators
 				}
-				// A method of a class is recorded with the class only when the class itself is;
-				// a decorated function anywhere else is the module's.
-				module.Methods = append(module.Methods, archdoc.Method{Name: name, Decorators: decorators, Prov: at(def)})
+				// A decorated function is recorded with the module, with its docstring's first line.
+				meth := archdoc.Method{Name: name, Decorators: decorators, Prov: at(def),
+					EndLine: at(def).Line + int(def.EndPoint().Row-def.StartPoint().Row)}
+				meth.Doc, meth.DocProv = docstring(def, l, src, at)
+				module.Methods = append(module.Methods, meth)
 			case "class_definition":
 				out.classes = append(out.classes, pyClass(n, l, src, at))
 			case "call":
@@ -86,6 +88,27 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 					return
 				}
 				fn, args := n.Child(0), n.Child(1)
+				if strings.HasSuffix(text(fn), ".include_router") && args.Type(l) == "argument_list" && args.NamedChildCount() > 0 {
+					m := archdoc.Include{Parent: strings.TrimSuffix(text(fn), ".include_router"), Child: text(args.NamedChild(0)), Prov: at(n)}
+					for i := 1; i < args.NamedChildCount(); i++ {
+						a := args.NamedChild(i)
+						if a.Type(l) == "keyword_argument" && a.NamedChildCount() >= 2 && text(a.NamedChild(0)) == "prefix" {
+							if v, ok := pyString(a.NamedChild(1), l, src); ok {
+								m.Prefix = v
+							} else {
+								m.PrefixExpr = text(a.NamedChild(1))
+							}
+						}
+					}
+					for p := n.Parent(); p != nil; p = p.Parent() {
+						if p.Type(l) == "if_statement" && p.NamedChildCount() > 0 {
+							m.Condition = text(p.NamedChild(0))
+							break
+						}
+					}
+					out.incs = append(out.incs, m)
+					return
+				}
 				if args.Type(l) != "argument_list" || !pyHTTPCallee.MatchString(text(fn)) || args.NamedChildCount() == 0 {
 					return
 				}
@@ -107,6 +130,21 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 					return
 				}
 				key, value := n.NamedChild(0), n.NamedChild(n.NamedChildCount()-1)
+				if n.Type(l) == "assignment" && value.Type(l) == "call" && value.ChildCount() > 1 {
+					// router = APIRouter(prefix="/items"), app = FastAPI(…)
+					if callee := text(value.Child(0)); callee == "APIRouter" || callee == "FastAPI" || strings.HasSuffix(callee, ".APIRouter") || strings.HasSuffix(callee, ".FastAPI") {
+						r := archdoc.Router{Var: text(key), Kind: callee[strings.LastIndex(callee, ".")+1:], Prov: at(n)}
+						args := value.Child(1)
+						for i := 0; i < args.NamedChildCount(); i++ {
+							a := args.NamedChild(i)
+							if a.Type(l) == "keyword_argument" && a.NamedChildCount() >= 2 && text(a.NamedChild(0)) == "prefix" {
+								r.Prefix, _ = pyString(a.NamedChild(1), l, src)
+							}
+						}
+						out.routers = append(out.routers, r)
+						return
+					}
+				}
 				if !hostKey.MatchString(text(key)) {
 					return
 				}
@@ -223,6 +261,30 @@ func pyValue(n *ts.Node, l *ts.Language, src []byte) string {
 		return v
 	}
 	return n.Text(src)
+}
+
+// docstring is the first line of a function's docstring, and where it is.
+func docstring(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (string, archdoc.Provenance) {
+	for i := 0; i < def.NamedChildCount(); i++ {
+		b := def.NamedChild(i)
+		if b.Type(l) != "block" || b.NamedChildCount() == 0 {
+			continue
+		}
+		first := b.NamedChild(0)
+		if first.Type(l) == "expression_statement" && first.NamedChildCount() > 0 {
+			first = first.NamedChild(0)
+		}
+		if first.Type(l) != "string" {
+			return "", archdoc.Provenance{}
+		}
+		v, _ := pyString(first, l, src)
+		for _, line := range strings.Split(v, "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				return strings.TrimSuffix(line, "."), at(first)
+			}
+		}
+	}
+	return "", archdoc.Provenance{}
 }
 
 // pyDecorator reads @name, @router.get("/items/{id}", summary="…").

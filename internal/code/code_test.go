@@ -415,3 +415,35 @@ func TestMethodBodies(t *testing.T) {
 		t.Errorf("queries %+v", m.Queries)
 	}
 }
+
+// FastAPI, in miniature: routers and what includes them, a prefix written as a setting, an include
+// only made in development, and a docstring.
+func TestFastAPIFacts(t *testing.T) {
+	root := tree(t, map[string]string{
+		"api/app/__init__.py":        "",
+		"api/app/routes/__init__.py": "",
+		"api/app/routes/items.py":    "router = APIRouter(prefix=\"/items\")\n\n@router.get(\"/{id}\")\ndef read_item(id: int):\n    \"\"\"\n    Get item by ID.\n    \"\"\"\n",
+		"api/app/main.py":            "from app.routes import items\napi_router = APIRouter()\napi_router.include_router(items.router)\nif settings.ENV == \"dev\":\n    api_router.include_router(items.router)\napp = FastAPI()\napp.include_router(api_router, prefix=settings.API_V1_STR)\n",
+	})
+	src, _ := Read(root, archdoc.App{Dir: "api", Name: "app", Language: "Python"}, nil)
+	files := map[string]archdoc.SourceFile{}
+	for _, f := range src.Files {
+		files[f.Path] = f
+	}
+	items := files["api/app/routes/items.py"]
+	if len(items.Routers) != 1 || items.Routers[0].Var != "router" || items.Routers[0].Prefix != "/items" {
+		t.Errorf("routers %+v", items.Routers)
+	}
+	m := items.Classes[0].Methods[0]
+	if m.Doc != "Get item by ID" || m.DocProv.Line != 5 {
+		t.Errorf("docstring %q at %d", m.Doc, m.DocProv.Line)
+	}
+	main := files["api/app/main.py"]
+	if len(main.Routers) != 2 || main.Routers[1].Kind != "FastAPI" {
+		t.Errorf("main routers %+v", main.Routers)
+	}
+	if len(main.Includes) != 3 || main.Includes[0].Child != "items.router" || main.Includes[1].Condition != `settings.ENV == "dev"` ||
+		main.Includes[2].PrefixExpr != "settings.API_V1_STR" {
+		t.Errorf("includes %+v", main.Includes)
+	}
+}

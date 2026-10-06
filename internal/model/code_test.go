@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -89,5 +90,41 @@ func TestEdgesFromTheCode(t *testing.T) {
 	}
 	if len(m.Unresolved) != 1 || m.Unresolved[0].What != "fetch(new URL('predict', url))" || m.Unresolved[0].Component != "cmp:server/services" {
 		t.Errorf("unresolved %+v", m.Unresolved)
+	}
+}
+
+// A FastAPI route's path is its router's prefix under every router that includes it, up to the
+// application; a prefix written as a setting is resolved by name.
+func TestFastAPIRoutes(t *testing.T) {
+	items, main, cfg := "api/app/routes/items.py", "api/app/main.py", "api/app/core/config.py"
+	fs := &archdoc.FactSet{Name: "x",
+		Apps: []archdoc.App{{Name: "api", Dir: "api", Manifest: "api/pyproject.toml", Role: archdoc.RoleService, Language: "Python",
+			Prov: cite("api/pyproject.toml", 1)}},
+		Sources: []archdoc.Source{{App: "api", Root: "api/app", Files: []archdoc.SourceFile{
+			{Path: cfg, Language: "Python", Lines: 5, Classes: []archdoc.Class{{Name: "Settings",
+				Fields: []archdoc.Field{{Name: "API_V1_STR", Type: "str", Value: "/api/v1", Prov: cite(cfg, 3)}}}}},
+			{Path: items, Language: "Python", Lines: 9,
+				Routers: []archdoc.Router{{Var: "router", Kind: "APIRouter", Prefix: "/items", Prov: cite(items, 1)}},
+				Classes: []archdoc.Class{{Methods: []archdoc.Method{{Name: "read_item", Doc: "Get item by ID", DocProv: cite(items, 5), Prov: cite(items, 4),
+					Decorators: []archdoc.Decorator{{Name: "router.get", Arg: "/{id}", HasArg: true, Prov: cite(items, 3)}}}}}}},
+			{Path: main, Language: "Python", Lines: 7,
+				Imports: []archdoc.Import{{Spec: "app.routes.items", Target: items, How: archdoc.ByModule}},
+				Routers: []archdoc.Router{{Var: "api_router", Kind: "APIRouter"}, {Var: "app", Kind: "FastAPI"}},
+				Includes: []archdoc.Include{
+					{Parent: "api_router", Child: "items.router", Prov: cite(main, 3)},
+					{Parent: "app", Child: "api_router", PrefixExpr: "settings.API_V1_STR", Prov: cite(main, 7)},
+				}},
+		}}},
+	}
+	m := Derive(fs)
+	if len(m.Entries) != 1 {
+		t.Fatalf("entries %+v", m.Entries)
+	}
+	e := m.Entries[0]
+	if e.Method != "GET" || e.Path != "/api/v1/items/{id}" || e.Handler != "items.read_item" || e.Summary != "Get item by ID" || e.SummaryProv.Line != 5 {
+		t.Errorf("entry %+v", e)
+	}
+	if !strings.Contains(e.PathNote, "resolved by name at api/app/core/config.py:3") {
+		t.Errorf("path note %q", e.PathNote)
 	}
 }
