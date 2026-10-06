@@ -1,7 +1,9 @@
 package model
 
 import (
+	"path"
 	"sort"
+	"strings"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 )
@@ -53,11 +55,21 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 				}
 			}
 		}
+		files := map[string]archdoc.SourceFile{}
+		for _, f := range src.Files {
+			files[f.Path] = f
+		}
+		table := func(t string) string { return tableOf[container+"\x00"+t] }
 		for _, e := range m.Entries {
-			if e.Container != container {
+			if e.Container != container || e.Kind != "http" {
 				continue
 			}
-			f := follow(e, classes, calls, componentOf, func(t string) string { return tableOf[container+"\x00"+t] })
+			var f archdoc.Flow
+			if strings.HasSuffix(e.Prov.File, ".py") {
+				f = followPython(e, files, componentOf, table)
+			} else {
+				f = follow(e, classes, calls, componentOf, table)
+			}
 			if len(f.Steps) > 0 {
 				m.Flows = append(m.Flows, f)
 			}
@@ -219,4 +231,128 @@ func splitHandler(h string) (string, string) {
 		}
 	}
 	return h, ""
+}
+
+// followPython follows a Python route: its function, the functions it calls — of its own module,
+// or of a module it imports (crud.create_user) — and the tables their queries name, select(Item)
+// reading item. A module is a participant, as a class is in TypeScript.
+func followPython(e archdoc.Entry, files map[string]archdoc.SourceFile, componentOf map[string]string, table func(string) string) archdoc.Flow {
+	flow := archdoc.Flow{Entry: e.ID}
+	seen := map[string]bool{}
+	visited := map[string]bool{}
+	repeated := map[archdoc.Step]bool{}
+	module := func(file string) archdoc.Participant {
+		return archdoc.Participant{ID: file, Name: strings.TrimSuffix(path.Base(file), ".py"), Kind: "class", Component: componentOf[file]}
+	}
+	add := func(p archdoc.Participant) {
+		if !seen[p.ID] {
+			seen[p.ID] = true
+			flow.Participants = append(flow.Participants, p)
+		}
+	}
+	step := func(s archdoc.Step) bool {
+		key := archdoc.Step{From: s.From, To: s.To, Call: s.Call, Depth: s.Depth}
+		if repeated[key] {
+			return true
+		}
+		repeated[key] = true
+		if len(flow.Steps) == flowSteps {
+			flow.Cut = true
+			return false
+		}
+		flow.Steps = append(flow.Steps, s)
+		return true
+	}
+	function := func(file, name string) (archdoc.Method, bool) {
+		for _, c := range files[file].Classes {
+			if c.Name != "" {
+				continue
+			}
+			for _, m := range c.Methods {
+				if m.Name == name {
+					return m, true
+				}
+			}
+		}
+		return archdoc.Method{}, false
+	}
+	// where finds the function a call names: in the file, or in a module the file imports.
+	where := func(file string, inv archdoc.Invocation) (string, archdoc.Method, bool) {
+		if inv.Object == "" {
+			if m, ok := function(file, inv.Method); ok {
+				return file, m, true
+			}
+		}
+		for _, imp := range files[file].Imports {
+			if imp.Target == "" {
+				continue
+			}
+			last := imp.Spec[strings.LastIndex(imp.Spec, ".")+1:]
+			if inv.Object != "" && last != inv.Object {
+				continue
+			}
+			if m, ok := function(imp.Target, inv.Method); ok {
+				return imp.Target, m, true
+			}
+		}
+		return "", archdoc.Method{}, false
+	}
+
+	var visit func(file string, m archdoc.Method, depth int) bool
+	visit = func(file string, m archdoc.Method, depth int) bool {
+		key := file + "." + m.Name
+		if visited[key] {
+			return true
+		}
+		visited[key] = true
+		type act struct {
+			line int
+			do   func() bool
+		}
+		var acts []act
+		for _, inv := range m.Invokes {
+			inv := inv
+			acts = append(acts, act{inv.Prov.Line, func() bool {
+				target, next, ok := where(file, inv)
+				if !ok {
+					return true // a library's function, or a method of a value
+				}
+				add(module(target))
+				if !step(archdoc.Step{From: file, To: target, Call: inv.Method, Depth: depth, Prov: inv.Prov}) {
+					return false
+				}
+				if depth+1 < flowDepth {
+					return visit(target, next, depth+1)
+				}
+				flow.Cut = true
+				return true
+			}})
+		}
+		for _, q := range m.Queries {
+			q := q
+			acts = append(acts, act{q.Prov.Line, func() bool {
+				name := strings.ToLower(q.Table) // SQLModel names a table after its class
+				p := archdoc.Participant{ID: "table:" + name, Name: name, Kind: "table", Element: table(name)}
+				add(p)
+				return step(archdoc.Step{From: file, To: p.ID, Call: q.Op, Depth: depth, Prov: q.Prov})
+			}})
+		}
+		sort.SliceStable(acts, func(i, j int) bool { return acts[i].line < acts[j].line })
+		for _, a := range acts {
+			if !a.do() {
+				return false
+			}
+		}
+		return true
+	}
+
+	file := e.Prov.File
+	_, name := splitHandler(e.Handler)
+	m, ok := function(file, name)
+	if !ok {
+		return flow
+	}
+	add(module(file))
+	visit(file, m, 0)
+	return flow
 }

@@ -96,7 +96,7 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 | 3 | NestJS pack: routes, services, injection; outbound calls; unresolved as a state | F-04, F-08, F-13, F-32 | ✓ 5 Oct — Immich: 301 routes (274 described by the code), server → ML from `config.dto.ts:624`, 11 calls unresolved; Features screen and `features.generated.md` |
 | 4 | Data model from table classes and migrations | F-07, F-11 | ✓ 5 Oct — from table classes (TypeORM-style decorators, SQLModel, SQLAlchemy); Immich: 68 tables, 65 foreign keys, in PostgreSQL; explorer Data level, `data-*.svg`, Mermaid erDiagram. Migrations not read: they say how the schema got here, not what it is |
 | 5 | Flows from an entry point, as sequence diagrams | F-12 | ✓ 5 Oct — 298 of Immich's 301 routes followed to tables and outbound calls; sequence diagram per route on Features; arc42 §6 drawn from the code (eight widest flows, by rule) |
-| 6 | SvelteKit and React pages; FastAPI and Python | F-05, F-06 | · |
+| 6 | SvelteKit and React pages; FastAPI and Python | F-05, F-06 | ✓ 6 Oct — FastAPI routes with full prefixes (settings resolved by name, conditional includes marked) and Python flows; SvelteKit pages by file, TanStack by `createFileRoute`. Template: 23 routes, 8 pages, 18 flows; Immich: 304 routes, 55 pages |
 | 7 | Component pages and cited claims, remembered — paid runs, asked first | F-19, F-30, F-36 | · |
 
 ### Superseded — do not implement as written

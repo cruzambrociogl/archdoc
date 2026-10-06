@@ -54,32 +54,30 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 					}
 				}
 				out.imports = append(out.imports, imp)
-			case "decorated_definition":
+			case "function_definition":
+				// A module's functions — decorated or not — are its methods: what a route's handler
+				// calls is usually a plain function in another module.
+				owner := n.Parent()
 				var decorators []archdoc.Decorator
-				var def *ts.Node
-				for i := 0; i < n.NamedChildCount(); i++ {
-					c := n.NamedChild(i)
-					switch c.Type(l) {
-					case "decorator":
-						decorators = append(decorators, pyDecorator(c, l, src, at))
-					case "function_definition", "class_definition":
-						def = c
+				if owner != nil && owner.Type(l) == "decorated_definition" {
+					for i := 0; i < owner.NamedChildCount(); i++ {
+						if d := owner.NamedChild(i); d.Type(l) == "decorator" {
+							decorators = append(decorators, pyDecorator(d, l, src, at))
+						}
 					}
+					owner = owner.Parent()
 				}
-				if def == nil {
-					return
+				if owner == nil || owner.Type(l) != "module" {
+					return // a method of a class, or a nested function
 				}
 				name := ""
-				if def.NamedChildCount() > 0 {
-					name = text(def.NamedChild(0))
+				if n.NamedChildCount() > 0 {
+					name = text(n.NamedChild(0))
 				}
-				if def.Type(l) == "class_definition" {
-					return // read as a class below, with its decorators
-				}
-				// A decorated function is recorded with the module, with its docstring's first line.
-				meth := archdoc.Method{Name: name, Decorators: decorators, Prov: at(def),
-					EndLine: at(def).Line + int(def.EndPoint().Row-def.StartPoint().Row)}
-				meth.Doc, meth.DocProv = docstring(def, l, src, at)
+				meth := archdoc.Method{Name: name, Decorators: decorators, Prov: at(n),
+					EndLine: at(n).Line + int(n.EndPoint().Row-n.StartPoint().Row)}
+				meth.Doc, meth.DocProv = docstring(n, l, src, at)
+				meth.Invokes, meth.Queries = pyBody(n, l, src, at)
 				module.Methods = append(module.Methods, meth)
 			case "class_definition":
 				out.classes = append(out.classes, pyClass(n, l, src, at))
@@ -261,6 +259,50 @@ func pyValue(n *ts.Node, l *ts.Language, src []byte) string {
 		return v
 	}
 	return n.Text(src)
+}
+
+// Names a function body calls that are Python's or a query builder's, never the application's.
+var pyBuiltins = map[string]bool{"print": true, "len": true, "str": true, "int": true, "float": true, "bool": true,
+	"list": true, "dict": true, "set": true, "tuple": true, "range": true, "isinstance": true, "getattr": true,
+	"setattr": true, "hasattr": true, "sorted": true, "min": true, "max": true, "sum": true, "any": true, "all": true,
+	"enumerate": true, "zip": true, "map": true, "filter": true, "open": true, "super": true, "type": true,
+	"select": true, "col": true, "func": true, "Depends": true, "HTTPException": true}
+
+// pyBody reads what a function calls — a function of its own module, or one in a module it imported
+// (crud.create_user) — and the tables its queries name: select(Item), session.get(User, id).
+func pyBody(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (invokes []archdoc.Invocation, queries []archdoc.Query) {
+	walk(def, func(n *ts.Node) {
+		if n.Type(l) != "call" || n.ChildCount() < 2 {
+			return
+		}
+		fn, args := n.Child(0), n.Child(1)
+		var first *ts.Node
+		if args.Type(l) == "argument_list" && args.NamedChildCount() > 0 {
+			first = args.NamedChild(0)
+		}
+		switch fn.Type(l) {
+		case "identifier":
+			name := fn.Text(src)
+			if name == "select" && first != nil && first.Type(l) == "identifier" {
+				queries = append(queries, archdoc.Query{Table: first.Text(src), Op: "reads", Prov: at(n)})
+				return
+			}
+			if !pyBuiltins[name] {
+				invokes = append(invokes, archdoc.Invocation{Method: name, Prov: at(n)})
+			}
+		case "attribute":
+			if fn.NamedChildCount() != 2 || fn.NamedChild(0).Type(l) != "identifier" {
+				return
+			}
+			obj, method := fn.NamedChild(0).Text(src), fn.NamedChild(1).Text(src)
+			if method == "get" && first != nil && first.Type(l) == "identifier" && strings.ToUpper(first.Text(src)[:1]) == first.Text(src)[:1] {
+				queries = append(queries, archdoc.Query{Table: first.Text(src), Op: "reads", Prov: at(n)})
+				return
+			}
+			invokes = append(invokes, archdoc.Invocation{Object: obj, Method: method, Prov: at(n)})
+		}
+	})
+	return invokes, queries
 }
 
 // docstring is the first line of a function's docstring, and where it is.

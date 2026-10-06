@@ -69,3 +69,30 @@ func TestFlowsFollowTheCode(t *testing.T) {
 		t.Errorf("service → repository at depth %d, line %d", s.Depth, s.Prov.Line)
 	}
 }
+
+// A Python route followed into the module it imports, to the table its query names.
+func TestPythonFlows(t *testing.T) {
+	users, crud := "api/app/routes/users.py", "api/app/crud.py"
+	fs := &archdoc.FactSet{Name: "x",
+		Apps: []archdoc.App{{Name: "api", Dir: "api", Manifest: "api/pyproject.toml", Role: archdoc.RoleService, Language: "Python",
+			Prov: cite("api/pyproject.toml", 1)}},
+		Sources: []archdoc.Source{{App: "api", Root: "api/app", Files: []archdoc.SourceFile{
+			{Path: crud, Language: "Python", Lines: 9, Classes: []archdoc.Class{{Methods: []archdoc.Method{
+				{Name: "get_user", Prov: cite(crud, 3), Queries: []archdoc.Query{{Table: "User", Op: "reads", Prov: cite(crud, 4)}}}}}}},
+			{Path: users, Language: "Python", Lines: 9,
+				Imports: []archdoc.Import{{Spec: "app.crud", Target: crud, How: archdoc.ByModule}},
+				Routers: []archdoc.Router{{Var: "router", Kind: "FastAPI"}},
+				Classes: []archdoc.Class{{Methods: []archdoc.Method{{Name: "read_user", Prov: cite(users, 4),
+					Decorators: []archdoc.Decorator{{Name: "router.get", Arg: "/users", HasArg: true, Prov: cite(users, 3)}},
+					Invokes:    []archdoc.Invocation{{Object: "crud", Method: "get_user", Prov: cite(users, 5)}, {Object: "session", Method: "add", Prov: cite(users, 6)}}}}}}},
+		}}},
+	}
+	m := Derive(fs)
+	if len(m.Flows) != 1 || len(m.Flows[0].Steps) != 2 {
+		t.Fatalf("flows %+v", m.Flows)
+	}
+	s := m.Flows[0].Steps
+	if s[0].From != users || s[0].To != crud || s[0].Call != "get_user" || s[1].To != "table:user" || s[1].Depth != 1 {
+		t.Errorf("steps %+v", s)
+	}
+}
