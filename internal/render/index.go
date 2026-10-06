@@ -43,12 +43,29 @@ func Index(m archdoc.Model, plan []Section, meta Meta) string {
 	b.WriteString("\n## Containers\n\n")
 	b.WriteString(figure(meta, "Containers", "container.svg", Mermaid(m.Container(), true)))
 
-	// One component view per container whose code was read: what it is made of, from its code.
-	if views := Views(m)[2:]; len(views) > 0 {
+	// One component view per container whose code was read, and one data view per container whose
+	// code declares tables.
+	var components, data []View
+	for _, v := range Views(m)[2:] {
+		if strings.HasPrefix(v.Name, DataPrefix) {
+			data = append(data, v)
+		} else {
+			components = append(components, v)
+		}
+	}
+	if len(components) > 0 {
 		b.WriteString("\n## Components\n\n")
 		b.WriteString("Inside each container whose code archdoc reads: its parts, and which uses which. Every\n")
 		b.WriteString("arrow is an import, cited at its line in `.archdoc/model.json`.\n")
-		for _, v := range views {
+		for _, v := range components {
+			fmt.Fprintf(&b, "\n### %s\n\n", v.Model.Name)
+			b.WriteString(figure(meta, v.Title, v.File+".svg", Mermaid(v.Model, v.Group)))
+		}
+	}
+	if len(data) > 0 {
+		b.WriteString("\n## Data\n\n")
+		b.WriteString("The tables each container's code declares, with their columns; every arrow is a foreign key.\n")
+		for _, v := range data {
 			fmt.Fprintf(&b, "\n### %s\n\n", v.Model.Name)
 			b.WriteString(figure(meta, v.Title, v.File+".svg", Mermaid(v.Model, v.Group)))
 		}

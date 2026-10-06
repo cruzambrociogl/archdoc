@@ -94,7 +94,7 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 | 1 | Applications from manifests; Compose as deployment evidence | F-02 | ✓ 5 Oct — Immich: server and ML tied by build line, web, mobile, CLI on their own |
 | 2 | Module and import graph → components by convention; identity by what a thing is | F-03, F-10, F-31 | ✓ 5 Oct — Immich: 43 components in 5 containers, 145 uses, no import unresolved; explorer Components level, committed SVGs, coverage of the code |
 | 3 | NestJS pack: routes, services, injection; outbound calls; unresolved as a state | F-04, F-08, F-13, F-32 | ✓ 5 Oct — Immich: 301 routes (274 described by the code), server → ML from `config.dto.ts:624`, 11 calls unresolved; Features screen and `features.generated.md` |
-| 4 | Data model from table classes and migrations | F-07, F-11 | · |
+| 4 | Data model from table classes and migrations | F-07, F-11 | ✓ 5 Oct — from table classes (TypeORM-style decorators, SQLModel, SQLAlchemy); Immich: 68 tables, 65 foreign keys, in PostgreSQL; explorer Data level, `data-*.svg`, Mermaid erDiagram. Migrations not read: they say how the schema got here, not what it is |
 | 5 | Flows from an entry point, as sequence diagrams | F-12 | · |
 | 6 | SvelteKit and React pages; FastAPI and Python | F-05, F-06 | · |
 | 7 | Component pages and cited claims, remembered — paid runs, asked first | F-19, F-30, F-36 | · |

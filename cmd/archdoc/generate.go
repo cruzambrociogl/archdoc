@@ -288,7 +288,11 @@ func generate(args []string, out io.Writer) error {
 		fmt.Fprintf(out, "%d components in %s, %d uses between them, from the code\n", n, containers(len(m.Components())), uses)
 	}
 	if n := count[archdoc.Table]; n > 0 {
-		fmt.Fprintf(out, "%d tables in %s, %d foreign keys between them, from the code\n", n, containers(len(m.Datas())), references)
+		keys := "foreign keys"
+		if references == 1 {
+			keys = "foreign key"
+		}
+		fmt.Fprintf(out, "%d tables in %s, %d %s between them, from the code\n", n, containers(len(m.Datas())), references, keys)
 	}
 	if len(m.Entries) > 0 || len(m.Unresolved) > 0 {
 		fmt.Fprintf(out, "%d routes, and %d calls whose target is computed at run time\n", len(m.Entries), len(m.Unresolved))
