@@ -86,6 +86,10 @@ func Index(m archdoc.Model, plan []Section, meta Meta) string {
 	b.WriteString("\nA section you have not written yet holds questions derived from this model rather\n")
 	b.WriteString("than a blank template. archdoc cannot answer them; it can say which ones matter.\n")
 
+	if len(m.Entries) > 0 {
+		fmt.Fprintf(&b, "\n## What it does\n\n[Features](%s) lists the %d routes the code declares, each at its line.\n", FeaturesFile, len(m.Entries))
+	}
+
 	fmt.Fprintf(&b, "\n## What archdoc could not see\n\n[Coverage](%s) lists every file that was read, every\n", CoverageFile)
 	b.WriteString("relationship the configuration leaves incomplete, and what configuration cannot\n")
 	b.WriteString("state at all. The rest of these documents is proven; that page says where the proof\n")

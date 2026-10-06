@@ -169,6 +169,9 @@ func generate(args []string, out io.Writer) error {
 		// competitor in this space publishes what it missed.
 		render.CoverageFile: render.Coverage(m, *facts, reported(result), meta),
 	}
+	if features := render.Features(m, meta); features != "" {
+		generated[render.FeaturesFile] = features
+	}
 	views := render.Views(m)
 	for _, v := range views {
 		generated[v.File+".mmd"] = render.Mermaid(v.Model, v.Group)
