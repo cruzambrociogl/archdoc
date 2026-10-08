@@ -313,6 +313,8 @@ export interface Exchange {
   url: string
   status: number
   body: string
+  /** What came back, as received; absent from runs logged before it was kept. */
+  response?: string
 }
 
 export interface Op {

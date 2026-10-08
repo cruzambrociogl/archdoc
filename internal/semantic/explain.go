@@ -81,7 +81,7 @@ type ExplainReport struct {
 const ExplainMaxTokens = 1500
 
 const (
-	maxFiles     = 40
+	maxFiles     = 10 // file names say least of all the facts, and were a third of what was sent
 	maxEntries   = 40
 	maxSentences = 4
 	maxSentence  = 320

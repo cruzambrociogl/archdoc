@@ -30,6 +30,9 @@ type Exchange struct {
 	URL    string
 	Body   []byte // exactly as sent
 	Status int    // 0 when the request never got a response
+	// Response is the answer exactly as it came back: what the tokens that were paid for bought.
+	// It never leaves the machine again — the published site carries a run's summary only.
+	Response []byte
 }
 
 // Middleware returns the SDK hook that records each request. Safe to share across retries: the
@@ -53,6 +56,14 @@ func (r *Recorder) Middleware() option.Middleware {
 		ex := Exchange{Method: req.Method, URL: req.URL.String(), Body: body}
 		if resp != nil {
 			ex.Status = resp.StatusCode
+			if resp.Body != nil {
+				// Read and put back: the SDK reads the same bytes this log keeps.
+				if b, rerr := io.ReadAll(resp.Body); rerr == nil {
+					resp.Body.Close()
+					ex.Response = b
+					resp.Body = io.NopCloser(bytes.NewReader(b))
+				}
+			}
 		}
 		r.mu.Lock()
 		r.exchanges = append(r.exchanges, ex)

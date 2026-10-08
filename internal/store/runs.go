@@ -37,6 +37,8 @@ type Exchange struct {
 	URL    string `json:"url"`
 	Status int    `json:"status"`
 	Body   string `json:"body"`
+	// Response is what came back, as received. Absent from runs logged before it was kept.
+	Response string `json:"response,omitempty"`
 }
 
 const runsSchema = `

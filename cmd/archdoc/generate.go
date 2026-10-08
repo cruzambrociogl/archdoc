@@ -475,7 +475,7 @@ func logRun(root string, rec *semantic.Recorder, rep semantic.Report, started ti
 	}
 	for _, ex := range rec.Exchanges() {
 		r.Exchanges = append(r.Exchanges, store.Exchange{
-			Method: ex.Method, URL: ex.URL, Status: ex.Status, Body: string(ex.Body),
+			Method: ex.Method, URL: ex.URL, Status: ex.Status, Body: string(ex.Body), Response: string(ex.Response),
 		})
 	}
 	r.Requests = len(r.Exchanges)

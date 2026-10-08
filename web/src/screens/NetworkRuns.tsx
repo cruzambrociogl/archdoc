@@ -110,6 +110,14 @@ function RunDetail({ id }: { id: number }) {
             </span>
           </div>
           <pre className="payload">{x.body}</pre>
+          {x.response && (
+            <details className="files">
+              <summary>
+                <Eyebrow>What came back · {bytes(x.response.length)} · kept on this machine</Eyebrow>
+              </summary>
+              <pre className="payload">{x.response}</pre>
+            </details>
+          )}
         </div>
       ))}
       <p className="lede-quiet">Shown unformatted on purpose: a prettier version would no longer be the thing that was sent. The API key is never stored.</p>

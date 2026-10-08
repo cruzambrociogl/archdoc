@@ -86,6 +86,10 @@ func showRun(h *store.Store, id int64, out io.Writer) error {
 	for i, ex := range r.Exchanges {
 		fmt.Fprintf(out, "\n── request %d of %d · %s %s · %d bytes · HTTP %d ──\n", i+1, len(r.Exchanges), ex.Method, ex.URL, len(ex.Body), ex.Status)
 		fmt.Fprintln(out, ex.Body)
+		if ex.Response != "" {
+			fmt.Fprintf(out, "\n── answer %d of %d · %d bytes ──\n", i+1, len(r.Exchanges), len(ex.Response))
+			fmt.Fprintln(out, ex.Response)
+		}
 	}
 	return nil
 }

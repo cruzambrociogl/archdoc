@@ -63,6 +63,10 @@ func TestRecorderAccountsForEveryByte(t *testing.T) {
 		if got[i].Status != http.StatusOK {
 			t.Errorf("request %d: status %d not recorded", i, got[i].Status)
 		}
+		// What came back is kept too — and the SDK still read it, or Label would have failed.
+		if !bytes.Contains(got[i].Response, []byte(`"usage"`)) {
+			t.Errorf("request %d: the answer was not recorded: %q", i, got[i].Response)
+		}
 	}
 	if rec.Bytes() == 0 {
 		t.Error("no bytes accounted for")
