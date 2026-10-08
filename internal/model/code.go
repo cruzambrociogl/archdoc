@@ -176,11 +176,16 @@ func routes(src archdoc.Source, container string, componentOf map[string]string)
 
 // FastAPI's route decorators: @router.get("/{id}") on a function, the verb after the router.
 var fastapiVerbs = map[string]string{"get": "GET", "post": "POST", "put": "PUT", "patch": "PATCH",
-	"delete": "DELETE", "head": "HEAD", "options": "OPTIONS", "api_route": "ANY", "websocket": "WS"}
+	"delete": "DELETE", "head": "HEAD", "options": "OPTIONS", "api_route": "ANY", "websocket": "WS", "all": "ALL"}
+
+// The applications a router is finally included into: FastAPI's, Express's.
+var rootRouters = map[string]bool{"FastAPI": true, "express": true}
 
 type routerKey struct{ file, name string }
 
-// fastapiRoutes reads a FastAPI application's routes: each decorated function under the router
+// fastapiRoutes reads the routes of a FastAPI or an Express application — the two declare them the
+// same way, a verb on a router: @router.get("/{id}") over a function, router.get("/:id", handler).
+// For FastAPI: each decorated function under the router
 // it is declared on, that router under every router it is included into, up to the application —
 // router = APIRouter(prefix="/items"), api_router.include_router(items.router),
 // app.include_router(api_router, prefix=settings.API_V1_STR). A prefix written as a setting is
@@ -251,7 +256,7 @@ func fastapiRoutes(src archdoc.Source, container string, componentOf map[string]
 			if r.Prefix != "" {
 				parts = append([]string{r.Prefix}, parts...)
 			}
-			if r.Kind == "FastAPI" {
+			if rootRouters[r.Kind] {
 				return path.Join(append([]string{"/"}, parts...)...), notes, true
 			}
 			l, ok := included[k]
@@ -275,7 +280,10 @@ func fastapiRoutes(src archdoc.Source, container string, componentOf map[string]
 	var out []archdoc.Entry
 	seen := map[string]bool{}
 	for _, f := range src.Files {
-		stem := strings.TrimSuffix(path.Base(f.Path), ".py")
+		stem := path.Base(f.Path)
+		if i := strings.Index(stem, "."); i > 0 {
+			stem = stem[:i]
+		}
 		for _, c := range f.Classes {
 			for _, meth := range c.Methods {
 				for _, d := range meth.Decorators {
@@ -355,6 +363,9 @@ var kitMethods = map[string]bool{"GET": true, "POST": true, "PUT": true, "PATCH"
 func pages(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
 	_, local, _ := strings.Cut(container, ":")
 	routesDir := src.Root + "/routes/"
+	// Next.js keeps pages in app/ (a page.tsx per route, a route.ts per endpoint) or in pages/
+	// (a file per page, pages/api for endpoints), under src/ or beside it.
+	nextApp, nextPages := src.Root+"/app/", src.Root+"/pages/"
 	var out []archdoc.Entry
 	seen := map[string]bool{}
 	add := func(e archdoc.Entry) {
@@ -383,6 +394,32 @@ func pages(src archdoc.Source, container string, componentOf map[string]string) 
 						add(archdoc.Entry{Kind: "http", Method: x.Value, Path: at, Handler: rel + " " + x.Value, Prov: x.Prov})
 					}
 				}
+			}
+		}
+		if rel, ok := strings.CutPrefix(f.Path, nextApp); ok {
+			dir, base := path.Split(rel)
+			name := base[:len(base)-len(path.Ext(base))]
+			switch name {
+			case "page":
+				add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: kitPath(dir), Handler: "app/" + rel, Prov: archdoc.Provenance{File: f.Path, Line: 1}})
+			case "route":
+				for _, x := range f.Exports {
+					if kitMethods[x.Value] {
+						add(archdoc.Entry{Kind: "http", Method: x.Value, Path: kitPath(dir), Handler: "app/" + rel + " " + x.Value, Prov: x.Prov})
+					}
+				}
+			}
+		}
+		if rel, ok := strings.CutPrefix(f.Path, nextPages); ok && (f.Language == "TSX" || strings.HasSuffix(f.Path, ".jsx") || strings.HasPrefix(rel, "api/")) {
+			at := "/" + strings.TrimSuffix(strings.TrimSuffix(rel[:len(rel)-len(path.Ext(rel))], "index"), "/")
+			base := path.Base(rel)
+			switch {
+			case strings.HasPrefix(base, "_"):
+				// _app, _document: the frame around every page, not a page.
+			case strings.HasPrefix(rel, "api/"):
+				add(archdoc.Entry{Kind: "http", Method: "ANY", Path: at, Handler: "pages/" + rel, Prov: archdoc.Provenance{File: f.Path, Line: 1}})
+			default:
+				add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: at, Handler: "pages/" + rel, Prov: archdoc.Provenance{File: f.Path, Line: 1}})
 			}
 		}
 		for _, p := range f.Pages {

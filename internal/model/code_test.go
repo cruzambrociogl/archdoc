@@ -159,3 +159,56 @@ func TestPages(t *testing.T) {
 		t.Errorf("group %q", g)
 	}
 }
+
+// Express declares routes as FastAPI does — a verb on a router, the router included under a prefix.
+func TestExpressRoutes(t *testing.T) {
+	api, main := "srv/src/api.js", "srv/src/index.js"
+	route := func(file, dec, arg, handler string, line int) archdoc.Method {
+		return archdoc.Method{Name: handler, Prov: cite(file, line), Decorators: []archdoc.Decorator{{Name: dec, Arg: arg, HasArg: true, Prov: cite(file, line)}}}
+	}
+	fs := &archdoc.FactSet{Name: "x",
+		Apps: []archdoc.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: archdoc.RoleService, Prov: cite("srv/package.json", 1)}},
+		Sources: []archdoc.Source{{App: "srv", Root: "srv/src", Files: []archdoc.SourceFile{
+			{Path: api, Language: "JavaScript", Lines: 9, Routers: []archdoc.Router{{Var: "router", Kind: "Router"}},
+				Classes: []archdoc.Class{{Methods: []archdoc.Method{route(api, "router.get", "/users/:id", "getUser", 4), route(api, "cache.get", "/not-a-route", "x", 6)}}}},
+			{Path: main, Language: "JavaScript", Lines: 9, Routers: []archdoc.Router{{Var: "app", Kind: "express"}},
+				Imports:  []archdoc.Import{{Spec: "./api", Target: api, How: archdoc.ByPath}},
+				Includes: []archdoc.Include{{Parent: "app", Child: "router", Prefix: "/api", Prov: cite(main, 5)}},
+				Classes:  []archdoc.Class{{Methods: []archdoc.Method{route(main, "app.get", "/health", "handler", 7)}}}},
+		}}},
+	}
+	ids := map[string]bool{}
+	for _, e := range Derive(fs).Entries {
+		ids[e.ID] = true
+	}
+	if !ids["route:srv GET /api/users/:id"] || !ids["route:srv GET /health"] || len(ids) != 2 {
+		t.Errorf("entries %v", ids)
+	}
+}
+
+// Next.js pages: app/ by page and route files, pages/ by file; React Router by the paths it is given.
+func TestNextAndReactRouterPages(t *testing.T) {
+	fs := &archdoc.FactSet{Name: "x",
+		Apps: []archdoc.App{{Name: "web", Dir: "web", Manifest: "web/package.json", Role: archdoc.RoleWeb, Prov: cite("web/package.json", 1)}},
+		Sources: []archdoc.Source{{App: "web", Root: "web/src", Files: []archdoc.SourceFile{
+			{Path: "web/src/app/(shop)/items/[id]/page.tsx", Language: "TSX", Lines: 3},
+			{Path: "web/src/app/api/items/route.ts", Language: "TypeScript", Lines: 3, Exports: []archdoc.Literal{{Value: "POST", Prov: cite("web/src/app/api/items/route.ts", 2)}}},
+			{Path: "web/src/pages/about.tsx", Language: "TSX", Lines: 3},
+			{Path: "web/src/pages/_app.tsx", Language: "TSX", Lines: 3},
+			{Path: "web/src/pages/api/ping.ts", Language: "TypeScript", Lines: 3},
+			{Path: "web/src/router.tsx", Language: "TSX", Lines: 3, Pages: []archdoc.Literal{{Value: "/albums/:id", Prov: cite("web/src/router.tsx", 5)}}},
+		}}},
+	}
+	ids := map[string]bool{}
+	for _, e := range Derive(fs).Entries {
+		ids[e.ID] = true
+	}
+	for _, want := range []string{"page:web /items/[id]", "route:web POST /api/items", "page:web /about", "route:web ANY /api/ping", "page:web /albums/:id"} {
+		if !ids[want] {
+			t.Errorf("no %s in %v", want, ids)
+		}
+	}
+	if len(ids) != 5 {
+		t.Errorf("%d entries, want 5 (_app is not a page): %v", len(ids), ids)
+	}
+}

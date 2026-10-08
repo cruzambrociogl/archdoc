@@ -44,6 +44,9 @@ var urlLiteral = regexp.MustCompile(`^(https?|wss?|redis|rediss|postgres|postgre
 // A key that names a host: host, hostname, redisHost, DB_HOSTNAME.
 var hostKey = regexp.MustCompile(`(?i)(^|_|[a-z])host(name)?$`)
 
+// Express's routing methods.
+var expressVerbs = map[string]bool{"get": true, "post": true, "put": true, "patch": true, "delete": true, "all": true}
+
 // A bare host name, as a host property's value holds one.
 var hostName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]*$`)
 
@@ -142,12 +145,58 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					if first != nil && first.Type(l) == "string" {
 						out.prefix = &archdoc.Literal{Value: unquote(text(first)), Prov: at(first)}
 					}
+				case callee == "createBrowserRouter" || callee == "createHashRouter" || callee == "createMemoryRouter":
+					// React Router's route objects: every { path: "/x" } in the call is a page.
+					walk(args, func(p *ts.Node) {
+						if p.Type(l) == "pair" && p.NamedChildCount() == 2 && unquote(text(p.NamedChild(0))) == "path" {
+							if v, ok := literal(p.NamedChild(1), l, src); ok {
+								out.pages = append(out.pages, archdoc.Literal{Value: v, Prov: at(p)})
+							}
+						}
+					})
 				case httpCallee.MatchString(callee) && first != nil:
 					if v, ok := literal(first, l, src); ok && urlLiteral.MatchString(v) {
 						called[at(first)] = true
 						return
 					}
 					out.calls = append(out.calls, archdoc.Call{Callee: callee, Target: shorten(text(first)), Prov: at(n)})
+				case fn.Type(l) == "member_expression" && fn.NamedChildCount() == 2 && fn.NamedChild(0).Type(l) == "identifier" && first != nil:
+					// Express: app.get("/path", handler), app.use("/prefix", router). Kept as the
+					// module's routes and includes; whether app is an Express application is decided
+					// where the routers are known.
+					owner, verb := text(fn.NamedChild(0)), text(fn.NamedChild(1))
+					v, isPath := literal(first, l, src)
+					last := args.NamedChild(args.NamedChildCount() - 1)
+					switch {
+					case verb == "use":
+						inc := archdoc.Include{Parent: owner, Child: text(last), Prov: at(n)}
+						if isPath && args.NamedChildCount() > 1 {
+							inc.Prefix = v
+						}
+						if last.Type(l) == "identifier" {
+							out.incs = append(out.incs, inc)
+						}
+					case expressVerbs[verb] && isPath && strings.HasPrefix(v, "/"):
+						name := "handler"
+						if last.Type(l) == "identifier" || last.Type(l) == "member_expression" {
+							name = text(last)
+						}
+						module.Methods = append(module.Methods, archdoc.Method{Name: name, Prov: at(n),
+							Decorators: []archdoc.Decorator{{Name: owner + "." + verb, Arg: v, HasArg: true, Prov: at(n)}}})
+					}
+				}
+			case "jsx_self_closing_element", "jsx_opening_element":
+				// React Router: <Route path="/albums" element={…} /> is a page.
+				if n.NamedChildCount() == 0 || text(n.NamedChild(0)) != "Route" {
+					return
+				}
+				for i := 1; i < n.NamedChildCount(); i++ {
+					a := n.NamedChild(i)
+					if a.Type(l) == "jsx_attribute" && a.NamedChildCount() == 2 && text(a.NamedChild(0)) == "path" {
+						if v, ok := literal(a.NamedChild(1), l, src); ok {
+							out.pages = append(out.pages, archdoc.Literal{Value: v, Prov: at(a)})
+						}
+					}
 				}
 			case "string", "template_string":
 				if v, ok := urlPrefix(n, l, src); ok {
@@ -159,6 +208,15 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 			case "pair", "variable_declarator":
 				if n.NamedChildCount() < 2 {
 					return
+				}
+				// const app = express(), const router = express.Router(): an Express application or router.
+				if v := n.NamedChild(n.NamedChildCount() - 1); n.Type(l) == "variable_declarator" && v.Type(l) == "call_expression" && v.ChildCount() > 0 {
+					switch text(v.Child(0)) {
+					case "express":
+						out.routers = append(out.routers, archdoc.Router{Var: text(n.NamedChild(0)), Kind: "express", Prov: at(n)})
+					case "express.Router", "Router":
+						out.routers = append(out.routers, archdoc.Router{Var: text(n.NamedChild(0)), Kind: "Router", Prov: at(n)})
+					}
 				}
 				// const mapAsset = (…) => { … } at the top of a module is a function of the module.
 				if decl := n.Parent(); n.Type(l) == "variable_declarator" && decl != nil && topLevel(decl, l) {

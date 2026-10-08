@@ -447,3 +447,41 @@ func TestFastAPIFacts(t *testing.T) {
 		t.Errorf("includes %+v", main.Includes)
 	}
 }
+
+// Express routers, routes and includes; React Router's pages, as JSX and as route objects.
+func TestExpressAndReactRouterFacts(t *testing.T) {
+	root := tree(t, map[string]string{
+		"srv/src/index.js": "const app = express();\nconst router = express.Router();\nrouter.get('/users/:id', getUser);\napp.use('/api', router);\nconst r = await axios.get(url);\n",
+		"web/src/App.tsx":  "export const App = () => <Routes><Route path=\"/albums\" element={<Albums />} /></Routes>;\nconst router = createBrowserRouter([{ path: '/people', element: <People /> }]);\n",
+	})
+	srv, _ := Read(root, archdoc.App{Dir: "srv", Language: "JavaScript"}, nil)
+	f := srv.Files[0]
+	if len(f.Routers) != 2 || f.Routers[0].Kind != "express" || f.Routers[1].Var != "router" {
+		t.Errorf("routers %+v", f.Routers)
+	}
+	if len(f.Includes) != 1 || f.Includes[0].Parent != "app" || f.Includes[0].Child != "router" || f.Includes[0].Prefix != "/api" {
+		t.Errorf("includes %+v", f.Includes)
+	}
+	var route archdoc.Method
+	for _, c := range f.Classes {
+		for _, m := range c.Methods {
+			if len(m.Decorators) > 0 {
+				route = m
+			}
+		}
+	}
+	if route.Name != "getUser" || route.Decorators[0].Name != "router.get" || route.Decorators[0].Arg != "/users/:id" {
+		t.Errorf("route %+v", route)
+	}
+	if len(f.Calls) != 1 || f.Calls[0].Callee != "axios.get" {
+		t.Errorf("an HTTP client call was read as a route: %+v", f.Calls)
+	}
+	web, _ := Read(root, archdoc.App{Dir: "web", Language: "TypeScript"}, nil)
+	var pages []string
+	for _, p := range web.Files[0].Pages {
+		pages = append(pages, p.Value)
+	}
+	if len(pages) != 2 || pages[0] != "/albums" || pages[1] != "/people" {
+		t.Errorf("pages %v", pages)
+	}
+}
