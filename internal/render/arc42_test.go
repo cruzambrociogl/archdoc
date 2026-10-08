@@ -217,3 +217,18 @@ func TestRuntimeViewDrawsFlowsFromTheCode(t *testing.T) {
 		t.Error("the runtime view still says it cannot be filled")
 	}
 }
+
+// A component is inside a container, not infrastructure left out of the view beside it.
+func TestPartsAreNotListedAsNotShown(t *testing.T) {
+	m := fixture()
+	parent := m.Container().Nodes[0].ID
+	m.Nodes = append(m.Nodes, archdoc.Node{ID: "cmp:x/services", Name: "services-part", Kind: archdoc.Component, Parent: parent,
+		Evidence: archdoc.Declared, Prov: archdoc.Provenance{File: "a.ts", Line: 1}})
+	out := Arc42(m, fixtureFacts(), Sections(), meta())["05-building-block-view.generated.md"]
+	if i := strings.Index(out, "### Not shown"); i >= 0 && strings.Contains(out[i:], "services-part") {
+		t.Error("a component was listed as infrastructure not shown")
+	}
+	if !strings.Contains(out, "### Inside the containers") {
+		t.Error("the building block view does not point at the component pages")
+	}
+}

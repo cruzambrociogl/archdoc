@@ -162,7 +162,8 @@ func excluded(full, view archdoc.Model) string {
 
 	var missing []archdoc.Node
 	for _, n := range full.Nodes {
-		if !shown[n.ID] {
+		// A component or a table is inside a container, not left out of the view beside it.
+		if !shown[n.ID] && !n.Kind.Part() {
 			missing = append(missing, n)
 		}
 	}
@@ -206,6 +207,8 @@ func typeName(k archdoc.Kind) string {
 		return "Infrastructure"
 	case archdoc.Component:
 		return "Component"
+	case archdoc.Table:
+		return "Table"
 	default:
 		return "Container"
 	}

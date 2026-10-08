@@ -164,6 +164,11 @@ func buildingBlockSection(m archdoc.Model, meta Meta) string {
 	b.WriteString(relationshipTable(view))
 	b.WriteString(networkTable(m, view))
 	b.WriteString(excluded(m, view))
+	if n := len(m.Components()); n > 0 {
+		fmt.Fprintf(&b, "\n### Inside the containers\n\nThe code of %d of these was read. [Components](%s) has a page for each of their parts —\n", n, ComponentsFile)
+		b.WriteString("what it is made of, what it uses, the routes it handles and the tables it declares —\n")
+		b.WriteString("and the index draws each container's component and data views.\n")
+	}
 
 	return b.String()
 }

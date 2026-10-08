@@ -185,7 +185,7 @@ func excludedNames(full, view archdoc.Model) []string {
 
 	var out []string
 	for _, n := range full.Nodes {
-		if !shown[n.ID] {
+		if !shown[n.ID] && !n.Kind.Part() {
 			out = append(out, n.Name)
 		}
 	}

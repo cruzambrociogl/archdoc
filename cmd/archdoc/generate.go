@@ -276,15 +276,8 @@ func generate(args []string, out io.Writer) error {
 	if err := write(facts.Root, modelOut, encode(m)); err != nil {
 		return err
 	}
-	if len(remembered) > 0 || len(memory) > 0 {
-		b, err := json.MarshalIndent(remembered, "", "  ")
-		if err != nil {
-			return err
-		}
-		if err := write(facts.Root, memoryOut, string(b)+"\n"); err != nil {
-			return err
-		}
-	}
+	// The memory is rewritten only by --explain, above: a run that asks nothing never discards an
+	// answer that was paid for, even one its facts have moved on from.
 	fmt.Fprintf(out, "wrote %s\n", modelOut)
 
 	// The coverage report as data, beside the model: what the app and the published site show,
