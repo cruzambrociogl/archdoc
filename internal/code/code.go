@@ -78,6 +78,7 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		}
 		return nil
 	})
+	src.Schemas = prismaSchemas(repo, app.Dir)
 	if len(paths) == 0 {
 		return src, false
 	}

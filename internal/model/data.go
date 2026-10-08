@@ -46,7 +46,8 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 
 		classes := map[string]archdoc.Class{} // every class, by name — for a Python table's bases
 		var found []tableClass
-		for _, f := range src.Files {
+		all := append(append([]archdoc.SourceFile(nil), src.Files...), src.Schemas...)
+		for _, f := range all {
 			for _, c := range f.Classes {
 				if c.Name != "" {
 					if _, seen := classes[c.Name]; !seen {
@@ -55,7 +56,7 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 				}
 			}
 		}
-		for _, f := range src.Files {
+		for _, f := range all {
 			for _, c := range f.Classes {
 				if name, ok := tableName(c, f.Language); ok {
 					found = append(found, tableClass{class: c, file: f.Path, name: name})
@@ -223,6 +224,9 @@ func pyColumns(c archdoc.Class, classes map[string]archdoc.Class, byName map[str
 			continue // the other side of a foreign key, not a column
 		}
 		col := archdoc.Column{Name: f.Name, Type: f.Type, Prov: f.Prov}
+		if col.Type == "" {
+			col.Type = call.Target // SQLAlchemy's classic style: id = Column(Integer, …)
+		}
 		col.Primary = call.Options["primary_key"] == "True"
 		col.Nullable = call.Options["nullable"] == "True" || strings.Contains(f.Type, "None") || strings.HasPrefix(f.Type, "Optional")
 		if fk := call.Options["foreign_key"]; fk != "" {

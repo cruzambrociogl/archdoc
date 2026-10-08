@@ -249,6 +249,15 @@ func pyCall(e *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Pr
 				out.Target = a.Text(src)
 			}
 		}
+		// SQLAlchemy: Column(Integer, ForeignKey("users.id")) — the key is a call among the arguments.
+		if a.Type(l) == "call" && a.ChildCount() > 1 && strings.HasSuffix(a.Child(0).Text(src), "ForeignKey") && a.Child(1).NamedChildCount() > 0 {
+			if v, ok := pyString(a.Child(1).NamedChild(0), l, src); ok {
+				if out.Options == nil {
+					out.Options = map[string]string{}
+				}
+				out.Options["foreign_key"] = v
+			}
+		}
 	}
 	return out
 }

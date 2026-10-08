@@ -223,6 +223,9 @@ type Source struct {
 	// Files are in path order; tests, type declarations and other applications nested inside are
 	// not read.
 	Files []SourceFile `json:"files"`
+	// Schemas are schema files read beside the code — a Prisma schema — whose models are tables.
+	// They are not part of any component.
+	Schemas []SourceFile `json:"schemas,omitempty"`
 }
 
 // SourceFile is one file and what it imports.

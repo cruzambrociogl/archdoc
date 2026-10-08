@@ -485,3 +485,56 @@ func TestExpressAndReactRouterFacts(t *testing.T) {
 		t.Errorf("pages %v", pages)
 	}
 }
+
+// A Prisma schema's models are table classes: scalar fields are columns, a relation's fields carry
+// the foreign key, @@map renames the table.
+func TestPrismaSchema(t *testing.T) {
+	root := tree(t, map[string]string{
+		"api/src/index.ts":         "export {};\n",
+		"api/prisma/schema.prisma": "model User {\n  id    Int    @id\n  posts Post[]\n}\n\nmodel Post {\n  id       Int     @id @default(autoincrement())\n  title    String? // optional\n  authorId Int\n  author   User    @relation(fields: [authorId], references: [id])\n  @@map(\"posts\")\n}\n",
+	})
+	src, _ := Read(root, archdoc.App{Dir: "api", Language: "TypeScript"}, nil)
+	if len(src.Schemas) != 1 || len(src.Schemas[0].Classes) != 2 {
+		t.Fatalf("schemas %+v", src.Schemas)
+	}
+	post := src.Schemas[0].Classes[1]
+	if post.Name != "Post" || post.Decorators[0].Arg != "posts" || len(post.Fields) != 3 || post.Prov.Line != 6 {
+		t.Fatalf("post %+v", post)
+	}
+	if f := post.Fields[0]; f.Name != "id" || f.Decorators[0].Options["primary"] != "true" {
+		t.Errorf("id %+v", f)
+	}
+	if f := post.Fields[1]; f.Decorators[0].Options["nullable"] != "true" || f.Decorators[0].Options["type"] != "String" {
+		t.Errorf("title %+v", f)
+	}
+	if f := post.Fields[2]; f.Name != "authorId" || f.Decorators[0].Target != "User" || f.Prov.Line != 9 {
+		t.Errorf("authorId %+v", f)
+	}
+}
+
+// SQLAlchemy's classic style: the type and the foreign key are arguments of Column.
+func TestSQLAlchemyColumns(t *testing.T) {
+	root := tree(t, map[string]string{
+		"api/app/__init__.py": "",
+		"api/app/models.py":   "class Item(Base):\n    __tablename__ = \"items\"\n    id = Column(Integer, primary_key=True)\n    owner_id = Column(Integer, ForeignKey(\"users.id\"), nullable=True)\n",
+	})
+	src, _ := Read(root, archdoc.App{Dir: "api", Name: "app", Language: "Python"}, nil)
+	var item archdoc.Class
+	for _, f := range src.Files {
+		for _, c := range f.Classes {
+			if c.Name == "Item" {
+				item = c
+			}
+		}
+	}
+	fields := map[string]archdoc.Field{}
+	for _, f := range item.Fields {
+		fields[f.Name] = f
+	}
+	if d := fields["owner_id"].Decorators; len(d) != 1 || d[0].Options["foreign_key"] != "users.id" || d[0].Target != "Integer" {
+		t.Errorf("owner_id %+v", fields["owner_id"])
+	}
+	if d := fields["id"].Decorators; len(d) != 1 || d[0].Options["primary_key"] != "True" {
+		t.Errorf("id %+v", fields["id"])
+	}
+}

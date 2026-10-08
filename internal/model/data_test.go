@@ -107,3 +107,23 @@ func TestSQLModelTables(t *testing.T) {
 		t.Error("a model that is not a table became one")
 	}
 }
+
+// A Prisma schema's models, read beside the code, are tables like any other.
+func TestPrismaTables(t *testing.T) {
+	f := "api/prisma/schema.prisma"
+	fs := tableFacts("TypeScript", map[string][]archdoc.Class{"api/src/a/index.ts": nil})
+	col := func(name string, line int, opts map[string]string, target string) archdoc.Field {
+		return archdoc.Field{Name: name, Type: opts["type"], Prov: cite(f, line), Decorators: []archdoc.Decorator{{Name: "Column", Options: opts, Target: target}}}
+	}
+	fs.Sources[0].Schemas = []archdoc.SourceFile{{Path: f, Language: "Prisma", Classes: []archdoc.Class{
+		{Name: "User", Prov: cite(f, 1), Decorators: []archdoc.Decorator{{Name: "Table"}}, Fields: []archdoc.Field{col("id", 2, map[string]string{"type": "Int", "primary": "true"}, "")}},
+		{Name: "Post", Prov: cite(f, 6), Decorators: []archdoc.Decorator{{Name: "Table", Arg: "posts", HasArg: true}}, Fields: []archdoc.Field{col("authorId", 9, map[string]string{"type": "Int"}, "User")}},
+	}}}
+	m := Derive(fs)
+	if c := columns(t, m, "tbl:api/posts")["authorId"]; c.References != "tbl:api/User" || c.Type != "Int" {
+		t.Errorf("authorId %+v", c)
+	}
+	if c := columns(t, m, "tbl:api/User")["id"]; !c.Primary {
+		t.Errorf("id %+v", c)
+	}
+}
