@@ -212,3 +212,38 @@ func TestNextAndReactRouterPages(t *testing.T) {
 		t.Errorf("%d entries, want 5 (_app is not a page): %v", len(ids), ids)
 	}
 }
+
+// The other ways in: a command a class or a builder declares, a job on a queue named by an enum.
+func TestCommandsAndJobs(t *testing.T) {
+	cmd, svc, cli := "srv/src/commands/reset.ts", "srv/src/services/asset.service.ts", "srv/src/cli.ts"
+	fs := &archdoc.FactSet{Name: "x",
+		Apps: []archdoc.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: archdoc.RoleService, Prov: cite("srv/package.json", 1)}},
+		Sources: []archdoc.Source{{App: "srv", Root: "srv/src", Files: []archdoc.SourceFile{
+			{Path: cmd, Language: "TypeScript", Lines: 9, Classes: []archdoc.Class{{Name: "ResetCommand", Prov: cite(cmd, 5),
+				Decorators: []archdoc.Decorator{{Name: "Command", Options: map[string]string{"name": "reset-password", "description": "Reset the admin password"}, Prov: cite(cmd, 4)}}}}},
+			{Path: svc, Language: "TypeScript", Lines: 9,
+				Constants: []archdoc.Constant{{Name: "JobName.AssetDelete", Value: "AssetDelete", Prov: cite(svc, 1)}},
+				Classes: []archdoc.Class{{Name: "AssetService", Methods: []archdoc.Method{{Name: "handleDelete", Prov: cite(svc, 6), EndLine: 8,
+					Decorators: []archdoc.Decorator{{Name: "OnJob", Exprs: map[string]string{"name": "JobName.AssetDelete"}, Prov: cite(svc, 5)}},
+					Queries:    []archdoc.Query{{Table: "asset", Op: "deletes", Prov: cite(svc, 7)}}}}}}},
+			{Path: cli, Language: "TypeScript", Lines: 9, Commands: []archdoc.Command{{Name: "upload", Summary: "Upload assets", Prov: cite(cli, 3)}}},
+		}}},
+	}
+	m := Derive(fs)
+	got := map[string]archdoc.Entry{}
+	for _, e := range m.Entries {
+		got[e.ID] = e
+	}
+	if e := got["command:srv reset-password"]; e.Summary != "Reset the admin password" || e.Group() != "Commands" {
+		t.Errorf("class command %+v", e)
+	}
+	if e := got["command:srv upload"]; e.Summary != "Upload assets" {
+		t.Errorf("builder command %+v", e)
+	}
+	if e := got["job:srv AssetDelete"]; e.Handler != "AssetService.handleDelete" || !strings.Contains(e.PathNote, "resolved by name") {
+		t.Errorf("job %+v", e)
+	}
+	if len(m.Flows) != 1 || m.Flows[0].Entry != "job:srv AssetDelete" || m.Flows[0].Steps[0].To != "table:asset" {
+		t.Errorf("a job's flow: %+v", m.Flows)
+	}
+}

@@ -347,13 +347,12 @@ func generate(args []string, out io.Writer) error {
 		fmt.Fprintf(out, "%d tables in %s, %d %s between them, from the code\n", n, containers(len(m.Datas())), references, keys)
 	}
 	if len(m.Entries) > 0 || len(m.Unresolved) > 0 {
-		pages := 0
+		kinds := map[string]int{}
 		for _, e := range m.Entries {
-			if e.Kind == "page" {
-				pages++
-			}
+			kinds[e.Kind]++
 		}
-		fmt.Fprintf(out, "%d routes, %d pages, and %d calls whose target is computed at run time\n", len(m.Entries)-pages, pages, len(m.Unresolved))
+		fmt.Fprintf(out, "%d routes, %d pages, %d commands, %d jobs, and %d calls whose target is computed at run time\n",
+			kinds["http"], kinds["page"], kinds["command"], kinds["job"], len(m.Unresolved))
 	}
 
 	if created > 0 {

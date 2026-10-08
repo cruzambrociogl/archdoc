@@ -201,6 +201,8 @@ export interface CoverageResponse {
   /** How many routes and pages the code declares. */
   routes?: number
   pages?: number
+  commands?: number
+  jobs?: number
   tables?: number
   tables_in?: string[]
   dependencies?: number

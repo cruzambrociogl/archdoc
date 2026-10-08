@@ -251,6 +251,9 @@ type SourceFile struct {
 	Includes []Include `json:"includes,omitempty"`
 	// Exports are the names a module exports — a SvelteKit +server.ts's GET and POST.
 	Exports []Literal `json:"exports,omitempty"`
+	// Commands are the command-line commands a file declares with a builder: commander's
+	// program.command('upload').description('…').
+	Commands []Command `json:"commands,omitempty"`
 	// Pages are the paths a file declares a page at by a call: TanStack Router's
 	// createFileRoute("/_layout/items").
 	Pages []Literal `json:"pages,omitempty"`
@@ -328,6 +331,15 @@ type Include struct {
 	Prov       Provenance `json:"provenance"`
 }
 
+// Command is a command-line command declared by a call: its name, and the description the same
+// chain of calls gives it.
+type Command struct {
+	Name        string     `json:"name"`
+	Summary     string     `json:"summary,omitempty"`
+	SummaryProv Provenance `json:"summary_provenance,omitempty"`
+	Prov        Provenance `json:"provenance"`
+}
+
 // Param is a constructor parameter: its name and its type.
 type Param struct {
 	Name string     `json:"name"`
@@ -379,7 +391,9 @@ type Decorator struct {
 	Target string `json:"target,omitempty"`
 	// Options are the literal values of its options object or keyword arguments, as written:
 	// { nullable: true, type: 'text' }, foreign_key="user.id".
-	Options     map[string]string `json:"options,omitempty"`
+	Options map[string]string `json:"options,omitempty"`
+	// Exprs are the options whose value is not a literal, as written: { name: JobName.AssetDelete }.
+	Exprs       map[string]string `json:"exprs,omitempty"`
 	Summary     string            `json:"summary,omitempty"`
 	SummaryProv Provenance        `json:"summary_provenance,omitempty"`
 	Prov        Provenance        `json:"provenance"`

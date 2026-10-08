@@ -40,7 +40,7 @@ func Features(m archdoc.Model, meta Meta) string {
 	var b strings.Builder
 	b.WriteString("# Features\n\n")
 	b.WriteString(meta.stamp())
-	fmt.Fprintf(&b, "What the system does, read from its code: %d routes and pages, %d described by the code itself — a\n", len(m.Entries), described)
+	fmt.Fprintf(&b, "What the system does, read from its code: %d routes, pages, commands and jobs, %d described by the code itself — a\n", len(m.Entries), described)
 	b.WriteString("summary its decorators state. A route with none shows only its handler; nothing here is\n")
 	b.WriteString("written by a model.\n")
 	for _, c := range sortedKeys(groups) {

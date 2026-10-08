@@ -44,7 +44,16 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
   const flows = new Map((model.flows ?? []).map((f) => [f.entry, f]))
   const name = (id?: string) => (id ? (nodes.get(id)?.name ?? id) : '')
   const described = entries.filter((e) => e.summary).length
-  const pageCount = entries.filter((e) => e.kind === 'page').length
+  const count = (k: string) => entries.filter((e) => e.kind === k).length
+  const counts = [
+    [count('http'), 'routes'],
+    [count('page'), 'pages'],
+    [count('command'), 'commands'],
+    [count('job'), 'background jobs'],
+  ]
+    .filter(([n]) => n)
+    .map(([n, label]) => `${n} ${label}`)
+    .join(', ')
   const containers = new Set(entries.map((e) => e.container)).size
   const shown = groups.reduce((n, g) => n + g.classes.reduce((k, [, es]) => k + es.length, 0), 0)
   const setFind = (v: string) => props.go({ screen: 'features', q: v || undefined, focus: open }, { replace: true })
@@ -60,7 +69,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
         </p>
       ) : (
         <p className="lede">
-          {entries.length - pageCount} routes{pageCount ? ` and ${pageCount} pages` : ''}, read from the code of{' '}
+          {counts}, read from the code of{' '}
           {containers === 1 ? name(entries[0].container) : `${containers} containers`}. {described} are described by the code itself — a summary its
           decorators state, or a docstring — and the rest show only what handles them: nothing here is written by a model.
         </p>
@@ -213,4 +222,5 @@ function Fact({ k, children }: { k: string; children: React.ReactNode }) {
 const componentName = (id: string) => id.slice(id.indexOf('/') + 1)
 
 /** Mirrors archdoc.Entry.Group in Go: a route by its handling class or module, a page by its first path segment. */
-const groupOf = (e: Entry) => (e.kind === 'page' ? `Pages /${e.path.replace(/^\//, '').split('/')[0]}` : e.handler.split('.')[0])
+const groupOf = (e: Entry) =>
+  e.kind === 'page' ? `Pages /${e.path.replace(/^\//, '').split('/')[0]}` : e.kind === 'command' ? 'Commands' : e.handler.split('.')[0]

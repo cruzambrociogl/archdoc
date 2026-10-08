@@ -59,7 +59,9 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 		}
 		table := func(t string) string { return tableOf[container+"\x00"+t] }
 		for _, e := range m.Entries {
-			if e.Container != container || e.Kind != "http" {
+			// A route, and a job a class handles, are followed; a page or a command has no handler
+			// method to start from.
+			if e.Container != container || (e.Kind != "http" && e.Kind != "job") {
 				continue
 			}
 			var f archdoc.Flow

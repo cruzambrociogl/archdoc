@@ -312,9 +312,12 @@ type Entry struct {
 // Group is how a feature list groups an entry: a route by the class or module that handles it, a
 // page by the first segment of its path.
 func (e Entry) Group() string {
-	if e.Kind == "page" {
+	switch e.Kind {
+	case "page":
 		first, _, _ := strings.Cut(strings.TrimPrefix(e.Path, "/"), "/")
 		return "Pages /" + first
+	case "command":
+		return "Commands"
 	}
 	cls, _, _ := strings.Cut(e.Handler, ".")
 	return cls

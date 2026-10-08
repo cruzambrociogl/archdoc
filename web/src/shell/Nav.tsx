@@ -38,8 +38,8 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
         ] as Item[])
       : []),
     // Earned: present once the code declared a route.
-    ...(props.coverage?.routes || props.coverage?.pages
-      ? ([{ label: 'Features', screen: 'features', depth: 1, badge: `${(props.coverage.routes ?? 0) + (props.coverage.pages ?? 0)}` }] as Item[])
+    ...(props.coverage?.routes || props.coverage?.pages || props.coverage?.commands || props.coverage?.jobs
+      ? ([{ label: 'Features', screen: 'features', depth: 1, badge: `${(props.coverage.routes ?? 0) + (props.coverage.pages ?? 0) + (props.coverage.commands ?? 0) + (props.coverage.jobs ?? 0)}` }] as Item[])
       : []),
     ...(props.coverage?.dependencies
       ? ([{ label: 'Dependencies', screen: 'deps', depth: 1, badge: String(props.coverage.dependencies) }] as Item[])

@@ -21,6 +21,7 @@ type facts struct {
 	incs    []archdoc.Include
 	exports []archdoc.Literal
 	pages   []archdoc.Literal
+	cmds    []archdoc.Command
 }
 
 func (f *facts) add(g facts) {
@@ -33,6 +34,7 @@ func (f *facts) add(g facts) {
 	f.incs = append(f.incs, g.incs...)
 	f.exports = append(f.exports, g.exports...)
 	f.pages = append(f.pages, g.pages...)
+	f.cmds = append(f.cmds, g.cmds...)
 	if f.prefix == nil {
 		f.prefix = g.prefix
 	}
@@ -145,6 +147,24 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					if first != nil && first.Type(l) == "string" {
 						out.prefix = &archdoc.Literal{Value: unquote(text(first)), Prov: at(first)}
 					}
+				case fn.Type(l) == "member_expression" && fn.NamedChildCount() == 2 && text(fn.NamedChild(1)) == "command" && first != nil && first.Type(l) == "string":
+					// commander: program.command('upload <paths...>').description('Upload assets').
+					name, _, _ := strings.Cut(unquote(text(first)), " ")
+					cmd := archdoc.Command{Name: name, Prov: at(first)}
+					for p, hops := n, 0; hops < 8; hops++ {
+						member := p.Parent()
+						if member == nil || member.Type(l) != "member_expression" || member.Parent() == nil || member.Parent().Type(l) != "call_expression" {
+							break
+						}
+						p = member.Parent()
+						if text(member.NamedChild(member.NamedChildCount()-1)) == "description" && p.ChildCount() > 1 && p.Child(1).NamedChildCount() > 0 {
+							if v, ok := literal(p.Child(1).NamedChild(0), l, src); ok {
+								cmd.Summary, cmd.SummaryProv = v, at(p.Child(1).NamedChild(0))
+							}
+							break
+						}
+					}
+					out.cmds = append(out.cmds, cmd)
 				case callee == "createBrowserRouter" || callee == "createHashRouter" || callee == "createMemoryRouter":
 					// React Router's route objects: every { path: "/x" } in the call is a page.
 					walk(args, func(p *ts.Node) {
@@ -528,6 +548,12 @@ func decoratorOf(d *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 				}
 			}
 			if !ok {
+				if value.Type(l) == "member_expression" || value.Type(l) == "identifier" {
+					if out.Exprs == nil {
+						out.Exprs = map[string]string{}
+					}
+					out.Exprs[key] = value.Text(src)
+				}
 				continue
 			}
 			if out.Options == nil {

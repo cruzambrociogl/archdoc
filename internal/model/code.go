@@ -38,6 +38,7 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 		m.Entries = append(m.Entries, routes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, fastapiRoutes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, pages(src, container, componentOf)...)
+		m.Entries = append(m.Entries, commandsAndJobs(src, container, componentOf)...)
 
 		for _, f := range src.Files {
 			for _, h := range f.Hosts {
@@ -451,4 +452,86 @@ func tanstackPath(p string) string {
 		segs = append(segs, s)
 	}
 	return "/" + strings.Join(segs, "/")
+}
+
+// commandsAndJobs reads the other ways into an application (F-13): the commands it offers on the
+// command line — nest-commander's @Command classes, commander's program.command(…), Typer's and
+// Click's @app.command() — and the work it does without being asked: @OnJob handlers on a queue,
+// @Cron and @Interval schedules. A job named by an enum member is resolved by name.
+func commandsAndJobs(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
+	_, local, _ := strings.Cut(container, ":")
+	constants := map[string]archdoc.Constant{}
+	for _, f := range src.Files {
+		for _, c := range f.Constants {
+			constants[c.Name] = c
+		}
+	}
+	var out []archdoc.Entry
+	seen := map[string]bool{}
+	add := func(e archdoc.Entry) {
+		e.ID = e.Kind + ":" + local + " " + e.Path
+		if seen[e.ID] {
+			e.ID += " " + e.Handler
+		}
+		if e.Path == "" || seen[e.ID] {
+			return
+		}
+		seen[e.ID] = true
+		e.Container, e.Component = container, componentOf[e.Prov.File]
+		out = append(out, e)
+	}
+	for _, f := range src.Files {
+		rel := strings.TrimPrefix(f.Path, src.Root+"/")
+		for _, c := range f.Commands {
+			add(archdoc.Entry{Kind: "command", Method: "CMD", Path: c.Name, Handler: rel, Summary: c.Summary, SummaryProv: c.SummaryProv, Prov: c.Prov})
+		}
+		for _, c := range f.Classes {
+			for _, d := range c.Decorators {
+				if d.Name == "Command" && d.Options["name"] != "" {
+					e := archdoc.Entry{Kind: "command", Method: "CMD", Path: d.Options["name"], Handler: c.Name + ".run", Prov: d.Prov}
+					if s := d.Options["description"]; s != "" {
+						e.Summary, e.SummaryProv = s, d.Prov
+					}
+					add(e)
+				}
+			}
+			for _, meth := range c.Methods {
+				handler := c.Name + "." + meth.Name
+				if c.Name == "" {
+					handler = rel + " " + meth.Name
+				}
+				for _, d := range meth.Decorators {
+					switch {
+					case d.Name == "OnJob":
+						name, note := d.Options["name"], ""
+						if expr := d.Exprs["name"]; name == "" && expr != "" {
+							if k, ok := constants[expr]; ok {
+								name, note = k.Value, expr+" is \""+k.Value+"\", resolved by name at "+k.Prov.String()
+							} else {
+								name, note = "{"+expr+"}", expr+" could not be resolved"
+							}
+						}
+						add(archdoc.Entry{Kind: "job", Method: "JOB", Path: name, Handler: handler, PathNote: note, Prov: d.Prov})
+					case d.Name == "Cron" || d.Name == "Interval":
+						when := d.Arg
+						if when == "" {
+							when = d.ArgExpr
+						}
+						add(archdoc.Entry{Kind: "job", Method: strings.ToUpper(d.Name), Path: meth.Name, Handler: handler,
+							PathNote: "scheduled: " + when, Prov: d.Prov})
+					case strings.HasSuffix(d.Name, ".command") && strings.HasSuffix(f.Path, ".py"):
+						e := archdoc.Entry{Kind: "command", Method: "CMD", Path: strings.ReplaceAll(meth.Name, "_", "-"), Handler: handler, Prov: d.Prov}
+						if d.Arg != "" {
+							e.Path = d.Arg
+						}
+						if meth.Doc != "" {
+							e.Summary, e.SummaryProv = meth.Doc, meth.DocProv
+						}
+						add(e)
+					}
+				}
+			}
+		}
+	}
+	return out
 }
