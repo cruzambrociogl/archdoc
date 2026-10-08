@@ -365,6 +365,14 @@ func ask(ctx context.Context, complete Completer, model string, facts []Fact, re
 			return nil, false, why, nil
 		}
 		kept, problems := checkClaims(a, byID)
+		// An answer in the agreed shape that says nothing is not an answer: it is asked again, and
+		// reported if it stays empty — never passed over in silence.
+		if len(kept) == 0 && len(problems) == 0 {
+			if attempt == Attempts {
+				return nil, false, "an answer with no sentence in it", nil
+			}
+			problems = []string{"the answer held no sentence: write at least one, citing the facts it rests on"}
+		}
 		if len(problems) == 0 || attempt == Attempts {
 			rep.Refused += len(problems)
 			return kept, true, "", nil

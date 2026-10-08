@@ -198,3 +198,32 @@ func TestTrivialComponentsAreNotAskedAbout(t *testing.T) {
 		}
 	}
 }
+
+// An answer in the agreed shape with nothing in it — seen live, three times in 83 — is asked again,
+// and a component that still gets none is named in the report.
+func TestAnEmptyAnswerIsAskedAgain(t *testing.T) {
+	m := explainModel()
+	ctl := `component "controllers" inside`
+	svc := `component "services" inside`
+	var prompts []string
+	empty := `{"sentences":[{"cites":[],"text":""}]}`
+	good := `{"sentences":[{"text":"It holds the services.","cites":["F1"]}]}`
+	out, _, rep, err := Explain(context.Background(), fake(map[string][]string{ctl: {good}, svc: {empty, good}}, &prompts), "m", m, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Explanations) != 2 || len(rep.Unanswered) != 0 {
+		t.Fatalf("explanations %d, unanswered %v — want the second answer kept", len(out.Explanations), rep.Unanswered)
+	}
+	if !strings.Contains(prompts[len(prompts)-1], "no sentence") {
+		t.Errorf("the second request does not say what was wrong: %q", prompts[len(prompts)-1])
+	}
+
+	_, _, rep, err = Explain(context.Background(), fake(map[string][]string{ctl: {good}, svc: {empty, empty}}, &prompts), "m", m, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Unanswered) != 1 {
+		t.Errorf("unanswered %v, want the component named", rep.Unanswered)
+	}
+}
