@@ -85,7 +85,7 @@ export interface Explanation {
 /** What an entry sets off, followed through the code (F-12). */
 export interface Flow {
   entry: string
-  participants: { id: string; name: string; kind: 'class' | 'table' | 'unresolved'; component?: string; element?: string }[]
+  participants: { id: string; name: string; kind: 'class' | 'module' | 'table' | 'unresolved'; component?: string; element?: string }[]
   steps: { from: string; to: string; call: string; depth: number; note?: string; provenance: Provenance }[]
   cut?: boolean
 }

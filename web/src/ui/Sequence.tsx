@@ -14,6 +14,9 @@ const PAD = 16
 export function Sequence({ flow, onTable }: { flow: Flow; onTable?: (element: string) => void }) {
   const cols = new Map(flow.participants.map((p, i) => [p.id, i]))
   const x = (id: string) => PAD + (cols.get(id) ?? 0) * COL + COL / 2
+  // A step names its participants by ID; a reader wants the class, the module's name, the table.
+  const names = new Map(flow.participants.map((p) => [p.id, p.kind === 'table' ? `table ${p.name}` : p.kind === 'unresolved' ? 'a computed address' : p.name]))
+  const label = (id: string) => names.get(id) ?? id
   const width = PAD * 2 + flow.participants.length * COL
   const height = HEAD + 16 + flow.steps.length * ROW + 12
 
@@ -80,7 +83,7 @@ export function Sequence({ flow, onTable }: { flow: Flow; onTable?: (element: st
           {flow.steps.map((s, i) => (
             <li key={i} style={{ paddingLeft: s.depth * 14 }}>
               <span className="mono small">
-                {s.from} → {s.to === 'unresolved' ? 'a computed address' : s.to.replace(/^table:/, 'table ')} · {s.call}
+                {label(s.from)} → {label(s.to)} · {s.call}
               </span>
               {s.note && (
                 <span className="small">

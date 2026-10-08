@@ -46,9 +46,7 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 	for _, src := range sources {
 		container := containerOf[src.App]
 		classes := map[string]classAt{}
-		calls := map[string][]archdoc.Call{} // file → its HTTP calls, for attributing them to a method
 		for _, f := range src.Files {
-			calls[f.Path] = f.Calls
 			for _, c := range f.Classes {
 				if _, seen := classes[c.Name]; !seen && c.Name != "" {
 					classes[c.Name] = classAt{c, f.Path}
@@ -68,7 +66,7 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 			if strings.HasSuffix(e.Prov.File, ".py") {
 				f = followPython(e, files, componentOf, table)
 			} else {
-				f = follow(e, classes, calls, componentOf, table)
+				f = follow(e, classes, files, componentOf, table)
 			}
 			if len(f.Steps) > 0 {
 				m.Flows = append(m.Flows, f)
@@ -78,21 +76,22 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 	sort.SliceStable(m.Flows, func(i, j int) bool { return m.Flows[i].Entry < m.Flows[j].Entry })
 }
 
-func follow(e archdoc.Entry, classes map[string]classAt, calls map[string][]archdoc.Call, componentOf map[string]string, table func(string) string) archdoc.Flow {
+func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdoc.SourceFile, componentOf map[string]string, table func(string) string) archdoc.Flow {
 	flow := archdoc.Flow{Entry: e.ID}
-	seen := map[string]bool{}
+	known := map[string]archdoc.Participant{} // every participant met, whether or not it stays
 	visited := map[string]bool{}
-	add := func(p archdoc.Participant) {
-		if !seen[p.ID] {
-			seen[p.ID] = true
-			flow.Participants = append(flow.Participants, p)
-		}
-	}
-	class := func(name string) archdoc.Participant {
-		at := classes[name]
-		return archdoc.Participant{ID: name, Name: name, Kind: "class", Component: componentOf[at.file]}
-	}
 	repeated := map[archdoc.Step]bool{}
+	meet := func(p archdoc.Participant) { known[p.ID] = p }
+	class := func(name string) archdoc.Participant {
+		return archdoc.Participant{ID: name, Name: name, Kind: "class", Component: componentOf[classes[name].file]}
+	}
+	module := func(file string) archdoc.Participant {
+		name := path.Base(file)
+		if i := strings.Index(name, "."); i > 0 {
+			name = name[:i]
+		}
+		return archdoc.Participant{ID: file, Name: name, Kind: "module", Component: componentOf[file]}
+	}
 	step := func(s archdoc.Step) bool {
 		// The same call again from the same place in the flow says nothing new; drawn once.
 		key := archdoc.Step{From: s.From, To: s.To, Call: s.Call, Depth: s.Depth}
@@ -146,16 +145,45 @@ func follow(e archdoc.Entry, classes map[string]classAt, calls map[string][]arch
 		}
 		return ""
 	}
+	// function finds a module's own function: in the file, or in a file it imports.
+	own := func(file, name string) (archdoc.Method, bool) {
+		for _, c := range files[file].Classes {
+			if c.Name != "" {
+				continue
+			}
+			for _, m := range c.Methods {
+				if m.Name == name {
+					return m, true
+				}
+			}
+		}
+		return archdoc.Method{}, false
+	}
+	function := func(file, name string) (string, archdoc.Method, bool) {
+		if m, ok := own(file, name); ok {
+			return file, m, true
+		}
+		for _, imp := range files[file].Imports {
+			if imp.Target != "" {
+				if m, ok := own(imp.Target, name); ok {
+					return imp.Target, m, true
+				}
+			}
+		}
+		return "", archdoc.Method{}, false
+	}
 
-	var visit func(self string, at classAt, m archdoc.Method, depth int) bool
-	visit = func(self string, at classAt, m archdoc.Method, depth int) bool {
-		key := at.class.Name + "." + m.Name
+	// visit follows one method or function. self is the participant doing the calling — a class,
+	// or a module's file — cls the class whose fields and methods this.… means, file where the
+	// code is.
+	var visit func(self, cls, file string, m archdoc.Method, depth int) bool
+	visit = func(self, cls, file string, m archdoc.Method, depth int) bool {
+		key := file + "\x00" + cls + "." + m.Name
 		if visited[key] {
 			return true
 		}
 		visited[key] = true
 
-		// What the method does, in the order its lines do it.
 		type act struct {
 			line int
 			do   func() bool
@@ -167,20 +195,50 @@ func follow(e archdoc.Entry, classes map[string]classAt, calls map[string][]arch
 				continue
 			}
 			acts = append(acts, act{inv.Prov.Line, func() bool {
-				target := self
+				if inv.Free {
+					// A plain function: followed, and kept only if it leads somewhere — to a table,
+					// to a call that leaves, to a class. A helper that only shapes data is not a step.
+					target, next, ok := function(file, inv.Method)
+					if !ok || depth+1 >= flowDepth {
+						return true
+					}
+					mark, was := len(flow.Steps), flow.Cut
+					meet(module(target))
+					if !step(archdoc.Step{From: self, To: target, Call: inv.Method, Depth: depth, Prov: inv.Prov}) {
+						return false
+					}
+					if len(flow.Steps) == mark {
+						return true // the same call, already drawn from here
+					}
+					more := visit(target, "", target, next, depth+1)
+					if !leads(flow.Steps[mark+1:], known) {
+						for _, s := range flow.Steps[mark:] {
+							delete(repeated, archdoc.Step{From: s.From, To: s.To, Call: s.Call, Depth: s.Depth})
+						}
+						flow.Steps, flow.Cut = flow.Steps[:mark], was
+						return true
+					}
+					return more
+				}
+				if cls == "" {
+					return true // a function has no object of its own to call through
+				}
+				target := cls
+				to := self
 				if inv.Object != "" {
-					target = typeOf(self, inv.Object, 0)
+					target = typeOf(cls, inv.Object, 0)
+					to = target
 				}
 				found, next, ok := method(target, inv.Method, 0)
 				if !ok {
 					return true // a library's method, or a field whose type is not in this code
 				}
-				add(class(target))
-				if !step(archdoc.Step{From: self, To: target, Call: inv.Method, Depth: depth, Prov: inv.Prov}) {
+				meet(class(target))
+				if !step(archdoc.Step{From: self, To: to, Call: inv.Method, Depth: depth, Prov: inv.Prov}) {
 					return false
 				}
 				if depth+1 < flowDepth {
-					return visit(target, found, next, depth+1)
+					return visit(to, target, found.file, next, depth+1)
 				}
 				flow.Cut = true
 				return true
@@ -190,17 +248,17 @@ func follow(e archdoc.Entry, classes map[string]classAt, calls map[string][]arch
 			q := q
 			acts = append(acts, act{q.Prov.Line, func() bool {
 				p := archdoc.Participant{ID: "table:" + q.Table, Name: q.Table, Kind: "table", Element: table(q.Table)}
-				add(p)
+				meet(p)
 				return step(archdoc.Step{From: self, To: p.ID, Call: q.Op, Depth: depth, Prov: q.Prov})
 			}})
 		}
-		for _, c := range calls[at.file] {
+		for _, c := range files[file].Calls {
 			c := c
 			if c.Prov.Line < m.Prov.Line || c.Prov.Line > m.EndLine {
 				continue
 			}
 			acts = append(acts, act{c.Prov.Line, func() bool {
-				add(archdoc.Participant{ID: "unresolved", Name: "an address computed at run time", Kind: "unresolved"})
+				meet(archdoc.Participant{ID: "unresolved", Name: "an address computed at run time", Kind: "unresolved"})
 				return step(archdoc.Step{From: self, To: "unresolved", Call: c.Callee, Depth: depth,
 					Note: c.Callee + "(" + c.Target + ")", Prov: c.Prov})
 			}})
@@ -219,9 +277,33 @@ func follow(e archdoc.Entry, classes map[string]classAt, calls map[string][]arch
 	if !ok {
 		return flow
 	}
-	add(class(handlerClass))
-	visit(handlerClass, at, m, 0)
+	meet(class(handlerClass))
+	visit(handlerClass, handlerClass, at.file, m, 0)
+
+	// The lifelines are the participants the kept steps name, in the order they first appear.
+	seen := map[string]bool{}
+	add := func(id string) {
+		if p, ok := known[id]; ok && !seen[id] {
+			seen[id] = true
+			flow.Participants = append(flow.Participants, p)
+		}
+	}
+	add(handlerClass)
+	for _, s := range flow.Steps {
+		add(s.From)
+		add(s.To)
+	}
 	return flow
+}
+
+// leads reports whether steps reach beyond helper functions: a table, a call that leaves, a class.
+func leads(steps []archdoc.Step, known map[string]archdoc.Participant) bool {
+	for _, s := range steps {
+		if k := known[s.To].Kind; k == "table" || k == "unresolved" || k == "class" {
+			return true
+		}
+	}
+	return false
 }
 
 func splitHandler(h string) (string, string) {

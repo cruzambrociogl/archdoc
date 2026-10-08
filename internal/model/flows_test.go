@@ -96,3 +96,37 @@ func TestPythonFlows(t *testing.T) {
 		t.Errorf("steps %+v", s)
 	}
 }
+
+// A plain function call is followed into its module when it leads to a table, and left out when
+// it is only a helper.
+func TestFlowsFollowFunctionsThatLeadSomewhere(t *testing.T) {
+	ctl, db, util := "server/src/controllers/album.controller.ts", "server/src/utils/database.ts", "server/src/utils/misc.ts"
+	fs := immichLike()
+	fs.Sources[0].Files = []archdoc.SourceFile{
+		{Path: ctl, Language: "TypeScript", Lines: 20,
+			Imports: []archdoc.Import{{Spec: "src/utils/database", Target: db}, {Spec: "src/utils/misc", Target: util}},
+			Classes: []archdoc.Class{{Name: "AlbumController", Prov: cite(ctl, 4),
+				Decorators: []archdoc.Decorator{{Name: "Controller", Arg: "albums", HasArg: true, Prov: cite(ctl, 3)}},
+				Methods: []archdoc.Method{{Name: "getAll", Prov: cite(ctl, 8), EndLine: 12,
+					Decorators: []archdoc.Decorator{{Name: "Get", Prov: cite(ctl, 7)}},
+					Invokes: []archdoc.Invocation{
+						{Method: "format", Free: true, Prov: cite(ctl, 9)},
+						{Method: "searchBuilder", Free: true, Prov: cite(ctl, 10)},
+						{Method: "fetch", Free: true, Prov: cite(ctl, 11)},
+					}}}}}},
+		{Path: db, Language: "TypeScript", Lines: 9, Classes: []archdoc.Class{{Methods: []archdoc.Method{{Name: "searchBuilder", Prov: cite(db, 2), EndLine: 6,
+			Queries: []archdoc.Query{{Table: "album", Op: "reads", Prov: cite(db, 3)}}}}}}},
+		{Path: util, Language: "TypeScript", Lines: 9, Classes: []archdoc.Class{{Methods: []archdoc.Method{{Name: "format", Prov: cite(util, 2), EndLine: 4}}}}},
+	}
+	m := Derive(fs)
+	if len(m.Flows) != 1 {
+		t.Fatalf("flows %+v", m.Flows)
+	}
+	f := m.Flows[0]
+	if len(f.Steps) != 2 || f.Steps[0].To != db || f.Steps[0].Call != "searchBuilder" || f.Steps[1].To != "table:album" {
+		t.Errorf("steps %+v", f.Steps)
+	}
+	if len(f.Participants) != 3 || f.Participants[1].Kind != "module" || f.Participants[1].Name != "database" {
+		t.Errorf("participants %+v", f.Participants)
+	}
+}

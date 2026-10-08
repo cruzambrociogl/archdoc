@@ -352,9 +352,12 @@ type Method struct {
 // Invocation is a call a method makes on its own object: this.albumRepository.getAll(…) is Object
 // albumRepository and Method getAll; this.requireAccess(…) has no Object.
 type Invocation struct {
-	Object string     `json:"object,omitempty"`
-	Method string     `json:"method"`
-	Prov   Provenance `json:"provenance"`
+	Object string `json:"object,omitempty"`
+	Method string `json:"method"`
+	// Free is set on a plain function call in TypeScript — searchAssetBuilder(…), not this.x.y(…):
+	// the function is the file's own, or one it imports.
+	Free bool       `json:"free,omitempty"`
+	Prov Provenance `json:"provenance"`
 }
 
 // Query is a table a method's query builder names: .selectFrom('album') reads album.

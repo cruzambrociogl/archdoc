@@ -60,6 +60,13 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 	}
 	called := map[archdoc.Provenance]bool{}
 
+	// A module's own functions gather under a class with no name, as a Python module's do.
+	module := archdoc.Class{Prov: archdoc.Provenance{File: file, Line: 1 + offset}}
+	defer func() {
+		if len(module.Methods) > 0 {
+			out.classes = append(out.classes, module)
+		}
+	}()
 	partial = parse(lang, src, func(root *ts.Node, l *ts.Language) {
 		text := func(n *ts.Node) string { return n.Text(src) }
 		walk(root, func(n *ts.Node) {
@@ -85,6 +92,10 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 				}
 			case "class_declaration", "abstract_class_declaration":
 				out.classes = append(out.classes, classOf(n, l, src, at))
+			case "function_declaration", "generator_function_declaration":
+				if topLevel(n, l) && n.NamedChildCount() > 0 {
+					module.Methods = append(module.Methods, functionOf(n.NamedChild(0).Text(src), n, l, src, at))
+				}
 			case "enum_declaration":
 				var name string
 				for i := 0; i < n.ChildCount(); i++ {
@@ -148,6 +159,12 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 			case "pair", "variable_declarator":
 				if n.NamedChildCount() < 2 {
 					return
+				}
+				// const mapAsset = (…) => { … } at the top of a module is a function of the module.
+				if decl := n.Parent(); n.Type(l) == "variable_declarator" && decl != nil && topLevel(decl, l) {
+					if v := n.NamedChild(n.NamedChildCount() - 1); v.Type(l) == "arrow_function" || v.Type(l) == "function_expression" {
+						module.Methods = append(module.Methods, functionOf(n.NamedChild(0).Text(src), n, l, src, at))
+					}
 				}
 				key, value := n.NamedChild(0), n.NamedChild(n.NamedChildCount()-1)
 				if !hostKey.MatchString(unquote(text(key))) {
@@ -282,6 +299,22 @@ func injected(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 	return out
 }
 
+// topLevel reports a declaration at the top of a module, exported or not.
+func topLevel(n *ts.Node, l *ts.Language) bool {
+	p := n.Parent()
+	if p != nil && p.Type(l) == "export_statement" {
+		p = p.Parent()
+	}
+	return p != nil && p.Type(l) == "program"
+}
+
+// functionOf reads a module-level function as a method is read: what it calls, the tables it names.
+func functionOf(name string, n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Method {
+	m := archdoc.Method{Name: name, Prov: at(n), EndLine: at(n).Line + int(n.EndPoint().Row-n.StartPoint().Row)}
+	m.Invokes, m.Queries = body(n, l, src, at)
+	return m
+}
+
 // params lists a constructor's parameters by name and type: (private service: AlbumService).
 func params(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Param {
 	var out []archdoc.Param
@@ -338,6 +371,12 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Prov
 			return
 		}
 		fn := n.Child(0)
+		if fn.Type(l) == "identifier" {
+			// A plain function call: followed only if the name turns out to be a function of this
+			// code, so a library's — fetch, require, a framework helper — costs nothing to record.
+			invokes = append(invokes, archdoc.Invocation{Method: fn.Text(src), Free: true, Prov: at(n)})
+			return
+		}
 		if fn.Type(l) != "member_expression" || fn.NamedChildCount() < 2 {
 			return
 		}
