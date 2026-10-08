@@ -97,7 +97,7 @@ func ClaudeWith(model string, schema map[string]any, rec *Recorder, extra ...opt
 				text += t.Text
 			}
 		}
-		return Reply{Text: text, InputTokens: in, OutputTokens: out}, nil
+		return Reply{Text: text, Stop: string(resp.StopReason), InputTokens: in, OutputTokens: out}, nil
 	}
 }
 

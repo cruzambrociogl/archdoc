@@ -49,6 +49,12 @@ type ExplainReport struct {
 	Asked      int // components the model was asked about
 	Remembered int // components whose remembered answer was reused
 	Refused    int // sentences refused: no citation, or one that does not resolve
+	// Unanswered are components the model gave no usable answer for — an empty reply, or one not
+	// in the agreed shape. Each is left without an explanation; the others keep theirs.
+	Unanswered []string
+	// Stopped is why asking ended early — the API could not be reached, a rate limit — when it
+	// did. What was answered before it is kept and remembered.
+	Stopped string
 }
 
 const (
@@ -202,12 +208,21 @@ func Explain(ctx context.Context, complete Completer, model string, m archdoc.Mo
 		if ok {
 			rep.Remembered++
 		} else if complete != nil {
+			// A request that was paid for is never thrown away: one component's bad answer leaves
+			// that component unexplained, and a failed request stops the asking, not the run.
+			var answered bool
 			var err error
-			claims, err = ask(ctx, complete, model, facts, &rep)
+			var why string
+			claims, answered, why, err = ask(ctx, complete, model, facts, &rep)
 			if err != nil {
-				return m, mem, rep, fmt.Errorf("explaining %s: %w", id, err)
+				rep.Stopped = fmt.Sprintf("at %s: %v", id, err)
+				complete = nil
+			} else {
+				rep.Asked++
+				if !answered {
+					rep.Unanswered = append(rep.Unanswered, id+" ("+why+")")
+				}
 			}
-			rep.Asked++
 		}
 		if len(claims) == 0 {
 			continue
@@ -219,7 +234,8 @@ func Explain(ctx context.Context, complete Completer, model string, m archdoc.Mo
 }
 
 // ask puts one component's facts to the model, and keeps the sentences whose citations resolve.
-func ask(ctx context.Context, complete Completer, model string, facts []Fact, rep *ExplainReport) ([]archdoc.Claim, error) {
+// answered is false when the reply was empty or not in the agreed shape.
+func ask(ctx context.Context, complete Completer, model string, facts []Fact, rep *ExplainReport) (claims []archdoc.Claim, answered bool, why string, err error) {
 	byID := map[string]Fact{}
 	var list strings.Builder
 	for _, f := range facts {
@@ -237,28 +253,35 @@ func ask(ctx context.Context, complete Completer, model string, facts []Fact, re
 		rep.BytesSent += len(explainSystem)
 		reply, err := complete(ctx, explainSystem, turns)
 		if err != nil {
-			return nil, err
+			return nil, false, "", err
 		}
 		rep.InputTokens += reply.InputTokens
 		rep.OutputTokens += reply.OutputTokens
 		if reply.Refused {
-			return nil, nil
+			return nil, false, "the model declined", nil
 		}
 		var a sentences
 		if err := json.Unmarshal([]byte(strings.TrimSpace(reply.Text)), &a); err != nil {
-			return nil, fmt.Errorf("the model's answer was not the agreed shape: %w", err)
+			why := "an answer not in the agreed shape"
+			if strings.TrimSpace(reply.Text) == "" {
+				why = "an empty answer"
+			}
+			if reply.Stop != "" {
+				why += ", stopped by " + reply.Stop
+			}
+			return nil, false, why, nil
 		}
 		kept, problems := checkClaims(a, byID)
 		if len(problems) == 0 || attempt == Attempts {
 			rep.Refused += len(problems)
-			return kept, nil
+			return kept, true, "", nil
 		}
 		turns = append(turns,
 			Turn{Role: "assistant", Text: reply.Text},
 			Turn{Role: "user", Text: "Some sentences were refused. Return a corrected, complete answer.\n\n" + strings.Join(problems, "\n")},
 		)
 	}
-	return kept, nil
+	return kept, true, "", nil
 }
 
 // checkClaims is F-36: a sentence must cite at least one fact, every fact it cites must be one it

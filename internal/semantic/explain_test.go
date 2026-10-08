@@ -132,3 +132,34 @@ func TestExplanationsAreRemembered(t *testing.T) {
 		t.Errorf("an answer about different facts was reused: %+v", after.Explanations)
 	}
 }
+
+// A request that was paid for is never thrown away: an empty answer leaves that one component
+// unexplained, and a failed request stops the asking — the answers before it are kept.
+func TestABadAnswerDoesNotLoseTheOthers(t *testing.T) {
+	calls := 0
+	complete := func(_ context.Context, _ string, turns []Turn) (Reply, error) {
+		calls++
+		if strings.Contains(turns[0].Text, `component "controllers" inside`) {
+			return Reply{Text: `{"sentences":[{"text":"Serves the album routes.","cites":["F4"]}]}`}, nil
+		}
+		return Reply{Text: "", Stop: "max_tokens"}, nil
+	}
+	m, mem, rep, err := Explain(context.Background(), complete, "test-model", explainModel(), nil)
+	if err != nil {
+		t.Fatalf("an empty answer failed the run: %v", err)
+	}
+	if len(m.Explanations) != 1 || len(mem) != 1 || len(rep.Unanswered) != 1 || !strings.Contains(rep.Unanswered[0], "max_tokens") {
+		t.Errorf("explanations %d, remembered %d, unanswered %v", len(m.Explanations), len(mem), rep.Unanswered)
+	}
+
+	failing := func(_ context.Context, _ string, turns []Turn) (Reply, error) {
+		if strings.Contains(turns[0].Text, `component "controllers" inside`) {
+			return Reply{Text: `{"sentences":[{"text":"Serves the album routes.","cites":["F4"]}]}`}, nil
+		}
+		return Reply{}, context.DeadlineExceeded
+	}
+	m, mem, rep, err = Explain(context.Background(), failing, "test-model", explainModel(), nil)
+	if err != nil || rep.Stopped == "" || len(m.Explanations) != 1 || len(mem) != 1 {
+		t.Errorf("err %v, stopped %q, explanations %d, remembered %d", err, rep.Stopped, len(m.Explanations), len(mem))
+	}
+}

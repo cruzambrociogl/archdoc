@@ -44,6 +44,8 @@ type Turn struct {
 type Reply struct {
 	Text    string
 	Refused bool // the model's safety classifiers declined; Text is not an answer
+	// Stop is why the model stopped, as the API reports it: "end_turn", "max_tokens".
+	Stop string
 
 	InputTokens  int64
 	OutputTokens int64

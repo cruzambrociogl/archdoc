@@ -129,11 +129,25 @@ func generate(args []string, out io.Writer) error {
 	}
 	started := time.Now()
 	explained, remembered, xrep, err := semantic.Explain(context.Background(), asker, semantic.Model, m, memory)
+	if *explain && len(remembered) > 0 {
+		// Kept the moment they are paid for, not at the end of a run something later could stop.
+		if b, merr := json.MarshalIndent(remembered, "", "  "); merr == nil {
+			if werr := write(facts.Root, memoryOut, string(b)+"\n"); werr != nil {
+				return werr
+			}
+		}
+	}
 	if *explain {
 		runID := logRun(facts.Root, rec, xrep.Report, started, err, out)
 		if err == nil {
 			fmt.Fprintf(out, "explained by %s: %d component(s) asked, %d remembered, %d sentence(s) refused for want of a citation\n",
 				xrep.Model, xrep.Asked, xrep.Remembered, xrep.Refused)
+			if len(xrep.Unanswered) > 0 {
+				fmt.Fprintf(out, "no usable answer for %d, left unexplained: %s\n", len(xrep.Unanswered), strings.Join(xrep.Unanswered, ", "))
+			}
+			if xrep.Stopped != "" {
+				fmt.Fprintf(out, "asking stopped %s — what was answered before is kept; run --explain again for the rest\n", xrep.Stopped)
+			}
 			if c, ok := semantic.Cost(xrep.Model, xrep.InputTokens, xrep.OutputTokens); ok {
 				fmt.Fprintf(out, "sent %d request(s), %d bytes, names only · $%.4f\n", len(rec.Exchanges()), rec.Bytes(), c)
 			}
