@@ -810,3 +810,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Calls leaving a box for an address computed at run time: the unresolved form — dotted ochre,
+   a question mark — as a count on the box, never a target that was not found. */
+.el-unresolved {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  padding: 0 4px;
+  border: 1px dotted var(--unres);
+  background: var(--unres-fill);
+  color: var(--unres-ink);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 14px;
+  pointer-events: none;
+}

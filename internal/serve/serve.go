@@ -290,6 +290,8 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 		"data": opens(v.Model, archdoc.Table, v.Model.Datas()),
 		// How many containers the system box opens onto, in the context view.
 		"containers": containers(v.Model),
+		// What the code does that could not be tied to an element, for the boxes it leaves from.
+		"unresolved": unresolvedOrEmpty(v.Model),
 		"arrangement": map[string]any{"file": arrange.Dir + "/" + arrange.LayoutFile, "hash": hash,
 			"placed": rep.Placed, "new": rep.New, "stale": rep.Stale},
 	})
@@ -387,6 +389,13 @@ func containers(m archdoc.Model) int {
 		}
 	}
 	return n
+}
+
+func unresolvedOrEmpty(m archdoc.Model) []archdoc.Unresolved {
+	if m.Unresolved == nil {
+		return []archdoc.Unresolved{}
+	}
+	return m.Unresolved
 }
 
 func orEmpty(s []string) []string {

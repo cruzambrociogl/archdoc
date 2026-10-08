@@ -17,6 +17,8 @@ export interface ElementData extends Record<string, unknown> {
   delta?: Mark
   /** A container whose code was read: how many components it opens onto. */
   opens?: number
+  /** Calls leaving this box for an address computed at run time: shown as a count, never as a target. */
+  unresolved?: number
 }
 
 export interface BoundaryData extends Record<string, unknown> {
@@ -125,6 +127,8 @@ export function toFlow(
   const edges = sc.model.edges ?? []
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const q = opts.find.trim().toLowerCase()
+  const loose = new Map<string, number>()
+  for (const u of sc.unresolved ?? []) for (const id of [u.container, u.component]) if (id) loose.set(id, (loose.get(id) ?? 0) + 1)
 
   // What stays lit when focusing: the selection and its direct neighbours.
   // A component view is dense — every import between two directories is an arrow — so selecting a
@@ -170,7 +174,7 @@ export function toFlow(
       position: { x: b.rect.x, y: b.rect.y },
       width: b.rect.w,
       height: b.rect.h,
-      data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id), opens: opts.opens?.get(n.id) } satisfies ElementData,
+      data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id), opens: opts.opens?.get(n.id), unresolved: loose.get(n.id) } satisfies ElementData,
       selected: opts.selected === n.id,
       draggable: opts.editable,
     })

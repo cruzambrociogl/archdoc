@@ -321,6 +321,7 @@ function Arranged(props: {
           opens={opens}
           onOpen={props.open}
           holds={holds}
+          unresolved={scene.unresolved ?? []}
           onOpenData={(id) => props.go({ screen: 'explorer', level: dataLevel(id), from: props.route.from })}
           changes={props.selected && props.delta ? { from: props.delta.from, mark: props.delta.nodes.get(props.selected) ?? props.delta.edges.get(props.selected), list: props.delta.changes.get(props.selected) ?? [] } : undefined}
         />

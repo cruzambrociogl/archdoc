@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -242,5 +243,21 @@ func TestAnUpgradeDoesNotMintAVersion(t *testing.T) {
 	}
 	if _, changed, err := s.Save(model("example"), nil, "abc123", "test"); err != nil || changed {
 		t.Errorf("an upgrade recorded a version (err=%v)", err)
+	}
+}
+
+// A model fingerprints the same fresh and after being stored: an empty list of networks and no
+// list are one architecture.
+func TestFingerprintSurvivesStorage(t *testing.T) {
+	m := archdoc.Model{Name: "x", Nodes: []archdoc.Node{{ID: "svc:a", Name: "a", Kind: archdoc.Application, Networks: []string{}}}}
+	b, _ := json.Marshal(m)
+	var back archdoc.Model
+	if err := json.Unmarshal(b, &back); err != nil {
+		t.Fatal(err)
+	}
+	fresh, _ := Fingerprint(m)
+	stored, _ := Fingerprint(back)
+	if fresh != stored {
+		t.Error("a stored model fingerprints differently from the one that was stored")
 	}
 }

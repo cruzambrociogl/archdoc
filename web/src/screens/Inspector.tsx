@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Change, Edge, Entry, Explanation, Model, Node, Provenance } from '../api'
+import type { Change, Edge, Entry, Explanation, Model, Node, Provenance, Unresolved } from '../api'
 import { Cite } from '../ui/Cite'
 import { KindTile } from '../ui/KindTile'
 import { kindStyle } from '../ui/kinds'
@@ -21,7 +21,10 @@ export function Inspector({
   onOpen,
   holds,
   onOpenData,
+  unresolved,
 }: {
+  /** Calls to computed addresses, for the box they leave from. */
+  unresolved?: Unresolved[]
   model: Model
   id: string | null
   onSelect: (id: string) => void
@@ -52,6 +55,7 @@ export function Inspector({
           node={node}
           nodes={nodes}
           edges={edges}
+          unresolved={(unresolved ?? []).filter((u) => u.container === node.id || u.component === node.id)}
           explanation={(model.explanations ?? []).find((x) => x.element === node.id)}
           entries={(model.entries ?? []).filter((e) => e.component === node.id)}
           onSelect={onSelect}
@@ -124,6 +128,7 @@ function Passport({
   edges,
   explanation,
   entries,
+  unresolved,
   onSelect,
   container,
   opens,
@@ -136,6 +141,7 @@ function Passport({
   edges: Edge[]
   explanation?: Explanation
   entries: Entry[]
+  unresolved: Unresolved[]
   onSelect: (id: string) => void
   /** The view's name: in a component view, the container every component is inside. */
   container: string
@@ -305,6 +311,25 @@ function Passport({
               </div>
               <div className="fact-cite">
                 <Cite p={c.provenance} compact />
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {unresolved.length > 0 && (
+        <section className="inspector-section">
+          <Eyebrow>
+            {unresolved.length} {unresolved.length === 1 ? 'call' : 'calls'} to a computed address
+          </Eyebrow>
+          <p className="small muted">The code makes these calls; nothing in it names where they go. No arrow is drawn for them.</p>
+          {unresolved.map((u, i) => (
+            <div key={i} className="claim">
+              <span className="small">
+                <TruthMark state="unresolved" /> <span className="mono">{u.what}</span>
+              </span>
+              <div className="relation-cites">
+                <Cite p={u.provenance} compact />
               </div>
             </div>
           ))}

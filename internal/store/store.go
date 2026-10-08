@@ -186,7 +186,14 @@ func Fingerprint(m archdoc.Model) (string, error) {
 		}
 	}
 	for _, n := range m.Nodes {
-		arch.Nodes = append(arch.Nodes, node{n.ID, n.Name, string(n.Kind), n.Description, n.Technology, string(n.Evidence), n.Parent, n.Dir, n.Networks})
+		// An empty list and no list are the same architecture. They are not the same JSON, and a
+		// stored model comes back with the second where a fresh one has the first — which made
+		// every run of a repository with a service on no network a new version.
+		networks := n.Networks
+		if len(networks) == 0 {
+			networks = nil
+		}
+		arch.Nodes = append(arch.Nodes, node{n.ID, n.Name, string(n.Kind), n.Description, n.Technology, string(n.Evidence), n.Parent, n.Dir, networks})
 	}
 	for _, e := range m.Edges {
 		arch.Edges = append(arch.Edges, edge{e.From, e.To, e.Label, e.Technology, e.Traffic})
