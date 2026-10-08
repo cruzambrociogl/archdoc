@@ -116,9 +116,9 @@ func TestTokensAreReportedFromTheResponse(t *testing.T) {
 	if !known {
 		t.Fatal("the default model's price is unknown")
 	}
-	// 1200 × $4/M + 300 × $20/M = $0.0108
-	if cost < 0.0107 || cost > 0.0109 {
-		t.Errorf("cost %.4f, want 0.0108", cost)
+	// 1200 × $2/M + 300 × $10/M = $0.0054
+	if cost < 0.0053 || cost > 0.0055 {
+		t.Errorf("cost %.4f, want 0.0054", cost)
 	}
 }
 

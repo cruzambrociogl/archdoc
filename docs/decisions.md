@@ -747,3 +747,9 @@ than Opus 5. Effort is stated on every request, because its default differs by m
 is billed as output. A component of one file with no route and no table is not asked about at
 all — its name is what there is to say. Not done: the batch API (half price, results later), which
 needs the run reworked.
+
+**2026-10-08 — `--label` defaults to `claude-sonnet-5-5` too**
+Tried on Immich the same evening: one request, 27 operations accepted on the first attempt, $0.018,
+and the 16 descriptions and 11 edge labels read correctly. Cruz chose it as the default over
+`claude-opus-5-5`, which the entry above had named. `--label-model` asks another model; no
+side-by-side run against Opus 5.5 was made.
