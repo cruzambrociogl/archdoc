@@ -76,6 +76,10 @@ type ExplainReport struct {
 	Stopped string
 }
 
+// ExplainMaxTokens bounds one explanation: four sentences fit several times over, and a reply that
+// runs away — the first live run had one, on a component of a single file — stops there.
+const ExplainMaxTokens = 1500
+
 const (
 	maxFiles     = 40
 	maxEntries   = 40
@@ -189,8 +193,8 @@ You receive the facts archdoc read from the code about one component — a direc
 inside a container — as a numbered list. Write two to four sentences on what this component does
 and how it relates to the rest: its responsibility, what it handles, what it depends on.
 
-Every sentence must cite the facts it rests on, by their numbers, and may say only what those
-facts support. Prefer the facts that say most — the routes it handles, the tables it declares, the
+At most four sentences, each under 300 characters: longer answers are refused. Every sentence
+must cite the facts it rests on, by their numbers, and may say only what those facts support. Prefer the facts that say most — the routes it handles, the tables it declares, the
 components it uses — over listing files. Do not repeat the facts as a list; explain them. Do not
 guess at behaviour the facts do not show, and do not mention archdoc or the facts themselves.`
 

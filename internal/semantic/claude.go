@@ -26,12 +26,13 @@ import (
 //     request, the API re-runs it on Anthropic's recommended fallback instead of returning an
 //     empty refusal. A refusal that still gets through is reported, not guessed around.
 func Claude(model string, rec *Recorder, extra ...option.RequestOption) Completer {
-	return ClaudeWith(model, Schema(), rec, extra...)
+	return ClaudeWith(model, Schema(), 16000, rec, extra...)
 }
 
 // ClaudeWith is Claude answering in another schema — an explanation's sentences rather than a
 // labelling run's operations.
-func ClaudeWith(model string, schema map[string]any, rec *Recorder, extra ...option.RequestOption) Completer {
+// maxTokens bounds one answer: a reply that runs away is cut off, and costs, at that many tokens.
+func ClaudeWith(model string, schema map[string]any, maxTokens int64, rec *Recorder, extra ...option.RequestOption) Completer {
 	// A key created at organisation level rather than inside a workspace must name the
 	// workspace on every request. Keys created inside a workspace need nothing extra, so
 	// the header is sent only when the variable is set.
@@ -70,7 +71,7 @@ func ClaudeWith(model string, schema map[string]any, rec *Recorder, extra ...opt
 
 		resp, err := client.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
 			Model:     model,
-			MaxTokens: 16000,
+			MaxTokens: maxTokens,
 			System:    []anthropic.BetaTextBlockParam{{Text: system}},
 			Messages:  msgs,
 			OutputConfig: anthropic.BetaOutputConfigParam{

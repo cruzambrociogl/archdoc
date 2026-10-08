@@ -125,7 +125,7 @@ func generate(args []string, out io.Writer) error {
 	var rec *semantic.Recorder
 	if *explain {
 		rec = &semantic.Recorder{}
-		asker = semantic.ClaudeWith(semantic.Model, semantic.ExplainSchema(), rec)
+		asker = semantic.ClaudeWith(semantic.Model, semantic.ExplainSchema(), semantic.ExplainMaxTokens, rec)
 	}
 	started := time.Now()
 	explained, remembered, xrep, err := semantic.Explain(context.Background(), asker, semantic.Model, m, memory)
