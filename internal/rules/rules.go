@@ -45,6 +45,10 @@ type Rule struct {
 	// Edge selects a relationship instead of a node.
 	Edge *EdgeRef
 
+	// Route selects routes and pages instead of an element: "GET /api/server/ping", or a path
+	// alone, with * for any run of characters. A route may be excluded, or given a summary.
+	Route string
+
 	Set     map[string]string
 	Exclude bool
 	Remove  bool
@@ -55,9 +59,14 @@ type Match struct {
 	Name  string
 	Image string
 	Kind  string
+	// In narrows a match to what is inside a container, by the container's name or ID: the
+	// "services" of immich-server, not every component of that name.
+	In string
+	// ID names one element exactly, as the inspector shows it.
+	ID string
 }
 
-func (m Match) empty() bool { return m.Name == "" && m.Image == "" && m.Kind == "" }
+func (m Match) empty() bool { return m.Name == "" && m.Image == "" && m.Kind == "" && m.ID == "" }
 
 type EdgeRef struct {
 	From string
@@ -133,8 +142,11 @@ func Parse(content []byte, rel string) (*File, error) {
 				Name:  scalar(m, "name"),
 				Image: scalar(m, "image"),
 				Kind:  scalar(m, "kind"),
+				In:    scalar(m, "in"),
+				ID:    scalar(m, "id"),
 			}
 		}
+		r.Route = scalar(item, "route")
 		if e := lookup(item, "edge"); e != nil {
 			r.Edge = &EdgeRef{From: scalar(e, "from"), To: scalar(e, "to")}
 		}
@@ -182,6 +194,31 @@ func (f *File) Compile(facts *archdoc.FactSet, m archdoc.Model) ([]archdoc.Op, v
 
 		if r.Edge != nil {
 			ops = append(ops, f.edgeOps(r, prov)...)
+			continue
+		}
+
+		if r.Route != "" {
+			matched := 0
+			for _, e := range m.Entries {
+				if !glob(r.Route, e.Method+" "+e.Path) && !glob(r.Route, e.Path) {
+					continue
+				}
+				matched++
+				if r.Exclude {
+					ops = append(ops, archdoc.Op{Kind: archdoc.ExcludeEntry, Target: e.ID, Origin: archdoc.Rules, Prov: prov})
+					continue
+				}
+				for _, field := range sortedKeys(r.Set) {
+					if field != "summary" {
+						res.Add("RUL-01", validate.Error, id, fmt.Sprintf("a route takes only a summary, not %q", field), prov)
+						continue
+					}
+					ops = append(ops, archdoc.Op{Kind: archdoc.SetSummary, Target: e.ID, Value: r.Set[field], Origin: archdoc.Rules, Prov: prov})
+				}
+			}
+			if matched == 0 {
+				res.Add("RUL-05", validate.Warning, id, "rule matches no route or page", prov)
+			}
 			continue
 		}
 
@@ -261,7 +298,22 @@ func (f *File) edgeOps(r Rule, prov archdoc.Provenance) []archdoc.Op {
 func (f *File) match(m Match, model archdoc.Model, images map[string]string) []string {
 	var out []string
 
+	names := map[string]string{}
 	for _, n := range model.Nodes {
+		names[n.ID] = n.Name
+	}
+	for _, n := range model.Nodes {
+		if m.ID != "" && m.ID != n.ID {
+			continue
+		}
+		// A rule reaches inside a container only when it says so: "name: redis" written for a
+		// service must not also catch a component that happens to share the name.
+		if n.Kind.Part() && m.ID == "" && m.In == "" && m.Kind != string(n.Kind) {
+			continue
+		}
+		if m.In != "" && (n.Parent == "" || (!glob(m.In, n.Parent) && !glob(m.In, names[n.Parent]))) {
+			continue
+		}
 		if m.Name != "" && !glob(m.Name, n.Name) {
 			continue
 		}

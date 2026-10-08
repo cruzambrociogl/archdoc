@@ -262,3 +262,64 @@ func TestRulesMovedIntoArchdocDir(t *testing.T) {
 		t.Errorf("no rules: %+v %v", f, err)
 	}
 }
+
+// Rules for what the code declares (F-33): a component by the container it is in, a route by its
+// method and path — and a rule written for a service does not reach inside one.
+func TestRulesForComponentsAndRoutes(t *testing.T) {
+	p := archdoc.Provenance{File: "x", Line: 1}
+	m := archdoc.Model{
+		Nodes: []archdoc.Node{
+			{ID: "svc:server", Name: "server", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: p},
+			{ID: "svc:redis", Name: "redis", Kind: archdoc.Datastore, Evidence: archdoc.Declared, Prov: p},
+			{ID: "cmp:server/services", Name: "services", Kind: archdoc.Component, Evidence: archdoc.Declared, Parent: "svc:server", Prov: p},
+			{ID: "cmp:server/redis", Name: "redis", Kind: archdoc.Component, Evidence: archdoc.Declared, Parent: "svc:server", Prov: p},
+		},
+		Entries: []archdoc.Entry{
+			{ID: "route:server GET /api/ping", Method: "GET", Path: "/api/ping", Container: "svc:server", Component: "cmp:server/services", Prov: p},
+			{ID: "route:server GET /api/albums", Method: "GET", Path: "/api/albums", Container: "svc:server", Component: "cmp:server/services", Prov: p},
+		},
+		Flows: []archdoc.Flow{{Entry: "route:server GET /api/ping"}},
+	}
+	root := t.TempDir()
+	os.MkdirAll(filepath.Join(root, ".archdoc"), 0o755)
+	os.WriteFile(filepath.Join(root, Name), []byte(`rules:
+  - match: { name: services, in: server }
+    set: { description: The business logic. }
+  - match: { name: redis }
+    exclude: true
+  - route: "GET /api/ping"
+    exclude: true
+  - route: "/api/alb*"
+    set: { summary: Lists the albums. }
+`), 0o644)
+	f, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ops, findings := f.Compile(nil, m)
+	if !findings.OK() {
+		t.Fatalf("%s", findings.Error())
+	}
+	out, applied := validate.Apply(m, ops)
+	if !applied.OK() {
+		t.Fatalf("%s", applied.Error())
+	}
+	if n, _ := out.Node("cmp:server/services"); n.Description != "The business logic." || n.DescProv.Origin != archdoc.Rules {
+		t.Errorf("services %+v", n)
+	}
+	if _, ok := out.Node("svc:redis"); ok {
+		t.Error("the redis service was not excluded")
+	}
+	if _, ok := out.Node("cmp:server/redis"); !ok {
+		t.Error("a rule naming the redis service reached the component of the same name")
+	}
+	if len(out.Entries) != 1 || out.Entries[0].Summary != "Lists the albums." || out.Entries[0].SummaryProv.Origin != archdoc.Rules || len(out.Flows) != 0 {
+		t.Errorf("entries %+v, flows %d", out.Entries, len(out.Flows))
+	}
+
+	// Excluding a container takes with it everything read from its code.
+	gone, res := validate.Apply(m, []archdoc.Op{{Kind: archdoc.Exclude, Target: "svc:server", Origin: archdoc.Rules, Prov: p}})
+	if !res.OK() || len(gone.Nodes) != 1 || len(gone.Entries) != 0 || len(gone.Flows) != 0 {
+		t.Errorf("after excluding the container: %d nodes, %d entries, %d flows, %s", len(gone.Nodes), len(gone.Entries), len(gone.Flows), res.Error())
+	}
+}

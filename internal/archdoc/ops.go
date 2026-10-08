@@ -58,8 +58,16 @@ const (
 	// Group places elements in a named logical grouping.
 	Group OpKind = "group"
 
-	// Exclude removes an element from the views. Structural, so rules only.
+	// SetSummary says what a route does, where its code states nothing or states it badly. The
+	// target is the route's ID.
+	SetSummary OpKind = "set_summary"
+
+	// Exclude removes an element from the views — and with a container, everything read from
+	// its code. Structural, so rules only.
 	Exclude OpKind = "exclude"
+	// ExcludeEntry removes a route or a page from the features: a health check, a debug page.
+	// Structural, so rules only.
+	ExcludeEntry OpKind = "exclude_entry"
 	// AddEdge asserts a relationship. Structural, so rules only.
 	AddEdge OpKind = "add_edge"
 	// RemoveEdge withdraws one. Structural, so rules only.
@@ -69,7 +77,7 @@ const (
 // structural reports whether an operation changes what exists rather than how it is described.
 func (k OpKind) structural() bool {
 	switch k {
-	case Exclude, AddEdge, RemoveEdge:
+	case Exclude, ExcludeEntry, AddEdge, RemoveEdge:
 		return true
 	default:
 		return false

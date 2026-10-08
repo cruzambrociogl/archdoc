@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 )
@@ -61,6 +62,18 @@ func Ops(m archdoc.Model, ops []archdoc.Op) Result {
 		case archdoc.Exclude:
 			// Names an element and nothing else — there is no value to supply.
 			requireNode(&r, nodes, id, op.Target, op)
+
+		case archdoc.ExcludeEntry, archdoc.SetSummary:
+			found := false
+			for _, e := range m.Entries {
+				found = found || e.ID == op.Target
+			}
+			if !found {
+				r.add("VAL-02", Error, id, fmt.Sprintf("no route or page %q", op.Target), op.Prov)
+			}
+			if op.Kind == archdoc.SetSummary && strings.TrimSpace(op.Value) == "" {
+				r.add("VAL-01", Error, id, "an empty summary", op.Prov)
+			}
 
 		case archdoc.SetKind:
 			requireNode(&r, nodes, id, op.Target, op)
@@ -155,20 +168,21 @@ func apply(m *archdoc.Model, op archdoc.Op) {
 		return
 
 	case archdoc.Exclude:
-		for i := range m.Nodes {
-			if m.Nodes[i].ID == op.Target {
-				m.Nodes = append(m.Nodes[:i], m.Nodes[i+1:]...)
-				break
+		exclude(m, op.Target)
+		return
+
+	case archdoc.ExcludeEntry:
+		gone := map[string]bool{op.Target: true}
+		m.Entries = keep(m.Entries, func(e archdoc.Entry) bool { return !gone[e.ID] })
+		m.Flows = keep(m.Flows, func(f archdoc.Flow) bool { return !gone[f.Entry] })
+		return
+
+	case archdoc.SetSummary:
+		for i := range m.Entries {
+			if m.Entries[i].ID == op.Target {
+				m.Entries[i].Summary, m.Entries[i].SummaryProv = op.Value, op.Prov
 			}
 		}
-		// An excluded node's edges would dangle, and VAL-02 would reject the result.
-		kept := m.Edges[:0]
-		for _, e := range m.Edges {
-			if e.From != op.Target && e.To != op.Target {
-				kept = append(kept, e)
-			}
-		}
-		m.Edges = kept
 		return
 	}
 
@@ -210,6 +224,57 @@ func clone(m archdoc.Model) archdoc.Model {
 	}
 	for i := range out.Edges {
 		out.Edges[i].Prov = append([]archdoc.Provenance(nil), m.Edges[i].Prov...)
+	}
+	return out
+}
+
+// exclude removes an element and everything that is inside it or only makes sense with it: a
+// container's components and tables, the routes its code declares and their flows, what was left
+// unresolved in it, what was written about any of them. A component that goes leaves its routes
+// behind — they are still routes of the container — without a component to name.
+func exclude(m *archdoc.Model, target string) {
+	gone := map[string]bool{target: true}
+	for changed := true; changed; {
+		changed = false
+		for _, n := range m.Nodes {
+			if !gone[n.ID] && gone[n.Parent] {
+				gone[n.ID], changed = true, true
+			}
+		}
+	}
+	m.Nodes = keep(m.Nodes, func(n archdoc.Node) bool { return !gone[n.ID] })
+	// An excluded node's edges would dangle, and VAL-02 would reject the result.
+	m.Edges = keep(m.Edges, func(e archdoc.Edge) bool { return !gone[e.From] && !gone[e.To] })
+
+	entries := map[string]bool{}
+	m.Entries = keep(m.Entries, func(e archdoc.Entry) bool {
+		if gone[e.Container] {
+			entries[e.ID] = true
+			return false
+		}
+		return true
+	})
+	for i := range m.Entries {
+		if gone[m.Entries[i].Component] {
+			m.Entries[i].Component = ""
+		}
+	}
+	m.Flows = keep(m.Flows, func(f archdoc.Flow) bool { return !entries[f.Entry] })
+	m.Unresolved = keep(m.Unresolved, func(u archdoc.Unresolved) bool { return !gone[u.Container] })
+	for i := range m.Unresolved {
+		if gone[m.Unresolved[i].Component] {
+			m.Unresolved[i].Component = ""
+		}
+	}
+	m.Explanations = keep(m.Explanations, func(x archdoc.Explanation) bool { return !gone[x.Element] })
+}
+
+func keep[T any](in []T, ok func(T) bool) []T {
+	var out []T
+	for _, x := range in {
+		if ok(x) {
+			out = append(out, x)
+		}
 	}
 	return out
 }
