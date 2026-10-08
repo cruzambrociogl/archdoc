@@ -35,7 +35,7 @@ var skipDirs = map[string]bool{
 // Reads reports whether archdoc reads code in this language.
 func Reads(language string) bool {
 	switch language {
-	case "TypeScript", "JavaScript", "Python":
+	case "TypeScript", "JavaScript", "Python", "Dart":
 		return true
 	}
 	return false
@@ -50,7 +50,14 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		return src, false
 	}
 	python := app.Language == "Python"
+	dart := app.Language == "Dart"
 	root := sourceRoot(repo, app, python)
+	if dart {
+		root = app.Dir
+		if fi, err := os.Stat(filepath.Join(repo, filepath.FromSlash(app.Dir), "lib")); err == nil && fi.IsDir() {
+			root = path.Join(app.Dir, "lib") // a Dart package's own code is its lib/
+		}
+	}
 	src = archdoc.Source{App: app.Dir, Root: root}
 
 	skipNested := map[string]bool{}
@@ -73,6 +80,12 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 			}
 			return nil
 		}
+		if dart {
+			if isDart(d.Name()) {
+				paths = append(paths, rel)
+			}
+			return nil
+		}
 		if lang := languageOf(rel, python); lang != "" && !isTest(d.Name()) && !isConfig(d.Name()) {
 			paths = append(paths, rel)
 		}
@@ -88,7 +101,9 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		known[p] = true
 	}
 	var r resolver
-	if python {
+	if dart {
+		r = &dartResolver{name: app.Name, lib: root, known: known}
+	} else if python {
 		r = newPyResolver(root, app.Dir, known)
 	} else {
 		r = newTSResolver(repo, app, known)
@@ -100,8 +115,13 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 			continue
 		}
 		f := archdoc.SourceFile{Path: p, Language: languageOf(p, python), Lines: lines(content)}
+		if dart {
+			f.Language = "Dart"
+		}
 		var got facts
 		switch f.Language {
+		case "Dart":
+			got = dartFacts(content)
 		case "Python":
 			got, f.Partial = pythonFacts(content, p)
 		case "Svelte":

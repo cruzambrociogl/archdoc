@@ -194,8 +194,41 @@ func TestNestedApplicationsAreNotRead(t *testing.T) {
 }
 
 func TestLanguagesNotReadYet(t *testing.T) {
-	if _, ok := Read(t.TempDir(), archdoc.App{Dir: "mobile", Language: "Dart"}, nil); ok {
-		t.Error("Dart was read")
+	if _, ok := Read(t.TempDir(), archdoc.App{Dir: "svc", Language: "Go"}, nil); ok {
+		t.Error("Go was read")
+	}
+}
+
+// Dart: a package's own code is lib/, its own imports are package:<its name>/… or relative, and
+// generated files are not read.
+func TestDartImports(t *testing.T) {
+	root := tree(t, map[string]string{
+		"mobile/lib/main.dart":            "import 'dart:async';\nimport 'package:flutter/material.dart';\nimport 'package:phone/utils/hash.dart';\nimport 'pages/home.dart';\nimport 'package:phone/models/user.g.dart';\nimport 'package:phone/missing.dart';\n",
+		"mobile/lib/utils/hash.dart":      "",
+		"mobile/lib/pages/home.dart":      "export '../utils/hash.dart';\n",
+		"mobile/lib/models/user.g.dart":   "",
+		"mobile/test/hash_test.dart":      "",
+		"mobile/lib/pages/home_test.dart": "",
+	})
+	src, ok := Read(root, archdoc.App{Dir: "mobile", Name: "phone", Language: "Dart"}, nil)
+	if !ok || src.Root != "mobile/lib" || len(src.Files) != 3 {
+		t.Fatalf("read %v, root %q, files %v", ok, src.Root, paths(src))
+	}
+	got := imports(src)
+	for key, w := range map[string]archdoc.Import{
+		"mobile/lib/main.dart:1 dart:async":                    {How: archdoc.ByPackage, Package: "dart:async"},
+		"mobile/lib/main.dart:2 package:flutter/material.dart": {How: archdoc.ByPackage, Package: "flutter"},
+		"mobile/lib/main.dart:3 package:phone/utils/hash.dart": {How: archdoc.ByAlias, Target: "mobile/lib/utils/hash.dart"},
+		"mobile/lib/main.dart:4 pages/home.dart":               {How: archdoc.ByPath, Target: "mobile/lib/pages/home.dart"},
+		"mobile/lib/main.dart:6 package:phone/missing.dart":    {How: archdoc.NoMatch},
+		"mobile/lib/pages/home.dart:1 ../utils/hash.dart":      {How: archdoc.ByPath, Target: "mobile/lib/utils/hash.dart"},
+	} {
+		if g, ok := got[key]; !ok || g.How != w.How || g.Target != w.Target || g.Package != w.Package {
+			t.Errorf("%s: %+v, want %+v", key, g, w)
+		}
+	}
+	if len(got) != 6 {
+		t.Errorf("%d imports, want 6 (an import of a generated file is not kept)", len(got))
 	}
 }
 
