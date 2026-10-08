@@ -99,6 +99,23 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 | 6 | SvelteKit and React pages; FastAPI and Python | F-05, F-06 | ✓ 6 Oct — FastAPI routes with full prefixes (settings resolved by name, conditional includes marked) and Python flows; SvelteKit pages by file, TanStack by `createFileRoute`. Template: 23 routes, 8 pages, 18 flows; Immich: 304 routes, 55 pages |
 | 7 | Component pages and cited claims, remembered — paid runs, asked first | F-19, F-30, F-36 | ✓ 8 Oct — `components.generated.md`, inspector, `--explain`, VAL-09, `.archdoc/interpretations.json`. Live on Immich: 42 of 43 components explained, 152 cited sentences, $1.52 (after a first run lost $0.72 of answers to one empty reply — fixed) |
 
+**After the plan, 8 Oct** — built the same day the plan closed:
+
+| What | Features |
+|---|---|
+| Changes and versions see routes, pages and columns; a run that changes nothing records nothing again (a network-less service had been minting a version every run) | F-37 in part |
+| Rules for components, tables and routes (`in:`, `id:`, `route:`); excluding a container takes its parts with it | F-33 |
+| Shared components said, not drawn — the component picture is readable | F-10 |
+| Flows follow plain function calls that lead somewhere; jobs have flows | F-12 |
+| Unresolved calls on the canvas, as a count on the box | F-32 |
+| A page per component in the app; explanations outlive their facts, marked stale; the memory only grows | F-19, F-30 |
+| Dependencies: manifest line, imports, components | F-14 |
+| Express, Next.js, React Router; commands and jobs; Prisma and SQLAlchemy; Dart files and imports | F-04–F-07, F-13 |
+
+Not done: a compact `model.json` (2.6 MB on Immich, a third of it flows); flows through a Python
+class's methods, events and queues; migrations as a schema source; a fresh `--explain` run since
+route summaries were allowed into it — Immich shows its 42 earlier answers, marked stale.
+
 ### Superseded — do not implement as written
 
 Two catalog entries are contradicted by later decisions. Recorded here so they are not

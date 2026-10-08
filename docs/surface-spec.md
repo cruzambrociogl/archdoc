@@ -366,14 +366,15 @@ replaced by the extracted facts; the trust strip says "0% interpreted").
 **States:** one-element diagram (the level is not earned — say so, suggest the useful level); very
 large level (open on the overview cap with a "show all N" escape and a search prompt).
 **Status:** ✅ context, containers, components and data (5–6 Oct). ◐ upstream / downstream, path
-probe, lenses, PNG and share-card export. The unresolved stub on the canvas is not drawn yet:
-unresolved calls are listed on Features and Coverage.
+probe, lenses, PNG and share-card export. Unresolved calls show on the canvas as a dotted "? n"
+badge on the box they leave from, listed in its inspector (8 Oct) — a count, not a stub to a
+target that was never found.
 
 **As built — components.** A component is a directory under an application's source root, or a
 module where the code is flat; an arrow is "uses", backed by imports, and thickens with their
-number. Arrows carry no label there — every one would say the same. Known cost: a large layered
-application (Immich's server, 14 components, 73 uses) is a hairball as a still picture; the app's
-focus is what makes it readable (`.claude/NOTES.md`).
+number. Arrows carry no label there — every one would say the same. A component most of the others
+use — utilities, shared types — is marked shared: its box says "used by 12 of 13 · arrows not
+drawn" and nothing is drawn into it, which is what keeps a layered application's picture readable.
 
 ### 5.3 Inspector — an element's passport
 
@@ -416,12 +417,12 @@ walkthrough Code Wiki and DeepWiki are known for.)
 - **Dependencies** (third-party packages) it uses.
 - Previous / next component; "on this page" outline in the right rail.
 
-**Status:** ◐ (6–8 Oct). A component's page today is its inspector in the explorer and its section of
-`components.generated.md`: code and size, uses and used by, routes and pages, tables declared, and
+**Status:** ✅ (6–8 Oct). A component has a page of its own in the app — opened from the inspector —
+its inspector in the explorer, and its section of `components.generated.md`: code and size, uses and used by, routes and pages, tables declared, and
 — after `archdoc generate --explain` — two to four model-written sentences, each followed by the
-lines it cites; a sentence that cited nothing was refused. Not yet: a page of its own in the
-navigation, citation markers inside the sentence, the one-hop diagram, outbound calls and
-third-party dependencies per component.
+lines it cites; a sentence that cited nothing was refused. The page adds the packages it imports,
+the calls it leaves unresolved, and the components before and after it. Not yet: citation markers
+inside the sentence, and the one-hop diagram on the page.
 
 ### 5.5 Features — what the system does
 
@@ -438,7 +439,9 @@ files — and pages — SvelteKit by file, TanStack Router by `createFileRoute`.
 the class or module that handles them, pages by their first path segment; a description is the
 code's own (a decorator's summary, a docstring's first line) or absent. A row opens onto its line,
 handler, prefix, what its handler is given, and its flow. Calls to an address computed at run time
-close the page. Not yet: CLI commands, scheduled jobs, filters by kind and method, group descriptions.
+close the page. Commands (nest-commander, commander, Typer, Click) and background jobs (`@OnJob`, `@Cron`,
+`@Interval`) are entries too, as are Express routes and Next.js and React Router pages (8 Oct).
+Not yet: filters by kind and method, group descriptions.
 
 ### 5.6 Flows — what happens when…
 
@@ -460,8 +463,9 @@ dynamic view.)
 sequence diagram with a lifeline per class (or Python module), table and computed address, numbered
 arrows, and the steps listed beneath, each cited. Followed by name through declared field types,
 four calls deep and forty steps at most, saying when it was cut. arc42 §6 draws the eight widest.
-Not yet: a flow index of its own, step-through, the flow over the canvas; flows do not follow plain
-function calls in TypeScript, events or queued work.
+A job a class handles has a flow like a route, and a plain function call is followed where it leads
+to a table, a class or a call that leaves (8 Oct). Not yet: a flow index of its own, step-through,
+the flow over the canvas; flows do not follow events, queued work, or a Python class's methods.
 
 ### 5.7 Data model
 
@@ -477,8 +481,9 @@ function calls in TypeScript, events or queued work.
 **Status:** ✅ diagram (5 Oct): the explorer's Data level draws a container's tables with their
 columns — PK, FK and nullable marked — and foreign keys as arrows, from table classes (TypeORM-style
 decorators, SQLModel, SQLAlchemy's `__tablename__`); the inspector is the entity page's fields.
-Not yet: clustering (Immich's 68 tables are one view), the entity table, who reads and writes a
-table outside a flow. Migrations are not read.
+Prisma schemas and SQLAlchemy's `Column(…, ForeignKey(…))` are read as well (8 Oct). Not yet:
+clustering (Immich's 68 tables are one view), the entity table, who reads and writes a table outside
+a flow. Migrations are not read.
 
 ### 5.8 Dependencies
 
@@ -488,7 +493,9 @@ table outside a flow. Migrations are not read.
   service, testing, build), with version and the manifest line.
 - For each, which components import it. External services' SDKs link to their external-system box.
 
-**Status:** 🔜 B1–B2.
+**Status:** ✅ (8 Oct): a Dependencies screen lists the packages each container's manifest declares,
+each at its line, with how many imports name it and from which components; a runtime dependency
+nothing imports says so. Not yet: grouping by purpose, links from an SDK to its external system.
 
 ### 5.9 Deployment
 

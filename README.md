@@ -33,8 +33,10 @@ Two rules govern the design:
 ## Status
 
 **R1.a is built, the surface was redesigned on 4–5 October 2026, and since 5 October archdoc reads
-code as well as configuration** — TypeScript, JavaScript, Svelte and Python today, with NestJS,
-FastAPI, SvelteKit and TanStack Router understood by their conventions. What it does not read
+code as well as configuration** — TypeScript, JavaScript, Svelte and Python, and Dart for its
+files and imports — with NestJS, Express, FastAPI, SvelteKit, Next.js, React Router and TanStack
+Router understood by their conventions, and tables read from TypeORM-style classes, SQLModel,
+SQLAlchemy and Prisma schemas. What it does not read
 yet it says so, in the coverage report. Where the work stands is in [`PROGRESS.md`](PROGRESS.md);
 the reasoning is in [`docs/vision.md`](docs/vision.md). Delivery is 11 December 2026.
 
@@ -42,7 +44,7 @@ What it does now:
 
 | | |
 |---|---|
-| `archdoc generate` | C4 context and container diagrams; inside each container whose code it reads, its components and its tables; every route and page; what each route sets off; twelve arc42 sections and a coverage report — every element cited at its line |
+| `archdoc generate` | C4 context and container diagrams; inside each container whose code it reads, its components and its tables; every route, page, command and background job; what each route or job sets off; the packages each container depends on and where it uses them; twelve arc42 sections and a coverage report — every element cited at its line |
 | `archdoc generate --explain` | Opt-in: asks a model what each component does. It is sent names and the code's own route summaries, never code; every sentence must cite the facts it rests on or it is refused; answers are remembered, so nothing is asked twice |
 | `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see |
 | `archdoc export --site` | The same app as a static site a team opens without archdoc — GitHub Pages, any static host |
@@ -53,9 +55,9 @@ On Immich, at the revision the survey pins:
 $ archdoc generate ./immich
 …
 9 elements, 4 relationships, from docker/docker-compose.yml
-43 components in 5 containers, 145 uses between them, from the code
+61 components in 6 containers, 279 uses between them, from the code
 68 tables in 1 container, 65 foreign keys between them, from the code
-304 routes, 55 pages, and 11 calls whose target is computed at run time
+304 routes, 55 pages, 18 commands, 66 jobs, and 11 calls whose target is computed at run time
 7 section(s) created for you to write — see docs/architecture/index.generated.md
 11 gap(s) — run with --explain-gaps to list them
 ```
