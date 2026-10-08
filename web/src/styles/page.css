@@ -1156,3 +1156,30 @@ button.runs-row:hover {
   display: grid;
   gap: 3px;
 }
+
+/* Changes inside the containers come by the dozen: one folded card per kind of change. */
+.change-inside {
+  margin: 22px 0 8px;
+}
+.change-group > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.change-group > summary::-webkit-details-marker {
+  display: none;
+}
+.change-rows {
+  list-style: none;
+  margin: 0;
+  padding: 8px 14px 12px;
+  display: grid;
+  gap: 4px;
+  max-height: 360px;
+  overflow: auto;
+}
+.change-rows li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}

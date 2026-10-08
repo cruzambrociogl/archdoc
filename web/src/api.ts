@@ -260,6 +260,8 @@ export interface DiffResponse {
     added_edges: Edge[] | null
     removed_edges: Edge[] | null
     changed: Change[] | null
+    added_entries?: Entry[] | null
+    removed_entries?: Entry[] | null
   }
 }
 

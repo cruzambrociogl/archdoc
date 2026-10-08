@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { DiffResponse, Edge, ModelResponse, Node, Version } from '../api'
+import type { DiffResponse, Edge, Entry, ModelResponse, Node, Provenance, Version } from '../api'
 import { useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
@@ -21,8 +21,14 @@ export function Changes(props: { versions: Version[]; route: Route; go: (r: Part
   const before = useApi<ModelResponse>(ready ? `/api/model?version=${base}` : null)
   const after = useApi<ModelResponse>(ready ? `/api/model?version=${to}` : null)
   const names = new Map<string, string>()
-  for (const m of [before.data, after.data]) for (const n of m?.model.nodes ?? []) names.set(n.id, n.name)
+  const kinds = new Map<string, string>()
+  for (const m of [before.data, after.data])
+    for (const n of m?.model.nodes ?? []) {
+      names.set(n.id, n.name)
+      kinds.set(n.id, n.kind)
+    }
   const name = (id: string) => names.get(id) ?? id
+  const kind = (id: string) => kinds.get(id) ?? ''
   const label = (id?: number) => {
     const v = sorted.find((x) => x.id === id)
     return v ? `v${v.id} · ${new Date(v.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}${v.commit ? ` · ${v.commit.slice(0, 7)}` : ''}` : ''
@@ -82,7 +88,7 @@ export function Changes(props: { versions: Version[]; route: Route; go: (r: Part
             </div>
             {diff.loading && <Loading />}
             {diff.error && <Failure error={diff.error} />}
-            {diff.data && <Diff d={diff.data} name={name} />}
+            {diff.data && <Diff d={diff.data} name={name} kind={kind} />}
           </>
         )}
       </div>
@@ -90,14 +96,45 @@ export function Changes(props: { versions: Version[]; route: Route; go: (r: Part
   )
 }
 
-function Diff({ d, name }: { d: DiffResponse; name: (id: string) => string }) {
+function Diff({ d, name, kind }: { d: DiffResponse; name: (id: string) => string; kind: (id: string) => string }) {
   const x = d.diff
-  const added = x.added_nodes ?? []
-  const removed = x.removed_nodes ?? []
-  const addedE = x.added_edges ?? []
-  const removedE = x.removed_edges ?? []
-  const changed = x.changed ?? []
-  const structuralCount = added.length + removed.length + addedE.length + removedE.length
+  // What configuration describes gets a card each; what the code declares inside the containers —
+  // components, tables, routes — comes by the dozen, and is grouped, its list folded.
+  const part = (k: string) => k === 'component' || k === 'table'
+  const allAdded = x.added_nodes ?? []
+  const allRemoved = x.removed_nodes ?? []
+  const added = allAdded.filter((n) => !part(n.kind))
+  const removed = allRemoved.filter((n) => !part(n.kind))
+  const inside = (e: Edge) => part(kind(e.from)) || part(kind(e.to))
+  const addedE = (x.added_edges ?? []).filter((e) => !inside(e))
+  const removedE = (x.removed_edges ?? []).filter((e) => !inside(e))
+  const addedInside = (x.added_edges ?? []).filter(inside)
+  const removedInside = (x.removed_edges ?? []).filter(inside)
+  const allChanged = x.changed ?? []
+  const changed = allChanged.filter((c) => !c.field.startsWith('column '))
+  const columns = allChanged.filter((c) => c.field.startsWith('column '))
+  const addedEntries = x.added_entries ?? []
+  const removedEntries = x.removed_entries ?? []
+  const appeared = allAdded.length + (x.added_edges ?? []).length + addedEntries.length
+  const disappeared = allRemoved.length + (x.removed_edges ?? []).length + removedEntries.length
+  const structuralCount = appeared + disappeared
+  const groups: { glyph: string; title: string; rows: { key: string; text: string; cite?: Provenance }[] }[] = []
+  for (const [k, label] of [
+    ['component', 'components'],
+    ['table', 'tables'],
+  ] as const) {
+    const a = allAdded.filter((n) => n.kind === k)
+    const r = allRemoved.filter((n) => n.kind === k)
+    if (a.length) groups.push({ glyph: '+', title: `${a.length} ${label} appeared`, rows: a.map((n) => ({ key: n.id, text: `${n.name} · in ${name(n.parent ?? '')}`, cite: n.provenance })) })
+    if (r.length) groups.push({ glyph: '−', title: `${r.length} ${label} disappeared`, rows: r.map((n) => ({ key: n.id, text: `${n.name} · in ${name(n.parent ?? '')}`, cite: n.provenance })) })
+  }
+  const entryText = (e: Entry) => `${e.kind === 'page' ? 'page' : e.method} ${e.path}${e.summary ? ` — ${e.summary}` : ''}`
+  if (addedEntries.length) groups.push({ glyph: '+', title: `${addedEntries.length} routes and pages appeared`, rows: addedEntries.map((e) => ({ key: e.id, text: entryText(e), cite: e.provenance })) })
+  if (removedEntries.length) groups.push({ glyph: '−', title: `${removedEntries.length} routes and pages disappeared`, rows: removedEntries.map((e) => ({ key: e.id, text: entryText(e), cite: e.provenance })) })
+  const insideText = (e: Edge) => `${name(e.from)} → ${name(e.to)}`
+  if (addedInside.length) groups.push({ glyph: '+', title: `${addedInside.length} uses and foreign keys appeared`, rows: addedInside.map((e) => ({ key: `${e.from}>${e.to}`, text: insideText(e), cite: (e.provenance ?? [])[0] })) })
+  if (removedInside.length) groups.push({ glyph: '−', title: `${removedInside.length} uses and foreign keys disappeared`, rows: removedInside.map((e) => ({ key: `${e.from}>${e.to}`, text: insideText(e), cite: (e.provenance ?? [])[0] })) })
+  if (columns.length) groups.push({ glyph: '±', title: `${columns.length} columns changed`, rows: columns.map((c, i) => ({ key: `${c.element}${c.field}${i}`, text: `${name(c.element)}.${c.field.slice(7)}: ${c.before || '—'} → ${c.after || '—'}` })) })
 
   if (d.empty) {
     return (
@@ -116,15 +153,15 @@ function Diff({ d, name }: { d: DiffResponse; name: (id: string) => string }) {
         <div>
           <Eyebrow>Structural</Eyebrow>
           <div className="change-counts">
-            +{added.length + addedE.length} appeared · −{removed.length + removedE.length} disappeared
+            +{appeared} appeared · −{disappeared} disappeared
           </div>
         </div>
         <div>
           <Eyebrow>Values</Eyebrow>
-          <div className="change-counts">{changed.length} changed</div>
+          <div className="change-counts">{allChanged.length} changed</div>
         </div>
       </div>
-      {structuralCount === 0 && changed.length > 0 && (
+      {structuralCount === 0 && allChanged.length > 0 && (
         <p className="lede-quiet">Only values changed — nothing appeared, disappeared or was rewired.</p>
       )}
 
@@ -175,6 +212,24 @@ function Diff({ d, name }: { d: DiffResponse; name: (id: string) => string }) {
           <Side label={`before · v${d.from}`}>{c.before || <span className="muted">—</span>}</Side>
           <Side label={`after · v${d.to}`}>{c.after || <span className="muted">—</span>}</Side>
         </Card>
+      ))}
+      {groups.length > 0 && <div className="eyebrow change-inside">Inside the containers · from the code</div>}
+      {groups.map((g) => (
+        <details key={g.title} className="change-card change-group">
+          <summary className="change-card-head">
+            <span className={`delta-tag ${g.glyph === '±' ? 'hollow' : ''}`}>{g.glyph}</span>
+            <span className="change-title">{g.title}</span>
+            <span className="eyebrow change-kind">show</span>
+          </summary>
+          <ul className="change-rows">
+            {g.rows.map((r) => (
+              <li key={r.key}>
+                <span className="mono small">{r.text}</span>
+                {r.cite && <Cite p={r.cite} compact />}
+              </li>
+            ))}
+          </ul>
+        </details>
       ))}
     </>
   )

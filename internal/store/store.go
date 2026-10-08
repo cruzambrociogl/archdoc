@@ -156,16 +156,35 @@ func Fingerprint(m archdoc.Model) (string, error) {
 		From, To, Label, Technology string
 		Traffic                     bool
 	}
+	type column struct {
+		Name, Type, References string
+		Primary, Nullable      bool
+	}
 	type network struct {
 		Name     string
 		Internal bool
 	}
+	// What the code declares is architecture too: a route or a column that appears is a change a
+	// reader looks for. Where it is declared is not — a route moved to another line is the same route.
 	arch := struct {
 		Name     string
 		Nodes    []node
 		Edges    []edge
 		Networks []network
+		Entries  []string            `json:",omitempty"`
+		Columns  map[string][]column `json:",omitempty"`
 	}{Name: m.Name}
+	for _, e := range m.Entries {
+		arch.Entries = append(arch.Entries, e.ID)
+	}
+	for _, n := range m.Nodes {
+		for _, c := range n.Columns {
+			if arch.Columns == nil {
+				arch.Columns = map[string][]column{}
+			}
+			arch.Columns[n.ID] = append(arch.Columns[n.ID], column{c.Name, c.Type, c.References, c.Primary, c.Nullable})
+		}
+	}
 	for _, n := range m.Nodes {
 		arch.Nodes = append(arch.Nodes, node{n.ID, n.Name, string(n.Kind), n.Description, n.Technology, string(n.Evidence), n.Parent, n.Dir, n.Networks})
 	}

@@ -90,3 +90,31 @@ func TestDiffIsDeterministic(t *testing.T) {
 		}
 	}
 }
+
+// What the code declares changes too: a route that appears, a column that changes.
+func TestCompareSeesRoutesAndColumns(t *testing.T) {
+	table := func(cols ...archdoc.Column) archdoc.Node {
+		return archdoc.Node{ID: "tbl:x/album", Name: "album", Kind: archdoc.Table, Columns: cols}
+	}
+	a := archdoc.Model{Nodes: []archdoc.Node{table(archdoc.Column{Name: "id", Type: "string", Primary: true}, archdoc.Column{Name: "old", Type: "text"})},
+		Entries: []archdoc.Entry{{ID: "route:x GET /a"}, {ID: "route:x GET /gone"}}}
+	b := archdoc.Model{Nodes: []archdoc.Node{table(archdoc.Column{Name: "id", Type: "uuid", Primary: true}, archdoc.Column{Name: "new", Type: "text", Nullable: true})},
+		Entries: []archdoc.Entry{{ID: "route:x GET /a"}, {ID: "route:x POST /a"}}}
+	d := Compare(a, b)
+	if len(d.AddedEntries) != 1 || d.AddedEntries[0].ID != "route:x POST /a" || len(d.RemovedEntries) != 1 || !d.Structural() {
+		t.Errorf("entries +%v −%v", d.AddedEntries, d.RemovedEntries)
+	}
+	got := map[string]Change{}
+	for _, c := range d.Changed {
+		got[c.Field] = c
+	}
+	if c := got["column id"]; c.Before != "string · primary key" || c.After != "uuid · primary key" {
+		t.Errorf("column id %+v", c)
+	}
+	if c := got["column new"]; c.Before != "" || c.After != "text · nullable" {
+		t.Errorf("column new %+v", c)
+	}
+	if c := got["column old"]; c.After != "" {
+		t.Errorf("column old %+v", c)
+	}
+}

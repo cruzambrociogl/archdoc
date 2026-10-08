@@ -18,6 +18,10 @@ type Diff struct {
 	AddedEdges   []archdoc.Edge `json:"added_edges"`
 	RemovedEdges []archdoc.Edge `json:"removed_edges"`
 	Changed      []Change       `json:"changed"`
+	// What the code declares: routes and pages that appeared or disappeared (F-13). A table's
+	// columns are values of the table, and change under Changed.
+	AddedEntries   []archdoc.Entry `json:"added_entries"`
+	RemovedEntries []archdoc.Entry `json:"removed_entries"`
 }
 
 // Change is one field of one element or relationship that differs between the versions.
@@ -30,7 +34,8 @@ type Change struct {
 
 // Structural reports whether anything appeared or disappeared, as opposed to only being reworded.
 func (d Diff) Structural() bool {
-	return len(d.AddedNodes)+len(d.RemovedNodes)+len(d.AddedEdges)+len(d.RemovedEdges) > 0
+	return len(d.AddedNodes)+len(d.RemovedNodes)+len(d.AddedEdges)+len(d.RemovedEdges)+
+		len(d.AddedEntries)+len(d.RemovedEntries) > 0
 }
 
 // Empty reports whether the two versions are the same in every respect this compares.
@@ -65,6 +70,25 @@ func Compare(a, b archdoc.Model) Diff {
 		} {
 			if f.was != f.is {
 				d.Changed = append(d.Changed, Change{Element: n.ID, Field: f.field, Before: f.was, After: f.is})
+			}
+		}
+		// A table's columns: one that appeared, disappeared, or changed what it is.
+		if n.Kind == archdoc.Table {
+			was := map[string]string{}
+			for _, c := range old.Columns {
+				was[c.Name] = columnText(c)
+			}
+			is := map[string]string{}
+			for _, c := range n.Columns {
+				is[c.Name] = columnText(c)
+				if w, ok := was[c.Name]; !ok || w != is[c.Name] {
+					d.Changed = append(d.Changed, Change{Element: n.ID, Field: "column " + c.Name, Before: w, After: is[c.Name]})
+				}
+			}
+			for _, c := range old.Columns {
+				if _, ok := is[c.Name]; !ok {
+					d.Changed = append(d.Changed, Change{Element: n.ID, Field: "column " + c.Name, Before: was[c.Name]})
+				}
 			}
 		}
 	}
@@ -102,6 +126,23 @@ func Compare(a, b archdoc.Model) Diff {
 		}
 	}
 
+	beforeEntry := map[string]bool{}
+	for _, e := range a.Entries {
+		beforeEntry[e.ID] = true
+	}
+	afterEntry := map[string]bool{}
+	for _, e := range b.Entries {
+		afterEntry[e.ID] = true
+		if !beforeEntry[e.ID] {
+			d.AddedEntries = append(d.AddedEntries, e)
+		}
+	}
+	for _, e := range a.Entries {
+		if !afterEntry[e.ID] {
+			d.RemovedEntries = append(d.RemovedEntries, e)
+		}
+	}
+
 	// Deterministic, like everything that reaches a reader.
 	sort.SliceStable(d.Changed, func(i, j int) bool {
 		if d.Changed[i].Element != d.Changed[j].Element {
@@ -110,4 +151,22 @@ func Compare(a, b archdoc.Model) Diff {
 		return d.Changed[i].Field < d.Changed[j].Field
 	})
 	return d
+}
+
+// columnText is a column as a reader would say it: its type, and what marks it.
+func columnText(c archdoc.Column) string {
+	out := c.Type
+	if c.Primary {
+		out += " · primary key"
+	}
+	if c.Nullable {
+		out += " · nullable"
+	}
+	if c.References != "" {
+		out += " · references " + c.References
+	}
+	if out == "" {
+		return "column"
+	}
+	return out
 }
