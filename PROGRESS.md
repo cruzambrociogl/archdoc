@@ -111,6 +111,8 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 | A page per component in the app; explanations outlive their facts, marked stale; the memory only grows | F-19, F-30 |
 | Dependencies: manifest line, imports, components | F-14 |
 | Express, Next.js, React Router; commands and jobs; Prisma and SQLAlchemy; Dart files and imports | F-04–F-07, F-13 |
+| **Components are features, not folders**, where file names carry roles; folders as a second view; shared and wiring parts said, not drawn | F-10 |
+| **A fuller context**: external systems from configured URLs and from known client libraries, never from links | F-08 |
 
 Not done: a compact `model.json` (2.6 MB on Immich, a third of it flows); flows through a Python
 class's methods, events and queues; migrations as a schema source; a fresh `--explain` run since

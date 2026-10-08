@@ -710,3 +710,27 @@ The fact wording changed, so remembered answers are asked for again on the next 
 **2026-10-08 — The model stays `claude-opus-5`**
 Asked whether to move the default to a newer Opus: no. Labels and explanations were run and priced
 on `claude-opus-5`; `internal/semantic` keeps it as the default and the only priced model.
+
+**2026-10-08 — A component is a responsibility, not a folder (D-2, F-10)**
+Looking at Immich in the explorer, Cruz saw that the component level showed how the code is filed —
+`controllers`, `services`, `repositories` — not what C4 means by a component. It had been built on
+directories for speed, against D-2's "conventions first". Now: where files are named by what they
+are for and what they do (`album.controller`, `album.service`, `album.repository`, `album.table`),
+a component is a name that spans those roles. Roles are found by counting suffixes, not from a
+list; a longer name joins the feature it extends; a lone file that does something in a main role is
+a component of its own; the rest stays with its folder. It applies only where the convention
+carries the application (three features, three files in ten); otherwise folders remain the
+components. The folders stay as a second view, "by folder" — a `module` kind, a `structure:` view —
+because how the code is filed is also true, and is the compact picture. Everything is still by
+name, so every membership can be read off a file name; nothing is grouped by a model. Immich's
+server: 75 components where there were 14 folders.
+
+**2026-10-08 — External systems: a configured URL, or a client library — never a link**
+The context view of Immich was a user and a box. External systems now come from two kinds of
+evidence in the code. A URL is one when the code calls it, or when a configuration key holds it
+whole (`versionCheck: { url: '…' }`) outside a template file; a URL in a sentence, a link, an email
+template, or one the code only starts (`` `https://github.com/…/${version}` ``) draws nothing.
+And a well-known client library names the system it talks to — `nodemailer` an SMTP server,
+`openid-client` an identity provider, `huggingface_hub` the Hub — by a lookup table, cited as a
+lookup the way an image's technology is: the import is read, the meaning is looked up, and the two
+are told apart. Immich: seven external systems, none of them a link.

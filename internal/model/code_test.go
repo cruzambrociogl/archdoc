@@ -44,10 +44,13 @@ func immichLike() *archdoc.FactSet {
 				Hosts: []archdoc.HostRef{
 					{Host: "ml", Port: "3003", Scheme: "http", Value: "http://ml:3003", Prov: cite(svc, 10)},
 					{Host: "redis", Value: "redis", Prov: cite(svc, 11)},
-					{Host: "docs.example.com", Scheme: "https", Value: "https://docs.example.com", Prov: cite(svc, 12)},
-					{Host: "api.example.com", Scheme: "https", Value: "https://api.example.com", Called: true, Prov: cite(svc, 13)},
+					{Host: "docs.partner.io", Scheme: "https", Value: "https://docs.partner.io", Prov: cite(svc, 12)},
+					{Host: "api.partner.io", Scheme: "https", Value: "https://api.partner.io", Called: true, Prov: cite(svc, 13)},
+					{Host: "tiles.partner.io", Scheme: "https", Value: "https://tiles.partner.io/style.json", Key: "lightStyle", Prov: cite(svc, 14)},
+					{Host: "links.partner.io", Scheme: "https", Value: "https://links.partner.io/", Key: "releaseUrl", Built: true, Prov: cite(svc, 15)},
 				},
-				Calls: []archdoc.Call{{Callee: "fetch", Target: "new URL('predict', url)", Prov: cite(svc, 20)}}},
+				Imports: []archdoc.Import{{Spec: "nodemailer", Package: "nodemailer", How: archdoc.ByPackage, Prov: cite(svc, 1)}},
+				Calls:   []archdoc.Call{{Callee: "fetch", Target: "new URL('predict', url)", Prov: cite(svc, 20)}}},
 		}}},
 	}
 }
@@ -79,14 +82,28 @@ func TestEdgesFromTheCode(t *testing.T) {
 	if e := edges["svc:server>svc:redis"]; e.Label != "connects to" || !e.Traffic {
 		t.Errorf("server → redis: %+v", e)
 	}
-	if _, ok := edges["svc:server>ext:docs.example.com"]; ok {
+	if _, ok := edges["svc:server>ext:docs.partner.io"]; ok {
 		t.Error("a URL the code only mentions became a relationship")
 	}
-	if e, ok := edges["svc:server>ext:api.example.com"]; !ok || e.Label != "calls" {
+	if e, ok := edges["svc:server>ext:api.partner.io"]; !ok || e.Label != "calls" {
 		t.Errorf("a URL the code calls: %+v", e)
 	}
-	if n, ok := m.Node("ext:api.example.com"); !ok || n.Evidence != archdoc.Referenced {
+	if n, ok := m.Node("ext:api.partner.io"); !ok || n.Evidence != archdoc.Referenced {
 		t.Errorf("external %+v", n)
+	}
+	// A URL a configuration key holds is an endpoint; the same in a template file, or built, is a link.
+	if e, ok := edges["svc:server>ext:tiles.partner.io"]; !ok || e.Label != "is configured to reach" {
+		t.Errorf("a configured endpoint: %+v", e)
+	}
+	if _, ok := edges["svc:server>ext:links.partner.io"]; ok {
+		t.Error("a link the code builds became a relationship")
+	}
+	// A client library names a system outside: read at the import, looked up in the catalog.
+	if e, ok := edges["svc:server>ext:email-server-smtp"]; !ok || e.Label != "sends email through" || e.LabelProv.Origin != archdoc.Catalog || e.Prov[0].Line != 1 {
+		t.Errorf("an SDK's system: %+v", e)
+	}
+	if n, _ := m.Node("ext:email-server-smtp"); n.NameProv.Origin != archdoc.Catalog || n.Evidence != archdoc.Referenced {
+		t.Errorf("the SMTP server: %+v", n)
 	}
 	if len(m.Unresolved) != 1 || m.Unresolved[0].What != "fetch(new URL('predict', url))" || m.Unresolved[0].Component != "cmp:server/services" {
 		t.Errorf("unresolved %+v", m.Unresolved)

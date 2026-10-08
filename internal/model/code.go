@@ -2,6 +2,7 @@ package model
 
 import (
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -11,6 +12,24 @@ import (
 // What the code says about the system beyond its own structure (F-04, F-08, F-13, F-32): the
 // routes it serves, the other containers it reaches, and the calls whose target only exists at
 // run time.
+
+// A property that holds an endpoint: url, baseUrl, endpoint, host, issuer, lightStyle.
+var endpointKey = regexp.MustCompile(`(?i)(url|uri|endpoint|host|hostname|server|origin|issuer|style)s?$`)
+
+// configured reports a URL a configuration key holds, whole, in code that is not a template: an
+// endpoint the application is set up to reach. A link an email or a page shows is not one.
+func configured(h archdoc.HostRef, f archdoc.SourceFile) bool {
+	if h.Built || h.Scheme == "" || !endpointKey.MatchString(h.Key) {
+		return false
+	}
+	return f.Language != "TSX" && f.Language != "Svelte" && !strings.HasSuffix(f.Path, ".jsx")
+}
+
+// placeholder reports a host that stands for no real system: this machine, or documentation's.
+func placeholder(host string) bool {
+	return host == "localhost" || host == "0.0.0.0" || strings.HasPrefix(host, "127.") ||
+		host == "example.com" || host == "example.org" || strings.HasSuffix(host, ".example.com") || strings.HasSuffix(host, ".local")
+}
 
 // NestJS's route decorators, and the HTTP method each declares.
 var nestMethods = map[string]string{
@@ -35,6 +54,7 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 		if !ok {
 			continue
 		}
+		sdks(m, src, container, has)
 		m.Entries = append(m.Entries, routes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, fastapiRoutes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, pages(src, container, componentOf)...)
@@ -45,8 +65,10 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 				to := ""
 				if name, ok := declared[h.Host]; ok {
 					to = serviceID(name)
-				} else if h.Called && h.Host != "localhost" && !strings.HasPrefix(h.Host, "127.") {
-					// Not this repository's, and called directly: an external system the code reaches.
+				} else if (h.Called || configured(h, f)) && !placeholder(h.Host) {
+					// Not this repository's, and either called directly or held by a configuration
+					// key — url, endpoint, host: an external system the code reaches. A URL in a
+					// sentence, a link or a comment is none of these, and draws nothing.
 					to = externalID(h.Host)
 					if !has[to] {
 						has[to] = true
@@ -58,7 +80,10 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 					continue
 				}
 				label := "connects to"
-				if h.Scheme == "http" || h.Scheme == "https" || h.Scheme == "ws" || h.Scheme == "wss" {
+				switch {
+				case !h.Called && strings.HasPrefix(to, "ext:"):
+					label = "is configured to reach" // a default the code holds, not a call it was seen to make
+				case h.Scheme == "http" || h.Scheme == "https" || h.Scheme == "ws" || h.Scheme == "wss":
 					label = "calls"
 				}
 				m.Edges = append(m.Edges, archdoc.Edge{From: container, To: to, Label: label,

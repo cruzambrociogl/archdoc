@@ -135,7 +135,7 @@ existence.
 differently:
 
 ```
-node.kind      application | datastore | queue | proxy | external | actor | system | component | table
+node.kind      application | datastore | queue | proxy | external | actor | system | component | table | module
 node.evidence  declared | referenced
 node.parent    which container it lives inside   (set on components)
 ```
@@ -144,7 +144,8 @@ node.parent    which container it lives inside   (set on components)
 |---|---|---|
 | **Container** | `kind ∈ {application, datastore, queue}`, plus the external systems they touch | Node kind, edge protocol, catalog for technology |
 | **Context** | Collapse everything `declared` into one box; keep `referenced` and actors; keep edges crossing the line | Only **actors** |
-| **Component** | Components whose `parent` is a given container, and the imports between them | The code itself: parsed with tree-sitter, every import resolved and cited (since 5 Oct) |
+| **Component** | Components whose `parent` is a given container, and the imports between them. A component is a feature — a name spanning the roles its files carry (`album.controller`, `album.service`, …) — where the code is named that way, a folder otherwise | The code itself: parsed with tree-sitter, every import resolved and cited (since 5 Oct) |
+| **By folder** | Modules whose `parent` is a given container: the same code by where its files are, kept beside the features | The same |
 | **Data** | Tables whose `parent` is a given container, and the foreign keys between them | The classes the code marks as tables — TypeORM-style decorators, SQLModel, SQLAlchemy |
 
 Beside the graph, the model carries what the code says the system *does*: **entries** (HTTP routes
@@ -217,7 +218,7 @@ is as good as the environment**, and the environment is usually somewhere else.
 |---|---|---|
 | 1 Discover | `internal/extract` | Content-sniff for recall, reject fragments for precision |
 | 2 Extract | `internal/extract`, `internal/code` | Two passes — O-8 established that positions do not survive the merge. Also reads what the compose file *points at*: dotenv files it names, and gateway configs it mounts. Applications are found by their manifests, and each running one's code is parsed: files, and every import resolved by path, alias or module, or kept unresolved |
-| 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws. Code becomes components — a directory under the source root, split where one holds most of a large application — and imports become "uses"; table classes become tables; route decorators and page files become entries; a host named in a literal becomes an edge between containers; each route is followed into a flow |
+| 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws. Code becomes components — a directory under the source root, split where one holds most of a large application — and imports become "uses"; table classes become tables; route decorators and page files become entries; a host named in a literal becomes an edge between containers; a configured URL or a known client library becomes an external system; each route is followed into a flow |
 | 4 Refine | `internal/rules` | `.archdoc/rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment. Compiles to the same operations the semantic layer emits |
 | 5 Label, explain | `internal/semantic` | The only package permitted outbound calls. `--label` names and describes containers; run live on Supabase, where structure was identical with it on and off (AC-2). `--explain` asks what each component does: sent names and the code's own route summaries, answered in sentences that must each cite a fact or be refused, remembered in `.archdoc/interpretations.json` by a fingerprint of the facts so nothing is asked twice |
 | 6 Validate | `internal/validate` | Every rule traceable to a failure seen in the draw.io experiment. Two severities: wrong is refused, thin is published and reported |

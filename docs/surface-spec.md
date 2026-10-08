@@ -370,11 +370,13 @@ probe, lenses, PNG and share-card export. Unresolved calls show on the canvas as
 badge on the box they leave from, listed in its inspector (8 Oct) — a count, not a stub to a
 target that was never found.
 
-**As built — components.** A component is a directory under an application's source root, or a
-module where the code is flat; an arrow is "uses", backed by imports, and thickens with their
-number. Arrows carry no label there — every one would say the same. A component most of the others
+**As built — components.** A component is a feature where the code names its files by role — album
+is its controller, service, repository and tables — and a directory under the source root
+otherwise (`decisions.md`, 8 Oct); where it is a feature, a By feature / By folder switch shows the
+same code either way. An arrow is "uses", backed by imports, and thickens with their number. Arrows carry no label there — every one would say the same. A component most of the others
 use — utilities, shared types — is marked shared: its box says "used by 12 of 13 · arrows not
-drawn" and nothing is drawn into it, which is what keeps a layered application's picture readable.
+drawn" and nothing is drawn into it; one that uses most of the others — a base class, an index
+file — is marked the same way, outward. That is what keeps a large application's picture readable.
 
 ### 5.3 Inspector — an element's passport
 

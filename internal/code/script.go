@@ -222,6 +222,21 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 				if v, ok := urlPrefix(n, l, src); ok {
 					if h, ok := hostOf(v); ok {
 						h.Prov = at(n)
+						_, whole := literal(n, l, src)
+						h.Built = !whole
+						// The property it is the value of, through a default, a choice or a list:
+						// url: isProd ? 'https://a' : 'https://b', urls: [env.X || 'http://ml:3003'].
+						for p, hops := n.Parent(), 0; p != nil && hops < 4; p, hops = p.Parent(), hops+1 {
+							switch p.Type(l) {
+							case "ternary_expression", "binary_expression", "array", "parenthesized_expression":
+								continue
+							case "pair":
+								if p.NamedChildCount() > 0 {
+									h.Key = unquote(text(p.NamedChild(0)))
+								}
+							}
+							break
+						}
 						out.hosts = append(out.hosts, h)
 					}
 				}

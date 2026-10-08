@@ -418,12 +418,19 @@ type Literal struct {
 // HostRef is a network location the code names: "http://immich-machine-learning:3003", or the
 // 'redis' in `host: env.REDIS_HOSTNAME || 'redis'`.
 type HostRef struct {
-	Host   string     `json:"host"`
-	Port   string     `json:"port,omitempty"`
-	Scheme string     `json:"scheme,omitempty"`
-	Value  string     `json:"value"`            // the literal
-	Called bool       `json:"called,omitempty"` // the literal is the target of an HTTP call itself
-	Prov   Provenance `json:"provenance"`
+	Host   string `json:"host"`
+	Port   string `json:"port,omitempty"`
+	Scheme string `json:"scheme,omitempty"`
+	Value  string `json:"value"`            // the literal
+	Called bool   `json:"called,omitempty"` // the literal is the target of an HTTP call itself
+	// Key is the property the literal is the value of, when it is one: the url in
+	// versionCheck: { url: 'https://…' }. A URL a configuration key holds is an endpoint the code
+	// is set up to reach; a URL in a sentence or a link is not.
+	Key string `json:"key,omitempty"`
+	// Built is set when the literal is only the start of a string the code completes —
+	// `https://github.com/…/${version}` — which is a link being made, not an endpoint configured.
+	Built bool       `json:"built,omitempty"`
+	Prov  Provenance `json:"provenance"`
 }
 
 // Call is an outbound HTTP call — fetch, axios, requests — whose target is an expression, not a

@@ -571,3 +571,28 @@ func TestSQLAlchemyColumns(t *testing.T) {
 		t.Errorf("id %+v", fields["id"])
 	}
 }
+
+// A URL records the property that holds it — through a default, a choice or a list — and whether
+// the code only starts it: what tells a configured endpoint from a link being built.
+func TestURLKeys(t *testing.T) {
+	root := tree(t, map[string]string{
+		"srv/src/config.ts": "export const c = {\n  versionCheck: { url: isProd ? 'https://version.app.io/v' : 'https://dev.app.io/v' },\n  releaseUrl: `https://code.host.io/tag/${v}`,\n};\nconst note = 'see https://docs.app.io/x';\n",
+	})
+	src, _ := Read(root, archdoc.App{Dir: "srv", Language: "TypeScript"}, nil)
+	hosts := map[string]archdoc.HostRef{}
+	for _, h := range src.Files[0].Hosts {
+		hosts[h.Host] = h
+	}
+	if h := hosts["version.app.io"]; h.Key != "url" || h.Built {
+		t.Errorf("version %+v", h)
+	}
+	if h := hosts["dev.app.io"]; h.Key != "url" {
+		t.Errorf("dev %+v", h)
+	}
+	if h := hosts["code.host.io"]; h.Key != "releaseUrl" || !h.Built {
+		t.Errorf("release %+v", h)
+	}
+	if h := hosts["docs.app.io"]; h.Key != "" {
+		t.Errorf("a URL in a sentence has no key: %+v", h)
+	}
+}

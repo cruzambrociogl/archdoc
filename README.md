@@ -54,8 +54,8 @@ On Immich, at the revision the survey pins:
 ```console
 $ archdoc generate ./immich
 …
-9 elements, 4 relationships, from docker/docker-compose.yml
-61 components in 6 containers, 279 uses between them, from the code
+16 elements, 11 relationships, from docker/docker-compose.yml
+122 components in 6 containers, 964 uses between them, from the code
 68 tables in 1 container, 65 foreign keys between them, from the code
 304 routes, 55 pages, 18 commands, 66 jobs, and 11 calls whose target is computed at run time
 7 section(s) created for you to write — see docs/architecture/index.generated.md
@@ -83,6 +83,11 @@ view carries the container diagram and the evidence for it:
 Every value carries the citation for *that value*: a box is proven by the line declaring it, its
 framework by the line of the manifest that names it, a data store's product by a lookup table that
 says so. Open any of those lines and the fact is there. That is the whole claim.
+
+A component here is not a folder. Immich's server files are named by what they are for and what
+they do — `album.controller.ts`, `album.service.ts`, `album.repository.ts`, `album.table.ts` — so
+`album` is a component: 13 files across five folders, 13 routes, six tables. The folders are still
+there, as a second view of the same code.
 
 The second table is why code matters. Immich's configuration never says the server talks to machine
 learning — it reaches it over a URL whose default is written in TypeScript. Reading configuration
