@@ -93,7 +93,9 @@ func (r *Recorder) Bytes() int {
 // is listed: a model archdoc does not know the price of reports its tokens and no cost, rather
 // than a guessed figure (NFR-6 asks for actual cost, and a wrong number is worse than none).
 var prices = map[string]struct{ In, Out float64 }{
-	"claude-opus-5": {In: 5, Out: 25},
+	"claude-opus-5":     {In: 5, Out: 25}, // runs logged before 8 Oct 2026
+	"claude-opus-5-5":   {In: 4, Out: 20},
+	"claude-sonnet-5-5": {In: 2, Out: 10},
 }
 
 // Cost returns the dollar cost of a run, and whether the model's price is known.

@@ -28,7 +28,12 @@ import (
 
 // Model is the default. A caller may override it; nothing else in archdoc depends on which model
 // answered, because nothing else trusts the answer beyond what the validator accepts.
-const Model = "claude-opus-5"
+const Model = "claude-opus-5-5"
+
+// ExplainModel writes what each component does (--explain). Turning a list of facts into three
+// cited sentences does not need the largest model, and there is a request per component: it runs
+// on a smaller one, at a fraction of the price (docs/decisions.md, 8 Oct).
+const ExplainModel = "claude-sonnet-5-5"
 
 // Attempts is VAL-07's fixed retry budget: validation errors go back to the model this many times
 // at most, then the run fails loudly with the offending operations (VAL-08).

@@ -710,6 +710,7 @@ The fact wording changed, so remembered answers are asked for again on the next 
 **2026-10-08 — The model stays `claude-opus-5`**
 Asked whether to move the default to a newer Opus: no. Labels and explanations were run and priced
 on `claude-opus-5`; `internal/semantic` keeps it as the default and the only priced model.
+*Superseded the same day — see "Two models, by what the job needs" below.*
 
 **2026-10-08 — A component is a responsibility, not a folder (D-2, F-10)**
 Looking at Immich in the explorer, Cruz saw that the component level showed how the code is filed —
@@ -734,3 +735,15 @@ And a well-known client library names the system it talks to — `nodemailer` an
 `openid-client` an identity provider, `huggingface_hub` the Hub — by a lookup table, cited as a
 lookup the way an image's technology is: the import is read, the meaning is looked up, and the two
 are told apart. Immich: seven external systems, none of them a link.
+
+**2026-10-08 — Two models, by what the job needs; trivial components are not asked about**
+The first full `--explain` run cost $1.52 for 43 components, and Immich now has 122. Measured on
+five components after the prompt was fixed (no retries): 1,220 tokens in and 337 out each, $0.0145
+on Claude Opus 5 — two thirds of it output. Decided with Cruz: `--explain` moves to
+`claude-sonnet-5-5` ($2 / $10 per million against $5 / $25) at low effort, since turning a fact list
+into three cited sentences does not need the largest model and there is a request per component;
+`--label`, one request for the whole system, moves to `claude-opus-5-5`, newer and a fifth cheaper
+than Opus 5. Effort is stated on every request, because its default differs by model and reasoning
+is billed as output. A component of one file with no route and no table is not asked about at
+all — its name is what there is to say. Not done: the batch API (half price, results later), which
+needs the run reworked.

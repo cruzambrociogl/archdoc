@@ -17,7 +17,7 @@ func explainModel() archdoc.Model {
 			{ID: "cmp:server/controllers", Name: "controllers", Kind: archdoc.Component, Parent: "svc:server", Dir: "server/src/controllers",
 				Files: []string{"server/src/controllers/album.controller.ts"}, Lines: 40, Prov: p("server/src/controllers/album.controller.ts", 1)},
 			{ID: "cmp:server/services", Name: "services", Kind: archdoc.Component, Parent: "svc:server", Dir: "server/src/services",
-				Files: []string{"server/src/services/album.service.ts"}, Lines: 90, Prov: p("server/src/services/album.service.ts", 1)},
+				Files: []string{"server/src/services/album.service.ts", "server/src/services/base.service.ts"}, Lines: 90, Prov: p("server/src/services/album.service.ts", 1)},
 		},
 		Edges: []archdoc.Edge{{From: "cmp:server/controllers", To: "cmp:server/services", Label: "uses", Weight: 3,
 			Prov: []archdoc.Provenance{p("server/src/controllers/album.controller.ts", 2)}}},
@@ -88,8 +88,8 @@ func TestUncitedSentencesAreRefused(t *testing.T) {
 	var prompts []string
 	answers := map[string][]string{
 		`component "services" inside`: {
-			`{"sentences":[{"text":"Holds the business logic.","cites":[]},{"text":"Talks to the database.","cites":["F99"]},{"text":"Is used by controllers.","cites":["F3"]}]}`,
-			`{"sentences":[{"text":"Holds the business logic.","cites":[]},{"text":"Is used by controllers.","cites":["F3"]}]}`,
+			`{"sentences":[{"text":"Holds the business logic.","cites":[]},{"text":"Talks to the database.","cites":["F99"]},{"text":"Is used by controllers.","cites":["F4"]}]}`,
+			`{"sentences":[{"text":"Holds the business logic.","cites":[]},{"text":"Is used by controllers.","cites":["F4"]}]}`,
 		},
 	}
 	m, _, rep, err := Explain(context.Background(), fake(answers, &prompts), "test-model", explainModel(), nil)
@@ -178,5 +178,23 @@ func TestABadAnswerDoesNotLoseTheOthers(t *testing.T) {
 	m, mem, rep, err = Explain(context.Background(), failing, "test-model", explainModel(), nil)
 	if err != nil || rep.Stopped == "" || len(m.Explanations) != 1 || len(mem) != 1 {
 		t.Errorf("err %v, stopped %q, explanations %d, remembered %d", err, rep.Stopped, len(m.Explanations), len(mem))
+	}
+}
+
+// A component of one file, with no route and no table, is not worth a request: its name is all
+// there is to say.
+func TestTrivialComponentsAreNotAskedAbout(t *testing.T) {
+	m := explainModel()
+	m.Nodes = append(m.Nodes, archdoc.Node{ID: "cmp:server/crypto", Name: "crypto", Kind: archdoc.Component, Parent: "svc:server",
+		Files: []string{"server/src/repositories/crypto.repository.ts"}, Lines: 40, Prov: archdoc.Provenance{File: "server/src/repositories/crypto.repository.ts", Line: 1}})
+	var prompts []string
+	_, _, rep, err := Explain(context.Background(), fake(nil, &prompts), "test-model", m, nil)
+	if err != nil || rep.Skipped != 1 || rep.Asked != 2 {
+		t.Errorf("skipped %d, asked %d, %v", rep.Skipped, rep.Asked, err)
+	}
+	for _, p := range prompts {
+		if strings.Contains(p, `component "crypto" inside`) {
+			t.Error("a one-file component with no route or table was asked about")
+		}
 	}
 }

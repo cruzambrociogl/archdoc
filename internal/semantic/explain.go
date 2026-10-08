@@ -67,6 +67,7 @@ type ExplainReport struct {
 	Asked      int // components the model was asked about
 	Remembered int // components whose remembered answer was reused
 	Stale      int // components shown an answer written for an earlier version of their facts
+	Skipped    int // components too small to be worth a request: one file, no routes, no tables
 	Refused    int // sentences refused: no citation, or one that does not resolve
 	// Unanswered are components the model gave no usable answer for — an empty reply, or one not
 	// in the agreed shape. Each is left without an explanation; the others keep theirs.
@@ -76,9 +77,10 @@ type ExplainReport struct {
 	Stopped string
 }
 
-// ExplainMaxTokens bounds one explanation: four sentences fit several times over, and a reply that
-// runs away — the first live run had one, on a component of a single file — stops there.
-const ExplainMaxTokens = 1500
+// ExplainMaxTokens bounds one explanation, reasoning included: four sentences fit several times
+// over, and a reply that runs away — the first live run had one, on a component of a single file —
+// stops there.
+const ExplainMaxTokens = 3000
 
 const (
 	maxFiles     = 10 // file names say least of all the facts, and were a third of what was sent
@@ -159,6 +161,21 @@ func ComponentFacts(m archdoc.Model, id string) []Fact {
 		add(fmt.Sprintf("declares table %q with columns %s", t.Name, strings.Join(cols, ", ")), t.Prov)
 	}
 	return out
+}
+
+// trivial reports a component a description would add nothing to: a single file that handles no
+// route and declares no table. Its name is what there is to say; asking would cost a request.
+func trivial(facts []Fact) bool {
+	files := 0
+	for _, f := range facts {
+		switch {
+		case strings.HasPrefix(f.Text, "file "):
+			files++
+		case strings.HasPrefix(f.Text, "handles "), strings.HasPrefix(f.Text, "is the page "), strings.HasPrefix(f.Text, "declares table "), strings.HasPrefix(f.Text, "… and"):
+			return false
+		}
+	}
+	return files <= 1
 }
 
 // legacyFingerprint is a component's fingerprint under the first fact wording — explain-1, routes
@@ -268,6 +285,8 @@ func ExplainSome(ctx context.Context, complete Completer, model string, m archdo
 		if r, ok := mem[fp]; ok {
 			claims = r.Claims
 			rep.Remembered++
+		} else if complete != nil && trivial(facts) {
+			rep.Skipped++
 		} else if complete != nil && strings.Contains(id, only) && (limit == 0 || rep.Asked < limit) {
 			// A request that was paid for is never thrown away: one component's bad answer leaves
 			// that component unexplained, and a failed request stops the asking, not the run.

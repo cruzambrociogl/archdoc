@@ -128,10 +128,10 @@ func generate(args []string, out io.Writer) error {
 	var rec *semantic.Recorder
 	if *explain {
 		rec = &semantic.Recorder{}
-		asker = semantic.ClaudeWith(semantic.Model, semantic.ExplainSchema(), semantic.ExplainMaxTokens, rec)
+		asker = semantic.ClaudeWith(semantic.ExplainModel, semantic.ExplainSchema(), semantic.ExplainMaxTokens, "low", rec)
 	}
 	started := time.Now()
-	explained, remembered, xrep, err := semantic.ExplainSome(context.Background(), asker, semantic.Model, m, memory, *explainOnly, *explainLimit)
+	explained, remembered, xrep, err := semantic.ExplainSome(context.Background(), asker, semantic.ExplainModel, m, memory, *explainOnly, *explainLimit)
 	// The memory is written the moment answers are paid for, not at the end of a run something
 	// later could stop — and it only grows: every answer it held stays, unless a newer answer
 	// about the same element replaces it. A plain run writes it too when it has something to add:
@@ -149,8 +149,8 @@ func generate(args []string, out io.Writer) error {
 	if *explain {
 		runID := logRun(facts.Root, rec, xrep.Report, started, err, out)
 		if err == nil {
-			fmt.Fprintf(out, "explained by %s: %d component(s) asked, %d remembered, %d sentence(s) refused for want of a citation\n",
-				xrep.Model, xrep.Asked, xrep.Remembered, xrep.Refused)
+			fmt.Fprintf(out, "explained by %s: %d component(s) asked, %d remembered, %d too small to ask about, %d sentence(s) refused for want of a citation\n",
+				xrep.Model, xrep.Asked, xrep.Remembered, xrep.Skipped, xrep.Refused)
 			if len(xrep.Unanswered) > 0 {
 				fmt.Fprintf(out, "no usable answer for %d, left unexplained: %s\n", len(xrep.Unanswered), strings.Join(xrep.Unanswered, ", "))
 			}

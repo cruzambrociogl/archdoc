@@ -26,13 +26,15 @@ import (
 //     request, the API re-runs it on Anthropic's recommended fallback instead of returning an
 //     empty refusal. A refusal that still gets through is reported, not guessed around.
 func Claude(model string, rec *Recorder, extra ...option.RequestOption) Completer {
-	return ClaudeWith(model, Schema(), 16000, rec, extra...)
+	return ClaudeWith(model, Schema(), 16000, "medium", rec, extra...)
 }
 
 // ClaudeWith is Claude answering in another schema — an explanation's sentences rather than a
 // labelling run's operations.
 // maxTokens bounds one answer: a reply that runs away is cut off, and costs, at that many tokens.
-func ClaudeWith(model string, schema map[string]any, maxTokens int64, rec *Recorder, extra ...option.RequestOption) Completer {
+// effort is how hard the model works on an answer — "low", "medium", "high" — stated on every
+// request, because its default differs from model to model and reasoning is billed as output.
+func ClaudeWith(model string, schema map[string]any, maxTokens int64, effort string, rec *Recorder, extra ...option.RequestOption) Completer {
 	// A key created at organisation level rather than inside a workspace must name the
 	// workspace on every request. Keys created inside a workspace need nothing extra, so
 	// the header is sent only when the variable is set.
@@ -75,6 +77,7 @@ func ClaudeWith(model string, schema map[string]any, maxTokens int64, rec *Recor
 			System:    []anthropic.BetaTextBlockParam{{Text: system}},
 			Messages:  msgs,
 			OutputConfig: anthropic.BetaOutputConfigParam{
+				Effort: anthropic.BetaOutputConfigEffort(effort),
 				Format: anthropic.BetaJSONOutputFormatParam{Schema: schema},
 			},
 			Fallbacks: anthropic.BetaFallbacksParamUnion{OfDefault: constant.ValueOf[constant.Default]()},
