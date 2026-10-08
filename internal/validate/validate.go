@@ -121,7 +121,7 @@ func (r *Result) sort() {
 var kinds = map[archdoc.Kind]bool{
 	archdoc.Application: true, archdoc.Datastore: true, archdoc.Queue: true,
 	archdoc.Proxy: true, archdoc.External: true, archdoc.System: true, archdoc.Actor: true,
-	archdoc.Component: true, archdoc.Table: true,
+	archdoc.Component: true, archdoc.Table: true, archdoc.Module: true,
 }
 
 // Model checks a whole model against every rule.

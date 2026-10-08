@@ -83,10 +83,14 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
           <span className="el-name">{n.name}</span>
         </div>
         {detail && <div className="el-tech">{tech}</div>}
-        {detail && n.used_by ? (
-          <div className="el-desc" title="Most of the other components use it; the arrows are in the inspector, not on the picture">
+        {detail && (n.used_by || n.uses_many) ? (
+          <div className="el-desc" title="It uses, or is used by, most of the others; those arrows are in the inspector, not on the picture">
             <span>
-              used by {n.used_by} of {n.among} · arrows not drawn
+              {n.used_by && n.uses_many
+                ? `used by ${n.used_by}, uses ${n.uses_many} of ${n.among} · not drawn`
+                : n.uses_many
+                  ? `uses ${n.uses_many} of ${n.among} · arrows not drawn`
+                  : `used by ${n.used_by} of ${n.among} · arrows not drawn`}
             </span>
           </div>
         ) : null}

@@ -43,8 +43,8 @@ export function Inspector({
   const edges = model.edges ?? []
   const node = nodes.find((n) => n.id === id)
   const edge = node ? undefined : edges.find((e) => `${e.from}>${e.to}` === id)
-  const parts = nodes.length > 0 && nodes.every((n) => n.kind === 'component' || n.kind === 'table')
-  const what = node ? kindStyle(node.kind).label.toLowerCase() : edge ? (edge.weight ? 'import' : 'relationship') : `${nodes.length} ${parts ? (nodes[0].kind === 'table' ? 'tables' : 'components') : 'elements'}`
+  const parts = nodes.length > 0 && nodes.every((n) => n.kind === 'component' || n.kind === 'table' || n.kind === 'module')
+  const what = node ? kindStyle(node.kind).label.toLowerCase() : edge ? (edge.weight ? 'import' : 'relationship') : `${nodes.length} ${parts ? (nodes[0].kind === 'table' ? 'tables' : nodes[0].kind === 'module' ? 'folders' : 'components') : 'elements'}`
 
   return (
     <aside className="inspector">
@@ -157,7 +157,7 @@ function Passport({
   onPage?: (id: string) => void
 }) {
   const name = (id: string) => nodes.find((n) => n.id === id)?.name ?? (id === node.parent ? container : id)
-  const component = node.kind === 'component'
+  const component = node.kind === 'component' || node.kind === 'module'
   const k = kindStyle(node.kind)
   const out = edges.filter((e) => e.from === node.id)
   const into = edges.filter((e) => e.to === node.id)
@@ -391,7 +391,7 @@ function Passport({
       )}
 
       <div className="inspector-actions">
-        {component && onPage && (
+        {node.kind === 'component' && onPage && (
           <button className="link-btn" onClick={() => onPage(node.id)}>
             Open its page
           </button>

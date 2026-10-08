@@ -158,6 +158,8 @@ func typeLabel(n archdoc.Node) string {
 		kind = "Software System"
 	case archdoc.Component:
 		kind = "Component"
+	case archdoc.Module:
+		kind = "Folder"
 	}
 
 	if n.Technology == "" {

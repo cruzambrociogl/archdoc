@@ -133,7 +133,7 @@ export function toFlow(
   // What stays lit when focusing: the selection and its direct neighbours.
   // A component view is dense — every import between two directories is an arrow — so selecting a
   // component focuses on it without being asked.
-  const focus = opts.focus || sc.view.startsWith('component:') || sc.view.startsWith('data:')
+  const focus = opts.focus || /^(component|data|structure):/.test(sc.view)
   const near = new Set<string>()
   if (focus && opts.selected && byId.has(opts.selected)) {
     near.add(opts.selected)

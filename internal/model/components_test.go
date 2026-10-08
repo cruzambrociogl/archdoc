@@ -138,3 +138,58 @@ func TestComponentsAreDeterministic(t *testing.T) {
 		}
 	}
 }
+
+// Where files are named by what they are for and what they do, a component is a name that spans
+// roles — album's controller, service, repository and tables — and the folders are a second view.
+func TestComponentsAreFeaturesWhereTheCodeNamesThem(t *testing.T) {
+	var files []string
+	for _, f := range []string{"album", "asset", "user"} {
+		files = append(files, "server/src/controllers/"+f+".controller.ts", "server/src/services/"+f+".service.ts",
+			"server/src/repositories/"+f+".repository.ts", "server/src/schema/tables/"+f+".table.ts")
+	}
+	files = append(files,
+		"server/src/repositories/album-user.repository.ts",       // extends a feature
+		"server/src/schema/tables/album-asset-audit.table.ts",    // a lone table of a feature's name
+		"server/src/repositories/machine-learning.repository.ts", // does something, alone
+		"server/src/schema/tables/geodata.table.ts",              // shapes data, alone
+		"server/src/utils/misc.ts", "server/src/main.ts")
+	imports := map[string][]string{
+		"server/src/controllers/album.controller.ts": {"server/src/services/album.service.ts", "server/src/services/asset.service.ts"},
+		"server/src/services/album.service.ts":       {"server/src/repositories/album.repository.ts", "server/src/utils/misc.ts"},
+	}
+	m := Derive(codeFacts("server", "server/src", files, imports))
+	nodes := byID(m)
+	album, ok := nodes["cmp:server/album"]
+	if !ok || album.Kind != archdoc.Component || len(album.Files) != 6 {
+		t.Fatalf("album: %+v", album)
+	}
+	if album.Prov.Note != "6 files named album.* — controller, repository, service, table" {
+		t.Errorf("album's note: %q", album.Prov.Note)
+	}
+	if n, ok := nodes["cmp:server/machine-learning"]; !ok || len(n.Files) != 1 {
+		t.Errorf("a lone repository is a component of its own: %+v", n)
+	}
+	if _, ok := nodes["cmp:server/geodata"]; ok {
+		t.Error("a lone table became a component")
+	}
+	if n := nodes["cmp:server/schema"]; len(n.Files) != 1 {
+		t.Errorf("the lone table stays with its folder: %+v", n.Files)
+	}
+	// One import inside album, one to asset, one to utils: two uses leave it.
+	var uses []string
+	for _, e := range m.Component("app:server").Edges {
+		if e.From == "cmp:server/album" {
+			uses = append(uses, e.To)
+		}
+	}
+	if len(uses) != 2 || uses[0] != "cmp:server/asset" || uses[1] != "cmp:server/utils" {
+		t.Errorf("album uses %v", uses)
+	}
+	// The folders are still there, as the other view of the same code.
+	if folder, ok := nodes["dir:server/controllers"]; !ok || folder.Kind != archdoc.Module || len(folder.Files) != 3 {
+		t.Errorf("controllers folder: %+v", folder)
+	}
+	if got := len(m.Structure("app:server").Nodes); got != 6 {
+		t.Errorf("%d folders, want controllers, services, repositories, schema, utils and the top level", got)
+	}
+}

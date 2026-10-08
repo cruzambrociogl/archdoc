@@ -23,6 +23,9 @@ type View struct {
 const (
 	ComponentPrefix = "component:"
 	DataPrefix      = "data:"
+	// StructurePrefix starts the name of a container's by-folder view, where its components are
+	// features and the folders are the other way to read the same code.
+	StructurePrefix = "structure:"
 )
 
 // Views lists every diagram of the model, in a fixed order: context, container, then one
@@ -34,6 +37,9 @@ func Views(m archdoc.Model) []View {
 	}
 	for _, id := range m.Components() {
 		out = append(out, componentView(m, id))
+	}
+	for _, id := range m.Structures() {
+		out = append(out, structureView(m, id))
 	}
 	for _, id := range m.Datas() {
 		out = append(out, dataView(m, id))
@@ -53,6 +59,13 @@ func ViewOf(m archdoc.Model, name string) (View, bool) {
 		for _, c := range m.Components() {
 			if c == id {
 				return componentView(m, id), true
+			}
+		}
+	case strings.HasPrefix(name, StructurePrefix):
+		id := strings.TrimPrefix(name, StructurePrefix)
+		for _, c := range m.Structures() {
+			if c == id {
+				return structureView(m, id), true
 			}
 		}
 	case strings.HasPrefix(name, DataPrefix):
@@ -81,6 +94,20 @@ func componentView(m archdoc.Model, id string) View {
 	}
 }
 
+// structureView is one container's code by folder.
+func structureView(m archdoc.Model, id string) View {
+	view := unlabelled(m.Structure(id))
+	markShared(&view)
+	_, local, _ := strings.Cut(id, ":")
+	return View{
+		Name:  StructurePrefix + id,
+		File:  "structure-" + strings.ReplaceAll(local, "/", "-"),
+		Title: "Folders of " + view.Name,
+		Model: view,
+		Group: true,
+	}
+}
+
 // dataView is one container's tables, drawn inside a boundary that names where they are stored.
 func dataView(m archdoc.Model, id string) View {
 	view := unlabelled(m.Data(id)) // an arrow between tables is a foreign key; the box says which column
@@ -101,25 +128,40 @@ func dataView(m archdoc.Model, id string) View {
 	}
 }
 
-// A component is shared when at least sharedMin others use it, and they are at least three in
-// five of the others: Immich's server has four — its top-level types, utils, dtos, repositories —
-// and they draw 43 of its 73 arrows between them.
-const sharedMin = 4
+// A part is shared when many of the others use it, and wiring when it uses many of the others: at
+// least sharedMin, and at least three in five of the others in a small view, a quarter in a large
+// one. Immich's server, by feature, is 75 components and 758 uses; eleven shared ones — its types,
+// utils, auth, logging, config — and seven that wire everything together carry 649 of them.
+const (
+	sharedMin = 4
+	largeView = 20 // parts, beyond which a quarter of the others is already "most things"
+)
 
-// markShared marks the components most others use. The layout then draws no arrow into them, and
-// their box says how many use them: a picture of who depends on the shared kernel is a picture of
-// everything, and hides the rest.
+// markShared marks the parts most others use, and the ones that use most others. The layout then
+// draws no arrow into the first or out of the second, and their boxes say so in words: a picture
+// of who depends on the shared kernel is a picture of everything, and hides the rest.
 func markShared(view *archdoc.Model) {
 	others := len(view.Nodes) - 1
-	usedBy := map[string]int{}
+	need := (3*others + 4) / 5
+	if others > largeView {
+		need = (others + 3) / 4
+	}
+	if need < sharedMin {
+		need = sharedMin
+	}
+	usedBy, uses := map[string]int{}, map[string]int{}
 	for _, e := range view.Edges {
 		usedBy[e.To]++
+		uses[e.From]++
 	}
 	nodes := make([]archdoc.Node, len(view.Nodes))
 	copy(nodes, view.Nodes)
 	for i, n := range nodes {
-		if u := usedBy[n.ID]; u >= sharedMin && 5*u >= 3*others {
+		if u := usedBy[n.ID]; u >= need {
 			nodes[i].UsedBy, nodes[i].Among = u, others
+		}
+		if u := uses[n.ID]; u >= need {
+			nodes[i].UsesMany, nodes[i].Among = u, others
 		}
 	}
 	view.Nodes = nodes
@@ -167,6 +209,6 @@ func relational(tech string) bool {
 
 // ComponentFile reports whether name is a file archdoc writes for a component or a data view.
 func ComponentFile(name string) bool {
-	return (strings.HasPrefix(name, "component-") || strings.HasPrefix(name, "data-")) &&
+	return (strings.HasPrefix(name, "component-") || strings.HasPrefix(name, "data-") || strings.HasPrefix(name, "structure-")) &&
 		(strings.HasSuffix(name, ".svg") || strings.HasSuffix(name, ".mmd"))
 }

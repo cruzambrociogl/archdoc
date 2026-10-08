@@ -340,7 +340,9 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 			continue
 		}
 		if component[n.ID] {
-			parts++
+			if n.Kind == archdoc.Component {
+				parts++
+			}
 			continue
 		}
 		elements++

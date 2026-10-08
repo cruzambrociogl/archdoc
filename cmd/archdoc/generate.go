@@ -328,13 +328,20 @@ func generate(args []string, out io.Writer) error {
 		kind[n.ID] = n.Kind
 		count[n.Kind]++
 	}
-	elements, relationships, uses, references := len(m.Nodes)-count[archdoc.Component]-count[archdoc.Table], 0, 0, 0
+	elements, relationships, uses, references := 0, 0, 0, 0
+	for _, n := range m.Nodes {
+		if !n.Kind.Part() {
+			elements++
+		}
+	}
 	for _, e := range m.Edges {
-		switch {
-		case kind[e.From] == archdoc.Component:
+		switch k := kind[e.From]; {
+		case k == archdoc.Component:
 			uses++
-		case kind[e.From] == archdoc.Table:
+		case k == archdoc.Table:
 			references++
+		case k.Part():
+			// the same code by folder: counted as components, not twice
 		default:
 			relationships++
 		}

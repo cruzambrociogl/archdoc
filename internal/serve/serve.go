@@ -288,6 +288,8 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 		"components": opens(v.Model, archdoc.Component, v.Model.Components()),
 		// The containers whose code declares tables: they open onto a data view.
 		"data": opens(v.Model, archdoc.Table, v.Model.Datas()),
+		// The containers whose components are features, and so have a by-folder view as well.
+		"structure": opens(v.Model, archdoc.Module, v.Model.Structures()),
 		// How many containers the system box opens onto, in the context view.
 		"containers": containers(v.Model),
 		// What the code does that could not be tied to an element, for the boxes it leaves from.

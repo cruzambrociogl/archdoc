@@ -35,12 +35,16 @@ const (
 	// Table is a table the code declares — a class it marks as one, with its columns — inside the
 	// container whose code declares it (F-07). It appears only in that container's data view.
 	Table Kind = "table"
+	// Module is a folder of an application's code, inside the container named by Parent. It
+	// appears only in that container's "by folder" view, where components are features and the
+	// folders are the other way to read the same code.
+	Module Kind = "module"
 )
 
 // Part reports whether this kind lives inside a container, read from its code, rather than being
 // one of the elements configuration describes: a component, a table.
 func (k Kind) Part() bool {
-	return k == Component || k == Table
+	return k == Component || k == Table || k == Module
 }
 
 // Container reports whether this kind is a C4 container.
@@ -58,7 +62,7 @@ func (k Kind) rank() int {
 	switch k {
 	case Actor:
 		return 0
-	case System, Application, Component, Table:
+	case System, Application, Component, Table, Module:
 		return 1
 	case Datastore:
 		return 2
@@ -121,6 +125,9 @@ type Node struct {
 	// that in words on its box rather than with an arrow from each. The arrows stay in the model.
 	UsedBy int `json:"used_by,omitempty"`
 	Among  int `json:"among,omitempty"`
+	// UsesMany is the mirror: a part that uses that many of the others — a base class given every
+	// repository, an index file that re-exports a folder — whose outgoing arrows are not drawn either.
+	UsesMany int `json:"uses_many,omitempty"`
 
 	// DescProv and TechProv are separate from Prov because they can come from somewhere
 	// else. A node is proven by the line that declares it; its technology may come from the
@@ -440,6 +447,10 @@ func (m Model) Component(of string) Model { return m.inside(of, Component) }
 // foreign keys between them.
 func (m Model) Data(of string) Model { return m.inside(of, Table) }
 
+// Structure projects one container into its folders: the same code as its component view, by
+// where the files are rather than by what they are for.
+func (m Model) Structure(of string) Model { return m.inside(of, Module) }
+
 func (m Model) inside(of string, kind Kind) Model {
 	keep := map[string]bool{}
 	for _, n := range m.Nodes {
@@ -477,6 +488,9 @@ func (m Model) Components() []string { return m.holding(Component) }
 
 // Datas lists the containers that have a data view, in model order.
 func (m Model) Datas() []string { return m.holding(Table) }
+
+// Structures lists the containers that have a by-folder view beside their components.
+func (m Model) Structures() []string { return m.holding(Module) }
 
 func (m Model) holding(kind Kind) []string {
 	has := map[string]bool{}

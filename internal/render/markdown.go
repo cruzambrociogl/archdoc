@@ -209,6 +209,8 @@ func typeName(k archdoc.Kind) string {
 		return "Component"
 	case archdoc.Table:
 		return "Table"
+	case archdoc.Module:
+		return "Folder"
 	default:
 		return "Container"
 	}

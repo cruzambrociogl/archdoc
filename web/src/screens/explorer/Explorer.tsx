@@ -3,7 +3,7 @@ import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, V
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
 import type { DiffResponse, Opening, SceneResponse, Version } from '../../api'
-import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, source, useApi } from '../../api'
+import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, source, structureLevel, structureOf, useApi } from '../../api'
 import type { Route } from '../../route'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
@@ -126,7 +126,8 @@ function Toolbar(props: {
   const [saving, setSaving] = useState(false)
   // The Components and Data tabs open the selected container when it has them, else the one on
   // screen, else the first that does.
-  const lens = componentOf(props.level) ? 'component' : dataOf(props.level) ? 'data' : props.level
+  const byFolder = structureOf(props.level) !== undefined
+  const lens = componentOf(props.level) || byFolder ? 'component' : dataOf(props.level) ? 'data' : props.level
   const inside = insideOf(props.level)
   const openings = { component: props.scene?.components ?? [], data: props.scene?.data ?? [] }
   const targetOf = (list: Opening[]) => list.find((o) => o.id === props.route.focus)?.id ?? list.find((o) => o.id === inside)?.id ?? list[0]?.id
@@ -163,6 +164,16 @@ function Toolbar(props: {
           noun={lens === 'data' ? 'tables' : 'components'}
         />
       )}
+      {inside && lens === 'component' && (props.scene?.structure ?? []).some((o) => o.id === inside) && (
+        <div className="segmented" role="tablist" aria-label="How the code is grouped" title="The same code, by what it is for or by where its files are">
+          <button className={byFolder ? '' : 'on'} role="tab" aria-selected={!byFolder} onClick={() => props.go({ screen: 'explorer', level: componentLevel(inside), from: props.route.from })}>
+            By feature
+          </button>
+          <button className={byFolder ? 'on' : ''} role="tab" aria-selected={byFolder} onClick={() => props.go({ screen: 'explorer', level: structureLevel(inside), from: props.route.from })}>
+            By folder
+          </button>
+        </div>
+      )}
       <label className={`tool compare ${props.route.from !== undefined ? 'on' : ''}`} title="Mark on the diagram what changed since another version">
         <span className="mono strong">Δ</span>
         <select
@@ -190,7 +201,7 @@ function Toolbar(props: {
       <a
         className="tool"
         href={source(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
-        download={`${props.level.replace(/^(component|data):[^:]*:/, '$1-').replace(/[:/]/g, '-')}.svg`}
+        download={`${props.level.replace(/^(component|data|structure):[^:]*:/, '$1-').replace(/[:/]/g, '-')}.svg`}
         title="The same scene, as the committed SVG"
       >
         Export SVG
@@ -597,7 +608,7 @@ function ZoomControls({ editable }: { editable: boolean }) {
 function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; selected: string | null; route: Route; delta?: Delta }) {
   const n = scene.model.nodes?.length ?? 0
   const e = scene.model.edges?.length ?? 0
-  const parts = componentOf(scene.view)
+  const parts = componentOf(scene.view) ?? structureOf(scene.view)
   const tables = dataOf(scene.view)
   const url = [`level=${scene.view}`, selected && `focus=${selected}`, route.q && `q=${route.q}`, route.dim && 'dim=1', route.from !== undefined && `from=${route.from}`]
     .filter(Boolean)
@@ -606,7 +617,7 @@ function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; se
     <div className="explorer-status">
       <span>
         {parts
-          ? `${n} components of ${scene.model.name} · ${e} uses, each an import`
+          ? `${n} ${structureOf(scene.view) ? 'folders' : 'components'} of ${scene.model.name} · ${e} uses, each an import`
           : tables
             ? `${n} tables of ${scene.model.name} · ${e} foreign keys`
             : `${n} elements · ${e} relationships`}

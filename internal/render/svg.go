@@ -160,7 +160,7 @@ func box(n archdoc.Node, r archdoc.Rect) string {
 		fill, stroke, text, dash = "#ffffff", "#8b8b8b", "#3d3d3d", ` stroke-dasharray="5 3"`
 	case n.Kind == archdoc.Datastore:
 		fill, stroke = "#2574b8", "#0b4884"
-	case n.Kind == archdoc.Component:
+	case n.Kind == archdoc.Component || n.Kind == archdoc.Module:
 		// C4's component blue: lighter than the container it sits in, with dark text.
 		fill, stroke, text = "#85bbf0", "#5d82a8", "#0b2a4a"
 	}
@@ -205,6 +205,8 @@ func svgTypeLabel(n archdoc.Node) string {
 		kind = "Software System"
 	case archdoc.Component:
 		kind = "Component"
+	case archdoc.Module:
+		kind = "Folder"
 	}
 	if n.Technology == "" {
 		return "[" + kind + "]"

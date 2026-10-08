@@ -36,6 +36,8 @@ export interface Node {
   /** In a component view: most of the others use it, so its box says so and no arrow is drawn into it. */
   used_by?: number
   among?: number
+  /** The mirror: it uses most of the others, so no arrow is drawn out of it. */
+  uses_many?: number
   provenance: Provenance
 }
 
@@ -141,10 +143,13 @@ export interface Opening {
 /** The component view of a container is the level `component:<container id>`; its data view `data:<container id>`. */
 export const componentLevel = (id: string) => `component:${id}`
 export const dataLevel = (id: string) => `data:${id}`
+/** A container's code by folder, where its components are features: `structure:<container id>`. */
+export const structureLevel = (id: string) => `structure:${id}`
+export const structureOf = (level?: string) => (level?.startsWith('structure:') ? level.slice('structure:'.length) : undefined)
 export const componentOf = (level?: string) => (level?.startsWith('component:') ? level.slice('component:'.length) : undefined)
 export const dataOf = (level?: string) => (level?.startsWith('data:') ? level.slice('data:'.length) : undefined)
 /** The container a level is inside of, whichever lens. */
-export const insideOf = (level?: string) => componentOf(level) ?? dataOf(level)
+export const insideOf = (level?: string) => componentOf(level) ?? dataOf(level) ?? structureOf(level)
 
 // The layout a view is drawn at (internal/archdoc/layout.go), and the scene that pairs them.
 export interface Point {
@@ -177,6 +182,8 @@ export interface SceneResponse {
   components: Opening[]
   /** Containers whose code declares tables; `components` here counts their tables. */
   data: Opening[]
+  /** Containers whose components are features, and so have a by-folder view too; counts their folders. */
+  structure?: Opening[]
   /** How many elements the container view holds: what the system box opens onto. */
   containers: number
   /** Calls the code makes to an address computed at run time, by the container and component they leave from. */

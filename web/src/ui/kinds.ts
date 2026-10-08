@@ -31,6 +31,7 @@ const kinds: Record<string, KindStyle> = {
   application: { label: 'Container', hue: 'slate', icon: icons.container },
   component: { label: 'Component', hue: 'slate', icon: icons.component },
   table: { label: 'Table', hue: 'teal', icon: icons.entity },
+  module: { label: 'Folder', hue: 'slate', icon: icons.container },
   proxy: { label: 'Proxy', hue: 'slate', icon: icons.proxy },
   datastore: { label: 'Data store', hue: 'teal', icon: icons.datastore },
   queue: { label: 'Queue', hue: 'teal', icon: icons.queue },
