@@ -214,10 +214,13 @@ type Model struct {
 // Fingerprint identifies those facts: while they are unchanged, the explanation is reused rather
 // than asked for again (F-30), so a run with no change costs nothing and changes nothing.
 type Explanation struct {
-	Element     string     `json:"element"`
-	Claims      []Claim    `json:"claims"`
-	Fingerprint string     `json:"fingerprint"`
-	Prov        Provenance `json:"provenance"` // Origin Semantic; the note names the model
+	Element     string  `json:"element"`
+	Claims      []Claim `json:"claims"`
+	Fingerprint string  `json:"fingerprint"`
+	// Stale is set when the element's facts have changed since this was written: the last answer
+	// is shown rather than none, and says so, until the model is asked again.
+	Stale bool       `json:"stale,omitempty"`
+	Prov  Provenance `json:"provenance"` // Origin Semantic; the note names the model
 }
 
 // Claim is one sentence and the facts it cites. Every cite resolves to a fact archdoc gave the

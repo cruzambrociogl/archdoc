@@ -41,14 +41,32 @@ type Fact struct {
 	Prov archdoc.Provenance
 }
 
-// Memory is the remembered answers, by fingerprint.
-type Memory map[string][]archdoc.Claim
+// Memory is the remembered answers, by the fingerprint of the facts each was given.
+type Memory map[string]Remembered
+
+// Remembered is one answer and the element it is about. Knowing the element is what lets an
+// answer outlive its facts: when they change, the last answer is still shown — marked as written
+// for an earlier version — until --explain asks again.
+type Remembered struct {
+	Element string          `json:"element,omitempty"`
+	Claims  []archdoc.Claim `json:"claims"`
+}
+
+// UnmarshalJSON also reads the first format of the memory file: a bare list of claims.
+func (r *Remembered) UnmarshalJSON(b []byte) error {
+	if len(b) > 0 && b[0] == '[' {
+		return json.Unmarshal(b, &r.Claims)
+	}
+	type plain Remembered
+	return json.Unmarshal(b, (*plain)(r))
+}
 
 // ExplainReport says what an explanation run did, for the run log.
 type ExplainReport struct {
 	Report
 	Asked      int // components the model was asked about
 	Remembered int // components whose remembered answer was reused
+	Stale      int // components shown an answer written for an earlier version of their facts
 	Refused    int // sentences refused: no citation, or one that does not resolve
 	// Unanswered are components the model gave no usable answer for — an empty reply, or one not
 	// in the agreed shape. Each is left without an explanation; the others keep theirs.
@@ -139,6 +157,22 @@ func ComponentFacts(m archdoc.Model, id string) []Fact {
 	return out
 }
 
+// legacyFingerprint is a component's fingerprint under the first fact wording — explain-1, routes
+// without their summaries — so answers remembered then can still be found.
+func legacyFingerprint(m archdoc.Model, id string) string {
+	plain := m
+	plain.Entries = append([]archdoc.Entry(nil), m.Entries...)
+	for i := range plain.Entries {
+		plain.Entries[i].Summary = ""
+	}
+	h := sha256.New()
+	h.Write([]byte("explain-1"))
+	for _, f := range ComponentFacts(plain, id) {
+		h.Write([]byte("\x00" + f.ID + " " + f.Text))
+	}
+	return hex.EncodeToString(h.Sum(nil))[:24]
+}
+
 // Fingerprint identifies a set of facts, as the model would see them.
 func Fingerprint(facts []Fact) string {
 	h := sha256.New()
@@ -206,11 +240,22 @@ func Explain(ctx context.Context, complete Completer, model string, m archdoc.Mo
 	}
 	sort.Strings(ids)
 	m.Explanations = nil
+	// The last answer about each element, whatever facts it was given.
+	earlier := map[string]string{}
+	for fp, r := range mem {
+		if r.Element != "" {
+			if old, ok := earlier[r.Element]; !ok || fp < old {
+				earlier[r.Element] = fp
+			}
+		}
+	}
 	for _, id := range ids {
 		facts := ComponentFacts(m, id)
 		fp := Fingerprint(facts)
-		claims, ok := mem[fp]
-		if ok {
+		stale := false
+		var claims []archdoc.Claim
+		if r, ok := mem[fp]; ok {
+			claims = r.Claims
 			rep.Remembered++
 		} else if complete != nil {
 			// A request that was paid for is never thrown away: one component's bad answer leaves
@@ -230,10 +275,23 @@ func Explain(ctx context.Context, complete Completer, model string, m archdoc.Mo
 			}
 		}
 		if len(claims) == 0 {
+			// Nothing for these facts: the last answer about this element stands in, marked. Found
+			// by the element it names, or — for a memory written before elements were recorded —
+			// by the fingerprint its facts had under the first wording.
+			old, ok := earlier[id]
+			if !ok {
+				old = legacyFingerprint(m, id)
+			}
+			if r, found := mem[old]; found && len(r.Claims) > 0 {
+				claims, stale, fp = r.Claims, true, old
+				rep.Stale++
+			}
+		}
+		if len(claims) == 0 {
 			continue
 		}
-		next[fp] = claims
-		m.Explanations = append(m.Explanations, archdoc.Explanation{Element: id, Claims: claims, Fingerprint: fp, Prov: prov})
+		next[fp] = Remembered{Element: id, Claims: claims}
+		m.Explanations = append(m.Explanations, archdoc.Explanation{Element: id, Claims: claims, Fingerprint: fp, Stale: stale, Prov: prov})
 	}
 	return m, next, rep, nil
 }

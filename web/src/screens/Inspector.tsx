@@ -211,7 +211,16 @@ function Passport({
               </div>
             </div>
           ))}
-          <p className="small muted">Written by {explanation.provenance.note} from the facts archdoc read; every sentence cites them.</p>
+          <p className="small muted">
+            Written by {explanation.provenance.note} from the facts archdoc read; every sentence cites them.
+            {explanation.stale && (
+              <>
+                {' '}
+                <TruthMark state="unresolved" /> Those facts have changed since: this is the last answer, kept until{' '}
+                <span className="mono">generate --explain</span> asks again.
+              </>
+            )}
+          </p>
         </section>
       )}
 

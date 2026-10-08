@@ -54,7 +54,11 @@ func Components(m archdoc.Model, meta Meta) string {
 					}
 					fmt.Fprintf(&b, "*%s* <sup>%s</sup>\n", cl.Text, strings.Join(cites, " "))
 				}
-				fmt.Fprintf(&b, "\n<sub>Interpreted by %s from the facts below.</sub>\n\n", x.Prov.Note)
+				note := "from the facts below"
+				if x.Stale {
+					note = "for an earlier version of the facts below; run `archdoc generate --explain` to ask again"
+				}
+				fmt.Fprintf(&b, "\n<sub>Interpreted by %s %s.</sub>\n\n", x.Prov.Note, note)
 			}
 			fmt.Fprintf(&b, "- **Code:** `%s` — %d %s, %d lines\n", n.Dir, len(n.Files), plural(len(n.Files), "file", "files"), n.Lines)
 			var uses, usedBy []string

@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -132,9 +133,20 @@ func TestExplanationsAreRemembered(t *testing.T) {
 
 	changed := explainModel()
 	changed.Entries[0].Path = "/api/v2/albums"
+	// Once the facts change, the last answer still stands in — marked stale, not passed off as current.
 	after, _, rep, _ := Explain(context.Background(), nil, "test-model", changed, mem)
-	if rep.Remembered != 0 || len(after.Explanations) != 0 {
-		t.Errorf("an answer about different facts was reused: %+v", after.Explanations)
+	if rep.Remembered != 0 || rep.Stale != 1 || len(after.Explanations) != 1 || !after.Explanations[0].Stale {
+		t.Errorf("remembered %d, stale %d, %+v", rep.Remembered, rep.Stale, after.Explanations)
+	}
+
+	// The first memory format — claims alone, keyed by the first wording's fingerprint — is still found.
+	old := Memory{}
+	if err := json.Unmarshal([]byte(`{"`+legacyFingerprint(explainModel(), "cmp:server/controllers")+`":[{"text":"Old answer.","facts":["f"],"cites":[{"file":"a.ts","line":1}]}]}`), &old); err != nil {
+		t.Fatal(err)
+	}
+	legacy, _, rep, _ := Explain(context.Background(), nil, "test-model", explainModel(), old)
+	if rep.Stale != 1 || len(legacy.Explanations) != 1 || legacy.Explanations[0].Claims[0].Text != "Old answer." {
+		t.Errorf("a first-format memory was not found: stale %d, %+v", rep.Stale, legacy.Explanations)
 	}
 }
 

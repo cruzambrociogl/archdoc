@@ -74,6 +74,8 @@ export interface Explanation {
   element: string
   claims: { text: string; facts: string[]; cites: Provenance[] }[]
   fingerprint: string
+  /** The element's facts changed since this was written; it is the last answer, not a current one. */
+  stale?: boolean
   provenance: Provenance
 }
 
