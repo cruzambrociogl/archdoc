@@ -1183,3 +1183,17 @@ button.runs-row:hover {
   gap: 12px;
   align-items: baseline;
 }
+
+/* Dependencies: a package, where the code uses it, and the manifest line. */
+.dep-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 2fr) 3fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 6px 12px;
+}
+@media (max-width: 720px) {
+  .dep-row {
+    grid-template-columns: 1fr;
+  }
+}

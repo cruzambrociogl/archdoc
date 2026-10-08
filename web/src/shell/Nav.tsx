@@ -41,6 +41,9 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
     ...(props.coverage?.routes || props.coverage?.pages
       ? ([{ label: 'Features', screen: 'features', depth: 1, badge: `${(props.coverage.routes ?? 0) + (props.coverage.pages ?? 0)}` }] as Item[])
       : []),
+    ...(props.coverage?.dependencies
+      ? ([{ label: 'Dependencies', screen: 'deps', depth: 1, badge: String(props.coverage.dependencies) }] as Item[])
+      : []),
     ...(props.views.length
       ? ([{ label: 'Saved views', depth: 1, header: true }, ...props.views.map((v) => ({ label: v.name, view: v, depth: 2, badge: 'view' }))] as Item[])
       : []),

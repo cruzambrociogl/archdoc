@@ -161,6 +161,20 @@ func packageJSON(root, rel string) *archdoc.App {
 	if app.Name == "" {
 		app.Name = path.Base(dir)
 	}
+	for _, set := range []struct {
+		deps map[string]string
+		dev  bool
+	}{{pkg.Deps, false}, {pkg.DevDeps, true}} {
+		names := make([]string, 0, len(set.deps))
+		for name := range set.deps {
+			names = append(names, name)
+		}
+		sort.Strings(names) // AC-7
+		for _, name := range names {
+			app.Requires = append(app.Requires, archdoc.Requirement{Name: name, Version: set.deps[name], Dev: set.dev,
+				Prov: archdoc.Provenance{File: rel, Line: lineOf(content, `"`+name+`"`)}})
+		}
+	}
 	_, hasTS := pkg.Deps["typescript"]
 	if _, dev := pkg.DevDeps["typescript"]; dev || hasTS {
 		app.Language = "TypeScript"
@@ -306,6 +320,17 @@ func pyproject(root, rel string) *archdoc.App {
 			if strings.Contains(line, "]") {
 				inList = false
 			}
+		}
+	}
+
+	names := make([]string, 0, len(deps))
+	for name := range deps {
+		names = append(names, name)
+	}
+	sort.Strings(names) // AC-7
+	for _, name := range names {
+		if name != "python" {
+			app.Requires = append(app.Requires, archdoc.Requirement{Name: name, Prov: archdoc.Provenance{File: rel, Line: deps[name]}})
 		}
 	}
 

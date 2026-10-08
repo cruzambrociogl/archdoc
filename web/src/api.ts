@@ -70,6 +70,18 @@ export interface Model {
   unresolved?: Unresolved[]
   flows?: Flow[]
   explanations?: Explanation[]
+  dependencies?: Package[]
+}
+
+/** A package a container's manifest declares, and where its code imports it (F-14). */
+export interface Package {
+  container: string
+  name: string
+  version?: string
+  dev?: boolean
+  imports: number
+  components?: string[]
+  provenance: Provenance
 }
 
 /** What a model wrote about an element, every sentence citing the lines it rests on (F-19, F-36). */
@@ -191,6 +203,7 @@ export interface CoverageResponse {
   pages?: number
   tables?: number
   tables_in?: string[]
+  dependencies?: number
 }
 
 /** A way into the system its code declares — an HTTP route (F-04, F-13). */

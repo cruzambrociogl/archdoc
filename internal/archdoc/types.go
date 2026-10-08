@@ -473,6 +473,16 @@ type App struct {
 	// the repository builds that service from this application's directory; the build line is the
 	// evidence. Without it, the application is a container of its own.
 	Deployed *Deployment `json:"deployed,omitempty"`
+	// Requires are the packages the manifest depends on, each at its line.
+	Requires []Requirement `json:"requires,omitempty"`
+}
+
+// Requirement is one dependency a manifest declares.
+type Requirement struct {
+	Name    string     `json:"name"`
+	Version string     `json:"version,omitempty"`
+	Dev     bool       `json:"dev,omitempty"` // a development dependency: build, test, lint
+	Prov    Provenance `json:"provenance"`
 }
 
 // Deployment ties an application to the Compose service that runs it.

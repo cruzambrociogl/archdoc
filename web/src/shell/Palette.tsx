@@ -23,6 +23,7 @@ const screenNames: [Screen, string][] = [
   ['overview', 'Overview'],
   ['explorer', 'Explorer'],
   ['features', 'Features'],
+  ['deps', 'Dependencies'],
   ['coverage', 'Coverage'],
   ['changes', 'Changes'],
   ['docs', 'Documents'],

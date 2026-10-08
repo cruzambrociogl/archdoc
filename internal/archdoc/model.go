@@ -211,9 +211,26 @@ type Model struct {
 	// Flows are what happens when an entry is called, followed through the code (F-12).
 	Flows []Flow `json:"flows,omitempty"`
 
+	// Dependencies are the third-party packages each container's manifest declares, and which
+	// of its components import them (F-14).
+	Dependencies []Package `json:"dependencies,omitempty"`
+
 	// Explanations are model-written prose about an element — what a component does — every
 	// sentence citing the facts it rests on (F-19, F-36). Interpretation, marked as such.
 	Explanations []Explanation `json:"explanations,omitempty"`
+}
+
+// Package is a package a container's manifest declares: where it is declared, and where the
+// code uses it. One declared and never imported is still listed — it may be used by a tool, or
+// not at all — with no components.
+type Package struct {
+	Container  string     `json:"container"`
+	Name       string     `json:"name"`
+	Version    string     `json:"version,omitempty"`
+	Dev        bool       `json:"dev,omitempty"`
+	Imports    int        `json:"imports"`              // how many import statements name it
+	Components []string   `json:"components,omitempty"` // the components that import it
+	Prov       Provenance `json:"provenance"`           // the manifest line
 }
 
 // Explanation is what the model wrote about one element, and what it was given to write it.

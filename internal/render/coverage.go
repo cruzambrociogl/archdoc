@@ -57,6 +57,8 @@ type CoverageReport struct {
 	// them — each has a data view.
 	Tables   int      `json:"tables"`
 	TablesIn []string `json:"tables_in"`
+	// Dependencies counts the packages the manifests declare that the code uses.
+	Dependencies int `json:"dependencies"`
 }
 
 // CodeRead is one application's code: how much was read, and how what it imports was resolved.
@@ -165,6 +167,7 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 		}
 	}
 	r.TablesIn = append([]string{}, m.Datas()...)
+	r.Dependencies = len(m.Dependencies)
 	for _, n := range m.Nodes {
 		if n.Kind == archdoc.Table {
 			r.Tables++
