@@ -41,12 +41,7 @@ raised, not quietly promoted over it.
 
 ## Open
 
-- [ ] Dense component views: Immich's server is 14 components and 73 uses, most into three hubs
-  (`src (top level)` — enum, types, constants — `utils`, `dtos`). The explorer copes (selecting
-  focuses); the committed `component-*.svg` is a hairball. Options: draw hubs as a shared band
-  with "used by 12 of 13" instead of arrows; or wait for type-aware resolution (F-09) to tell a type
-  import from a runtime use — only 5 of the server's 3,578 imports are `import type`. Decide before
-  the component view is shown as a picture anyone reads. — 2026-10-05
+(empty)
 
 ---
 
@@ -54,6 +49,9 @@ raised, not quietly promoted over it.
 
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
+
+- [x] Dense component views — a component most others use is drawn as shared: its box says "used by
+  12 of 13" and no arrow is drawn into it; the arrows stay in the model and the inspector — 2026-10-08
 
 - [x] Immich re-cloned at its pin, and the FastAPI template added as a subject; Supabase still
       not cloned — needed only for AC-9 — 2026-10-05

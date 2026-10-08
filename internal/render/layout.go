@@ -99,7 +99,7 @@ func distance(a float64) float64 {
 // LayoutVersion changes whenever what Layout produces changes. Found the first day: a fix to
 // where boundary labels sit did not show on Immich or Mastodon, because their unchanged
 // architectures reused layouts stored by the old code. Bump this with any such change.
-const LayoutVersion = 3
+const LayoutVersion = 5
 
 // Box and text geometry, in points. Shared by the layout and the drawing, so a box is sized for
 // exactly the text that will be drawn in it.
@@ -117,7 +117,16 @@ const (
 
 // boxLines is the text drawn in an element's box, in order: name, type, description lines.
 func boxLines(n archdoc.Node) (name, kind string, desc []string) {
-	return n.Name, svgTypeLabel(n), wrap(n.Description, descChars, descMax)
+	desc = wrap(n.Description, descChars, descMax)
+	if n.UsedBy > 0 {
+		desc = append([]string{sharedLine(n)}, desc...)
+	}
+	return n.Name, svgTypeLabel(n), desc
+}
+
+// sharedLine is what a shared component's box says in place of the arrows into it.
+func sharedLine(n archdoc.Node) string {
+	return fmt.Sprintf("used by %d of %d · arrows not drawn", n.UsedBy, n.Among)
 }
 
 // A table is drawn with its columns, one line each, up to tableRows; the rest are counted.
@@ -170,6 +179,15 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 			indent, ids[n.ID], boxWidthOf(n)/pointsPerIn, boxHeight(n)/pointsPerIn)
 	}
 
+	shared := map[string]bool{}
+	var sinks []string
+	for _, n := range view.Nodes {
+		if n.UsedBy > 0 {
+			shared[n.ID] = true
+			sinks = append(sinks, ids[n.ID])
+		}
+	}
+
 	inside, outside := partition(view.Nodes, group)
 	for _, n := range outside {
 		node("  ", n)
@@ -197,13 +215,17 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 				node("    ", n)
 			}
 		}
+		if len(sinks) > 1 {
+			// Shared components sit together on one rank: a band, not scattered among what uses them.
+			fmt.Fprintf(&b, "    { rank=same; %s; }\n", strings.Join(sinks, "; "))
+		}
 		b.WriteString("  }\n")
 	}
 
 	for _, e := range view.Edges {
 		from, to := ids[e.From], ids[e.To]
-		if from == "" || to == "" {
-			continue
+		if from == "" || to == "" || shared[e.To] {
+			continue // into a shared component: said on its box, not drawn
 		}
 		// The label is given to the engine so it reserves room and reports where the label
 		// sits; archdoc draws the text itself.

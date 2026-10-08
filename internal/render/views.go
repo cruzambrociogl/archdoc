@@ -70,6 +70,7 @@ func componentView(m archdoc.Model, id string) View {
 	// Every component edge says "uses"; drawn on each of a hundred arrows it says nothing, and
 	// the weight — how many imports — is drawn as the arrow's thickness instead.
 	view := unlabelled(m.Component(id))
+	markShared(&view)
 	_, local, _ := strings.Cut(id, ":")
 	return View{
 		Name:  ComponentPrefix + id,
@@ -98,6 +99,30 @@ func dataView(m archdoc.Model, id string) View {
 		Model: view,
 		Group: true,
 	}
+}
+
+// A component is shared when at least sharedMin others use it, and they are at least three in
+// five of the others: Immich's server has four — its top-level types, utils, dtos, repositories —
+// and they draw 43 of its 73 arrows between them.
+const sharedMin = 4
+
+// markShared marks the components most others use. The layout then draws no arrow into them, and
+// their box says how many use them: a picture of who depends on the shared kernel is a picture of
+// everything, and hides the rest.
+func markShared(view *archdoc.Model) {
+	others := len(view.Nodes) - 1
+	usedBy := map[string]int{}
+	for _, e := range view.Edges {
+		usedBy[e.To]++
+	}
+	nodes := make([]archdoc.Node, len(view.Nodes))
+	copy(nodes, view.Nodes)
+	for i, n := range nodes {
+		if u := usedBy[n.ID]; u >= sharedMin && 5*u >= 3*others {
+			nodes[i].UsedBy, nodes[i].Among = u, others
+		}
+	}
+	view.Nodes = nodes
 }
 
 // unlabelled drops the label every edge of a view would repeat.

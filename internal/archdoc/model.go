@@ -116,6 +116,12 @@ type Node struct {
 	// Columns are a table's columns, in the order the code declares them.
 	Columns []Column `json:"columns,omitempty"`
 
+	// UsedBy and Among are set on a component most of the others use — utilities, shared types —
+	// in its component view only: it is used by UsedBy of the Among others, and the picture says
+	// that in words on its box rather than with an arrow from each. The arrows stay in the model.
+	UsedBy int `json:"used_by,omitempty"`
+	Among  int `json:"among,omitempty"`
+
 	// DescProv and TechProv are separate from Prov because they can come from somewhere
 	// else. A node is proven by the line that declares it; its technology may come from the
 	// catalog and its description from the model. PRV-05 must tell a reader which parts of a

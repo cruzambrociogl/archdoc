@@ -33,6 +33,9 @@ export interface Node {
   lines?: number
   /** A table's columns, as the code declares them. */
   columns?: Column[]
+  /** In a component view: most of the others use it, so its box says so and no arrow is drawn into it. */
+  used_by?: number
+  among?: number
   provenance: Provenance
 }
 

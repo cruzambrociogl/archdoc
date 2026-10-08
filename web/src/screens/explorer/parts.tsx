@@ -78,6 +78,13 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
           <span className="el-name">{n.name}</span>
         </div>
         {detail && <div className="el-tech">{tech}</div>}
+        {detail && n.used_by ? (
+          <div className="el-desc" title="Most of the other components use it; the arrows are in the inspector, not on the picture">
+            <span>
+              used by {n.used_by} of {n.among} · arrows not drawn
+            </span>
+          </div>
+        ) : null}
 
         {detail && n.description && (
           <div className={`el-desc ${interp ? 'el-desc-interp' : ''}`}>

@@ -232,3 +232,31 @@ func TestPartsAreNotListedAsNotShown(t *testing.T) {
 		t.Error("the building block view does not point at the component pages")
 	}
 }
+
+// A component most others use is marked shared; the layout draws no arrow into it.
+func TestSharedComponentsAreSaidNotDrawn(t *testing.T) {
+	m := archdoc.Model{Nodes: []archdoc.Node{{ID: "svc:x", Name: "x", Kind: archdoc.Application}}}
+	names := []string{"a", "b", "c", "d", "e", "utils"}
+	for _, n := range names {
+		m.Nodes = append(m.Nodes, archdoc.Node{ID: "cmp:x/" + n, Name: n, Kind: archdoc.Component, Parent: "svc:x"})
+	}
+	for _, n := range names[:5] {
+		m.Edges = append(m.Edges, archdoc.Edge{From: "cmp:x/" + n, To: "cmp:x/utils", Label: "uses", Weight: 2})
+	}
+	m.Edges = append(m.Edges, archdoc.Edge{From: "cmp:x/a", To: "cmp:x/b", Label: "uses", Weight: 1})
+	v, _ := ViewOf(m, ComponentPrefix+"svc:x")
+	utils, _ := v.Model.Node("cmp:x/utils")
+	if utils.UsedBy != 5 || utils.Among != 5 {
+		t.Fatalf("utils used by %d of %d", utils.UsedBy, utils.Among)
+	}
+	if b, _ := v.Model.Node("cmp:x/b"); b.UsedBy != 0 {
+		t.Error("a component one other uses was marked shared")
+	}
+	if len(v.Model.Edges) != 6 {
+		t.Errorf("the view lost edges: %d — they stay in the model, only the layout leaves them out", len(v.Model.Edges))
+	}
+	dot, _ := toDOT(v.Model, v.Group, identifiers(v.Model), "TB")
+	if strings.Count(dot, "->") != 1 {
+		t.Errorf("the layout draws %d arrows, want only a → b:\n%s", strings.Count(dot, "->"), dot)
+	}
+}
