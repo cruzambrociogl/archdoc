@@ -91,7 +91,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
               <div className="feature-head">
                 <span className="strong">{cls.replace(/Controller$/, '') || cls}</span>
                 <span className="mono small muted">
-                  {es.length} {es.length === 1 ? 'route' : 'routes'} · {cls}
+                  {es.length} {es.length === 1 ? 'way in' : 'ways in'} · {cls}
                 </span>
                 {es[0].component && (
                   <button
