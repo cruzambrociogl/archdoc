@@ -21,7 +21,7 @@ func explainModel() archdoc.Model {
 		Edges: []archdoc.Edge{{From: "cmp:server/controllers", To: "cmp:server/services", Label: "uses", Weight: 3,
 			Prov: []archdoc.Provenance{p("server/src/controllers/album.controller.ts", 2)}}},
 		Entries: []archdoc.Entry{{ID: "route:server GET /api/albums", Kind: "http", Method: "GET", Path: "/api/albums",
-			Handler: "AlbumController.getAll", Summary: "SECRET-SUMMARY", Container: "svc:server", Component: "cmp:server/controllers",
+			Handler: "AlbumController.getAll", Summary: "List all albums", Container: "svc:server", Component: "cmp:server/controllers",
 			Prov: p("server/src/controllers/album.controller.ts", 7)}},
 	}
 }
@@ -69,11 +69,16 @@ func TestExplanationsCiteTheirFacts(t *testing.T) {
 		t.Errorf("remembered %d answers, want the one that said something", len(mem))
 	}
 
-	// Names only: nothing the code says in a string, and no line, leaves the machine.
+	// Names, and a route's own summary; never a provenance — no line leaves the machine.
+	summary := false
 	for _, p := range prompts {
-		if strings.Contains(p, "SECRET-SUMMARY") || strings.Contains(p, ".ts:") {
-			t.Errorf("the prompt carries a string from the code or a provenance:\n%s", p)
+		if strings.Contains(p, ".ts:") {
+			t.Errorf("the prompt carries a provenance:\n%s", p)
 		}
+		summary = summary || strings.Contains(p, `described by the code as "List all albums"`)
+	}
+	if !summary {
+		t.Error("the route's summary was not given to the model")
 	}
 }
 

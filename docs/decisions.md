@@ -702,3 +702,11 @@ of code, no string the code holds — not the route summaries its decorators sta
 though both would help the prose — and no provenance. Strings in code are where people write
 things they did not mean to publish; names are what a reader of the repository's tree already sees.
 `internal/semantic/explain_test.go` holds the line. Revisit only with the person who owns the data.
+*Amended 8 Oct, by Cruz:* a route's summary — what a decorator's `summary` or a docstring's first line
+says the route does — is now sent with the route. It is the code describing itself, and the prose is
+much the poorer without it. Everything else above stands: no other string, no code, no provenance.
+The fact wording changed, so remembered answers are asked for again on the next `--explain`.
+
+**2026-10-08 — The model stays `claude-opus-5`**
+Asked whether to move the default to a newer Opus: no. Labels and explanations were run and priced
+on `claude-opus-5`; `internal/semantic` keeps it as the default and the only priced model.

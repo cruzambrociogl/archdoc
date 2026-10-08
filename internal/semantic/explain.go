@@ -18,10 +18,11 @@ import (
 // The model is given a component's facts as a numbered list — F1, F2, … — and answers with
 // sentences and the numbers they cite. Three rules, none of them a prompt instruction:
 //
-//  1. What leaves the machine is names only (D-8, F-35): the component's, its files' paths, the
-//     components it uses and is used by, the routes it handles by method and path and handler, the
-//     tables it declares and their columns. Never a line of code, never a string the code holds —
-//     not even the summaries its decorators state — and never a provenance.
+//  1. What leaves the machine is names, and the code's own descriptions of its routes (D-8, F-35):
+//     the component's name, its files' paths, the components it uses and is used by, the routes it
+//     handles by method, path and handler — with the summary a decorator or a docstring's first
+//     line states for each — and the tables it declares with their columns. Never a line of code,
+//     never any other string the code holds, and never a provenance.
 //  2. A sentence that cites nothing, or cites a fact it was not given, is refused (F-36). The
 //     model may correct itself within the retry budget; what is still refused is reported and
 //     left out. A component is never described by an unchecked sentence.
@@ -31,7 +32,7 @@ import (
 
 // explainVersion is part of every fingerprint: changing the instructions or the fact wording asks
 // again, rather than reusing an answer to a different question.
-const explainVersion = "explain-1"
+const explainVersion = "explain-2"
 
 // Fact is one thing known about an element, numbered for the model to cite. Prov is never sent.
 type Fact struct {
@@ -65,7 +66,7 @@ const (
 )
 
 // ComponentFacts lists what is known about a component, in a fixed order. Every fact is a name, a
-// path or a count; nothing in it was written by a person in the code.
+// path or a count, except a route's summary: the one line the code states about what the route does.
 func ComponentFacts(m archdoc.Model, id string) []Fact {
 	n, ok := m.Node(id)
 	if !ok {
@@ -114,7 +115,11 @@ func ComponentFacts(m archdoc.Model, id string) []Fact {
 		if e.Kind == "page" {
 			add("is the page at "+e.Path, e.Prov)
 		} else {
-			add(fmt.Sprintf("handles %s %s in %s", e.Method, e.Path, e.Handler), e.Prov)
+			text := fmt.Sprintf("handles %s %s in %s", e.Method, e.Path, e.Handler)
+			if e.Summary != "" {
+				text += fmt.Sprintf(", described by the code as %q", e.Summary)
+			}
+			add(text, e.Prov)
 		}
 	}
 	files := map[string]bool{}
