@@ -135,7 +135,7 @@ existence.
 differently:
 
 ```
-node.kind      application | datastore | queue | proxy | external | actor | system | component
+node.kind      application | datastore | queue | proxy | external | actor | system | component | table
 node.evidence  declared | referenced
 node.parent    which container it lives inside   (set on components)
 ```
@@ -144,7 +144,13 @@ node.parent    which container it lives inside   (set on components)
 |---|---|---|
 | **Container** | `kind ∈ {application, datastore, queue}`, plus the external systems they touch | Node kind, edge protocol, catalog for technology |
 | **Context** | Collapse everything `declared` into one box; keep `referenced` and actors; keep edges crossing the line | Only **actors** |
-| **Component** | Nodes whose `parent` is a given container, and the imports between them | The code itself: parsed with tree-sitter, every import resolved and cited (since 5 Oct) |
+| **Component** | Components whose `parent` is a given container, and the imports between them | The code itself: parsed with tree-sitter, every import resolved and cited (since 5 Oct) |
+| **Data** | Tables whose `parent` is a given container, and the foreign keys between them | The classes the code marks as tables — TypeORM-style decorators, SQLModel, SQLAlchemy |
+
+Beside the graph, the model carries what the code says the system *does*: **entries** (HTTP routes
+and pages, where a framework declares them), **flows** (what a route sets off, followed call by
+call to the tables it touches), **unresolved** calls (an address computed at run time — listed,
+never drawn), and **explanations** (model-written sentences about a component, each citing facts).
 
 **The evidence rule is already the system boundary.** *Declared* means the repository defines
 it, so it is inside our system. *Referenced* means the repository only points at it, so it is
@@ -211,12 +217,12 @@ is as good as the environment**, and the environment is usually somewhere else.
 |---|---|---|
 | 1 Discover | `internal/extract` | Content-sniff for recall, reject fragments for precision |
 | 2 Extract | `internal/extract`, `internal/code` | Two passes — O-8 established that positions do not survive the merge. Also reads what the compose file *points at*: dotenv files it names, and gateway configs it mounts. Applications are found by their manifests, and each running one's code is parsed: files, and every import resolved by path, alias or module, or kept unresolved |
-| 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws. Code becomes components — a directory under the source root, split where one holds most of a large application — and imports become "uses" |
+| 3 Derive | `internal/model` | The seam where the two workstreams meet: above it reads files, below it draws. Code becomes components — a directory under the source root, split where one holds most of a large application — and imports become "uses"; table classes become tables; route decorators and page files become entries; a host named in a literal becomes an edge between containers; each route is followed into a flow |
 | 4 Refine | `internal/rules` | `.archdoc/rules.yaml`; load-bearing, since O-4 made rules the primary mechanism for contract attachment. Compiles to the same operations the semantic layer emits |
-| 5 Label | `internal/semantic` | The only package permitted outbound calls. Opt-in with `--label`; run live on Supabase, where structure was identical with it on and off (AC-2) |
+| 5 Label, explain | `internal/semantic` | The only package permitted outbound calls. `--label` names and describes containers; run live on Supabase, where structure was identical with it on and off (AC-2). `--explain` asks what each component does: sent names and the code's own route summaries, answered in sentences that must each cite a fact or be refused, remembered in `.archdoc/interpretations.json` by a fingerprint of the facts so nothing is asked twice |
 | 6 Validate | `internal/validate` | Every rule traceable to a failure seen in the draw.io experiment. Two severities: wrong is refused, thin is published and reported |
 | 7 Store | `internal/store` | SQLite, cgo-free. A version is a change of *architecture*: a run that changes nothing records nothing, and a moved citation refreshes the latest version instead of minting one |
-| 8 Render | `internal/render` | Graphviz places, archdoc draws the C4 SVG from stored coordinates, as arranged; Mermaid kept as text; the coverage report as a page and as data |
+| 8 Render | `internal/render` | Graphviz places, archdoc draws the C4 SVG from stored coordinates, as arranged; Mermaid kept as text — an `erDiagram` for tables, a `sequenceDiagram` for flows; `render.Views` is the one list of diagrams; the coverage report as a page and as data, with what code was read |
 | — Arrange | `internal/arrange` | `layout.yaml` and `views.yaml`: where a person put the boxes, and the views they named. Applied over the stored layout, never instead of it |
 | — Serve, export | `internal/serve` | The API, the action gate, and the published site built by asking the API's own handlers |
 

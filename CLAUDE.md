@@ -4,7 +4,8 @@ Reads an existing codebase and produces the architecture documentation it should
 accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
 web app, one static binary.
 
-**Phase:** extension — R1.a built; surface redesigned (5 Oct). Plan in `docs/delivery-schedule.md` §7.
+**Phase:** extension — R1.a built; surface redesigned (5 Oct); code read since 5 Oct — components,
+data, routes, flows, cited explanations (plan and status in `PROGRESS.md`, "Code as evidence").
 **Target:** code freeze 4 Dec 2026, delivered 11 Dec 2026.
 
 ---

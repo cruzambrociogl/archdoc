@@ -24,8 +24,9 @@ go build -tags dev -o archdoc ../cmd/archdoc         # from web/, or adjust the 
 ./archdoc serve ../path/to/a/documented/repository   # http://localhost:7474
 ```
 
-`../subjects/mastodon` is the small case; for scale, generate a repository of a few hundred Compose
-services (the 300-service check in `docs/decisions.md`, 5 Oct, was one).
+`../subjects/mastodon` is the small case and `../subjects/immich` the one with code read — components,
+tables, routes, flows; for scale, generate a repository of a few hundred Compose services (the
+300-service check in `docs/decisions.md`, 5 Oct, was one).
 
 ## Four rules
 
@@ -39,7 +40,9 @@ services (the 300-service check in `docs/decisions.md`, 5 Oct, was one).
    element's provenance (see `cited()` in `screens/Inspector.tsx`).
 3. **Every view state lives in the URL** (`route.ts`). Screen, version, explorer level, selection,
    search, focus, compared version, open document, open run. Copying the address reproduces the
-   view; saved views are simply named addresses.
+   view; saved views are simply named addresses. A level is `context`, `container`,
+   `component:<container id>` or `data:<container id>` (`componentLevel`, `dataLevel` in `api.ts`);
+   with none, the explorer opens on the context.
 4. **Anything that writes goes through `action()`** (`api.ts`), which sends the session token the
    server checks with the Origin (`internal/serve/guard.go`). Never `fetch` a write directly.
 
@@ -68,10 +71,10 @@ src/
   route.ts               URL state
   theme.ts               light / dark / system, per viewer
   shell/                 TopBar, Nav, Palette (⌘K), Shortcuts (?)
-  screens/               Overview, Changes, Documents, Coverage, Corrections, NetworkRuns, Inspector
+  screens/               Overview, Features, Changes, Documents, Coverage, Corrections, NetworkRuns, Inspector
   screens/explorer/      Explorer, scene.ts (scene → React Flow; the draft preview; the change overlay),
-                         parts.tsx (element, boundary, routed edge, tags, ghosts), Legend, SaveView
-  ui/                    Cite, TruthMark/TruthChip, KindTile, kinds (icons and hues)
+                         parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView
+  ui/                    Cite, TruthMark/TruthChip, KindTile, kinds (icons and hues), Sequence (a flow)
   styles/                tokens, fonts, base, shell, ui, inspector, explorer, page
 ```
 
@@ -98,6 +101,10 @@ that gets exported. Fonts come from Fontsource and are bundled — nothing is fe
   `Apply()`: the preview while dragging must be what the engine draws after saving.
 - `api.ts` `staticName()` mirrors `internal/serve/export.go` `StaticName()`.
 - The response types in `api.ts` mirror the handlers in `internal/serve`.
+- `screens/Features.tsx` `groupOf()` mirrors `archdoc.Entry.Group()`: the app and
+  `features.generated.md` group routes and pages alike.
+- `screens/explorer/parts.tsx` `TABLE_ROWS` and the table box's 28px header and 13px rows mirror
+  `internal/render/layout.go` (`tableRows`, `boxHeight`): the engine sized the box for that text.
 
 ## Checking a change
 

@@ -1,7 +1,7 @@
 # ArchDoc
 
-**Generates architecture documentation from a repository's own configuration — every fact
-traceable to the file and line that proves it.**
+**Generates architecture documentation from a repository's own configuration and code — every
+fact traceable to the file and line that proves it.**
 
 ---
 
@@ -17,10 +17,11 @@ never existed.**
 
 ## The approach
 
-Point it at a repository. It reads the configuration — Compose files, `.env`, gateway configs,
-interface contracts — builds a validated model, and renders C4 diagrams and arc42
-documentation where **every element links back to the file that proves it exists**. Run it
-again after new commits and it reports what changed architecturally.
+Point it at a repository. It reads the configuration — Compose files, `.env`, gateway configs —
+and the code of each application it finds, with a real parser: files and imports, routes, table
+classes, what calls what. From those it builds a validated model, and renders C4 diagrams, arc42
+documentation and a web app where **every element links back to the line that proves it
+exists**. Run it again after new commits and it reports what changed architecturally.
 
 Two rules govern the design:
 
@@ -31,66 +32,66 @@ Two rules govern the design:
 
 ## Status
 
-**R1.a is built; the surface was redesigned on 4–5 October 2026.** Today archdoc reads
-*configuration* — Compose, `.env`, gateway configs — and documents the containers it finds. Reading
-the *code* itself (components, data models, flows) is the next phase, from 27 October; the plan and
-its reasoning are in [`docs/vision.md`](docs/vision.md) and
-[`docs/delivery-schedule.md`](docs/delivery-schedule.md) §7. Delivery is 11 December 2026.
+**R1.a is built, the surface was redesigned on 4–5 October 2026, and since 5 October archdoc reads
+code as well as configuration** — TypeScript, JavaScript, Svelte and Python today, with NestJS,
+FastAPI, SvelteKit and TanStack Router understood by their conventions. What it does not read
+yet it says so, in the coverage report. Where the work stands is in [`PROGRESS.md`](PROGRESS.md);
+the reasoning is in [`docs/vision.md`](docs/vision.md). Delivery is 11 December 2026.
 
 What it does now:
 
 | | |
 |---|---|
-| `archdoc generate` | C4 context and container diagrams, twelve arc42 sections and a coverage report, every element cited at its line |
-| `archdoc serve` | The web app: the diagrams drawn interactively, every value's citation, what changed between any two versions, the documents, what archdoc could not see |
+| `archdoc generate` | C4 context and container diagrams; inside each container whose code it reads, its components and its tables; every route and page; what each route sets off; twelve arc42 sections and a coverage report — every element cited at its line |
+| `archdoc generate --explain` | Opt-in: asks a model what each component does. It is sent names and the code's own route summaries, never code; every sentence must cite the facts it rests on or it is refused; answers are remembered, so nothing is asked twice |
+| `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see |
 | `archdoc export --site` | The same app as a static site a team opens without archdoc — GitHub Pages, any static host |
 
-It draws:
+On Immich, at the revision the survey pins:
 
 ```console
 $ archdoc generate ./immich
-
-wrote docs/architecture/03-context-and-scope.generated.md
-wrote docs/architecture/05-building-block-view.generated.md
-wrote docs/architecture/06-runtime-view.generated.md
-wrote docs/architecture/07-deployment-view.generated.md
-wrote docs/architecture/12-glossary.generated.md
-wrote docs/architecture/index.generated.md
-wrote .archdoc/model.json
-recorded version 1
-
-5 elements, 3 relationships, from docker/docker-compose.yml
+…
+9 elements, 4 relationships, from docker/docker-compose.yml
+43 components in 5 containers, 145 uses between them, from the code
+68 tables in 1 container, 65 foreign keys between them, from the code
+304 routes, 55 pages, and 11 calls whose target is computed at run time
 7 section(s) created for you to write — see docs/architecture/index.generated.md
-9 gap(s) — run with --explain-gaps to list them
+11 gap(s) — run with --explain-gaps to list them
 ```
 
 Twelve arc42 sections: five filled from facts and overwritten every run, seven created once with
 questions derived from *this* model and then never read or written again. The building block
 view carries the container diagram and the evidence for it:
 
-| Element | Type | Technology | Description | Evidence | Declared at |
-|---|---|---|---|---|---|
-| User | Person | — | — | declared | `docker/docker-compose.yml:26` |
-| immich-machine-learning | Container | — | — | declared | `docker/docker-compose.yml:34` |
-| immich-server | Container | — | — | declared | `docker/docker-compose.yml:13` |
-| database | Container (data store) | PostgreSQL 14 <sup>`catalog: postgres`</sup> | — | declared | `docker/docker-compose.yml:57` |
-| redis | Container (data store) | Valkey 9 <sup>`catalog: valkey`</sup> | — | declared | `docker/docker-compose.yml:50` |
+| Element | Type | Technology | Declared at |
+|---|---|---|---|
+| User | Person | — | `docker/docker-compose.yml:26` |
+| immich-web | Container | SvelteKit · TypeScript <sup>`web/package.json:80`</sup> | `web/package.json:2` |
+| immich-machine-learning | Container | FastAPI · Python <sup>`machine-learning/pyproject.toml:10`</sup> | `docker/docker-compose.yml:34` |
+| immich-server | Container | NestJS · TypeScript <sup>`server/package.json:44`</sup> | `docker/docker-compose.yml:13` |
+| database | Container (data store) | PostgreSQL 14 <sup>`catalog: postgres`</sup> | `docker/docker-compose.yml:57` |
+| redis | Container (data store) | Valkey 9 <sup>`catalog: valkey`</sup> | `docker/docker-compose.yml:50` |
 
-Every value carries the citation for *that value*: a box is proven by the line declaring it,
-while what runs inside it came from a lookup table and says so. The empty descriptions are the
-9 gaps — configuration never states what a service is *for*.
+| From | To | Relationship | Declared at |
+|---|---|---|---|
+| immich-server | immich-machine-learning | calls, http | `server/src/dtos/config.dto.ts:624` |
+| immich-server | database | connects to | `docker/docker-compose.yml:29`, `server/src/repositories/config.repository.ts:237` |
 
-Open any of those lines and the fact is there. That is the whole claim.
+Every value carries the citation for *that value*: a box is proven by the line declaring it, its
+framework by the line of the manifest that names it, a data store's product by a lookup table that
+says so. Open any of those lines and the fact is there. That is the whole claim.
 
-Note what is *absent*: `immich-machine-learning` appears as a box and takes part in no
-relationship at all. Immich reaches it over a URL assembled at runtime, so its own
-configuration never declares the link. The diagram is right to leave the arrow out, and saying
-so plainly is more useful than drawing a line nothing supports.
+The second table is why code matters. Immich's configuration never says the server talks to machine
+learning — it reaches it over a URL whose default is written in TypeScript. Reading configuration
+alone, archdoc drew that box unconnected and said so; reading the code, it draws the arrow and cites
+the line. And where the code calls an address it computes at run time, the call is listed as
+unresolved rather than given an arrow nothing supports.
 
-**No language model is involved in any of the above**, and none will be: labels come from a
-lookup table, and an image the table does not know gets an empty technology rather than a
-guess. The model's job, when it arrives, is to make those labels read well — never to produce
-them.
+**No language model is involved in any of the above.** Routes, tables, flows and their descriptions
+come from the code itself — a route's description is the summary its own decorator states. A model
+is asked only when you pass `--label` or `--explain`, only for wording, and what it writes is marked
+as interpretation wherever it appears.
 
 ### Why discovery is harder than a glob
 
@@ -127,9 +128,8 @@ Before any code was written, two production repositories were read and measured 
 the design:
 
 - **Immich declares none of its three service connections in configuration.** All three live in
-  TypeScript source. A configuration-driven extractor will miss them, and the accuracy target
-  for that subject is expected to fall short as a result — reported as a measured limitation of
-  declaration-based extraction rather than treated as a defect.
+  TypeScript source. A configuration-driven extractor misses them — which is what led to reading
+  the code: archdoc now finds all three there, each at its line.
 - **Compose needs a specification-grade parser.** Seven parameter-expansion forms, nesting,
   concatenation, and the `!override` / `!reset` tags — where mishandling `!override` appends a
   list instead of replacing it and yields a *silently wrong* diagram.
@@ -187,20 +187,24 @@ University/SP2/
 
 ```
 docs/architecture/
-├── index.generated.md                  both diagrams, and links to everything below
+├── index.generated.md                  every diagram, and links to everything below
 ├── 01-introduction-and-goals.md        yours — questions, not a blank template
 ├── 03-context-and-scope.generated.md   regenerated every run
 ├── 05-building-block-view.generated.md
-├── 06-runtime-view.generated.md        says plainly what configuration cannot know
+├── 06-runtime-view.generated.md        flows drawn from the code, where code was read
 ├── 07-deployment-view.generated.md
 ├── 12-glossary.generated.md
+├── components.generated.md             a page per component
+├── features.generated.md               every route and page
 ├── coverage.generated.md               what archdoc read, and what it could not resolve
 ├── 02, 04, 08–11                       yours
-├── context.svg · container.svg          the drawn C4 diagrams, as you arranged them
-└── context.mmd · container.mmd          the same, as editable text
+├── context.svg · container.svg         the drawn C4 diagrams, as you arranged them
+├── component-*.svg · data-*.svg        a container's components, and its tables
+└── *.mmd                               the same diagrams, as editable text
 .archdoc/
 ├── model.json                          committed — the durable record
 ├── coverage.json                       committed — the coverage report, as data
+├── interpretations.json                committed — a model's answers, remembered by the facts they were given
 ├── rules.yaml                          committed — your corrections, if any
 ├── layout.yaml · views.yaml            committed — arrangements and views saved in the app
 ├── history.db                          local cache, git-ignored by archdoc

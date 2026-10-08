@@ -337,8 +337,9 @@ replaced by the extracted facts; the trust strip says "0% interpreted").
 
 **Answers:** what are the pieces and how do they connect, at the depth I choose?
 
-- **Levels:** System context · Containers · Components 🔜 B2 · Deployment ✅ (data) / ◐ (view).
-  Switching level keeps the selection when the element exists at the new level.
+- **Levels:** System context · Containers · Components ✅ · Data ✅ · Deployment ✅ (data) / ◐ (view).
+  Switching level keeps the selection when the element exists at the new level. With no level in
+  the address the explorer opens on the system context, and each level opens onto the next.
 - **Semantic zoom:** zooming out reduces boxes to names; zooming in reveals technology and
   description (Archify's reading depth by zoom).
 - **Find** (`/`): type a name, the match is focused and the rest fades.
@@ -347,7 +348,10 @@ replaced by the extracted facts; the trust strip says "0% interpreted").
 - **Path probe:** choose two elements, see every route between them, step by step, each step cited.
 - **Lenses:** filter or colour by kind (data stores, external systems, entry points), by
   technology, by truth state, by change since the compared version.
-- **Containers open:** double-click a container to descend to its components.
+- **Levels open:** double-click the system to descend to its containers, and a container to its
+  components; a box that opens carries a corner badge with the count. A container's tables are a
+  step away in the inspector. At the component and data levels a picker names the container whose
+  inside is shown, and selecting a box focuses on it without being asked — those views are dense.
 - **Arrows are first-class:** clickable, with their own inspector (today they are not — F-55).
 - **Delta overlay:** with a compared version, added / removed / changed elements and edges are
   marked on the diagram itself (before / delta / after).
@@ -361,7 +365,15 @@ replaced by the extracted facts; the trust strip says "0% interpreted").
 
 **States:** one-element diagram (the level is not earned — say so, suggest the useful level); very
 large level (open on the overview cap with a "show all N" escape and a search prompt).
-**Status:** ✅ context and containers (redesign); interactions ◐; components 🔜 B2.
+**Status:** ✅ context, containers, components and data (5–6 Oct). ◐ upstream / downstream, path
+probe, lenses, PNG and share-card export. The unresolved stub on the canvas is not drawn yet:
+unresolved calls are listed on Features and Coverage.
+
+**As built — components.** A component is a directory under an application's source root, or a
+module where the code is flat; an arrow is "uses", backed by imports, and thickens with their
+number. Arrows carry no label there — every one would say the same. Known cost: a large layered
+application (Immich's server, 14 components, 73 uses) is a hairball as a still picture; the app's
+focus is what makes it readable (`.claude/NOTES.md`).
 
 ### 5.3 Inspector — an element's passport
 
@@ -382,7 +394,10 @@ Opens in the right rail on selection; also a full page per element (shareable UR
 - **Corrections:** rules that apply to it, and **"Correct this…"**, which composes a `rules.yaml`
   snippet (rename, reclassify, describe, exclude) to copy (§5.13).
 
-**Status:** ✅ (redesign) plus ◐ history and correction snippet; "touches" 🔜 B2.
+**Status:** ✅ (redesign), including for a component — its directory, size, files, the routes it
+handles, and what a model wrote about it — a table — its columns, each cited, a foreign key opening
+the table it references — and an import arrow, with its count. ◐ history, correction snippet, and
+"touches" beyond routes.
 
 ### 5.4 Component pages — the wiki
 
@@ -401,7 +416,12 @@ walkthrough Code Wiki and DeepWiki are known for.)
 - **Dependencies** (third-party packages) it uses.
 - Previous / next component; "on this page" outline in the right rail.
 
-**Status:** 🔜 B2–B3.
+**Status:** ◐ (6–8 Oct). A component's page today is its inspector in the explorer and its section of
+`components.generated.md`: code and size, uses and used by, routes and pages, tables declared, and
+— after `archdoc generate --explain` — two to four model-written sentences, each followed by the
+lines it cites; a sentence that cited nothing was refused. Not yet: a page of its own in the
+navigation, citation markers inside the sentence, the one-hop diagram, outbound calls and
+third-party dependencies per component.
 
 ### 5.5 Features — what the system does
 
@@ -413,7 +433,12 @@ walkthrough Code Wiki and DeepWiki are known for.)
   exists.
 - An optional plain-language description per group (interpreted, cited).
 
-**Status:** 🔜 B2.
+**Status:** ✅ (5–6 Oct) for HTTP routes — NestJS controllers, FastAPI routers, SvelteKit `+server`
+files — and pages — SvelteKit by file, TanStack Router by `createFileRoute`. Routes are grouped by
+the class or module that handles them, pages by their first path segment; a description is the
+code's own (a decorator's summary, a docstring's first line) or absent. A row opens onto its line,
+handler, prefix, what its handler is given, and its flow. Calls to an address computed at run time
+close the page. Not yet: CLI commands, scheduled jobs, filters by kind and method, group descriptions.
 
 ### 5.6 Flows — what happens when…
 
@@ -431,7 +456,12 @@ dynamic view.)
   reason ("dependency injection not resolved", "URL built from a string").
 - Switch to the same flow drawn over the architecture diagram (the path highlighted on the canvas).
 
-**Status:** 🔜 B2.
+**Status:** ◐ (5–6 Oct). A route's flow is drawn where the route is — in its row on Features — as a
+sequence diagram with a lifeline per class (or Python module), table and computed address, numbered
+arrows, and the steps listed beneath, each cited. Followed by name through declared field types,
+four calls deep and forty steps at most, saying when it was cut. arc42 §6 draws the eight widest.
+Not yet: a flow index of its own, step-through, the flow over the canvas; flows do not follow plain
+function calls in TypeScript, events or queued work.
 
 ### 5.7 Data model
 
@@ -444,7 +474,11 @@ dynamic view.)
 - **Entity page:** fields with type, nullability, keys, defaults; relations; which components and
   flows read and write it; status fields and their values ○ (lifecycle view, F-17, out).
 
-**Status:** 🔜 B1 (reading) / B2 (view).
+**Status:** ✅ diagram (5 Oct): the explorer's Data level draws a container's tables with their
+columns — PK, FK and nullable marked — and foreign keys as arrows, from table classes (TypeORM-style
+decorators, SQLModel, SQLAlchemy's `__tablename__`); the inspector is the entity page's fields.
+Not yet: clustering (Immich's 68 tables are one view), the entity table, who reads and writes a
+table outside a flow. Migrations are not read.
 
 ### 5.8 Dependencies
 
@@ -592,17 +626,18 @@ The app computes nothing the engine did not store (rule 4). So every screen need
 | Data | Today | Needed for | New work |
 |---|---|---|---|
 | Summary, versions | `/api/summary`, `/api/versions` | Shell, Overview, Changes | Add counts per lens, coverage %, interpreted share |
-| Model + views | `/api/model` (model, context, container) | Explorer, Inspector | Components, deployment as view projections 🔜 |
+| Model + views | `/api/model` (model, context, container; the model carries components, tables, entries, flows, unresolved calls, explanations) | Explorer, Inspector, Features | Deployment as a view projection 🔜 |
+| Scene | `/api/scene?view=` context · container · `component:<id>` · `data:<id>` — the view, its layout, and which containers open | Explorer | — |
 | Diagram | `/api/svg` | Explorer | Layout as JSON (positions per element) if the app draws the diagram itself — §9 |
 | Diff | `/api/diff` | Changes, delta overlay | Commit-to-commit 🔜 B3 |
 | Rules | `/api/rules` | Corrections | — |
 | Documents | `/api/docs`, `/api/docs/{name}` | Documents | — |
 | Completeness | `/api/completeness` | Documents | — |
 | Runs | `/api/runs`, `/api/runs/{id}` | Network runs | — |
-| Coverage | Markdown only | Coverage, Overview | `/api/coverage` as structured JSON ◐ |
+| Coverage | `/api/coverage` — gaps, files read, code read per application, unresolved calls, counts | Coverage, Overview, navigation | — |
 | Element history | — | Inspector | `/api/element/{id}/history` ◐ |
 | Search index | — | Global search | `/api/search` or a prebuilt index ◐ |
-| Components, features, flows, entities, dependencies | — | §5.4–5.8 | 🔜 B1–B2, as the lenses land |
+| Components, features, flows, entities | in the model (above) | §5.4–5.7 | Dependencies 🔜 |
 | Published bundle | — | Published mode | `archdoc export --site` writes the app plus every JSON above for one version ◐ |
 
 ---
