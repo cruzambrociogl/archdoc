@@ -41,6 +41,7 @@ func generate(args []string, out io.Writer) error {
 	gaps := fs.Bool("explain-gaps", false, "list what the configuration does not state")
 	site := fs.Bool("site", false, "also write mkdocs.yml, so the documents build as a static site")
 	label := fs.Bool("label", false, "ask Claude for names, descriptions and edge labels")
+	labelModel := fs.String("label-model", semantic.Model, "with --label: the model to ask")
 	explain := fs.Bool("explain", false, "ask Claude what each component does, every sentence cited (remembered answers are reused without it)")
 
 	explainOnly := fs.String("explain-only", "", "with --explain: ask only about components whose id contains this")
@@ -86,7 +87,7 @@ func generate(args []string, out io.Writer) error {
 	if *label {
 		rec := &semantic.Recorder{}
 		started := time.Now()
-		labelled, rep, err := semantic.Label(context.Background(), semantic.Claude(semantic.Model, rec), semantic.Model, m)
+		labelled, rep, err := semantic.Label(context.Background(), semantic.Claude(*labelModel, rec), *labelModel, m)
 
 		// AC-8 — logged whether or not labelling succeeded. A request that left the machine is
 		// in the log; a failed run is exactly the one someone goes looking for.
