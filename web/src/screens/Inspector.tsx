@@ -22,6 +22,7 @@ export function Inspector({
   holds,
   onOpenData,
   unresolved,
+  onPage,
 }: {
   /** Calls to computed addresses, for the box they leave from. */
   unresolved?: Unresolved[]
@@ -35,6 +36,8 @@ export function Inspector({
   /** Containers whose code declares tables, and how many. */
   holds?: Map<string, number>
   onOpenData?: (id: string) => void
+  /** Opens a component's own page. */
+  onPage?: (id: string) => void
 }) {
   const nodes = model.nodes ?? []
   const edges = model.edges ?? []
@@ -64,6 +67,7 @@ export function Inspector({
           onOpen={onOpen}
           holds={holds?.get(node.id)}
           onOpenData={onOpenData}
+          onPage={onPage}
         />
       ) : edge ? (
         <EdgePassport edge={edge} nodes={nodes} onSelect={onSelect} />
@@ -135,6 +139,7 @@ function Passport({
   onOpen,
   holds,
   onOpenData,
+  onPage,
 }: {
   node: Node
   nodes: Node[]
@@ -149,6 +154,7 @@ function Passport({
   onOpen?: (id: string) => void
   holds?: number
   onOpenData?: (id: string) => void
+  onPage?: (id: string) => void
 }) {
   const name = (id: string) => nodes.find((n) => n.id === id)?.name ?? (id === node.parent ? container : id)
   const component = node.kind === 'component'
@@ -385,6 +391,11 @@ function Passport({
       )}
 
       <div className="inspector-actions">
+        {component && onPage && (
+          <button className="link-btn" onClick={() => onPage(node.id)}>
+            Open its page
+          </button>
+        )}
         <button className="link-btn" onClick={copy}>
           {copied ? 'Link copied' : 'Copy link'}
         </button>

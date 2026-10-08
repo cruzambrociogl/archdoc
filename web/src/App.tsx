@@ -13,6 +13,7 @@ import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
 import { Coverage } from './screens/Coverage'
 import { Features } from './screens/Features'
+import { Component } from './screens/Component'
 import { Dependencies } from './screens/Dependencies'
 import { Changes } from './screens/Changes'
 import { Corrections } from './screens/Corrections'
@@ -23,6 +24,7 @@ const titles: Record<Screen, string> = {
   overview: 'Overview',
   explorer: 'Explorer',
   features: 'Features',
+  component: 'Component',
   deps: 'Dependencies',
   changes: 'Changes',
   docs: 'Documents',
@@ -108,6 +110,7 @@ export function App() {
               <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={!published} onViewsChanged={() => setViewsKey((k) => k + 1)} />
             )}
             {route.screen === 'features' && <Features version={version} route={route} go={go} />}
+            {route.screen === 'component' && <Component version={version} route={route} go={go} />}
             {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}

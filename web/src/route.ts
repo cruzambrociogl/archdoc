@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-export const screens = ['overview', 'explorer', 'features', 'deps', 'changes', 'docs', 'coverage', 'rules', 'runs'] as const
+export const screens = ['overview', 'explorer', 'component', 'features', 'deps', 'changes', 'docs', 'coverage', 'rules', 'runs'] as const
 export type Screen = (typeof screens)[number]
 
 export interface Route {

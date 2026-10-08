@@ -1197,3 +1197,31 @@ button.runs-row:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ——— a component's page (F-19) ——— */
+.component-page .page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 28px 40px;
+  margin-top: 28px;
+}
+.page-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--hair);
+}
+.component-pager {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 36px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-soft);
+}

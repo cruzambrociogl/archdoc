@@ -129,10 +129,16 @@ func generate(args []string, out io.Writer) error {
 	}
 	started := time.Now()
 	explained, remembered, xrep, err := semantic.Explain(context.Background(), asker, semantic.Model, m, memory)
-	if *explain && len(remembered) > 0 {
-		// Kept the moment they are paid for, not at the end of a run something later could stop.
-		if b, merr := json.MarshalIndent(remembered, "", "  "); merr == nil {
-			if werr := write(facts.Root, memoryOut, string(b)+"\n"); werr != nil {
+	// The memory is written the moment answers are paid for, not at the end of a run something
+	// later could stop — and it only grows: every answer it held stays, unless a newer answer
+	// about the same element replaces it. A plain run writes it too when it has something to add:
+	// which element an older answer is about.
+	if merged := mergeMemory(memory, remembered); len(merged) > 0 {
+		before, _ := json.Marshal(memory)
+		after, merr := json.Marshal(merged)
+		if merr == nil && string(before) != string(after) {
+			pretty, _ := json.MarshalIndent(merged, "", "  ")
+			if werr := write(facts.Root, memoryOut, string(pretty)+"\n"); werr != nil {
 				return werr
 			}
 		}
@@ -276,8 +282,6 @@ func generate(args []string, out io.Writer) error {
 	if err := write(facts.Root, modelOut, encode(m)); err != nil {
 		return err
 	}
-	// The memory is rewritten only by --explain, above: a run that asks nothing never discards an
-	// answer that was paid for, even one its facts have moved on from.
 	fmt.Fprintf(out, "wrote %s\n", modelOut)
 
 	// The coverage report as data, beside the model: what the app and the published site show,
@@ -613,6 +617,28 @@ func sortedKeys(m map[string]string) []string {
 // memoryOut keeps the model's answers against the facts they were given (F-30): reused while the
 // facts are unchanged, so explanations are as stable as the code they describe.
 const memoryOut = stateDir + "/interpretations.json"
+
+// mergeMemory is what was remembered before, with this run's answers: an older answer about an
+// element gives way to a newer one about the same element, and nothing else is dropped.
+func mergeMemory(before, now semantic.Memory) semantic.Memory {
+	latest := map[string]string{}
+	for fp, r := range now {
+		if r.Element != "" {
+			latest[r.Element] = fp
+		}
+	}
+	out := semantic.Memory{}
+	for fp, r := range before {
+		if newer, ok := latest[r.Element]; ok && r.Element != "" && newer != fp {
+			continue
+		}
+		out[fp] = r
+	}
+	for fp, r := range now {
+		out[fp] = r
+	}
+	return out
+}
 
 func loadMemory(root string) (semantic.Memory, error) {
 	b, err := os.ReadFile(filepath.Join(root, memoryOut))
