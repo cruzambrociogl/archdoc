@@ -97,7 +97,7 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 | 4 | Data model from table classes and migrations | F-07, F-11 | ✓ 5 Oct — from table classes (TypeORM-style decorators, SQLModel, SQLAlchemy); Immich: 68 tables, 65 foreign keys, in PostgreSQL; explorer Data level, `data-*.svg`, Mermaid erDiagram. Migrations not read: they say how the schema got here, not what it is |
 | 5 | Flows from an entry point, as sequence diagrams | F-12 | ✓ 5 Oct — 298 of Immich's 301 routes followed to tables and outbound calls; sequence diagram per route on Features; arc42 §6 drawn from the code (eight widest flows, by rule) |
 | 6 | SvelteKit and React pages; FastAPI and Python | F-05, F-06 | ✓ 6 Oct — FastAPI routes with full prefixes (settings resolved by name, conditional includes marked) and Python flows; SvelteKit pages by file, TanStack by `createFileRoute`. Template: 23 routes, 8 pages, 18 flows; Immich: 304 routes, 55 pages |
-| 7 | Component pages and cited claims, remembered — paid runs, asked first | F-19, F-30, F-36 | ◐ 6 Oct — built and tested with a fake model: `components.generated.md`, inspector, `--explain`, VAL-09, `.archdoc/interpretations.json`. **No live run yet — waiting for approval** |
+| 7 | Component pages and cited claims, remembered — paid runs, asked first | F-19, F-30, F-36 | ✓ 8 Oct — `components.generated.md`, inspector, `--explain`, VAL-09, `.archdoc/interpretations.json`. Live on Immich: 42 of 43 components explained, 152 cited sentences, $1.52 (after a first run lost $0.72 of answers to one empty reply — fixed) |
 
 ### Superseded — do not implement as written
 
