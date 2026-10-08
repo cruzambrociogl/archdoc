@@ -232,6 +232,13 @@ type sentences struct {
 // when complete is set, left without one otherwise. It returns the model with Explanations set and
 // what it remembered, for the caller to keep.
 func Explain(ctx context.Context, complete Completer, model string, m archdoc.Model, mem Memory) (archdoc.Model, Memory, ExplainReport, error) {
+	return ExplainSome(ctx, complete, model, m, mem, "", 0)
+}
+
+// ExplainSome is Explain asking only about components whose ID contains only, and at most limit
+// of them (zero: no limit) — a way to try a few before paying for all. The rest keep whatever
+// was remembered.
+func ExplainSome(ctx context.Context, complete Completer, model string, m archdoc.Model, mem Memory, only string, limit int) (archdoc.Model, Memory, ExplainReport, error) {
 	rep := ExplainReport{Report: Report{Model: model}}
 	next := Memory{}
 	prov := archdoc.Provenance{Origin: archdoc.Semantic, Note: model}
@@ -261,7 +268,7 @@ func Explain(ctx context.Context, complete Completer, model string, m archdoc.Mo
 		if r, ok := mem[fp]; ok {
 			claims = r.Claims
 			rep.Remembered++
-		} else if complete != nil {
+		} else if complete != nil && strings.Contains(id, only) && (limit == 0 || rep.Asked < limit) {
 			// A request that was paid for is never thrown away: one component's bad answer leaves
 			// that component unexplained, and a failed request stops the asking, not the run.
 			var answered bool

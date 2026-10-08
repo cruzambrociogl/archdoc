@@ -43,6 +43,9 @@ func generate(args []string, out io.Writer) error {
 	label := fs.Bool("label", false, "ask Claude for names, descriptions and edge labels")
 	explain := fs.Bool("explain", false, "ask Claude what each component does, every sentence cited (remembered answers are reused without it)")
 
+	explainOnly := fs.String("explain-only", "", "with --explain: ask only about components whose id contains this")
+	explainLimit := fs.Int("explain-limit", 0, "with --explain: ask about at most this many components")
+
 	flags, positional := partitionArgs(fs, args)
 	if err := fs.Parse(flags); err != nil {
 		return err
@@ -128,7 +131,7 @@ func generate(args []string, out io.Writer) error {
 		asker = semantic.ClaudeWith(semantic.Model, semantic.ExplainSchema(), semantic.ExplainMaxTokens, rec)
 	}
 	started := time.Now()
-	explained, remembered, xrep, err := semantic.Explain(context.Background(), asker, semantic.Model, m, memory)
+	explained, remembered, xrep, err := semantic.ExplainSome(context.Background(), asker, semantic.Model, m, memory, *explainOnly, *explainLimit)
 	// The memory is written the moment answers are paid for, not at the end of a run something
 	// later could stop — and it only grows: every answer it held stays, unless a newer answer
 	// about the same element replaces it. A plain run writes it too when it has something to add:
