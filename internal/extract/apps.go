@@ -109,6 +109,20 @@ func Apps(root string) []archdoc.App {
 	})
 	sort.Slice(out, func(i, j int) bool { return out[i].Manifest < out[j].Manifest })
 
+	// No manifest anywhere that describes something that runs: the repository may still be a
+	// program — a folder of scripts, a page and the script it loads. That is the usual shape of
+	// something small an AI wrote, and it is documented from its files (vision D-13).
+	runs := false
+	for _, a := range out {
+		runs = runs || a.Role.Container()
+	}
+	if !runs {
+		if app := loose(root); app != nil {
+			out = append(out, *app)
+			sort.Slice(out, func(i, j int) bool { return out[i].Manifest < out[j].Manifest })
+		}
+	}
+
 	// A package that declares a command and also exports code is a tool a person runs — unless
 	// another package here depends on it. Then it is a library: it runs inside them, and its
 	// command is something their build calls (Immich's plugin SDK).
@@ -261,6 +275,78 @@ func packageJSON(root, rel string) *archdoc.App {
 	default:
 		app.Role, app.Why = archdoc.RoleTooling, "no application framework, command or exports — scripts or configuration"
 	}
+	return app
+}
+
+// loose describes a repository with no manifest by its files: Python scripts are a tool a person
+// runs; a page with scripts beside it is a web front end; scripts alone are a tool. The file that
+// starts it — index.html, main.py, the only file — stands where a manifest would, and is what the
+// application cites.
+func loose(root string) *archdoc.App {
+	var py, js, html []string
+	filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			if p != root && (appSkipDirs[d.Name()] || strings.HasPrefix(d.Name(), ".") || inTestDir(d.Name())) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		rel, _ := filepath.Rel(root, p)
+		rel = filepath.ToSlash(rel)
+		switch strings.ToLower(path.Ext(rel)) {
+		case ".py":
+			py = append(py, rel)
+		case ".js", ".mjs", ".ts", ".jsx", ".tsx":
+			js = append(js, rel)
+		case ".html", ".htm":
+			html = append(html, rel)
+		}
+		return nil
+	})
+	// first is the file that starts it: one of the names, at the shallowest depth, else the first.
+	first := func(files []string, names ...string) string {
+		sort.Slice(files, func(i, j int) bool {
+			if di, dj := strings.Count(files[i], "/"), strings.Count(files[j], "/"); di != dj {
+				return di < dj
+			}
+			return files[i] < files[j]
+		})
+		for _, name := range names {
+			for _, f := range files {
+				if path.Base(f) == name {
+					return f
+				}
+			}
+		}
+		return files[0]
+	}
+	abs, _ := filepath.Abs(root)
+	app := &archdoc.App{Name: filepath.Base(abs), Dir: ".", Loose: true}
+	switch {
+	case len(html) > 0 && len(js) >= len(py):
+		app.Manifest = first(html, "index.html", "index.htm")
+		app.Language, app.Role = "JavaScript", archdoc.RoleWeb
+		app.Why = fmt.Sprintf("a page with no manifest: %s and %d script file(s) beside it", app.Manifest, len(js))
+	case len(py) > 0 && len(py) >= len(js):
+		app.Manifest = first(py, "main.py", "__main__.py", "app.py", "run.py", "cli.py")
+		app.Language, app.Role = "Python", archdoc.RoleCLI
+		app.Why = fmt.Sprintf("scripts with no manifest: %d Python file(s), started from %s", len(py), app.Manifest)
+	case len(js) > 0:
+		app.Manifest = first(js, "index.js", "main.js", "index.ts", "main.ts", "index.mjs")
+		app.Language, app.Role = "JavaScript", archdoc.RoleCLI
+		for _, f := range js {
+			if strings.HasSuffix(f, ".ts") || strings.HasSuffix(f, ".tsx") {
+				app.Language = "TypeScript"
+			}
+		}
+		app.Why = fmt.Sprintf("scripts with no manifest: %d file(s), started from %s", len(js), app.Manifest)
+	default:
+		return nil
+	}
+	app.Prov = archdoc.Provenance{File: app.Manifest, Line: 1}
 	return app
 }
 

@@ -30,6 +30,9 @@ type State map[string]bool // file name → existed before this run
 // Index lists the sections in plan — the ones this repository has evidence for (see plan.go) —
 // and the coverage report. Pass Sections() to list all twelve.
 func Index(m archdoc.Model, plan []Section, meta Meta) string {
+	if len(plan) == 0 {
+		return onePage(m, meta)
+	}
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "# %s — architecture\n\n", m.Name)
@@ -125,4 +128,151 @@ func omittedSections(plan []Section) []string {
 		}
 	}
 	return out
+}
+
+// onePage is the whole documentation of a small project (vision D-13): what it is, what it does,
+// what it reaches and what it is made of, each line cited — and nothing to fill in. It is what a
+// person who did not write the code reads first, so it is written top down and in plain words.
+func onePage(m archdoc.Model, meta Meta) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "# %s\n\n", m.Name)
+	b.WriteString(meta.stamp())
+
+	var app archdoc.Node
+	var parts, outside []archdoc.Node
+	for _, n := range m.Nodes {
+		switch {
+		case n.Kind.Container():
+			app = n
+		case n.Kind == archdoc.Component:
+			parts = append(parts, n)
+		case n.Kind == archdoc.External:
+			outside = append(outside, n)
+		}
+	}
+	files, lines := 0, 0
+	for _, n := range parts {
+		files += len(n.Files)
+		lines += n.Lines
+	}
+	if m.Description != "" {
+		fmt.Fprintf(&b, "*%s*\n\n", m.Description)
+	}
+	fmt.Fprintf(&b, "A small project: %d %s, %d lines", files, plural(files, "file", "files"), lines)
+	if app.Technology != "" {
+		fmt.Fprintf(&b, " of %s", app.Technology)
+	}
+	b.WriteString(". This page is all of its documentation;\nevery line below cites where in the code it comes from.\n\n")
+
+	b.WriteString("## What it is\n\n")
+	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(m.Context(), false)))
+
+	if len(m.Entries) > 0 {
+		b.WriteString("\n## What it does\n\n")
+		b.WriteString("The ways in that the code declares: what a person runs or opens, and what it answers.\n\n")
+		for _, e := range m.Entries {
+			what := map[string]string{"command": "run", "page": "page", "http": e.Method, "job": "job"}[e.Kind]
+			fmt.Fprintf(&b, "- **%s** `%s`", what, e.Path)
+			if e.Summary != "" {
+				fmt.Fprintf(&b, " — %s", e.Summary)
+			}
+			fmt.Fprintf(&b, " <sup>`%s`</sup>\n", e.Prov)
+		}
+	}
+
+	b.WriteString("\n## What it reaches\n\n")
+	name := func(id string) string {
+		if n, ok := m.Node(id); ok {
+			return n.Name
+		}
+		return id
+	}
+	reached := 0
+	for _, e := range m.Edges {
+		to, ok := m.Node(e.To)
+		if !ok || to.Kind != archdoc.External || len(e.Prov) == 0 {
+			continue
+		}
+		reached++
+		fmt.Fprintf(&b, "- %s **%s**", e.Label, name(e.To))
+		if e.Technology != "" {
+			fmt.Fprintf(&b, " over %s", e.Technology)
+		}
+		if to.Description != "" {
+			fmt.Fprintf(&b, " — %s", to.Description)
+		}
+		fmt.Fprintf(&b, " <sup>`%s`</sup>\n", e.Prov[0])
+	}
+	if reached == 0 {
+		b.WriteString("Nothing outside itself that the code names: no address it calls, no service it is a client of.\n")
+	}
+	if len(m.Unresolved) > 0 {
+		fmt.Fprintf(&b, "\n%d %s to an address the code works out as it runs — archdoc saw the call and cannot say where it goes:\n\n",
+			len(m.Unresolved), plural(len(m.Unresolved), "call goes", "calls go"))
+		for _, u := range m.Unresolved {
+			fmt.Fprintf(&b, "- `%s` <sup>`%s`</sup>\n", u.What, u.Prov)
+		}
+	}
+
+	if len(parts) > 0 {
+		b.WriteString("\n## What it is made of\n\n")
+		said := map[string]archdoc.Explanation{}
+		for _, x := range m.Explanations {
+			if !x.Stale && len(x.Claims) > 0 {
+				said[x.Element] = x
+			}
+		}
+		for _, n := range parts {
+			fmt.Fprintf(&b, "- **%s** — `%s`, %d lines", n.Name, n.Dir, n.Lines)
+			if len(n.Files) > 1 {
+				fmt.Fprintf(&b, " in %d files", len(n.Files))
+			}
+			var uses []string
+			for _, e := range m.Edges {
+				if e.From == n.ID {
+					uses = append(uses, name(e.To))
+				}
+			}
+			if len(uses) > 0 {
+				fmt.Fprintf(&b, "; uses %s", strings.Join(uses, ", "))
+			}
+			b.WriteString("\n")
+			if x, ok := said[n.ID]; ok {
+				for _, c := range x.Claims {
+					fmt.Fprintf(&b, "  *%s*\n", c.Text)
+				}
+				fmt.Fprintf(&b, "  <sub>Interpreted by %s from what archdoc read; each sentence cites it in [the app](%s).</sub>\n", x.Prov.Note, CoverageFile)
+			}
+		}
+		if len(parts) > 1 {
+			for _, v := range Views(m)[2:] {
+				if strings.HasPrefix(v.Name, ComponentPrefix) {
+					b.WriteString("\n")
+					b.WriteString(figure(meta, v.Title, v.File+".svg", Mermaid(v.Model, v.Group)))
+				}
+			}
+		}
+	}
+	for _, v := range Views(m)[2:] {
+		if strings.HasPrefix(v.Name, DataPrefix) {
+			b.WriteString("\n## What it stores\n\n")
+			b.WriteString(figure(meta, v.Title, v.File+".svg", Mermaid(v.Model, v.Group)))
+		}
+	}
+	if len(m.Dependencies) > 0 {
+		var deps []string
+		for _, d := range m.Dependencies {
+			if !d.Dev {
+				deps = append(deps, "`"+d.Name+"`")
+			}
+		}
+		if len(deps) > 0 {
+			fmt.Fprintf(&b, "\n## What it is built on\n\n%s\n", strings.Join(deps, ", "))
+		}
+	}
+
+	fmt.Fprintf(&b, "\n## What archdoc could not see\n\n[Coverage](%s) lists every file that was read and where the evidence runs out.\n", CoverageFile)
+	b.WriteString("This is one page because the project is small. When it grows — a second application, a\n")
+	b.WriteString("database of its own, more code than a page can hold — the arc42 chapters are written for it.\n")
+	return b.String()
 }

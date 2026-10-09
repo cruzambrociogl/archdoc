@@ -1,6 +1,7 @@
 package render
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -120,5 +121,43 @@ func TestComponentBoxesCarryTheirCurrentExplanation(t *testing.T) {
 	}
 	if n, _ := m.Node("cmp:api/orders"); n.Description != "" {
 		t.Error("the model itself was given the description; only the view should carry it")
+	}
+}
+
+// A project small enough for one page gets one page: no chapters, nothing to fill in, and on it
+// what the project does, reaches and is made of. One with a Compose file, or a second container,
+// is not that.
+func TestATinyProjectIsOnePage(t *testing.T) {
+	at := archdoc.Provenance{File: "report.py", Line: 1}
+	m := archdoc.Model{Name: "tool", Nodes: []archdoc.Node{
+		{ID: "actor:user", Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: at},
+		{ID: "app:tool", Name: "tool", Kind: archdoc.Application, Technology: "Python", Evidence: archdoc.Declared, Prov: at},
+		{ID: "cmp:tool/report", Name: "report", Kind: archdoc.Component, Parent: "app:tool", Dir: "report.py", Files: []string{"report.py"}, Lines: 21, Prov: at},
+		{ID: "ext:api.example.com", Name: "api.example.com", Kind: archdoc.External, Evidence: archdoc.Referenced, Prov: at},
+	}, Edges: []archdoc.Edge{
+		{From: "actor:user", To: "app:tool", Label: "runs", Prov: []archdoc.Provenance{at}},
+		{From: "app:tool", To: "ext:api.example.com", Label: "calls", Technology: "https", Prov: []archdoc.Provenance{{File: "report.py", Line: 5}}},
+	}, Entries: []archdoc.Entry{{ID: "command:tool python report.py", Kind: "command", Method: "CMD", Path: "python report.py", Prov: archdoc.Provenance{File: "report.py", Line: 20}}}}
+	facts := archdoc.FactSet{Sources: []archdoc.Source{{App: ".", Root: ".", Files: []archdoc.SourceFile{{Path: "report.py"}}}}}
+	if !Tiny(m, facts) || len(PlanFor(m, facts)) != 0 {
+		t.Fatalf("tiny %v, %d sections planned", Tiny(m, facts), len(PlanFor(m, facts)))
+	}
+	page := Index(m, nil, Meta{})
+	for _, want := range []string{"A small project: 1 file, 21 lines of Python", "**run** `python report.py`", "`report.py:20`",
+		"calls **api.example.com** over https", "`report.py:5`", "**report** — `report.py`, 21 lines"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("the page does not say %q:\n%s", want, page)
+		}
+	}
+	if strings.Contains(page, "arc42 section") {
+		t.Error("the page lists sections it does not have")
+	}
+	if len(Stubs(m, PlanFor(m, facts), Meta{})) != 0 {
+		t.Error("a tiny project was given sections to fill in")
+	}
+	withCompose := facts
+	withCompose.Source = "docker-compose.yml"
+	if Tiny(m, withCompose) {
+		t.Error("a project with a Compose file is not tiny")
 	}
 }

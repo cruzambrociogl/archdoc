@@ -107,7 +107,7 @@ func modelOf(root string) (archdoc.Model, error) {
 		return archdoc.Model{}, err
 	}
 	if facts.Source == "" && !hasContainerApp(facts.Apps) {
-		return archdoc.Model{}, fmt.Errorf("no deployable Compose file and no application manifest found")
+		return archdoc.Model{}, fmt.Errorf("nothing to document: no Compose file, no application manifest, and no Python, JavaScript or HTML files")
 	}
 	m := model.Derive(facts)
 	rf, err := rules.Load(facts.Root)

@@ -45,6 +45,7 @@ What it does now:
 | | |
 |---|---|
 | `archdoc generate` | C4 context and container diagrams; inside each container whose code it reads, its components and its tables; every route, page, command and background job; what each route or job sets off; the packages each container depends on and where it uses them; twelve arc42 sections and a coverage report — every element cited at its line |
+| `archdoc generate`, on something small | A folder of scripts or a single page, with no manifest, is documented from its files; a project of one application and a few files gets one page instead of twelve chapters |
 | `archdoc generate --explain` | Opt-in: asks a model what each component does. It is sent names, paths and the code's own one-line route summaries, never code — logged as `structure-and-summaries`; every sentence must cite the facts it rests on or it is refused; answers are remembered, so nothing is asked twice. `--explain-limit N` and `--explain-only <id>` ask about fewer; a component of one file with no route or table is not asked about |
 | `archdoc generate --label` | Opt-in: asks a model for descriptions and relationship labels, never structure. `--label-model` chooses the model |
 | `archdoc diff <path> <commit> [<commit>]` | What changed in the architecture between two commits, or since one: every change under its class — added, removed, renamed, re-bounded, protocol-changed, changed. Needs git |

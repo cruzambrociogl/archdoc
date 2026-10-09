@@ -392,6 +392,18 @@ func pages(src archdoc.Source, container string, componentOf map[string]string) 
 	// Next.js keeps pages in app/ (a page.tsx per route, a route.ts per endpoint) or in pages/
 	// (a file per page, pages/api for endpoints), under src/ or beside it.
 	nextApp, nextPages := src.Root+"/app/", src.Root+"/pages/"
+	// Only where the code is Next's: a React app keeps components in src/pages too, and its
+	// router, not the folder, says which are pages. Found on a six-file app that reported four
+	// pages for two.
+	next := src.Framework == "Next.js"
+	for _, f := range src.Files {
+		for _, imp := range f.Imports {
+			next = next || imp.Package == "next" || strings.HasPrefix(imp.Spec, "next/")
+		}
+	}
+	if !next {
+		nextApp, nextPages = "\x00", "\x00"
+	}
 	var out []archdoc.Entry
 	seen := map[string]bool{}
 	add := func(e archdoc.Entry) {
@@ -451,6 +463,15 @@ func pages(src archdoc.Source, container string, componentOf map[string]string) 
 		for _, p := range f.Pages {
 			add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: tanstackPath(p.Value), Handler: strings.TrimPrefix(f.Path, src.Root+"/"), Prov: p.Prov})
 		}
+	}
+	// With no manifest and no router, a page is an HTML file: what a person opens.
+	for _, d := range src.Documents {
+		e := archdoc.Entry{Kind: "page", Method: "PAGE", Path: "/" + strings.TrimPrefix(strings.TrimPrefix(d.Prov.File, src.Root+"/"), "./"),
+			Handler: d.Prov.File, Prov: d.Prov}
+		if d.Value != "" {
+			e.Summary, e.SummaryProv = d.Value, d.Prov
+		}
+		add(e)
 	}
 	return out
 }
@@ -555,6 +576,16 @@ func commandsAndJobs(src archdoc.Source, container string, componentOf map[strin
 						add(e)
 					}
 				}
+			}
+		}
+	}
+	// With no manifest to declare a command, a script is what a person runs: each Python file that
+	// says it is run directly, or — a JavaScript tool — the file it starts from.
+	if src.Loose {
+		for _, f := range src.Files {
+			rel := strings.TrimPrefix(strings.TrimPrefix(f.Path, src.Root+"/"), "./")
+			if f.Main != nil {
+				add(archdoc.Entry{Kind: "command", Method: "CMD", Path: "python " + rel, Handler: rel, Prov: *f.Main})
 			}
 		}
 	}

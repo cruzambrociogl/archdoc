@@ -929,3 +929,47 @@ uses of the others — by number of imports — and says so on its boundary, wit
 from. Every use is still in the inspector and in the full view. Where a container declares no
 route, page or job, the boundary says the components are its largest, since that is the rule that
 picked them.
+
+**2026-10-09 — Checked against the vision: on path for a system, off it for anything small**
+Cruz asked whether the product is still what the vision describes — able to explain what an AI
+built whether it is a full-stack project, a script, a page or an app. Tried on three projects
+written for the question, not assumed:
+
+- A single Python script that reads a CSV and calls an API: refused — "no deployable Compose file
+  and no application manifest found".
+- A single HTML page with one script that fetches a list: refused, the same way.
+- A six-file React app with two pages and Supabase as its backend: documented, thinly and partly
+  wrongly. Supabase — the whole backend — is not drawn; four pages are reported where there are
+  two; and it gets eleven arc42 documents, seven of them stubs.
+
+Against the vision (`docs/vision.md` §1.1, §1.2, D-13): "understand software an AI built" holds for
+a system — context, containers, components, data, features, flows, cited explanations, all working
+on Immich. "Whatever its size" does not: a project with no manifest is rejected, and output is not
+sized to the project. "What the AI did" — the change per session or commit, and plan against code
+(F-38, F-40, F-41) — is not started; `archdoc diff` is its base and no more. The vibe coder, who the
+vision says starts from a guided story, is not served: what exists is reference documentation.
+
+Why: 8 and 9 Oct went into making Immich's C4 picture good. Worth doing, and it pulled the work
+toward architecture documentation for large systems — the narrower product the vision was written
+to move beyond. Order agreed to get back: (1) accept a project with no manifest, output sized to
+it; (2) make the small app right — hosted backends recognised, pages counted once; then (3) a
+change summary a person reads, on `archdoc diff`; (4) plan against code. Cruz chose 1 and 2 now.
+
+**2026-10-09 — A project with no manifest is documented, on one page**
+The first two steps back toward the vision. (1) Where no manifest describes anything that runs,
+the repository is read as what its files are: Python files are a tool a person runs, a page with
+scripts beside it is a web front end, scripts alone are a tool — cited at the file that starts it,
+where a manifest's line would be. A script's way in is the file that says it is run directly
+(`if __name__ == "__main__"`), a page's is its HTML file, with its `<title>`. (2) A project of one
+application, nothing deployed beside it and thirty source files or fewer gets one page — what it
+is, does, reaches, is made of, is built on — and no arc42 chapters and nothing to fill in; they
+appear when it grows. "Related" in the plan no longer counts a person reaching an application,
+which had quietly turned every web app into a twelve-chapter system. Also: a call to a name that
+holds a URL (`API = "https://…"`, `requests.get(API)`, `fetch(API)`) is a call to that URL, resolved
+within the file; hosted backends — Supabase, Firebase, Clerk, Appwrite, Convex and their kind — are
+in the catalog, since they are the whole backend of most first versions; Next's `pages/` rule
+applies only to a Next application; and the application at a repository's root is identified by
+its name, not by ".". Measured on the three test projects: all documented, each on one page, the
+script's API, the page's fetch and the app's Supabase drawn, two pages reported for two.
+Not done: inline `<script>` in a page is not read; a tiny project in the app still shows the full
+navigation; the one page is not yet the guided story the vision gives a vibe coder.

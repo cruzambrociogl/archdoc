@@ -248,6 +248,12 @@ type APIClient struct {
 type Source struct {
 	App  string `json:"app"`  // the application's directory, repository-relative
 	Root string `json:"root"` // where its code starts — src/, its Python package, or the directory itself
+	// Framework is what the application's manifest says it is built on: "Next.js", "SvelteKit".
+	Framework string `json:"framework,omitempty"`
+	// Loose is set for an application with no manifest: what starts it is read from its files.
+	Loose bool `json:"loose,omitempty"`
+	// Documents are the HTML pages found beside the code of an application with no manifest.
+	Documents []Literal `json:"documents,omitempty"`
 	// Files are in path order; tests, type declarations and other applications nested inside are
 	// not read.
 	Files []SourceFile `json:"files"`
@@ -291,6 +297,8 @@ type SourceFile struct {
 	// Partial is set when the parser recovered from something it could not read in the file;
 	// what it did read is still reported, and the gap is coverage, not a guess.
 	Partial bool `json:"partial,omitempty"`
+	// Main is set where a Python file says it is run directly: if __name__ == "__main__".
+	Main *Provenance `json:"main,omitempty"`
 }
 
 // Resolution is how an import was tied to what it names (vision D-4: the provenance of a link
@@ -543,6 +551,9 @@ type App struct {
 	// the repository builds that service from this application's directory; the build line is the
 	// evidence. Without it, the application is a container of its own.
 	Deployed *Deployment `json:"deployed,omitempty"`
+	// Loose is set when no manifest describes the application: a folder of scripts, a page and its
+	// script. The files themselves are the evidence, and Manifest names the one that says most.
+	Loose bool `json:"loose,omitempty"`
 	// Exports is set when the manifest offers code to other packages: main, module, exports, types.
 	Exports bool `json:"exports,omitempty"`
 	// Requires are the packages the manifest depends on, each at its line.

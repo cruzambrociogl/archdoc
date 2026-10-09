@@ -24,9 +24,19 @@ import "github.com/cruzambrociogl/archdoc/internal/archdoc"
 
 // PlanFor returns the sections to emit for this model, in arc42 order.
 func PlanFor(m archdoc.Model, facts archdoc.FactSet) []Section {
+	if Tiny(m, facts) {
+		return nil // one page says all of it: see onePage
+	}
 	view := m.Container()
 	deployment := len(facts.Networks) > 0 || len(facts.Routes) > 0 || published(facts)
-	related := len(view.Edges) > 0
+	// A person reaching an application is not a relationship between parts of the system: every
+	// web front end has that arrow, and it says nothing about how much there is to document.
+	related := false
+	for _, e := range view.Edges {
+		if from, ok := view.Node(e.From); ok && from.Kind != archdoc.Actor {
+			related = true
+		}
+	}
 	small := countContainers(view) <= 2 && !deployment && !related
 
 	var out []Section
@@ -45,6 +55,30 @@ func PlanFor(m archdoc.Model, facts archdoc.FactSet) []Section {
 		}
 	}
 	return out
+}
+
+// tinyFiles is how many source files a project may have and still be said on one page.
+const tinyFiles = 30
+
+// Tiny reports a project small enough that twelve arc42 chapters would be absurd (vision D-13): a
+// script, a page, a first version of an app. One application, nothing deployed beside it — no
+// store, no second container, no Compose file — and a few files of code. It gets one page; the
+// chapters appear when it grows into them.
+func Tiny(m archdoc.Model, facts archdoc.FactSet) bool {
+	if facts.Source != "" || len(facts.Services) > 0 {
+		return false
+	}
+	containers := 0
+	for _, n := range m.Nodes {
+		if n.Kind.Container() {
+			containers++
+		}
+	}
+	files := 0
+	for _, s := range facts.Sources {
+		files += len(s.Files)
+	}
+	return containers == 1 && files > 0 && files <= tinyFiles
 }
 
 // Planned reports whether a plan contains a section number.

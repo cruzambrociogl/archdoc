@@ -22,6 +22,7 @@ type facts struct {
 	exports []archdoc.Literal
 	pages   []archdoc.Literal
 	cmds    []archdoc.Command
+	main    *archdoc.Provenance // where a Python file says it is run directly
 }
 
 func (f *facts) add(g facts) {
@@ -64,6 +65,10 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 		return archdoc.Provenance{File: file, Line: int(p.Row) + 1 + offset, Column: int(p.Column) + 1}
 	}
 	called := map[archdoc.Provenance]bool{}
+	// A call to a name that holds a URL — const API = 'https://…'; fetch(API) — is a call to that
+	// URL: resolved within the file, by the name, once everything has been read.
+	held := map[string]archdoc.Provenance{} // a name → the literal it is given
+	var byName []namedCall
 
 	// A module's own functions gather under a class with no name, as a Python module's do.
 	module := archdoc.Class{Prov: archdoc.Provenance{File: file, Line: 1 + offset}}
@@ -179,6 +184,9 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 						called[at(first)] = true
 						return
 					}
+					if first.Type(l) == "identifier" {
+						byName = append(byName, namedCall{text(first), len(out.calls)})
+					}
 					out.calls = append(out.calls, archdoc.Call{Callee: callee, Target: shorten(text(first)), Prov: at(n)})
 				case fn.Type(l) == "member_expression" && fn.NamedChildCount() == 2 && fn.NamedChild(0).Type(l) == "identifier" && first != nil:
 					// Express: app.get("/path", handler), app.use("/prefix", router). Kept as the
@@ -241,6 +249,11 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					}
 				}
 			case "pair", "variable_declarator":
+				if n.Type(l) == "variable_declarator" && n.NamedChildCount() >= 2 && n.NamedChild(0).Type(l) == "identifier" {
+					if v := n.NamedChild(n.NamedChildCount() - 1); v.Type(l) == "string" || v.Type(l) == "template_string" {
+						held[text(n.NamedChild(0))] = at(v)
+					}
+				}
 				if n.NamedChildCount() < 2 {
 					return
 				}
@@ -275,10 +288,43 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 			}
 		})
 	})
+	out.calls = resolveNamed(out.calls, byName, held, out.hosts, called)
 	for i := range out.hosts {
 		out.hosts[i].Called = called[out.hosts[i].Prov]
 	}
 	return out, partial
+}
+
+// namedCall is an HTTP call whose target is a name, and where that call is in the list.
+type namedCall struct {
+	name  string
+	index int
+}
+
+// resolveNamed turns a call to a name that holds a URL literal into a call to that URL: the
+// literal is marked called, and the call is no longer one whose target is unknown.
+func resolveNamed(calls []archdoc.Call, byName []namedCall, held map[string]archdoc.Provenance, hosts []archdoc.HostRef, called map[archdoc.Provenance]bool) []archdoc.Call {
+	isHost := map[archdoc.Provenance]bool{}
+	for _, h := range hosts {
+		isHost[h.Prov] = true
+	}
+	resolved := map[int]bool{}
+	for _, c := range byName {
+		if at, ok := held[c.name]; ok && isHost[at] {
+			called[at] = true
+			resolved[c.index] = true
+		}
+	}
+	if len(resolved) == 0 {
+		return calls
+	}
+	var kept []archdoc.Call
+	for i, c := range calls {
+		if !resolved[i] {
+			kept = append(kept, c)
+		}
+	}
+	return kept
 }
 
 // classOf reads a class: its decorators — written before it, inside an export statement, or on

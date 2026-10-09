@@ -60,7 +60,10 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 			root = path.Join(app.Dir, "lib") // a Dart package's own code is its lib/
 		}
 	}
-	src = archdoc.Source{App: app.Dir, Root: root}
+	if app.Loose {
+		root = app.Dir // no manifest, so no src/ convention: every file is the application's
+	}
+	src = archdoc.Source{App: app.Dir, Root: root, Loose: app.Loose, Framework: app.Framework}
 
 	skipNested := map[string]bool{}
 	for _, n := range nested {
@@ -94,6 +97,9 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		return nil
 	})
 	src.Schemas = schemas(repo, app.Dir)
+	if app.Loose {
+		src.Documents = documents(repo, app.Dir)
+	}
 	if len(paths) == 0 {
 		return src, len(src.Schemas) > 0
 	}
@@ -139,9 +145,47 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		}
 		f.Classes, f.Hosts, f.Calls, f.Prefix, f.Constants = got.classes, got.hosts, got.calls, got.prefix, got.consts
 		f.Routers, f.Includes, f.Exports, f.Pages, f.Commands = got.routers, got.incs, got.exports, got.pages, got.cmds
+		f.Main = got.main
 		src.Files = append(src.Files, f)
 	}
 	return src, true
+}
+
+// documents are the HTML pages of an application with no manifest, each at its <title> or its
+// first line: what a person opens.
+func documents(repo, dir string) []archdoc.Literal {
+	var out []archdoc.Literal
+	filepath.WalkDir(filepath.Join(repo, filepath.FromSlash(dir)), func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			if d.Name() != "." && p != filepath.Join(repo, filepath.FromSlash(dir)) && (skipDirs[d.Name()] || strings.HasPrefix(d.Name(), ".")) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if ext := strings.ToLower(filepath.Ext(p)); ext != ".html" && ext != ".htm" {
+			return nil
+		}
+		rel, _ := filepath.Rel(repo, p)
+		rel = filepath.ToSlash(rel)
+		content, err := os.ReadFile(p)
+		if err != nil || len(content) > 2<<20 {
+			return nil
+		}
+		title, line := "", 1
+		lower := strings.ToLower(string(content))
+		if i := strings.Index(lower, "<title>"); i >= 0 {
+			if j := strings.Index(lower[i:], "</title>"); j > 0 {
+				title = strings.TrimSpace(string(content[i+len("<title>") : i+j]))
+				line = 1 + strings.Count(lower[:i], "\n")
+			}
+		}
+		out = append(out, archdoc.Literal{Value: title, Prov: archdoc.Provenance{File: rel, Line: line}})
+		return nil
+	})
+	return out
 }
 
 // schemas are the schema files beside an application's code: Prisma's, and the SQL its

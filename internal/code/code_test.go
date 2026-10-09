@@ -757,3 +757,38 @@ func TestSQLMigrations(t *testing.T) {
 		t.Errorf("articles.price %+v", p)
 	}
 }
+
+// A call to a name that holds a URL is a call to that URL, in Python and in JavaScript; a page
+// with no manifest is read with its title; and a script says where it is run from.
+func TestSmallProjectsAreRead(t *testing.T) {
+	root := tree(t, map[string]string{
+		"report.py": "import requests\n\nAPI = \"https://api.example.com/latest\"\n\ndef main():\n    return requests.get(API)\n\nif __name__ == \"__main__\":\n    main()\n",
+	})
+	src, ok := Read(root, archdoc.App{Name: "x", Dir: ".", Language: "Python", Loose: true}, nil)
+	if !ok || len(src.Files) != 1 {
+		t.Fatalf("script: ok %v, %d files", ok, len(src.Files))
+	}
+	f := src.Files[0]
+	if len(f.Hosts) != 1 || !f.Hosts[0].Called || f.Hosts[0].Host != "api.example.com" || len(f.Calls) != 0 {
+		t.Errorf("hosts %+v, unresolved calls %+v — the named URL is what was called", f.Hosts, f.Calls)
+	}
+	if f.Main == nil || f.Main.Line != 8 {
+		t.Errorf("run directly at %+v, want line 8", f.Main)
+	}
+
+	root = tree(t, map[string]string{
+		"index.html": "<!doctype html>\n<html><head>\n<title>My todos</title></head><body></body></html>\n",
+		"src/app.js": "const API = 'https://todos.example.com/api'\nconst other = somewhere()\nfetch(API)\nfetch(other)\n",
+	})
+	src, ok = Read(root, archdoc.App{Name: "x", Dir: ".", Language: "JavaScript", Loose: true}, nil)
+	if !ok || src.Root != "." || len(src.Files) != 1 {
+		t.Fatalf("page: ok %v, root %q, %d files — with no manifest, src/ is not a convention to assume", ok, src.Root, len(src.Files))
+	}
+	f = src.Files[0]
+	if len(f.Hosts) != 1 || !f.Hosts[0].Called || len(f.Calls) != 1 || f.Calls[0].Target != "other" {
+		t.Errorf("hosts %+v, unresolved calls %+v", f.Hosts, f.Calls)
+	}
+	if len(src.Documents) != 1 || src.Documents[0].Value != "My todos" || src.Documents[0].Prov.Line != 3 {
+		t.Errorf("documents %+v", src.Documents)
+	}
+}

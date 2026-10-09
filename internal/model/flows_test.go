@@ -355,3 +355,42 @@ func keysOf(m map[string]archdoc.Edge) []string {
 	sort.Strings(out)
 	return out
 }
+
+// A project with no manifest: the root application takes its name, a script is a command, an HTML
+// file is a page, and a hosted backend its code is a client of is drawn. A React app's src/pages
+// folder is not Next's: its router says which are pages.
+func TestSmallProjects(t *testing.T) {
+	script := &archdoc.FactSet{Name: "tool",
+		Apps: []archdoc.App{{Name: "My Tool", Dir: ".", Manifest: "report.py", Role: archdoc.RoleCLI, Language: "Python", Loose: true, Prov: cite("report.py", 1)}},
+		Sources: []archdoc.Source{{App: ".", Root: ".", Loose: true, Files: []archdoc.SourceFile{
+			{Path: "report.py", Language: "Python", Lines: 9, Main: &archdoc.Provenance{File: "report.py", Line: 8}}}}}}
+	m := Derive(script)
+	if _, ok := m.Node("app:my-tool"); !ok {
+		t.Errorf("the root application is not named after itself: %+v", m.Nodes)
+	}
+	if len(m.Entries) != 1 || m.Entries[0].ID != "command:my-tool python report.py" || m.Entries[0].Prov.Line != 8 {
+		t.Errorf("entries %+v", m.Entries)
+	}
+
+	web := &archdoc.FactSet{Name: "notes",
+		Apps: []archdoc.App{{Name: "notes", Dir: ".", Manifest: "package.json", Role: archdoc.RoleWeb, Framework: "React", Language: "TypeScript",
+			FrameworkProv: cite("package.json", 3), Prov: cite("package.json", 1)}},
+		Sources: []archdoc.Source{{App: ".", Root: "src", Framework: "React", Documents: []archdoc.Literal{{Value: "Notes", Prov: cite("index.html", 4)}},
+			Files: []archdoc.SourceFile{
+				{Path: "src/main.tsx", Language: "TSX", Lines: 5, Pages: []archdoc.Literal{{Value: "/", Prov: cite("src/main.tsx", 4)}}},
+				{Path: "src/pages/NotesPage.tsx", Language: "TSX", Lines: 3},
+				{Path: "src/supabase.ts", Language: "TypeScript", Lines: 2, Imports: []archdoc.Import{
+					{Spec: "@supabase/supabase-js", Package: "@supabase/supabase-js", How: archdoc.ByPackage, Prov: cite("src/supabase.ts", 1)}}},
+			}}}}
+	m = Derive(web)
+	var pages []string
+	for _, e := range m.Entries {
+		pages = append(pages, e.ID)
+	}
+	if strings.Join(pages, " | ") != "page:notes / | page:notes /index.html" {
+		t.Errorf("pages %v — the router's page and the document, not the file in src/pages", pages)
+	}
+	if _, ok := m.Node("ext:supabase"); !ok {
+		t.Errorf("the hosted backend is not drawn: %+v", m.Nodes)
+	}
+}

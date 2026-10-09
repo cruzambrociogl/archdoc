@@ -207,7 +207,7 @@ func TestExpressRoutes(t *testing.T) {
 func TestNextAndReactRouterPages(t *testing.T) {
 	fs := &archdoc.FactSet{Name: "x",
 		Apps: []archdoc.App{{Name: "web", Dir: "web", Manifest: "web/package.json", Role: archdoc.RoleWeb, Prov: cite("web/package.json", 1)}},
-		Sources: []archdoc.Source{{App: "web", Root: "web/src", Files: []archdoc.SourceFile{
+		Sources: []archdoc.Source{{App: "web", Root: "web/src", Framework: "Next.js", Files: []archdoc.SourceFile{
 			{Path: "web/src/app/(shop)/items/[id]/page.tsx", Language: "TSX", Lines: 3},
 			{Path: "web/src/app/api/items/route.ts", Language: "TypeScript", Lines: 3, Exports: []archdoc.Literal{{Value: "POST", Prov: cite("web/src/app/api/items/route.ts", 2)}}},
 			{Path: "web/src/pages/about.tsx", Language: "TSX", Lines: 3},

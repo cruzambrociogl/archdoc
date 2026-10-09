@@ -20,6 +20,8 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 		return archdoc.Provenance{File: file, Line: int(p.Row) + 1, Column: int(p.Column) + 1}
 	}
 	called := map[archdoc.Provenance]bool{}
+	held := map[string]archdoc.Provenance{} // a name → the literal it is given: API = "https://…"
+	var byName []namedCall
 	partial = parse("Python", src, func(root *ts.Node, l *ts.Language) {
 		text := func(n *ts.Node) string { return n.Text(src) }
 		// Module-level decorated functions — FastAPI's @router.get — gather under a class with no name.
@@ -71,6 +73,14 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 					return // a method of a class, or a nested function
 				}
 				module.Methods = append(module.Methods, pyMethod(n, decorators, l, src, at))
+			case "if_statement":
+				// if __name__ == "__main__": the file is run directly.
+				if p := n.Parent(); p != nil && p.Type(l) == "module" && n.NamedChildCount() > 0 {
+					if cond := text(n.NamedChild(0)); strings.Contains(cond, "__name__") && strings.Contains(cond, "__main__") {
+						where := at(n)
+						out.main = &where
+					}
+				}
 			case "class_definition":
 				out.classes = append(out.classes, pyClass(n, l, src, at))
 			case "call":
@@ -107,6 +117,9 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 					called[at(first)] = true
 					return
 				}
+				if first.Type(l) == "identifier" {
+					byName = append(byName, namedCall{text(first), len(out.calls)})
+				}
 				out.calls = append(out.calls, archdoc.Call{Callee: text(fn), Target: shorten(text(first)), Prov: at(n)})
 			case "string":
 				if v, ok := pyString(n, l, src); ok {
@@ -120,6 +133,9 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 					return
 				}
 				key, value := n.NamedChild(0), n.NamedChild(n.NamedChildCount()-1)
+				if n.Type(l) == "assignment" && key.Type(l) == "identifier" && value.Type(l) == "string" {
+					held[text(key)] = at(value)
+				}
 				if n.Type(l) == "assignment" && value.Type(l) == "call" && value.ChildCount() > 1 {
 					// router = APIRouter(prefix="/items"), app = FastAPI(…)
 					if callee := text(value.Child(0)); callee == "APIRouter" || callee == "FastAPI" || strings.HasSuffix(callee, ".APIRouter") || strings.HasSuffix(callee, ".FastAPI") {
@@ -147,6 +163,7 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 			out.classes = append(out.classes, module)
 		}
 	})
+	out.calls = resolveNamed(out.calls, byName, held, out.hosts, called)
 	for i := range out.hosts {
 		out.hosts[i].Called = called[out.hosts[i].Prov]
 	}

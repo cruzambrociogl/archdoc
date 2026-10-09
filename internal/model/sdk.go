@@ -52,6 +52,29 @@ var sdkCatalog = map[string]sdk{
 	"@slack/web-api": {"Slack", "posts to"},
 	"firebase-admin": {"Firebase", "calls"},
 
+	// Hosted backends: the database, the sign-in and the storage of an application that runs none
+	// of its own — which is most of what an AI builds a first version on.
+	"@supabase/supabase-js":    {"Supabase", "stores data and signs users in with"},
+	"@supabase/ssr":            {"Supabase", "stores data and signs users in with"},
+	"supabase":                 {"Supabase", "stores data and signs users in with"},
+	"firebase":                 {"Firebase", "stores data and signs users in with"},
+	"firebase_admin":           {"Firebase", "calls"},
+	"appwrite":                 {"Appwrite", "stores data and signs users in with"},
+	"pocketbase":               {"PocketBase", "stores data and signs users in with"},
+	"convex":                   {"Convex", "stores data in"},
+	"aws-amplify":              {"AWS Amplify", "stores data and signs users in with"},
+	"@clerk/clerk-react":       {"Clerk", "signs users in with"},
+	"@clerk/nextjs":            {"Clerk", "signs users in with"},
+	"next-auth":                {"Identity provider (OAuth 2)", "signs users in with"},
+	"@planetscale/database":    {"PlanetScale", "stores data in"},
+	"@neondatabase/serverless": {"Neon", "stores data in"},
+	"@upstash/redis":           {"Upstash Redis", "caches data in"},
+	"@vercel/postgres":         {"Vercel Postgres", "stores data in"},
+	"@vercel/kv":               {"Vercel KV", "caches data in"},
+	"@vercel/blob":             {"Vercel Blob", "stores files in"},
+	"cloudinary":               {"Cloudinary", "stores media in"},
+	"algoliasearch":            {"Algolia", "searches with"},
+
 	// Models
 	"openai":            {"OpenAI API", "calls a model at"},
 	"@anthropic-ai/sdk": {"Anthropic API", "calls a model at"},
@@ -72,6 +95,10 @@ var sdkPrefixes = []struct {
 	sdk
 }{
 	{"@opentelemetry/exporter-", sdk{"Telemetry collector (OpenTelemetry)", "exports telemetry to"}},
+	{"firebase/", sdk{"Firebase", "stores data and signs users in with"}},
+	{"@firebase/", sdk{"Firebase", "stores data and signs users in with"}},
+	{"@supabase/", sdk{"Supabase", "stores data and signs users in with"}},
+	{"@clerk/", sdk{"Clerk", "signs users in with"}},
 }
 
 func lookupSDK(pkg string) (sdk, bool) {

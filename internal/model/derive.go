@@ -99,7 +99,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 			}
 		}
 		m.Nodes = append(m.Nodes, archdoc.Node{
-			ID:         appID(a.Dir),
+			ID:         appID(a),
 			Name:       a.Name,
 			Kind:       archdoc.Application,
 			Technology: tech,
@@ -223,8 +223,28 @@ func target(host string, declared map[string]string, external map[string]archdoc
 	return id
 }
 
-func serviceID(name string) string  { return "svc:" + name }
-func appID(dir string) string       { return "app:" + dir }
+func serviceID(name string) string { return "svc:" + name }
+
+// appID is an application's identity: where it is, or — at the root, where "." says nothing and
+// reads badly in every ID and file name built on it — what it is called.
+func appID(a archdoc.App) string {
+	if a.Dir != "." {
+		return "app:" + a.Dir
+	}
+	var b strings.Builder
+	for _, r := range strings.ToLower(a.Name) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '-', r == '_', r == '.':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('-')
+		}
+	}
+	if name := strings.Trim(b.String(), "-."); name != "" {
+		return "app:" + name
+	}
+	return "app:root"
+}
 func externalID(host string) string { return "ext:" + host }
 
 // sortedKeys exists for the same reason as every other sort in this codebase: Go randomises map

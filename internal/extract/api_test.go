@@ -73,3 +73,23 @@ func TestAToolOthersDependOnIsALibrary(t *testing.T) {
 		t.Errorf("the kit is %s: %s", a.Role, a.Why)
 	}
 }
+
+// A repository with no manifest is still a program: scripts a person runs, or a page and what it
+// loads. One with a manifest that describes something running is left to that manifest.
+func TestAProjectWithNoManifest(t *testing.T) {
+	script := Apps(tree(t, map[string]string{"report.py": "print(1)\n", "helpers/io.py": "x = 1\n", "tests/test_report.py": "import report\n"}))
+	if len(script) != 1 || !script[0].Loose || script[0].Role != archdoc.RoleCLI || script[0].Language != "Python" ||
+		script[0].Manifest != "report.py" || script[0].Prov.Line != 1 || !strings.Contains(script[0].Why, "2 Python file") {
+		t.Errorf("a folder of scripts: %+v", script)
+	}
+	page := Apps(tree(t, map[string]string{"index.html": "<html></html>\n", "about.html": "<html></html>\n", "js/app.js": "fetch('/x')\n"}))
+	if len(page) != 1 || !page[0].Loose || page[0].Role != archdoc.RoleWeb || page[0].Manifest != "index.html" {
+		t.Errorf("a page and its script: %+v", page)
+	}
+	if got := Apps(tree(t, map[string]string{"package.json": `{"name": "x", "dependencies": {"react": "^19"}}`, "tool.py": "print(1)\n"})); len(got) != 1 || got[0].Loose {
+		t.Errorf("a manifest describes it already: %+v", got)
+	}
+	if got := Apps(tree(t, map[string]string{"README.md": "nothing to run\n"})); len(got) != 0 {
+		t.Errorf("nothing to run, yet: %+v", got)
+	}
+}

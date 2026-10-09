@@ -62,7 +62,7 @@ func generate(args []string, out io.Writer) error {
 		return err
 	}
 	if facts.Source == "" && !hasContainerApp(facts.Apps) {
-		return fmt.Errorf("no deployable Compose file and no application manifest found in %s", facts.Root)
+		return fmt.Errorf("nothing to document in %s: no Compose file, no application manifest, and no Python, JavaScript or HTML files", facts.Root)
 	}
 
 	m := model.Derive(facts)
@@ -248,11 +248,14 @@ func generate(args []string, out io.Writer) error {
 		// competitor in this space publishes what it missed.
 		render.CoverageFile: render.Coverage(m, *facts, reported(result), meta),
 	}
-	if features := render.Features(m, meta); features != "" {
-		generated[render.FeaturesFile] = features
-	}
-	if components := render.Components(m, meta); components != "" {
-		generated[render.ComponentsFile] = components
+	// A project small enough for one page has its features and its parts on that page.
+	if len(plan) > 0 {
+		if features := render.Features(m, meta); features != "" {
+			generated[render.FeaturesFile] = features
+		}
+		if components := render.Components(m, meta); components != "" {
+			generated[render.ComponentsFile] = components
+		}
 	}
 	views := render.Views(m)
 	for _, v := range views {
