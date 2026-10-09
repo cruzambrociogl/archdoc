@@ -5,7 +5,8 @@ accurate, traceable to the code, and regenerable as the system changes. Go engin
 web app, one static binary.
 
 **Phase:** extension — R1.a built; surface redesigned (5 Oct); code read since 5 Oct — components,
-data, routes, flows, cited explanations (plan and status in `PROGRESS.md`, "Code as evidence").
+data, routes, flows, cited explanations. Small projects — a script, a page — documented on one page
+since 9 Oct. Start from `PROGRESS.md`, "Where this stands": what works, what is next, how to run it.
 **Target:** code freeze 4 Dec 2026, delivered 11 Dec 2026.
 
 ---
@@ -102,13 +103,13 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 |---|---|
 | `internal/archdoc` | Core types, and the view projections over them |
 | `internal/extract` | Discovery, and every file archdoc reads |
-| `internal/code` | Source code: parsing (tree-sitter, five grammars) and imports, called by extract |
+| `internal/code` | Source code: parsing (tree-sitter, five grammars) and imports, called by extract; SQL migrations and Prisma schemas, read by line |
 | `internal/model` | Facts → graph |
 | `internal/validate` | The gate — every change to the model passes through it |
 | `internal/rules` | `rules.yaml` — corrections that survive regeneration |
-| `internal/store` | Version history — SQLite, cgo-free. A local cache; git is the archive |
-| `internal/semantic` | The network boundary |
-| `internal/render` | Layout, SVG, Mermaid |
+| `internal/store` | Version history — SQLite, cgo-free. A local cache; git is the archive. Also the one place git is run: a repository at another commit, for `archdoc diff` |
+| `internal/semantic` | The network boundary: `--label`, `--explain`, and what each remembers |
+| `internal/render` | Layout, SVG, Mermaid; the list of views; the documents, sized to the project |
 | `internal/arrange` | `layout.yaml`, `views.yaml` — presentation a person saves, applied over the layout |
 | `internal/serve` | Local HTTP, the action gate, the published-site export, embedded web assets |
 | `cmd/archdoc` | CLI — thin, no logic |

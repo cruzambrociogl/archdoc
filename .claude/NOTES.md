@@ -41,7 +41,20 @@ raised, not quietly promoted over it.
 
 ## Open
 
-(empty)
+- [ ] Seven of Immich's explanations are stale and never refreshed: they are for one-file components
+      `--explain` no longer asks about. Hide them, or stop marking them — never decided
+- [ ] Immich's history carries versions nothing caused: 27 (a label run before memory was applied
+      first) and one each from the element-order fix and the layout changes. Harmless; say so if asked
+- [ ] `people` and `person` are two features in Immich's web app, because the code spells both.
+      A rule in `rules.yaml` to merge two components would be the fix
+- [ ] The main view picks its sixteen components by count. A person naming them in `rules.yaml`
+      is the better answer (also in PROGRESS, Not done)
+- [ ] Coverage lists only the migration files that create a table, not ones that only alter
+- [ ] A formatter run with default settings rewrote two web files on 9 Oct; both were restored.
+      The web code has no formatter configuration — it is formatted by hand, 160 columns, no semicolons
+- [ ] `/tmp/ad` is a copy of the binary used for testing this session; on macOS overwrite it with
+      `rm` then `cp`, never `cp` over a running one — the process is killed (exit 137)
+- [ ] The small subjects have not been through `--label` or `--explain`: a few cents for all three
 
 ---
 

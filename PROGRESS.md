@@ -5,7 +5,57 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-10-09 (AC-6 scored; AC-1 re-measured; the `--explain` egress mode named)
+Last updated: 2026-10-09 (end of the 8–9 Oct session — see "Where this stands" below)
+
+---
+
+## Where this stands — 9 Oct 2026, to resume from
+
+Everything is on `develop`, pushed, 193 commits ahead of `main`. `main` holds the initial commit
+only; no pull request has been opened, by choice. `go test ./internal/... ./cmd/...` passes; the
+web app builds (`cd web && npm run build`), and `go build -o archdoc ./cmd/archdoc` embeds it.
+
+**What the product does now**
+
+| | State |
+|---|---|
+| A system (Immich) | Context, containers, components, data, features, flows, dependencies and cited explanations, all working. The explorer reads as a C4 picture at all three levels — by inspection, not by a measured score |
+| Something small | A folder of scripts, a single page, or a small app is documented on one page and told as a story. Since 9 Oct; before that a project with no manifest was refused |
+| "What the AI did" | Not built. `archdoc diff` compares two commits and classifies every change; nothing yet turns that into a summary a person reads, and nothing reads a plan file |
+
+**Acceptance criteria:** seven of nine met — AC-1, 2, 4, 5, 6, 7, 8. AC-3 waits for the hand-drawn
+Immich reference (Cruz). AC-9 waits for Supabase, which is not cloned.
+
+**Against the vision** (`docs/vision.md`; the check itself is in `docs/decisions.md`, 9 Oct): on
+path for a system; back on path for small projects; not started on the change view per session and
+on plan against code. The order agreed: (1) small projects accepted ✓, (2) the small app right ✓,
+(3) a change summary a person reads, built on `archdoc diff`, (4) plan against code. **3 is next.**
+
+**Test subjects on this machine** — in `../subjects/`, outside the repository:
+
+| Subject | State |
+|---|---|
+| `immich` | Pinned `cbf5d83a693d0328282ddb0f5d398c351d92558e`, one commit deep. Generated, labelled, explained: 15 elements, 17 relationships, 173 components, 68 tables, 442 ways in, 165 explanations, version 30 |
+| `small-script`, `small-page`, `small-app` | Written for the purpose on 9 Oct, generated, never labelled or explained |
+| Mastodon, the FastAPI template, Supabase | Not on this machine. The first two were deleted; Supabase was never cloned |
+
+**Money spent on Immich so far:** $3.29 across eleven runs, logged in its `.archdoc/history.db`
+(`archdoc runs ../subjects/immich`), plus $0.02 on a throwaway copy. The first two runs, on Claude
+Opus 5 before the prompt and the model were changed, are $2.24 of it. A full `--explain` of Immich
+on `claude-sonnet-5-5` is about $0.45 and a `--label` about $0.02. **Paid runs are asked for first.**
+
+**To see it**
+
+```
+cd archdoc && go build -o archdoc ./cmd/archdoc
+./archdoc serve ../subjects/immich          # http://localhost:7474
+./archdoc serve ../subjects/small-page      # the small-project story
+./archdoc diff ../subjects/immich HEAD      # what changed since a commit
+```
+
+**Where to read what happened:** the tables under "Code as evidence" below list every piece of work
+of 8–9 Oct with what it measured and its commit; `docs/decisions.md` has the reason for each, dated;
+"Not done" at the end of that section is the full list of what is open.
 
 ---
 
@@ -44,14 +94,14 @@ constantly, not just at a review.
 | `RUL` | Rules — `rules.yaml` | 6 | ~6 | AC-5 |
 | `SEM` | Semantic layer — the LLM | 10 | ~5 | — |
 | `PRV` | Provenance | 6 | ~3 | AC-1 |
-| `MEM` | Memory and diff | 8 | ~5 | AC-6 — versions compare structurally in the app (MEM-04/06/07); diff between two *commits* and MEM-05's rename/re-bound classes remain |
+| `MEM` | Memory and diff | 8 | ~7 | AC-6 ✓ — versions compare in the app; `archdoc diff` between two commits; changes classified, renames and boundary crossings among them (9 Oct). MEM-08, the optional prose, is not built |
 | `VIE` | Views and rendering | 10 | ~7 | AC-2 |
-| `SUR` | Surfaces — CLI and web app | 22 | ~19 | AC-8 — web views redesigned and SUR-16–22 added and done 5 Oct (see below); `init`, `diff`, and `export` formats other than `--site` remain |
+| `SUR` | Surfaces — CLI and web app | 22 | ~19 | AC-8 — web views redesigned and SUR-16–22 added and done 5 Oct (see below); `diff` built 9 Oct; `init` and `export` formats other than `--site` remain |
 | `OUT` | Output and deliverables | 12 | ~11 | — coverage report and the MkDocs site done 2 Oct; OUT-11 published site and OUT-12 coverage as data 5 Oct; OUT-09 from size and mtime (no conformance % yet); OUT-10 approximated by mtime, not by commit |
 | `ANS` | Answer surface | 7 | 0 | — *(R1.c, stretch)* |
 | | **Total** | **125** | **~84** | |
 
-109 are R1.a; the 7 `ANS` capabilities are R1.c.
+109 are R1.a; the 7 `ANS` capabilities are R1.c. The counts were last tallied on 5 Oct; only the `MEM` and `SUR` rows have been corrected since, and most of 8–9 Oct's work is in the feature tables below, which are keyed on the inventory's F-numbers, not on this catalog.
 
 ### Surface redesign — 5 Oct, pulled forward from Build 3
 
