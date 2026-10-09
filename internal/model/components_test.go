@@ -193,3 +193,66 @@ func TestComponentsAreFeaturesWhereTheCodeNamesThem(t *testing.T) {
 		t.Errorf("%d folders, want controllers, services, repositories, schema, utils and the top level", got)
 	}
 }
+
+// A front end laid out by layer: the feature's name runs across the layers — a service, a modal, a
+// utility, a directory of components, a route — and that is the component. A name only one layer
+// carries, a layer's own word, and a feature of two files stay with their folders. A router's
+// grouping and parameter segments are not names.
+func TestFeaturesAcrossLayers(t *testing.T) {
+	files := []string{
+		"web/src/lib/services/album.service.ts", "web/src/lib/services/shared-link.service.ts", "web/src/lib/services/asset.service.ts",
+		"web/src/lib/modals/AlbumEditModal.svelte", "web/src/lib/modals/AlbumPickerModal.svelte", "web/src/lib/modals/SharedLinkCreateModal.svelte",
+		"web/src/lib/modals/AssetTagModal.svelte", "web/src/lib/modals/HelpModal.svelte",
+		"web/src/lib/utils/album-utils.ts", "web/src/lib/utils/asset-utils.ts", "web/src/lib/utils/date-time.ts",
+		"web/src/lib/components/album-page/AlbumViewer.svelte", "web/src/lib/components/album-page/AlbumCover.svelte",
+		"web/src/lib/components/shared-components/Button.svelte", "web/src/lib/components/shared-components/Icon.svelte",
+		"web/src/lib/components/timeline/Timeline.svelte", "web/src/lib/components/timeline/Month.svelte",
+		"web/src/lib/managers/timeline-manager.svelte.ts",
+		"web/src/routes/(user)/albums/+page.svelte", "web/src/routes/(user)/albums/[albumId]/+page.svelte",
+		"web/src/routes/(user)/shared-links/+page.svelte", "web/src/routes/+layout.svelte",
+		"web/src/lib/stores/map.store.ts", "web/src/lib/modals/MapModal.svelte",
+	}
+	// An application large enough that src/lib is read as its layers, as a real one is.
+	for i := 0; i < 30; i++ {
+		files = append(files, fmt.Sprintf("web/src/lib/elements/Element%02d.svelte", i))
+	}
+	m := Derive(codeFacts("web", "web/src", files, nil))
+	in := map[string]string{}
+	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Component {
+			for _, f := range n.Files {
+				in[f] = n.Name
+			}
+		}
+	}
+	for file, want := range map[string]string{
+		"web/src/lib/services/album.service.ts":                "album",
+		"web/src/lib/modals/AlbumEditModal.svelte":             "album",
+		"web/src/lib/utils/album-utils.ts":                     "album",
+		"web/src/lib/components/album-page/AlbumCover.svelte":  "album",
+		"web/src/routes/(user)/albums/[albumId]/+page.svelte":  "album",
+		"web/src/lib/modals/SharedLinkCreateModal.svelte":      "shared-link",
+		"web/src/routes/(user)/shared-links/+page.svelte":      "shared-link",
+		"web/src/lib/modals/AssetTagModal.svelte":              "asset",
+		"web/src/lib/managers/timeline-manager.svelte.ts":      "timeline",
+		"web/src/lib/components/timeline/Month.svelte":         "timeline",
+		"web/src/lib/modals/HelpModal.svelte":                  "lib/modals",
+		"web/src/lib/utils/date-time.ts":                       "lib/utils",
+		"web/src/lib/components/shared-components/Icon.svelte": "lib/components",
+		"web/src/lib/modals/MapModal.svelte":                   "lib/modals", // map: two files, too small
+		"web/src/routes/+layout.svelte":                        "routes",
+	} {
+		if in[file] != want {
+			t.Errorf("%s is in %q, want %q", file, in[file], want)
+		}
+	}
+	modules := 0
+	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Module {
+			modules++
+		}
+	}
+	if modules == 0 {
+		t.Error("the folders are not kept as a second view")
+	}
+}

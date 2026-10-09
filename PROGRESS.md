@@ -153,6 +153,7 @@ are in `docs/decisions.md` under the same date.
 | Element order made total (it depended on what else was in the model) | 9 explanations no longer stale for no reason | `980e42f` |
 | Small diagrams keep technology and description when fitted; description text sized as the engine sizes boxes | container view readable at 82% | `980e42f` |
 | The system box has a description; component boxes show the first sentence of their explanation; a rank too wide is folded; labels and notes wrap as the engine sizes them | Immich: context, containers and the server's 16 main components all read with descriptions at fit zoom; `--label` again, $0.018 | `54e6b6d` |
+| A front end's components are features found across its layers, where no suffix convention applies; the marker on a wrapped arrow label sits with its text | web: 15 folders → 41 components, 26 of them features; mobile 18 → 54; server unchanged | COMMIT |
 
 **Not done** — known, and left:
 
@@ -163,6 +164,7 @@ are in `docs/decisions.md` under the same date.
 | `archdoc diff` on real history | The Immich clone holds one commit, so two real commits of a real repository have not been compared; the two-commit test uses the fixture |
 | Earlier `--explain` runs keep their old label | Runs 1–7 in Immich's log still read `structure-only`; the log is a record and was not rewritten |
 | A person choosing a container's main components | The main view picks by count of routes, pages, commands and jobs handled. A rule in `rules.yaml` naming them would be better and is not built |
+| Explanations for the new web and mobile components | The features found on 9 Oct have none yet, and the 33 that existed for the old folders are stale. A `--explain` run asks about roughly ninety components, about $0.50 |
 | The batch API for `--explain` | Half price, results later; needs the run reworked. Left out on purpose at $0.005 a component |
 | Queues in Python | Celery, RQ: not followed. Only decorator-marked TypeScript jobs and events are |
 | Migrations in a tool's own DSL | Alembic, Knex, Rails' `schema.rb`: not read. Only SQL is |

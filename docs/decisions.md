@@ -903,3 +903,19 @@ component are now wrapped in the app where the engine wraps them, so neither run
 `--label` ignored remembered labels and applied only what the new answer held, while the plain run
 after it applied both — so the two runs gave different models and the second recorded a version
 nothing had caused. Remembered labels are now applied before a new run, which writes over them.
+
+**2026-10-09 — A front end's components are the features its layers share**
+Immich's web app has no `album.service.ts`-style convention across its code, so its components
+were its folders: `lib/components`, `lib/modals`, `lib/utils`. It is laid out by layer, and a
+feature's name runs across the layers: `album.service.ts`, `AlbumEditModal.svelte`,
+`album-utils.ts`, `components/album-page/`, `routes/(user)/albums/`. Where the suffix rule does not
+carry an application, that is now read: the layer is the role; a file's name is the longest run of
+its leading words that the code itself uses as a name — the stem of a file with a counted suffix,
+or a directory inside a layer — with plurals, `-page` and a router's `(group)` and `[param]`
+segments set aside; a feature is a name in two layers or more, of at least three files. A name made
+only of layer words (`shared-components`, `widget`) is not a feature. Everything else stays with
+its folder, and the folders remain as the second view. Measured on Immich: web 15 folders → 41
+components, 26 of them features holding about half its files (`asset`, `admin`, `timeline`, `user`,
+`album`, `auth`, `people`, `workflow`, `shared-link`…); mobile 18 → 54. The server, which has the
+suffix convention, is unchanged at 75. The rule is names, so it is as good as the naming: `people`
+and `person` are two features in the web app because the code spells them two ways.

@@ -337,9 +337,8 @@
 }
 .route-label {
   position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  /* A block, not a row: the marks sit in the text, before its first word, wherever it wraps. */
+  display: block;
   padding: 1px 5px;
   background: #ffffff;
   border: 1px solid transparent;
@@ -362,8 +361,11 @@
   color: var(--k-slate-ink);
 }
 .route-label .mark-interpreted {
+  display: inline-block;
   width: 5px;
   height: 5px;
+  margin-right: 5px;
+  vertical-align: middle;
   border-color: var(--k-slate);
 }
 

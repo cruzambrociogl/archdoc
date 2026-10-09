@@ -25,6 +25,10 @@ import (
 //     machine-learning repository — is a component of its own. A lone file that only shapes data,
 //     or whose role is a rare one, and every file with no role, stays with its folder.
 //
+// A front end usually has the other convention: laid out by layer — components, modals, services,
+// stores, routes — with a feature's name running across them. Where no suffix convention carries
+// the application, that is read instead (slices, layered): the layer is the role.
+//
 // The convention has to carry the application for this to apply: several features, covering a
 // good part of the files. Otherwise — and always as a second view, "by folder" — a part is a
 // directory under the source root, with two refinements:
@@ -77,7 +81,12 @@ func components(m *archdoc.Model, sources []archdoc.Source) map[string]string {
 		_, local, _ := strings.Cut(parent.ID, ":")
 
 		group, roles := folders, map[string][]string(nil)
-		if features, r, ok := slices(src, folders); ok {
+		features, r, ok := slices(src, folders, false)
+		if !ok && !python {
+			// No suffix convention: the layers may still name the features between them.
+			features, r, ok = slices(src, folders, true)
+		}
+		if ok {
 			group, roles = features, r
 			emit(m, src, parent.ID, archdoc.Module, "dir:"+local+"/", folders, nil)
 		}
@@ -90,7 +99,15 @@ func components(m *archdoc.Model, sources []archdoc.Source) map[string]string {
 
 // slices groups a source's files into features by the roles their names carry. roles gives, for
 // each feature, the roles it spans. ok is false when the convention does not carry the application.
-func slices(src archdoc.Source, folders map[string]string) (group map[string]string, roles map[string][]string, ok bool) {
+//
+// layered reads the other common convention, a front end's: the code is laid out by layer —
+// components, modals, services, stores, routes — and a feature's name runs across them:
+// album.service.ts, AlbumEditModal.svelte, album-utils.ts, components/album-page/, routes/albums/.
+// The layer is then the role, and the name is the longest run of leading words that the code
+// itself has used as a name: the stem of a file with a counted suffix, or a directory inside a
+// layer. A name nothing else carries is not a feature, and a feature of fewer than minLayered
+// files is too small to be one; both stay with their folder.
+func slices(src archdoc.Source, folders map[string]string, layered bool) (group map[string]string, roles map[string][]string, ok bool) {
 	type named struct{ stem, role string }
 	names := map[string]named{}
 	count := map[string]int{}
@@ -100,6 +117,70 @@ func slices(src archdoc.Source, folders map[string]string) (group map[string]str
 		if i := strings.LastIndex(base, "."); i > 0 && !notRoles[base[i+1:]] {
 			names[f.Path] = named{base[:i], base[i+1:]}
 			count[base[i+1:]]++
+		}
+	}
+	if layered {
+		// below is a file's path under its layer, without the segments a router uses for grouping
+		// and parameters: (user), [id].
+		below := func(file string) []string {
+			rel := strings.TrimPrefix(file, src.Root+"/")
+			if layer := folders[file]; layer != "." {
+				rel = strings.TrimPrefix(rel, layer+"/")
+			}
+			var segs []string
+			for _, seg := range strings.Split(rel, "/") {
+				if !strings.HasPrefix(seg, "(") && !strings.HasPrefix(seg, "[") {
+					segs = append(segs, seg)
+				}
+			}
+			return segs
+		}
+		vocabulary := map[string]bool{}
+		for _, n := range names {
+			if w := words(n.stem); count[n.role] >= minRole && !generic(w) {
+				vocabulary[nameOf(w)] = true
+			}
+		}
+		inside := map[string]int{}
+		for _, f := range src.Files {
+			if segs := below(f.Path); len(segs) > 1 {
+				if w := words(segs[0]); !generic(w) {
+					inside[nameOf(w)]++
+				}
+			}
+		}
+		for name, n := range inside {
+			if n >= 2 {
+				vocabulary[name] = true
+			}
+		}
+		for _, f := range src.Files {
+			if n, has := names[f.Path]; has && count[n.role] >= minRole && vocabulary[nameOf(words(n.stem))] {
+				names[f.Path] = named{nameOf(words(n.stem)), n.role}
+				continue
+			}
+			delete(names, f.Path)
+			layer := folders[f.Path]
+			segs := below(f.Path)
+			if layer == "." || len(segs) == 0 {
+				continue
+			}
+			first := segs[0]
+			if len(segs) == 1 {
+				if strings.HasPrefix(first, "+") {
+					continue // a router's own file: +page.svelte names nothing
+				}
+				first, _, _ = strings.Cut(first, ".")
+			}
+			w := words(first)
+			for k := len(w); k > 0; k-- {
+				if name := nameOf(w[:k]); vocabulary[name] {
+					role := path.Base(layer)
+					names[f.Path] = named{name, role}
+					count[role] += minRole // a layer is a role however few files name a feature in it
+					break
+				}
+			}
 		}
 	}
 	spans := map[string]map[string]bool{}
@@ -153,10 +234,28 @@ func slices(src archdoc.Source, folders map[string]string) (group map[string]str
 			group[f.Path] = r
 			kept[r] = true
 			covered++
-		case conventional && !dataRoles[n.role] && main[n.role] >= minFeatures:
+		case conventional && !layered && !dataRoles[n.role] && main[n.role] >= minFeatures:
 			group[f.Path] = n.stem
 		default:
 			group[f.Path] = folders[f.Path]
+		}
+	}
+	if layered {
+		// A name two files share across two layers is a coincidence more often than a feature.
+		size := map[string]int{}
+		for _, key := range group {
+			size[key]++
+		}
+		for _, f := range src.Files {
+			if key := group[f.Path]; kept[key] && size[key] < minLayered {
+				group[f.Path] = folders[f.Path]
+				covered--
+			}
+		}
+		for key := range kept {
+			if size[key] < minLayered {
+				delete(kept, key)
+			}
 		}
 	}
 	if len(kept) < minFeatures || 10*covered < 3*len(src.Files) {
@@ -179,6 +278,68 @@ func slices(src archdoc.Source, folders map[string]string) (group map[string]str
 		roles[key] = uniq
 	}
 	return group, roles, true
+}
+
+// minLayered is how many files a feature found across layers must have.
+const minLayered = 3
+
+// Names a directory can have that say what kind of thing is in it, not which feature it is for.
+// A layer's own name is one of them: a file called widget.provider.dart does not make "widget" a
+// feature.
+var genericNames = map[string]bool{"page": true, "shared": true, "common": true, "component": true, "layout": true,
+	"util": true, "lib": true, "index": true, "test": true, "mock": true, "type": true, "helper": true, "core": true, "base": true,
+	"widget": true, "store": true, "action": true, "api": true, "provider": true, "service": true, "repository": true,
+	"model": true, "entity": true, "manager": true, "controller": true, "handler": true, "hook": true, "constant": true,
+	"config": true, "modal": true, "element": true, "route": true, "form": true, "button": true, "dialog": true, "icon": true,
+	"app": true, "main": true, "generic": true, "custom": true, "default": true}
+
+// words splits a name into its words, lower-cased and singular: AlbumEditModal, album-utils and
+// albums all start with album. "page" is dropped — album-page is the album's page.
+func words(name string) []string {
+	var out []string
+	var cur []rune
+	flush := func() {
+		if len(cur) == 0 {
+			return
+		}
+		w := strings.ToLower(string(cur))
+		cur = cur[:0]
+		switch {
+		case w == "page" || w == "pages":
+			return
+		case strings.HasSuffix(w, "ies") && len(w) > 4:
+			w = w[:len(w)-3] + "y"
+		case strings.HasSuffix(w, "s") && !strings.HasSuffix(w, "ss") && len(w) > 3:
+			w = w[:len(w)-1]
+		}
+		out = append(out, w)
+	}
+	runes := []rune(name)
+	for i, r := range runes {
+		switch {
+		case r == '-' || r == '_' || r == '.' || r == ' ':
+			flush()
+			continue
+		case r >= 'A' && r <= 'Z' && i > 0 && (runes[i-1] >= 'a' && runes[i-1] <= 'z' || runes[i-1] >= '0' && runes[i-1] <= '9'):
+			flush()
+		}
+		cur = append(cur, r)
+	}
+	flush()
+	return out
+}
+
+func nameOf(words []string) string { return strings.Join(words, "-") }
+
+// generic reports a name made only of words that say what kind of thing something is:
+// shared-components is, shared-link is not.
+func generic(words []string) bool {
+	for _, w := range words {
+		if !genericNames[w] {
+			return false
+		}
+	}
+	return true
 }
 
 // emit adds one grouping of a source's files as nodes of a kind, with the uses between them, and
