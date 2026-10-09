@@ -149,9 +149,9 @@ are in `docs/decisions.md` under the same date.
 | A person reaches web, mobile and command-line applications | 3 new arrows; context unchanged | `9905416` |
 | A package that running code depends on is a library | `@immich/plugin-sdk` no longer a container: 15 elements, 17 relationships | `9905416` |
 | A large container opens on its 16 main components; all of them and by-folder one click away | server: 16 of 75, mobile: 16 of 18 | `187b7d1` |
-| Labels remembered in `.archdoc/labels.json` and applied on every run | `--label` on the clone: 26 operations, $0.018; a plain run after it keeps all 15 descriptions and records no version | this commit |
-| Element order made total (it depended on what else was in the model) | 9 explanations no longer stale for no reason | this commit |
-| Small diagrams keep technology and description when fitted; description text sized as the engine sizes boxes | container view readable at 82% | this commit |
+| Labels remembered in `.archdoc/labels.json` and applied on every run | `--label` on the clone: 26 operations, $0.018; a plain run after it keeps all 15 descriptions and records no version | `980e42f` |
+| Element order made total (it depended on what else was in the model) | 9 explanations no longer stale for no reason | `980e42f` |
+| Small diagrams keep technology and description when fitted; description text sized as the engine sizes boxes | container view readable at 82% | `980e42f` |
 
 **Not done** — known, and left:
 
