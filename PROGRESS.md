@@ -94,7 +94,7 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 | 1 | Applications from manifests; Compose as deployment evidence | F-02 | ✓ 5 Oct — Immich: server and ML tied by build line, web, mobile, CLI on their own |
 | 2 | Module and import graph → components by convention; identity by what a thing is | F-03, F-10, F-31 | ✓ 5 Oct — Immich: 43 components in 5 containers, 145 uses, no import unresolved; explorer Components level, committed SVGs, coverage of the code |
 | 3 | NestJS pack: routes, services, injection; outbound calls; unresolved as a state | F-04, F-08, F-13, F-32 | ✓ 5 Oct — Immich: 301 routes (274 described by the code), server → ML from `config.dto.ts:624`, 11 calls unresolved; Features screen and `features.generated.md` |
-| 4 | Data model from table classes and migrations | F-07, F-11 | ✓ 5 Oct — from table classes (TypeORM-style decorators, SQLModel, SQLAlchemy); Immich: 68 tables, 65 foreign keys, in PostgreSQL; explorer Data level, `data-*.svg`, Mermaid erDiagram. Migrations not read: they say how the schema got here, not what it is |
+| 4 | Data model from table classes and migrations | F-07, F-11 | ✓ 5 Oct — from table classes (TypeORM-style decorators, SQLModel, SQLAlchemy); Immich: 68 tables, 65 foreign keys, in PostgreSQL; explorer Data level, `data-*.svg`, Mermaid erDiagram. SQL migrations read since 8 Oct, where the code declares no table |
 | 5 | Flows from an entry point, as sequence diagrams | F-12 | ✓ 5 Oct — 298 of Immich's 301 routes followed to tables and outbound calls; sequence diagram per route on Features; arc42 §6 drawn from the code (eight widest flows, by rule) |
 | 6 | SvelteKit and React pages; FastAPI and Python | F-05, F-06 | ✓ 6 Oct — FastAPI routes with full prefixes (settings resolved by name, conditional includes marked) and Python flows; SvelteKit pages by file, TanStack by `createFileRoute`. Template: 23 routes, 8 pages, 18 flows; Immich: 304 routes, 55 pages |
 | 7 | Component pages and cited claims, remembered — paid runs, asked first | F-19, F-30, F-36 | ✓ 8 Oct — `components.generated.md`, inspector, `--explain`, VAL-09, `.archdoc/interpretations.json`. Live on Immich: 42 of 43 components explained, 152 cited sentences, $1.52 (after a first run lost $0.72 of answers to one empty reply — fixed) |
@@ -114,13 +114,38 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 | **Components are features, not folders**, where file names carry roles; folders as a second view; shared and wiring parts said, not drawn | F-10 |
 | **A fuller context**: external systems from configured URLs and from known client libraries, never from links | F-08 |
 
-Done since, 8 Oct: `--explain` on `claude-sonnet-5-5` and `--label` too, small components not asked
-about (Immich: 97 explained for $0.52); `model.json` laid out compactly and the server gzipped;
-flows follow events, queued jobs and a Python class's methods; SQL migrations are the schema where
-the code declares no table, for a container in any language.
+**The evening of 8 Oct** — cost, then the three known gaps. Every row is on `develop`; the reasons
+are in `docs/decisions.md` under the same date.
 
-Not done: Celery-style queues in Python; migrations written in a tool's own DSL (Alembic, Knex,
-Rails' `schema.rb`).
+| What | Measured | Commit |
+|---|---|---|
+| `--explain` asks `claude-sonnet-5-5` at low effort; `--label` asks it too, at medium, and `--label-model` asks another | Per component $0.0145 on Opus 5 → about $0.005; `--label` on a copy of Immich: one request, 27 operations, $0.018 | `b096a87`, `ec4b283`, `2af9d48` |
+| A component of one file with no route, page or table is not asked about | Immich: 25 of 122 skipped | `b096a87` |
+| An answer in the agreed shape with no sentence in it is asked again, and named if it stays empty | Seen live: 3 of 83, silently unexplained before | `aaf486c` |
+| Full `--explain` on Immich | 97 components explained, every sentence cited; $0.41 + $0.06 of tests + $0.02 for the three empty ones | runs 4–7 |
+| `model.json` laid out compactly; an empty provenance is not written | Immich: 3.3 MB → 2.6 MB, same content | `6ae1b73` |
+| `archdoc serve` gzips text | `/api/model`: 3.4 MB → 226 KB | `6ae1b73` |
+| Flows follow an emitted event into its `@OnEvent` listeners, and a queued job to a lifeline that opens the job's own flow | Immich: 37 flows reach a listener, 68 a queued job | `bb29ba9` |
+| Flows follow a Python class's methods where the code states the object's class | Immich: `/predict` reaches `InferenceModel.load` | `bb29ba9` |
+| SQL migrations are the schema where the code declares no table, for a container in any language; coverage names the schema files | A Go service with only migrations gets a data view; Immich unchanged, byte for byte | `012c70b` |
+| Fixed: a service whose manifest names no known framework failed validation and nothing was written | Any plain Go module | `012c70b` |
+
+**Not done** — known, and left:
+
+| What | Why it is open |
+|---|---|
+| Stale explanations on small components | Eleven of Immich's one-file components still show an earlier model's answer, marked stale, with advice to run `--explain` — which no longer asks about them. Hide them, or stop marking them: undecided |
+| The batch API for `--explain` | Half price, results later; needs the run reworked. Left out on purpose at $0.005 a component |
+| Queues in Python | Celery, RQ: not followed. Only decorator-marked TypeScript jobs and events are |
+| Migrations in a tool's own DSL | Alembic, Knex, Rails' `schema.rb`: not read. Only SQL is |
+| Coverage lists only the migration files that create a table | One that only alters is read and applied, and not named |
+| Readers verified on fixtures only | Express, Next.js, React Router, Prisma, SQLAlchemy, Typer and Click; SQL migrations; Python class methods beyond Immich's ML service. No real repository has been through them |
+| `--label` on the Immich clone itself | Run on a throwaway copy only, so the clone's diagrams carry no labels |
+| No side-by-side of `--label` on Sonnet 5.5 against Opus 5.5 | Sonnet's output read correctly; the comparison was never made |
+| The other test subjects | Mastodon and the FastAPI template were deleted and not cloned again; Supabase never was (AC-9) |
+| `develop` → `main` | `main` holds the initial commit only; no pull request yet, by choice |
+| The published site, and a demo walk-through | Deferred to demo preparation, by choice |
+| Which of Archify's diagrams archdoc should also draw | Raised 8 Oct, not settled |
 
 ### Superseded — do not implement as written
 

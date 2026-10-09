@@ -45,7 +45,8 @@ What it does now:
 | | |
 |---|---|
 | `archdoc generate` | C4 context and container diagrams; inside each container whose code it reads, its components and its tables; every route, page, command and background job; what each route or job sets off; the packages each container depends on and where it uses them; twelve arc42 sections and a coverage report — every element cited at its line |
-| `archdoc generate --explain` | Opt-in: asks a model what each component does. It is sent names and the code's own route summaries, never code; every sentence must cite the facts it rests on or it is refused; answers are remembered, so nothing is asked twice |
+| `archdoc generate --explain` | Opt-in: asks a model what each component does. It is sent names and the code's own route summaries, never code; every sentence must cite the facts it rests on or it is refused; answers are remembered, so nothing is asked twice. `--explain-limit N` and `--explain-only <id>` ask about fewer; a component of one file with no route or table is not asked about |
+| `archdoc generate --label` | Opt-in: asks a model for descriptions and relationship labels, never structure. `--label-model` chooses the model |
 | `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see |
 | `archdoc export --site` | The same app as a static site a team opens without archdoc — GitHub Pages, any static host |
 
