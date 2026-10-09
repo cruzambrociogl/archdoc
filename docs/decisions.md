@@ -1080,3 +1080,20 @@ not started.
 - **Not drawn, on purpose:** return arrows (the code records no return values), "security" arrows
   (which call is the check would be a guess), prose per step (model-written). The last may come as
   a paid, marked option: `--explain` writing one sentence per band, cited to its steps.
+
+**2026-10-09 — The CLI: what each command may do, said and enforced**
+Tried command by command at Cruz's request. What was wrong was not style: `generate` with no path
+wrote into the current directory (it documented archdoc itself that day); `--label` and `--explain`
+spent money with no estimate and no confirmation; "explain" meant three things; `scan` still spoke
+of Compose only; per-command help failed; reading `history` or `runs` created a database. Decided,
+with Cruz: commands are grouped by what they may do — write (`init`, `generate`, `export`), read
+(`status`, `scan`, `show`, `diff`, `history`, `runs`, `serve`), ask Claude (`label`, `explain`) — and
+the grouping is enforced. Writing needs an explicit path; reading writes nothing. `label` and
+`explain` became commands, so `generate` never costs money: a promise that is easy to trust and to
+state in a demo; the old flags are refused with a pointer, not kept working, so the promise holds.
+A paid command estimates from the request's size (2.5 bytes a token, answers measured on Immich's
+runs), asks at a terminal, and refuses with no one to ask unless `--yes`; `--dry-run` prints the
+requests, built by the same functions the real ones are and tested to be equal. `show` answers from
+the committed model, so a coding agent can ask what a part is and where that is proven — a first
+step towards F-27 that needs no protocol. Exit codes: 0 done, 1 failed, 2 used wrongly.
+

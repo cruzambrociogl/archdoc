@@ -330,12 +330,10 @@ func ExplainSome(ctx context.Context, complete Completer, model string, m archdo
 // answered is false when the reply was empty or not in the agreed shape.
 func ask(ctx context.Context, complete Completer, model string, facts []Fact, rep *ExplainReport) (claims []archdoc.Claim, answered bool, why string, err error) {
 	byID := map[string]Fact{}
-	var list strings.Builder
 	for _, f := range facts {
 		byID[f.ID] = f
-		fmt.Fprintf(&list, "%s: %s\n", f.ID, f.Text)
 	}
-	turns := []Turn{{Role: "user", Text: "Facts:\n\n" + list.String()}}
+	turns := []Turn{{Role: "user", Text: factsPrompt(facts)}}
 
 	var kept []archdoc.Claim
 	for attempt := 1; attempt <= Attempts; attempt++ {

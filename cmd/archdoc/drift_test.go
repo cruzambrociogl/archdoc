@@ -206,14 +206,14 @@ func TestDiffBetweenTwoCommits(t *testing.T) {
 	replace(compose, "image: postgres:16", "image: mysql:8")(t, dir)
 
 	var out bytes.Buffer
-	if err := run([]string{"diff", dir, "HEAD~1", "HEAD"}, &out); err != nil {
+	if err := run([]string{"diff", dir, "HEAD~1", "HEAD", "--detail"}, &out); err != nil {
 		t.Fatal(err)
 	}
 	if got := out.String(); !strings.Contains(got, "renamed") || !strings.Contains(got, "svc:store") || strings.Contains(got, "removed") || strings.Contains(got, "mysql") {
 		t.Errorf("between the two commits:\n%s", got)
 	}
 	out.Reset()
-	if err := run([]string{"diff", dir, "HEAD"}, &out); err != nil {
+	if err := run([]string{"diff", dir, "HEAD", "--detail"}, &out); err != nil {
 		t.Fatal(err)
 	}
 	if got := out.String(); !strings.Contains(got, "the working tree") || !strings.Contains(got, "svc:db") || strings.Contains(got, "renamed") {

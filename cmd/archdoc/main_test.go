@@ -34,9 +34,9 @@ func TestRun(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:      "scan reports when a path holds no compose file",
+			name:      "scan says when there is nothing to document",
 			args:      []string{"scan", t.TempDir()},
-			wantMatch: "No deployable Compose file found",
+			wantMatch: "Nothing to document",
 		},
 	}
 

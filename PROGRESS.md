@@ -41,8 +41,9 @@ on plan against code. The order agreed: (1) small projects accepted ✓, (2) the
 
 **Money spent on Immich so far:** $3.29 across eleven runs, logged in its `.archdoc/history.db`
 (`archdoc runs ../subjects/immich`), plus $0.02 on a throwaway copy. The first two runs, on Claude
-Opus 5 before the prompt and the model were changed, are $2.24 of it. A full `--explain` of Immich
-on `claude-sonnet-5-5` is about $0.45 and a `--label` about $0.02. **Paid runs are asked for first.**
+Opus 5 before the prompt and the model were changed, are $2.24 of it. A full `archdoc explain` of
+Immich on `claude-sonnet-5-5` is about $0.45 and an `archdoc label` about $0.02 — both now say so and
+ask before sending (`--dry-run` shows the requests). **Paid runs are asked for first.**
 
 **To see it**
 
@@ -51,6 +52,9 @@ cd archdoc && go build -o archdoc ./cmd/archdoc
 ./archdoc serve ../subjects/immich          # http://localhost:7474
 ./archdoc serve ../subjects/small-page      # the small-project story
 ./archdoc diff ../subjects/immich HEAD      # what changed since a commit
+./archdoc status ../subjects/immich         # does the documentation still match the code?
+./archdoc show ../subjects/immich "POST /api/assets"   # a route and its flow, cited
+./archdoc help                              # every command; 'archdoc help <command>' its flags
 ```
 
 **Designed and not built:** 34 pieces of the surface spec and the Claude Design files — the §11 controls, a flows index,
@@ -228,6 +232,17 @@ are in `docs/decisions.md` under the same date.
 | A data-flow view: the containers in five stages — People, Clients, Services, Stores, Outside — set by a rule from kind and callers; drawn left to right, a column per stage, in the SVG, Mermaid, the documents and the explorer's Data flow tab | Immich: 15 boxes, 17 arrows; byte-identical across runs | `a65d5fd` |
 | The arrow into the store a container's tables live in names what its code writes and reads there, citing a query of each table | Immich: "writes asset, user, asset_face and 49 more tables" | `a65d5fd` |
 | Fixed: a layout's unseen arrows — the ones that fold a wide row, and now the ones that keep stages in order — were drawn as stray arrows. Layout version 12 | — | `a65d5fd` |
+
+**9 Oct, the CLI** — reworked at Cruz's request after trying every command (`docs/decisions.md`).
+
+| What | Measured | Commit |
+|---|---|---|
+| One table of commands: usage grouped by what a command may do (write, read, ask Claude); `help <command>` and `<command> --help` for each; exit codes 0 done, 1 failed, 2 used wrongly; the nearest command or flag suggested | `generate --help` printed an error before | — |
+| A command that writes needs its path; one that reads writes nothing — not even the history database, which opening the store used to create | A bare `archdoc generate` documented archdoc itself on 9 Oct (cleaned up) | — |
+| `label` and `explain` are commands of their own, so `generate` never costs money. Each says what it sends and what it should cost, asks at a terminal, refuses with no one to ask unless `--yes`, and `--dry-run` prints the requests — built by the same code as the real ones, tested equal | Immich: label estimated $0.02 (its last run cost $0.018); the old flags point to the new commands | — |
+| `status`: the committed model against the code read again, by structure; stale explanations, gaps, what `explain` would ask and cost, what the network has cost | Immich: as documented, 165 of 179 explained, 10 gaps, $3.29 in 11 runs; 1.4 s | — |
+| `show <path> <thing>`: an element, a route with its flow as numbered cited steps, a table with who queries it, a file with its component; ambiguity listed, `--json` | `POST /api/assets`: 40 steps | — |
+| `scan` previews what generate would find (it still spoke of Compose only); `init` creates a commented `rules.yaml`; `diff` says changes as the app does ("cache renamed to store"), `--detail` for the classes; `runs` totals; `serve --open`; `--json` on every command that reads; `--gaps`, `--considered`, `--facts` for the old overlapping "explain" flags | — | — |
 
 **Not done** — known, and left:
 

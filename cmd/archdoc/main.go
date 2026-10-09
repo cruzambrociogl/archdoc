@@ -19,185 +19,153 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 )
 
-const usage = `archdoc — architecture documentation generated from a repository's configuration
-
-usage:
-  archdoc <command> [flags]
-
-commands:
-  scan <path>      extract services from a repository's configuration
-  generate <path>  write C4 diagrams and their evidence into the repository
-  history <path>   list every version archdoc has recorded
-  diff <path> <commit> [<commit>]
-                   what changed in the architecture between two commits, or since one
-  runs <path>      list every run that used the network, and what it cost
-  serve <path>     open the web app for a repository archdoc has documented
-  export <path>    build the published site: the web app as static files, for a team
-  version          print build information
-
-flags for scan:
-  --json           emit the FactSet as JSON instead of a table
-  --explain        show every file discovery considered, and why
-
-flags for serve:
-  --port <n>       local port (default 7474); only this machine can connect
-
-flags for export:
-  --site           build the published site into .archdoc/site (required)
-  --since <v>      the version "what changed" is measured against (default: the previous one)
-
-flags for runs:
-  --show <run>     print exactly what that run sent, byte for byte
-
-flags for diff:
-  --json           emit the comparison as JSON
-
-flags for history:
-  -n <count>       how many versions to list (default 20)
-
-flags for generate:
-  --stdout         print the document instead of writing files
-  --explain-gaps   list what the configuration does not state
-  --site           also write mkdocs.yml, so the documents build as a static site
-  --label          ask Claude for descriptions and edge labels (needs ANTHROPIC_API_KEY,
-                   plus ANTHROPIC_WORKSPACE_ID if the key is not tied to a workspace;
-                   sends structure only, never file contents)
-  --label-model    with --label: the model to ask
-  --explain        ask Claude what each component does, every sentence cited; sends names,
-                   paths and the code's own one-line route summaries — never code
-  --explain-limit <n>, --explain-only <id>
-                   with --explain: ask about fewer components
-`
-
 func main() {
-	if err := run(os.Args[1:], os.Stdout); err != nil {
+	err := runIn(env{out: os.Stdout, in: os.Stdin, terminal: interactive(os.Stdin)}, os.Args[1:])
+	code := exitCode(err)
+	if code != 0 {
 		fmt.Fprintln(os.Stderr, "archdoc:", err)
-		os.Exit(1)
 	}
+	os.Exit(code)
 }
 
+// run is archdoc with no one at the keyboard: what tests and scripts get. A paid run is never
+// asked about there; it needs --yes.
 func run(args []string, out io.Writer) error {
-	if len(args) == 0 {
-		fmt.Fprint(out, usage)
+	err := runIn(env{out: out}, args)
+	if exitCode(err) == 0 {
 		return nil
 	}
-
-	switch cmd := args[0]; cmd {
-	case "scan":
-		return scan(args[1:], out)
-
-	case "generate":
-		return generate(args[1:], out)
-
-	case "history":
-		return history(args[1:], out)
-
-	case "diff":
-		return diff(args[1:], out)
-
-	case "runs":
-		return runs(args[1:], out)
-
-	case "serve":
-		return serveCommand(args[1:], out)
-
-	case "export":
-		return export(args[1:], out)
-
-	case "version":
-		fmt.Fprintln(out, archdoc.Build())
-		return nil
-
-	case "help", "-h", "--help":
-		fmt.Fprint(out, usage)
-		return nil
-
-	default:
-		return fmt.Errorf("unknown command %q — run 'archdoc help'", cmd)
-	}
+	return err
 }
 
-func scan(args []string, out io.Writer) error {
-	fs := flag.NewFlagSet("scan", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+func runIn(e env, args []string) error {
+	if len(args) == 0 {
+		usage(e.out)
+		return nil
+	}
+	switch args[0] {
+	case "-h", "--help":
+		usage(e.out)
+		return nil
+	case "-v", "--version":
+		return version(e)
+	}
+	c, ok := lookupCommand(args[0])
+	if !ok {
+		return unknownCommand(args[0])
+	}
+	return c.run(e, args[1:])
+}
 
-	asJSON := fs.Bool("json", false, "emit the FactSet as JSON")
-	explain := fs.Bool("explain", false, "show every file considered")
+// interactive reports whether f is a person at a terminal, who can be asked before money is spent:
+// a character device, and not /dev/null, which is one too.
+func interactive(f *os.File) bool {
+	info, err := f.Stat()
+	if err != nil || info.Mode()&os.ModeCharDevice == 0 {
+		return false
+	}
+	if null, err := os.Stat(os.DevNull); err == nil && os.SameFile(info, null) {
+		return false
+	}
+	return true
+}
 
-	// Go's flag package stops parsing at the first non-flag argument, so "scan ./repo --json"
-	// would silently ignore the flag. Separating them first means flags work on either side of
-	// the path, which is what anyone typing the command will expect.
-	flags, positional := partitionArgs(fs, args)
+func version(e env) error {
+	fmt.Fprintln(e.out, archdoc.Build())
+	return nil
+}
 
-	if err := fs.Parse(flags); err != nil {
+// scan is generate without the writing: what archdoc would document, found exactly the way generate
+// finds it — rules applied, no model asked — and printed.
+func scan(e env, args []string) error {
+	fs := flags("scan")
+	asJSON := fs.Bool("json", false, "print what was found as JSON")
+	raw := fs.Bool("facts", false, "print everything extraction read, as JSON: the FactSet")
+	considered := fs.Bool("considered", false, "list every file discovery looked at, and why it was or was not used")
+	positional, err := parse(e, fs, args, map[string]string{"explain": "renamed: --considered lists the files discovery looked at"})
+	if err != nil {
 		return err
 	}
-
-	root := "."
-	if len(positional) > 0 {
-		root = positional[0]
+	root, err := readPath(fs, positional)
+	if err != nil {
+		return err
 	}
 
 	facts, err := extract.Scan(root)
 	if err != nil {
 		return err
 	}
-
+	if *raw {
+		return printJSON(e.out, facts)
+	}
+	if facts.Source == "" && !hasContainerApp(facts.Apps) {
+		if *asJSON {
+			return printJSON(e.out, map[string]any{"root": facts.Root, "documentable": false})
+		}
+		fmt.Fprintf(e.out, "Nothing to document in %s: no Compose file, no application manifest, and no Python,\n", facts.Root)
+		fmt.Fprintf(e.out, "JavaScript or HTML files.\n")
+		listConsidered(e.out, facts)
+		return nil
+	}
+	m, err := corrected(facts)
+	if err != nil {
+		return err
+	}
 	if *asJSON {
-		enc := json.NewEncoder(out)
-		enc.SetIndent("", "  ")
-		return enc.Encode(facts)
+		apps := []map[string]string{}
+		for _, a := range facts.Apps {
+			apps = append(apps, map[string]string{"name": a.Name, "dir": a.Dir, "role": string(a.Role), "framework": a.Framework, "why": a.Why})
+		}
+		return printJSON(e.out, map[string]any{"root": facts.Root, "documentable": true, "name": m.Name, "source": m.Source,
+			"applications": apps, "counts": countModel(m)})
 	}
 
-	report(out, facts, *explain)
+	fmt.Fprintf(e.out, "%s — %s\n\n", m.Name, facts.Root)
+	if len(facts.Apps) > 0 {
+		w := tabwriter.NewWriter(e.out, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(w, "APPLICATION\tROLE\tBUILT ON\tWHERE")
+		for _, a := range facts.Apps {
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", a.Name, a.Role, orDash(a.Framework), a.Dir)
+		}
+		w.Flush()
+		fmt.Fprintln(e.out)
+	}
+	if facts.Source != "" {
+		fmt.Fprintf(e.out, "%d services in %s\n", len(facts.Services), facts.Source)
+	}
+	countModel(m).print(e.out, m.Source)
+	if *considered {
+		listConsidered(e.out, facts)
+	}
+	fmt.Fprintf(e.out, "\nNothing written. 'archdoc generate %s' writes it.\n", root)
 	return nil
 }
 
-func report(out io.Writer, f *archdoc.FactSet, explain bool) {
-	if f.Source == "" {
-		fmt.Fprintf(out, "No deployable Compose file found in %s\n", f.Root)
-		if len(f.Considered) > 0 {
-			fmt.Fprintf(out, "\n%d file(s) considered:\n", len(f.Considered))
-			for _, c := range f.Considered {
-				fmt.Fprintf(out, "  %-52s %s\n", c.File, c.Reason)
-			}
-		}
+func listConsidered(out io.Writer, f *archdoc.FactSet) {
+	if len(f.Considered) == 0 {
 		return
 	}
-
-	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	for _, s := range f.Services {
-		image := s.Image
-		if image == "" {
-			image = "(built locally)"
-		}
-
-		// The provenance column is the point of the whole exercise: every service names the
-		// file and line that proves it exists.
-		fmt.Fprintf(w, "%s\t%s\t%s\n", s.Name, image, s.Prov)
-	}
-	w.Flush()
-
-	deployable := 0
+	fmt.Fprintf(out, "\n%d Compose file(s) considered:\n", len(f.Considered))
 	for _, c := range f.Considered {
-		if c.Chosen || len(c.Reason) > 10 && c.Reason[:10] == "deployable" {
-			deployable++
+		mark := " "
+		if c.Chosen {
+			mark = "→"
 		}
+		fmt.Fprintf(out, "  %s %-52s %s\n", mark, c.File, c.Reason)
 	}
+}
 
-	fmt.Fprintf(out, "\n%d services from %s · %d compose file(s) considered, %d deployable\n",
-		len(f.Services), f.Source, len(f.Considered), deployable)
+func printJSON(out io.Writer, v any) error {
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	return enc.Encode(v)
+}
 
-	if explain {
-		fmt.Fprintln(out, "\nDiscovery:")
-		for _, c := range f.Considered {
-			mark := " "
-			if c.Chosen {
-				mark = "→"
-			}
-			fmt.Fprintf(out, "  %s %-52s %s\n", mark, c.File, c.Reason)
-		}
+func orDash(s string) string {
+	if s == "" {
+		return "—"
 	}
+	return s
 }
 
 // partitionArgs splits arguments into flags and positional values, so flags may appear before

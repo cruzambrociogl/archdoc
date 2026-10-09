@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"text/tabwriter"
@@ -16,31 +15,37 @@ import (
 // The payload is printed as it left the machine, not reformatted. A pretty-printed version would
 // be easier to read and would no longer be the thing that was sent, which is the one property
 // this command exists to have.
-func runs(args []string, out io.Writer) error {
-	fs := flag.NewFlagSet("runs", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+func runs(e env, args []string) error {
+	fs := flags("runs")
+	show := fs.Int("show", 0, "print exactly what `run` sent, and what came back")
+	limit := fs.Int("n", 20, "list the latest `count` runs")
+	asJSON := fs.Bool("json", false, "print the runs as JSON, without what they sent")
 
-	show := fs.Int("show", 0, "print exactly what one run sent")
-	limit := fs.Int("n", 20, "how many runs to list")
-
-	flags, positional := partitionArgs(fs, args)
-	if err := fs.Parse(flags); err != nil {
+	positional, err := parse(e, fs, args, nil)
+	if err != nil {
 		return err
 	}
-
-	root := "."
-	if len(positional) > 0 {
-		root = positional[0]
+	root, err := readPath(fs, positional)
+	if err != nil {
+		return err
 	}
+	out := e.out
 
 	facts, err := extract.Scan(root)
 	if err != nil {
 		return err
 	}
 
-	h, err := store.Open(facts.Root)
+	h, ok, err := openHistory(facts.Root)
 	if err != nil {
 		return err
+	}
+	if !ok {
+		if *asJSON {
+			return printJSON(out, []any{})
+		}
+		fmt.Fprintln(out, "No run has used the network. Only 'archdoc label' and 'archdoc explain' send anything.")
+		return nil
 	}
 	defer h.Close()
 
@@ -48,12 +53,25 @@ func runs(args []string, out io.Writer) error {
 		return showRun(h, int64(*show), out)
 	}
 
-	list, err := h.Runs(*limit)
+	all, err := h.Runs(1 << 30)
 	if err != nil {
 		return err
 	}
+	list := all
+	if *limit > 0 && len(list) > *limit {
+		list = list[:*limit]
+	}
+	if *asJSON {
+		rows := []map[string]any{}
+		for _, r := range list {
+			rows = append(rows, map[string]any{"run": r.ID, "started": r.StartedAt, "mode": r.EgressMode, "model": r.Model,
+				"requests": r.Requests, "bytes_sent": r.BytesSent, "tokens_in": r.TokensIn, "tokens_out": r.TokensOut,
+				"cost_usd": r.CostUSD, "cost_known": r.CostKnown, "status": r.Status})
+		}
+		return printJSON(out, rows)
+	}
 	if len(list) == 0 {
-		fmt.Fprintln(out, "No run has used the network. Without --label, archdoc sends nothing.")
+		fmt.Fprintln(out, "No run has used the network. Only 'archdoc label' and 'archdoc explain' send anything.")
 		return nil
 	}
 
@@ -66,6 +84,14 @@ func runs(args []string, out io.Writer) error {
 	}
 	w.Flush()
 
+	total, unknown := spent(all)
+	fmt.Fprintf(out, "\n%d run(s), $%.2f in all", len(all), total)
+	if unknown > 0 {
+		fmt.Fprintf(out, ", and %d whose cost is unknown", unknown)
+	}
+	if len(list) < len(all) {
+		fmt.Fprintf(out, " — the latest %d listed; -n shows more", len(list))
+	}
 	fmt.Fprintf(out, "\n'archdoc runs %s --show <run>' prints exactly what a run sent.\n", root)
 	return nil
 }
@@ -92,6 +118,19 @@ func showRun(h *store.Store, id int64, out io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// spent is what the runs cost, and how many of them cost an unknown amount.
+func spent(rs []store.Run) (float64, int) {
+	total, unknown := 0.0, 0
+	for _, r := range rs {
+		if r.CostKnown {
+			total += r.CostUSD
+		} else {
+			unknown++
+		}
+	}
+	return total, unknown
 }
 
 func costText(r store.Run) string {

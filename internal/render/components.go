@@ -56,7 +56,7 @@ func Components(m archdoc.Model, meta Meta) string {
 				}
 				note := "from the facts below"
 				if x.Stale {
-					note = "for an earlier version of the facts below; run `archdoc generate --explain` to ask again"
+					note = "for an earlier version of the facts below; `archdoc explain` asks again"
 				}
 				fmt.Fprintf(&b, "\n<sub>Interpreted by %s %s.</sub>\n\n", x.Prov.Note, note)
 			}

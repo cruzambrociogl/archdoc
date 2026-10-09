@@ -468,9 +468,9 @@ Rules are applied *before* validation, so a rule can never produce an invalid mo
 
 | ID | Capability | Class |
 |---|---|---|
-| SUR-01 | `archdoc init` — scaffold `.archdoc/` | DET |
+| SUR-01 | `archdoc init` — scaffold `.archdoc/` — built 2026-10-09: a commented `rules.yaml` and the `.gitignore`, nothing overwritten | DET |
 | SUR-02 | `archdoc scan` — extraction only. Fast, free, offline, no LLM | DET |
-| SUR-03 | `archdoc generate` — full pipeline → version + docs | mixed |
+| SUR-03 | `archdoc generate` — full pipeline → version + docs. Since 2026-10-09 it never calls a model: `archdoc label` and `archdoc explain` are the pipeline with a request, each estimated and asked for first | mixed |
 | SUR-04 | `archdoc diff <ref> [<ref>]` | DET (+ optional LLM prose) |
 | SUR-05 | `archdoc export --format <fmt>` — `--site` (the published app) built 2026-10-05; other formats remain | DET |
 | SUR-06 | `archdoc history` | DET |

@@ -120,9 +120,9 @@ func explain(err error) error {
 		}
 		return fmt.Errorf("Anthropic API error 400: %w", err)
 	case 401:
-		return errors.New("no valid Anthropic credentials — set ANTHROPIC_API_KEY, or run without --label")
+		return errors.New("no valid Anthropic credentials — set ANTHROPIC_API_KEY; archdoc generate needs none, and sends nothing")
 	case 429:
-		return errors.New("rate limited by the Anthropic API — try again shortly, or run without --label")
+		return errors.New("rate limited by the Anthropic API — try again shortly; archdoc generate needs no API, and sends nothing")
 	default:
 		return fmt.Errorf("Anthropic API error %d: %w", apierr.StatusCode, err)
 	}

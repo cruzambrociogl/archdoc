@@ -1,9 +1,7 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,23 +22,23 @@ const publishedMarker = `<meta name="archdoc-mode" content="published">`
 
 // export builds the published site (SUR-05, surface-spec §3): the web app as static files, with
 // the latest version's data — and the change since a baseline — beside it.
-func export(args []string, out io.Writer) error {
-	fs := flag.NewFlagSet("export", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	site := fs.Bool("site", false, "build the published site into .archdoc/site")
-	since := fs.Int64("since", 0, "the version 'what changed' is measured against (default: the one before the latest)")
+func export(e env, args []string) error {
+	fs := flags("export")
+	site := fs.Bool("site", false, "build the published site into .archdoc/site (required: the one format so far)")
+	since := fs.Int64("since", 0, "the `version` 'what changed' is measured against; 0 is the one before the latest")
 
-	flags, positional := partitionArgs(fs, args)
-	if err := fs.Parse(flags); err != nil {
+	positional, err := parse(e, fs, args, nil)
+	if err != nil {
 		return err
 	}
 	if !*site {
-		return fmt.Errorf("export writes the published site: archdoc export --site <path>")
+		return usagef("export builds the published site, and says so: archdoc export <path> --site")
 	}
-	root := "."
-	if len(positional) > 0 {
-		root = positional[0]
+	root, err := writePath(fs, positional)
+	if err != nil {
+		return err
 	}
+	out := e.out
 
 	assets, built := web.Assets()
 	if !built {

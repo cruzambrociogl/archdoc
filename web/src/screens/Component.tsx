@@ -87,12 +87,12 @@ export function Component(props: { version: number | null; route: Route; go: (r:
           ))}
           <p className="small muted">
             Written by {explanation.provenance.note} from the facts on this page; every sentence cites them.
-            {explanation.stale && ' Those facts have changed since: this is the last answer, kept until generate --explain asks again.'}
+            {explanation.stale && ' Those facts have changed since: this is the last answer, kept until archdoc explain asks again.'}
           </p>
         </section>
       ) : (
         <p className="lede-quiet">
-          No description: nothing in the code states one, and no model has been asked. <span className="mono">archdoc generate --explain</span> asks, and every
+          No description: nothing in the code states one, and no model has been asked. <span className="mono">archdoc explain</span> asks, and every
           sentence it keeps cites the facts below.
         </p>
       )}

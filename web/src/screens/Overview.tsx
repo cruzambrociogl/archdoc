@@ -100,7 +100,7 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
         <p className="lede">
           {containers} {containers === 1 ? 'container' : 'containers'}, {edges.length} relationships and {externals}{' '}
           external {externals === 1 ? 'system' : 'systems'}, read from <span className="mono">{model.source}</span>. No
-          description has been written for it — run <span className="mono">archdoc generate --label</span> for one, cited like
+          description has been written for it — run <span className="mono">archdoc label</span> for one, cited like
           everything else.
         </p>
       )}

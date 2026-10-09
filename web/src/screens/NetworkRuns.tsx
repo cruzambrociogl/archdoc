@@ -21,7 +21,7 @@ export function NetworkRuns(props: { route: Route; go: (r: Partial<Route>, o?: {
         <Eyebrow>Network runs · what left the machine</Eyebrow>
         <p className="statement">archdoc has never sent anything from this repository.</p>
         <p className="lede-quiet">
-          Every run so far was offline. archdoc calls out only when asked to, with <span className="mono">generate --label</span>,
+          Every run so far was offline. archdoc calls out only when asked to, with <span className="mono">archdoc label</span> or <span className="mono">archdoc explain</span>,
           and when it does, each request appears here exactly as it went out — including the ones that failed.
         </p>
       </div>

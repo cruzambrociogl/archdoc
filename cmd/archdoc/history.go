@@ -1,13 +1,10 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"io"
 	"text/tabwriter"
 
 	"github.com/cruzambrociogl/archdoc/internal/extract"
-	"github.com/cruzambrociogl/archdoc/internal/store"
 )
 
 // history lists what archdoc has recorded for a repository.
@@ -15,30 +12,36 @@ import (
 // The point is not the list. It is that a run which changes nothing adds nothing — so the number
 // of versions is the number of times the architecture actually moved, not the number of times
 // somebody ran the tool.
-func history(args []string, out io.Writer) error {
-	fs := flag.NewFlagSet("history", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+func history(e env, args []string) error {
+	fs := flags("history")
+	limit := fs.Int("n", 20, "list the latest `count` versions")
+	asJSON := fs.Bool("json", false, "print the versions as JSON")
 
-	limit := fs.Int("n", 20, "how many versions to list")
-
-	flags, positional := partitionArgs(fs, args)
-	if err := fs.Parse(flags); err != nil {
+	positional, err := parse(e, fs, args, nil)
+	if err != nil {
 		return err
 	}
-
-	root := "."
-	if len(positional) > 0 {
-		root = positional[0]
+	root, err := readPath(fs, positional)
+	if err != nil {
+		return err
 	}
+	out := e.out
 
 	facts, err := extract.Scan(root)
 	if err != nil {
 		return err
 	}
 
-	h, err := store.Open(facts.Root)
+	h, ok, err := openHistory(facts.Root)
 	if err != nil {
 		return err
+	}
+	if !ok {
+		if *asJSON {
+			return printJSON(out, []any{})
+		}
+		fmt.Fprintf(out, "No history yet for %s — 'archdoc generate %s' records the first version.\n", facts.Root, root)
+		return nil
 	}
 	defer h.Close()
 
@@ -47,8 +50,15 @@ func history(args []string, out io.Writer) error {
 		return err
 	}
 
+	if *asJSON {
+		list := []map[string]any{}
+		for _, v := range versions {
+			list = append(list, map[string]any{"version": v.ID, "recorded": v.CreatedAt, "commit": v.Commit, "source": v.Source})
+		}
+		return printJSON(out, list)
+	}
 	if len(versions) == 0 {
-		fmt.Fprintf(out, "No history yet for %s — run 'archdoc generate' first.\n", facts.Root)
+		fmt.Fprintf(out, "No history yet for %s — 'archdoc generate %s' records the first version.\n", facts.Root, root)
 		return nil
 	}
 

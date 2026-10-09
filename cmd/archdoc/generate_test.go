@@ -44,7 +44,7 @@ func gen(t *testing.T, root string) string {
 	t.Helper()
 
 	var out bytes.Buffer
-	if err := generate([]string{root}, &out); err != nil {
+	if err := generate(env{out: &out}, []string{root}); err != nil {
 		t.Fatalf("generate: %v\n%s", err, out.String())
 	}
 	return out.String()
@@ -212,7 +212,7 @@ func TestARepositoryWithoutComposeIsDocumented(t *testing.T) {
 
 	out := gen(t, root)
 	// The two applications, and the person a web front end is opened by.
-	if !strings.Contains(out, "3 elements, 1 relationships") {
+	if !strings.Contains(out, "3 elements, 1 relationship,") {
 		t.Errorf("want the two applications and the person who uses the web one:\n%s", out)
 	}
 	b, err := os.ReadFile(filepath.Join(root, modelOut))

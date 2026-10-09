@@ -421,7 +421,7 @@ walkthrough Code Wiki and DeepWiki are known for.)
 
 **Status:** ✅ (6–8 Oct). A component has a page of its own in the app — opened from the inspector —
 its inspector in the explorer, and its section of `components.generated.md`: code and size, uses and used by, routes and pages, tables declared, and
-— after `archdoc generate --explain` — two to four model-written sentences, each followed by the
+— after `archdoc explain` — two to four model-written sentences, each followed by the
 lines it cites; a sentence that cited nothing was refused. The page adds the packages it imports,
 the calls it leaves unresolved, and the components before and after it. Not yet: citation markers
 inside the sentence, and the one-hop diagram on the page.

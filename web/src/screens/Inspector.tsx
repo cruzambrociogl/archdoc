@@ -244,7 +244,7 @@ function Passport({
               <>
                 {' '}
                 <TruthMark state="unresolved" /> Those facts have changed since: this is the last answer, kept until{' '}
-                <span className="mono">generate --explain</span> asks again.
+                <span className="mono">archdoc explain</span> asks again.
               </>
             )}
           </p>

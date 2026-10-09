@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -33,36 +32,52 @@ const (
 	coverageOut = stateDir + "/" + render.CoverageJSONFile
 )
 
-func generate(args []string, out io.Writer) error {
-	fs := flag.NewFlagSet("generate", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-
+func generate(e env, args []string) error {
+	fs := flags("generate")
 	toStdout := fs.Bool("stdout", false, "print the index instead of writing files")
-	gaps := fs.Bool("explain-gaps", false, "list what the configuration does not state")
+	gaps := fs.Bool("gaps", false, "list what the code and configuration do not state")
 	site := fs.Bool("site", false, "also write mkdocs.yml, so the documents build as a static site")
-	label := fs.Bool("label", false, "ask Claude for names, descriptions and edge labels")
-	labelModel := fs.String("label-model", semantic.Model, "with --label: the model to ask")
-	explain := fs.Bool("explain", false, "ask Claude what each component does, every sentence cited (remembered answers are reused without it)")
+	verbose := fs.Bool("verbose", false, "list every file written")
 
-	explainOnly := fs.String("explain-only", "", "with --explain: ask only about components whose id contains this")
-	explainLimit := fs.Int("explain-limit", 0, "with --explain: ask about at most this many components")
-
-	flags, positional := partitionArgs(fs, args)
-	if err := fs.Parse(flags); err != nil {
+	positional, err := parse(e, fs, args, map[string]string{
+		"label":         "it is a command of its own now, so generate never costs money: archdoc label <path>",
+		"label-model":   "now: archdoc label <path> --model <model>",
+		"explain":       "it is a command of its own now, so generate never costs money: archdoc explain <path>",
+		"explain-only":  "now: archdoc explain <path> --only <id>",
+		"explain-limit": "now: archdoc explain <path> --limit <n>",
+		"explain-gaps":  "renamed: --gaps",
+	})
+	if err != nil {
 		return err
 	}
-
-	root := "."
-	if len(positional) > 0 {
-		root = positional[0]
+	root, err := writePath(fs, positional)
+	if err != nil {
+		return err
 	}
+	return document(e, root, options{stdout: *toStdout, gaps: *gaps, site: *site, verbose: *verbose})
+}
 
+// options are what a run of the pipeline does beyond reading and writing: generate sets the first
+// four; label and explain each add a request, which nothing else may make.
+type options struct {
+	stdout, gaps, site, verbose bool
+	label                       *labelRun
+	explain                     *explainRun
+}
+
+// document is the pipeline every writing command runs: read, derive, correct, ask if asked to,
+// validate, write, record. Nothing is written unless the whole model is sound.
+func document(e env, root string, o options) error {
+	out := e.out
 	facts, err := extract.Scan(root)
 	if err != nil {
 		return err
 	}
 	if facts.Source == "" && !hasContainerApp(facts.Apps) {
 		return fmt.Errorf("nothing to document in %s: no Compose file, no application manifest, and no Python, JavaScript or HTML files", facts.Root)
+	}
+	if !o.stdout {
+		fmt.Fprintf(out, "documenting %s\n", facts.Root)
 	}
 
 	m := model.Derive(facts)
@@ -82,7 +97,7 @@ func generate(args []string, out io.Writer) error {
 	}
 
 	// The semantic layer is opt-in and runs before the rules are applied, so a person's
-	// correction always overrides a model's suggestion. Without --label no request is made
+	// correction always overrides a model's suggestion. Without archdoc label no request is made
 	// and the diagram is complete anyway — that is AC-2.
 	labels, err := loadLabels(facts.Root)
 	if err != nil {
@@ -91,19 +106,26 @@ func generate(args []string, out io.Writer) error {
 	extracted := m
 	// What a model wrote before is applied again while what it was written about is unchanged
 	// (F-30): no request, no cost, and the documents do not lose their descriptions. It is applied
-	// before a new --label too, which then writes over it: a label run and the plain run after it
+	// before a new label run too, which then writes over it: a label run and the plain run after it
 	// must give the same model, or the second records a version nothing caused.
 	if recalled := semantic.Recall(labels, extracted); len(recalled) > 0 {
 		if again, res := validate.Apply(m, recalled); res.OK() {
 			m = again
 		} else {
-			fmt.Fprintf(out, "remembered labels no longer fit the model and were left out — run --label to write new ones\n")
+			fmt.Fprintf(out, "remembered labels no longer fit the model and were left out — 'archdoc label' writes new ones\n")
 		}
 	}
-	if *label {
+	if o.label != nil {
+		plan, err := semantic.LabelPlan(m)
+		if err != nil {
+			return err
+		}
+		if err := o.label.consent.ask(e, "label", o.label.model, labelSends, []semantic.Planned{plan}, labelAnswer(plan)); err != nil {
+			return err
+		}
 		rec := &semantic.Recorder{}
 		started := time.Now()
-		labelled, rep, err := semantic.Label(context.Background(), semantic.Claude(*labelModel, rec), *labelModel, m)
+		labelled, rep, err := semantic.Label(context.Background(), semantic.Claude(o.label.model, rec), o.label.model, m)
 
 		// AC-8 — logged whether or not labelling succeeded. A request that left the machine is
 		// in the log; a failed run is exactly the one someone goes looking for.
@@ -142,19 +164,33 @@ func generate(args []string, out io.Writer) error {
 	}
 
 	// F-19, F-30 — what each component does. Answers remembered against their facts apply on every
-	// run, with no request; --explain asks only about components whose facts are new or changed.
+	// run, with no request; archdoc explain asks only about components whose facts are new or changed.
 	memory, err := loadMemory(facts.Root)
 	if err != nil {
 		return err
 	}
 	var asker semantic.Completer
 	var rec *semantic.Recorder
-	if *explain {
-		rec = &semantic.Recorder{}
-		asker = semantic.ClaudeWith(semantic.ExplainModel, semantic.ExplainSchema(), semantic.ExplainMaxTokens, "low", rec)
+	only, limit := "", 0
+	if x := o.explain; x != nil {
+		only, limit = x.only, x.limit
+		plans := semantic.ExplainPlan(m, memory, only, limit)
+		if len(plans) == 0 {
+			fmt.Fprintln(out, "nothing to ask: every component has a remembered answer for its facts, or is too small to ask about")
+			if x.consent.dry {
+				fmt.Fprintln(out, "dry run — nothing sent, nothing written.")
+				return errStopped
+			}
+		} else {
+			if err := x.consent.ask(e, "explain", semantic.ExplainModel, explainSends, plans, explainAnswer*int64(len(plans))); err != nil {
+				return err
+			}
+			rec = &semantic.Recorder{}
+			asker = semantic.ClaudeWith(semantic.ExplainModel, semantic.ExplainSchema(), semantic.ExplainMaxTokens, "low", rec)
+		}
 	}
 	started := time.Now()
-	explained, remembered, xrep, err := semantic.ExplainSome(context.Background(), asker, semantic.ExplainModel, m, memory, *explainOnly, *explainLimit)
+	explained, remembered, xrep, err := semantic.ExplainSome(context.Background(), asker, semantic.ExplainModel, m, memory, only, limit)
 	// The memory is written the moment answers are paid for, not at the end of a run something
 	// later could stop — and it only grows: every answer it held stays, unless a newer answer
 	// about the same element replaces it. A plain run writes it too when it has something to add:
@@ -169,7 +205,7 @@ func generate(args []string, out io.Writer) error {
 			}
 		}
 	}
-	if *explain {
+	if asker != nil {
 		runID := logRun(facts.Root, semantic.StructureAndSummaries, rec, xrep.Report, started, err, out)
 		if err == nil {
 			fmt.Fprintf(out, "explained by %s: %d component(s) asked, %d remembered, %d too small to ask about, %d sentence(s) refused for want of a citation\n",
@@ -178,7 +214,7 @@ func generate(args []string, out io.Writer) error {
 				fmt.Fprintf(out, "no usable answer for %d, left unexplained: %s\n", len(xrep.Unanswered), strings.Join(xrep.Unanswered, ", "))
 			}
 			if xrep.Stopped != "" {
-				fmt.Fprintf(out, "asking stopped %s — what was answered before is kept; run --explain again for the rest\n", xrep.Stopped)
+				fmt.Fprintf(out, "asking stopped %s — what was answered before is kept; 'archdoc explain' again asks for the rest\n", xrep.Stopped)
 			}
 			if c, ok := semantic.Cost(xrep.Model, xrep.InputTokens, xrep.OutputTokens); ok {
 				fmt.Fprintf(out, "sent %d request(s), %d bytes — names, paths and the code's own route summaries, no code · $%.4f\n", len(rec.Exchanges()), rec.Bytes(), c)
@@ -212,7 +248,7 @@ func generate(args []string, out io.Writer) error {
 	// run that finds the architecture unchanged draws from the stored coordinates, so the
 	// picture cannot shift between identical runs. --stdout writes nothing, so it draws nothing.
 	var layouts map[string]archdoc.Layout
-	if !*toStdout {
+	if !o.stdout {
 		layouts = layoutViews(facts.Root, m, out)
 		meta.Pictures = layouts != nil
 	}
@@ -236,7 +272,7 @@ func generate(args []string, out io.Writer) error {
 
 	index := render.Index(m, plan, meta)
 
-	if *toStdout {
+	if o.stdout {
 		_, err := io.WriteString(out, index)
 		return err
 	}
@@ -287,15 +323,22 @@ func generate(args []string, out io.Writer) error {
 	}
 	// Layer 3 of the output contract (§8), opt-in: the committed markdown already stands on its
 	// own, so a site is one configuration file away.
-	if *site {
+	if o.site {
 		generated[render.MkDocsFile] = render.MkDocs(m, plan)
 	}
 
+	written := 0
+	wrote := func(rel string) {
+		written++
+		if o.verbose {
+			fmt.Fprintf(out, "wrote %s\n", rel)
+		}
+	}
 	for _, name := range sortedKeys(generated) {
 		if err := write(facts.Root, filepath.Join(docsDir, name), generated[name]); err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "wrote %s\n", filepath.Join(docsDir, name))
+		wrote(filepath.Join(docsDir, name))
 	}
 
 	// Files only archdoc could have written there, that it did not write this run — a section the
@@ -311,7 +354,7 @@ func generate(args []string, out io.Writer) error {
 	if err := write(facts.Root, modelOut, encode(m)); err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "wrote %s\n", modelOut)
+	wrote(modelOut)
 
 	// The coverage report as data, beside the model: what the app and the published site show,
 	// computed by the same function as the committed coverage page, so the two cannot disagree.
@@ -322,7 +365,7 @@ func generate(args []string, out io.Writer) error {
 	if err := write(facts.Root, coverageOut, string(coverage)+"\n"); err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "wrote %s\n", coverageOut)
+	wrote(coverageOut)
 
 	// OUT-02 and OUT-03 — the regeneration boundary. A human-owned section is created once,
 	// with questions derived from this model, and after that archdoc neither reads nor writes
@@ -336,12 +379,16 @@ func generate(args []string, out io.Writer) error {
 		if err := write(facts.Root, filepath.Join(docsDir, name), stubs[name]); err != nil {
 			return err
 		}
+		wrote(filepath.Join(docsDir, name))
 		// Remember the stub's size and time, so completeness can later tell "still the stub"
 		// from "written" by asking the filesystem, never by opening the file (OUT-03).
 		if err := render.RecordStub(facts.Root, docsDir, name); err != nil {
 			fmt.Fprintf(out, "completeness tracking unavailable for %s: %v\n", name, err)
 		}
 		created++
+	}
+	if !o.verbose {
+		fmt.Fprintf(out, "wrote %d files into %s and %s — --verbose lists them\n", written, docsDir, stateDir)
 	}
 
 	// MEM-01 — history is recorded after the model is known good, never before. A version
@@ -350,50 +397,8 @@ func generate(args []string, out io.Writer) error {
 		return err
 	}
 
-	// Configuration's elements first; then what the code adds inside them.
-	kind := map[string]archdoc.Kind{}
-	count := map[archdoc.Kind]int{}
-	for _, n := range m.Nodes {
-		kind[n.ID] = n.Kind
-		count[n.Kind]++
-	}
-	elements, relationships, uses, references := 0, 0, 0, 0
-	for _, n := range m.Nodes {
-		if !n.Kind.Part() {
-			elements++
-		}
-	}
-	for _, e := range m.Edges {
-		switch k := kind[e.From]; {
-		case k == archdoc.Component:
-			uses++
-		case k == archdoc.Table:
-			references++
-		case k.Part():
-			// the same code by folder: counted as components, not twice
-		default:
-			relationships++
-		}
-	}
-	fmt.Fprintf(out, "\n%d elements, %d relationships, from %s\n", elements, relationships, m.Source)
-	if n := count[archdoc.Component]; n > 0 {
-		fmt.Fprintf(out, "%d components in %s, %d uses between them, from the code\n", n, containers(len(m.Components())), uses)
-	}
-	if n := count[archdoc.Table]; n > 0 {
-		keys := "foreign keys"
-		if references == 1 {
-			keys = "foreign key"
-		}
-		fmt.Fprintf(out, "%d tables in %s, %d %s between them, from the code\n", n, containers(len(m.Datas())), references, keys)
-	}
-	if len(m.Entries) > 0 || len(m.Unresolved) > 0 {
-		kinds := map[string]int{}
-		for _, e := range m.Entries {
-			kinds[e.Kind]++
-		}
-		fmt.Fprintf(out, "%d routes, %d pages, %d commands, %d jobs, and %d calls whose target is computed at run time\n",
-			kinds["http"], kinds["page"], kinds["command"], kinds["job"], len(m.Unresolved))
-	}
+	fmt.Fprintln(out)
+	countModel(m).print(out, m.Source)
 
 	if created > 0 {
 		fmt.Fprintf(out, "%d section(s) created for you to write — see %s\n",
@@ -413,14 +418,16 @@ func generate(args []string, out io.Writer) error {
 		fmt.Fprintf(out, "  %s: %s — %s\n", f.Rule, f.Element, f.Message)
 	}
 
-	// Completeness, not correctness. The model is sound; these are the things configuration
-	// does not state and the semantic layer exists to fill.
+	// Completeness, not correctness. The model is sound; these are the things the code and
+	// configuration do not state and the semantic layer exists to fill.
 	if w := result.Warnings(); len(w) > 0 {
-		fmt.Fprintf(out, "%d gap(s) — run with --explain-gaps to list them\n", len(w))
-		if *gaps {
+		if o.gaps {
+			fmt.Fprintf(out, "%d gap(s):\n", len(w))
 			for _, f := range w {
 				fmt.Fprintf(out, "  %s: %s — %s\n", f.Rule, f.Element, f.Message)
 			}
+		} else {
+			fmt.Fprintf(out, "%d gap(s) — 'archdoc generate %s --gaps' lists them\n", len(w), root)
 		}
 	}
 
@@ -592,13 +599,6 @@ func orphans(root string, written map[string]string) []string {
 	}
 	sort.Strings(out) // AC-7: the same report every run
 	return out
-}
-
-func containers(n int) string {
-	if n == 1 {
-		return "1 container"
-	}
-	return fmt.Sprintf("%d containers", n)
 }
 
 func reported(r validate.Result) []render.Gap {

@@ -46,11 +46,19 @@ What it does now:
 |---|---|
 | `archdoc generate` | C4 context and container diagrams; inside each container whose code it reads, its components and its tables; every route, page, command and background job; what each route or job sets off; the packages each container depends on and where it uses them; twelve arc42 sections and a coverage report — every element cited at its line |
 | `archdoc generate`, on something small | A folder of scripts or a single page, with no manifest, is documented from its files; a project of one application and a few files gets one page instead of twelve chapters |
-| `archdoc generate --explain` | Opt-in: asks a model what each component does. It is sent names, paths and the code's own one-line route summaries, never code — logged as `structure-and-summaries`; every sentence must cite the facts it rests on or it is refused; answers are remembered, so nothing is asked twice. `--explain-limit N` and `--explain-only <id>` ask about fewer; a component of one file with no route or table is not asked about |
-| `archdoc generate --label` | Opt-in: asks a model for descriptions and relationship labels, never structure. `--label-model` chooses the model |
-| `archdoc diff <path> <commit> [<commit>]` | What changed in the architecture between two commits, or since one: every change under its class — added, removed, renamed, re-bounded, protocol-changed, changed. Needs git |
+| `archdoc explain` | Asks a model what each component does — the one of two commands that cost money, and it says what it will send and what that should cost, and asks, first (`--dry-run` prints the requests). It is sent names, paths and the code's own one-line route summaries, never code — logged as `structure-and-summaries`; every sentence must cite the facts it rests on or it is refused; answers are remembered, so nothing is asked twice. `--limit N` and `--only <id>` ask about fewer; a component of one file with no route or table is not asked about |
+| `archdoc label` | The other: asks a model for descriptions and relationship labels, never structure — one request, about two cents on Immich. `--model` chooses the model |
+| `archdoc status` | Whether the documentation still matches the code — the code is read again and compared by structure — and what is open: stale explanations, gaps, what the network has cost |
+| `archdoc show <path> <thing>` | One element, route or file in the terminal, every line cited: a route with its flow as numbered steps, a component with what it uses and the tables it queries, a file with the component it is in |
+| `archdoc scan` | What `generate` would find, written nowhere |
+| `archdoc diff <path> <commit> [<commit>]` | What changed in the architecture between two commits, or since one, said as a reader would — "cache renamed to store"; `--detail` lists every change under its class: added, removed, renamed, re-bounded, protocol-changed, changed. Needs git |
+| `archdoc init` | A `.archdoc/rules.yaml` to correct the model in, every line a comment until you write one |
 | `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see |
 | `archdoc export --site` | The same app as a static site a team opens without archdoc — GitHub Pages, any static host |
+
+Every command explains itself — `archdoc help <command>` — and exits 0 when done, 1 when something
+failed, 2 when used wrongly. Only `label` and `explain` use the network; every other command is
+offline, the ones that write need a path, and the ones that read write nothing.
 
 On Immich, at the revision the survey pins:
 
@@ -62,7 +70,7 @@ $ archdoc generate ./immich
 68 tables in 1 container, 65 foreign keys between them, from the code
 304 routes, 55 pages, 18 commands, 66 jobs, and 11 calls whose target is computed at run time
 7 section(s) created for you to write — see docs/architecture/index.generated.md
-11 gap(s) — run with --explain-gaps to list them
+11 gap(s) — 'archdoc generate ./immich --gaps' lists them
 ```
 
 Twelve arc42 sections: five filled from facts and overwritten every run, seven created once with
@@ -100,7 +108,7 @@ unresolved rather than given an arrow nothing supports.
 
 **No language model is involved in any of the above.** Routes, tables, flows and their descriptions
 come from the code itself — a route's description is the summary its own decorator states. A model
-is asked only when you pass `--label` or `--explain`, only for wording, and what it writes is marked
+is asked only by `archdoc label` or `archdoc explain`, only for wording, and what it writes is marked
 as interpretation wherever it appears.
 
 ### Why discovery is harder than a glob
@@ -237,9 +245,11 @@ excluded gateway, and the only one where the distinction between "declares a dep
 ### Checking it rather than trusting it
 
 ```console
-./archdoc scan ../subjects/immich --explain   # why that file, and not the other nine
-./archdoc scan ../subjects/supabase --json    # the raw FactSet, every fact with its line
-./archdoc history ../subjects/supabase        # every version, and when the architecture moved
+./archdoc scan ../subjects/immich --considered  # why that Compose file, and not the other nine
+./archdoc scan ../subjects/supabase --facts     # the raw FactSet, every fact with its line
+./archdoc show ../subjects/immich "POST /api/assets"   # a route and its flow, each step cited
+./archdoc status ../subjects/immich             # still matches the code? what is open?
+./archdoc history ../subjects/supabase          # every version, and when the architecture moved
 ```
 
 Pick any citation from an evidence table and open it. Supabase's
