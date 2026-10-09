@@ -7,8 +7,13 @@ import { kindStyle } from '../../ui/kinds'
 import type { BoundaryData, Delta, ElementData, Mark, RouteData } from './scene'
 
 // Below this zoom a box shows only its name and icon (semantic zoom, "Surface Foundations" 6.4).
+// A diagram of a few elements — a context or container view — keeps its descriptions further out:
+// fitted to the screen it sits below the usual threshold, and boxes with only names are not C4.
 const DETAIL_ZOOM = 0.85
-const zoomSelector = (s: { transform: [number, number, number] }) => s.transform[2] >= DETAIL_ZOOM
+const DETAIL_ZOOM_SMALL = 0.5
+const SMALL_VIEW = 20
+const zoomSelector = (s: { transform: [number, number, number]; nodes: unknown[] }) =>
+  s.transform[2] >= (s.nodes.length <= SMALL_VIEW ? DETAIL_ZOOM_SMALL : DETAIL_ZOOM)
 
 /** A table: its name in a header band, then a line per column, as the committed SVG draws it. */
 function TableNode({ data, selected }: { data: ElementData; selected: boolean }) {

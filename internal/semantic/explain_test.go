@@ -227,3 +227,39 @@ func TestAnEmptyAnswerIsAskedAgain(t *testing.T) {
 		t.Errorf("unanswered %v, want the component named", rep.Unanswered)
 	}
 }
+
+// Labels are remembered against what they were written about: applied again while that is
+// unchanged, left out once it is not, and replaced — not duplicated — by a newer label.
+func TestLabelsAreRememberedAgainstTheirBasis(t *testing.T) {
+	at := archdoc.Provenance{File: "compose.yml", Line: 2}
+	m := archdoc.Model{Nodes: []archdoc.Node{
+		{ID: "svc:api", Name: "api", Kind: archdoc.Application, Technology: "NestJS", Prov: at},
+		{ID: "svc:db", Name: "db", Kind: archdoc.Datastore, Technology: "PostgreSQL 16", Prov: at},
+	}, Edges: []archdoc.Edge{{From: "svc:api", To: "svc:db", Label: "connects to", Technology: "postgres", Prov: []archdoc.Provenance{at}}}}
+	by := archdoc.Provenance{Origin: archdoc.Semantic, Note: "a model"}
+	ops := []archdoc.Op{
+		{Kind: archdoc.SetDescription, Target: "svc:api", Value: "Serves the API.", Origin: archdoc.Semantic, Prov: by},
+		{Kind: archdoc.SetEdgeLabel, Target: "svc:api", To: "svc:db", Value: "reads and writes orders in", Origin: archdoc.Semantic, Prov: by},
+		{Kind: archdoc.SetDescription, Target: "svc:gone", Value: "Not in the model.", Origin: archdoc.Semantic, Prov: by},
+	}
+	kept := Remember(nil, m, ops)
+	if len(kept) != 2 {
+		t.Fatalf("remembered %d, want the two whose targets exist", len(kept))
+	}
+	if got := Recall(kept, m); len(got) != 2 {
+		t.Errorf("recalled %d of 2 for an unchanged model", len(got))
+	}
+
+	changed := m
+	changed.Nodes = append([]archdoc.Node(nil), m.Nodes...)
+	changed.Nodes[0].Technology = "Express"
+	changed.Edges = []archdoc.Edge{{From: "svc:api", To: "svc:db", Label: "connects to", Technology: "mysql", Prov: []archdoc.Provenance{at}}}
+	if got := Recall(kept, changed); len(got) != 0 {
+		t.Errorf("recalled %+v for an element and a relationship that are no longer what was described", got)
+	}
+
+	again := Remember(kept, m, []archdoc.Op{{Kind: archdoc.SetDescription, Target: "svc:api", Value: "Serves the public API.", Origin: archdoc.Semantic, Prov: by}})
+	if len(again) != 2 || Recall(again, m)[0].Value != "Serves the public API." {
+		t.Errorf("a newer label did not replace the older: %+v", again)
+	}
+}

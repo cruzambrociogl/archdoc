@@ -56,3 +56,34 @@ func TestModelJSONIsCompactAndTheSameModel(t *testing.T) {
 		}
 	}
 }
+
+// The order of nodes depends on the nodes alone, not on how they arrived or what else is there:
+// kinds that share a rank are ordered by ID among themselves, so adding an element moves nothing.
+func TestNodeOrderIsTotal(t *testing.T) {
+	nodes := func(ids ...string) []Node {
+		kind := map[byte]Kind{'s': Application, 'c': Component, 't': Table, 'd': Module}
+		var out []Node
+		for _, id := range ids {
+			out = append(out, Node{ID: id, Kind: kind[id[0]]})
+		}
+		return out
+	}
+	order := func(ns []Node) string {
+		m := Model{Nodes: ns}.Normalise()
+		var ids []string
+		for _, n := range m.Nodes {
+			ids = append(ids, n.ID)
+		}
+		return strings.Join(ids, " ")
+	}
+	want := "cmp:a cmp:b dir:x svc:api tbl:tag tbl:tag_asset tbl:tag_closure"
+	for _, arrival := range [][]string{
+		{"tbl:tag_closure", "cmp:b", "svc:api", "tbl:tag", "dir:x", "cmp:a", "tbl:tag_asset"},
+		{"svc:api", "tbl:tag_asset", "tbl:tag_closure", "cmp:a", "tbl:tag", "cmp:b", "dir:x"},
+		{"dir:x", "tbl:tag", "cmp:a", "tbl:tag_closure", "svc:api", "cmp:b", "tbl:tag_asset"},
+	} {
+		if got := order(nodes(arrival...)); got != want {
+			t.Errorf("arriving as %v:\n got  %s\n want %s", arrival, got, want)
+		}
+	}
+}

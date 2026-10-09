@@ -714,9 +714,13 @@ func less(a, b Provenance) bool {
 // sortNodes gives every view a deterministic order. Go randomises map iteration, and AC-7
 // requires five consecutive runs to produce byte-identical output.
 func sortNodes(ns []Node) {
+	// By rank, then by ID — and by nothing else. Comparing kinds first, as this once did, is not an
+	// order at all where two kinds share a rank: a component and a table were each "not before"
+	// the other, so where either landed depended on what else was in the list, and adding one
+	// element reshuffled the rest.
 	sort.Slice(ns, func(i, j int) bool {
-		if ns[i].Kind != ns[j].Kind {
-			return ns[i].Kind.rank() < ns[j].Kind.rank()
+		if ri, rj := ns[i].Kind.rank(), ns[j].Kind.rank(); ri != rj {
+			return ri < rj
 		}
 		return ns[i].ID < ns[j].ID
 	})

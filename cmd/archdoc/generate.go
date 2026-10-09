@@ -84,6 +84,22 @@ func generate(args []string, out io.Writer) error {
 	// The semantic layer is opt-in and runs before the rules are applied, so a person's
 	// correction always overrides a model's suggestion. Without --label no request is made
 	// and the diagram is complete anyway — that is AC-2.
+	labels, err := loadLabels(facts.Root)
+	if err != nil {
+		return err
+	}
+	extracted := m
+	if !*label {
+		// What a model wrote before is applied again while what it was written about is unchanged
+		// (F-30): no request, no cost, and the documents do not lose their descriptions.
+		if recalled := semantic.Recall(labels, extracted); len(recalled) > 0 {
+			if again, res := validate.Apply(m, recalled); res.OK() {
+				m = again
+			} else {
+				fmt.Fprintf(out, "remembered labels no longer fit the model and were left out — run --label to write new ones\n")
+			}
+		}
+	}
 	if *label {
 		rec := &semantic.Recorder{}
 		started := time.Now()
@@ -96,6 +112,12 @@ func generate(args []string, out io.Writer) error {
 			return fmt.Errorf("labelling failed, nothing written: %w", err)
 		}
 		m = labelled
+		if kept := semantic.Remember(labels, extracted, rep.Accepted); len(kept) > 0 {
+			pretty, _ := json.MarshalIndent(kept, "", "  ")
+			if werr := write(facts.Root, labelsOut, string(pretty)+"\n"); werr != nil {
+				return werr
+			}
+		}
 
 		cost := "cost unknown for this model"
 		if c, ok := semantic.Cost(rep.Model, rep.InputTokens, rep.OutputTokens); ok {
@@ -649,6 +671,24 @@ func mergeMemory(before, now semantic.Memory) semantic.Memory {
 		out[fp] = r
 	}
 	return out
+}
+
+// labelsOut keeps the labels a model wrote against what each was written about (F-30).
+const labelsOut = stateDir + "/labels.json"
+
+func loadLabels(root string) (semantic.Labels, error) {
+	b, err := os.ReadFile(filepath.Join(root, labelsOut))
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var l semantic.Labels
+	if err := json.Unmarshal(b, &l); err != nil {
+		return nil, fmt.Errorf("%s: %w", labelsOut, err)
+	}
+	return l, nil
 }
 
 func loadMemory(root string) (semantic.Memory, error) {

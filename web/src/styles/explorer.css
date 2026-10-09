@@ -258,13 +258,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Sized as the engine sizes the box (internal/render/layout.go: textLine, descChars), so a
+   description the layout made room for is never cut. */
 .el-desc {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   align-items: baseline;
-  margin-top: 5px;
-  font-size: 11px;
-  line-height: 1.4;
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 13px;
   color: var(--canvas-muted);
 }
 .el-desc-interp {

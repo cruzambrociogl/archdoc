@@ -847,3 +847,25 @@ components now has a main view — the 16 that handle the most routes, pages, co
 what the code declares, then by size — and the explorer opens on it, with every component and the
 by-folder view one click away. Selecting something outside the main ones shows them all. The rule
 is a count, not a judgement; `main-<container>.svg` is committed beside the full one.
+
+**2026-10-09 — Labels are remembered, like explanations**
+A description `--label` wrote lasted one run: the next plain `generate` dropped it and recorded a
+new version without it. Labels are now kept in `.archdoc/labels.json`, each beside what it was
+written about — an element's kind, name and technology as extracted; a relationship's ends and
+protocol — and applied again on every run while that is unchanged, through the same validator as
+when they were first accepted. Change the element and its label is left out until `--label` is run
+again. A newer label replaces the older for the same value. This is F-30 for labels.
+
+**2026-10-09 — The order of elements is by rank and ID, and nothing else**
+`sortNodes` compared kinds before ranks, and applications, components, tables and modules share a
+rank: two of different kinds were each "not before" the other, which is not an order. The result
+was repeatable for one input — so five identical runs agreed (AC-7) — but adding or removing any
+element reshuffled the rest. Found when removing one container from Immich's model made nine
+unrelated explanations stale: a component's facts list its tables in model order, and the order
+had moved. Fixed to rank, then ID. Every repository records one new version from this, once.
+
+**2026-10-09 — A small diagram keeps its descriptions when fitted to the screen**
+The app hid technology and description below 85% zoom, and a container view fitted to a window
+sits below that — boxes with only names, which is not a C4 diagram. Views of twenty elements or
+fewer keep them down to 50%. The app's description text is now set at the line height and width
+the engine sizes boxes for, so what the layout made room for is not cut.

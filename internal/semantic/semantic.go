@@ -81,6 +81,8 @@ type Report struct {
 	Attempts  int
 	BytesSent int // every byte of every prompt, so egress is accounted for rather than assumed
 	Ops       int
+	// Accepted are the operations the validator let through — what the run is remembered by.
+	Accepted []archdoc.Op
 
 	// Tokens across every attempt, including the ones the validator sent back. A retry is
 	// billed like any other request, so it is counted like one.
@@ -129,7 +131,7 @@ func Label(ctx context.Context, complete Completer, model string, m archdoc.Mode
 
 		out, res := validate.Apply(m, ops)
 		if res.OK() {
-			rep.Ops = len(ops)
+			rep.Ops, rep.Accepted = len(ops), ops
 			return out, rep, nil
 		}
 
