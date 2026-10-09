@@ -1,6 +1,7 @@
 package model
 
 import (
+	"sort"
 	"strings"
 	"testing"
 
@@ -288,4 +289,69 @@ func TestMigrationsStandInForDeclaredTables(t *testing.T) {
 	if strings.Join(names, " ") != "Account" {
 		t.Errorf("with a declared table: %v, want only what the code declares", names)
 	}
+}
+
+// An API description ties its clients to the container whose routes it describes: the application
+// that holds a client, and the one that depends on the package that does — and nobody else. The
+// person reaches the applications a person runs.
+func TestAPIClientsCallTheContainerTheDocumentDescribes(t *testing.T) {
+	fs := immichLike()
+	fs.Apps = append(fs.Apps,
+		archdoc.App{Name: "web", Dir: "web", Manifest: "web/package.json", Role: archdoc.RoleWeb, Framework: "React", Language: "TypeScript",
+			FrameworkProv: cite("web/package.json", 4), Prov: cite("web/package.json", 1),
+			Requires: []archdoc.Requirement{{Name: "@x/sdk", Prov: cite("web/package.json", 6)}}},
+		archdoc.App{Name: "@x/sdk", Dir: "packages/sdk", Manifest: "packages/sdk/package.json", Role: archdoc.RoleLibrary, Prov: cite("packages/sdk/package.json", 1)},
+		archdoc.App{Name: "app", Dir: "mobile", Manifest: "mobile/pubspec.yaml", Role: archdoc.RoleMobile, Framework: "Flutter", Language: "Dart",
+			FrameworkProv: cite("mobile/pubspec.yaml", 3), Prov: cite("mobile/pubspec.yaml", 1)},
+		archdoc.App{Name: "admin", Dir: "admin", Manifest: "admin/package.json", Role: archdoc.RoleWeb, Framework: "React", Language: "TypeScript",
+			FrameworkProv: cite("admin/package.json", 4), Prov: cite("admin/package.json", 1),
+			Requires: []archdoc.Requirement{{Name: "@x/sdk", Dev: true, Prov: cite("admin/package.json", 9)}}},
+	)
+	fs.APIs = []archdoc.API{{File: "open-api/spec.json", Prov: cite("open-api/spec.json", 3),
+		Operations: []archdoc.Operation{{Method: "GET", Path: "/albums"}, {Method: "POST", Path: "/albums"}},
+		Clients: []archdoc.APIClient{
+			{App: "packages/sdk", Dir: "packages/sdk/src", How: "its code names 2 of the 2 paths", Prov: cite("packages/sdk/src/client.ts", 1)},
+			{App: "mobile", Dir: "mobile/generated/openapi", How: "a client generated into mobile/generated/openapi", Prov: cite("open-api/generate.sh", 3)},
+		}}}
+	m := Derive(fs)
+	got := map[string]archdoc.Edge{}
+	for _, e := range m.Edges {
+		if e.Label == "calls the API of" || e.From == "actor:user" {
+			got[e.From+" → "+e.To] = e
+		}
+	}
+	for _, want := range []string{"app:web → svc:server", "app:mobile → svc:server", "actor:user → app:web", "actor:user → app:mobile", "actor:user → app:admin"} {
+		if _, ok := got[want]; !ok {
+			t.Errorf("no %s among %v", want, keysOf(got))
+		}
+	}
+	if _, ok := got["app:admin → svc:server"]; ok {
+		t.Error("a development dependency the code never imports drew a call")
+	}
+	web := got["app:web → svc:server"]
+	// Three lines hold it up: the dependency, the client, the document — the first saying how.
+	said := false
+	for _, p := range web.Prov {
+		said = said || p.File == "web/package.json" && p.Line == 6 && strings.Contains(p.Note, "1 of its 2 operations")
+	}
+	if len(web.Prov) != 3 || !said {
+		t.Errorf("the web app's call cites %+v", web.Prov)
+	}
+
+	// A document no container's routes match draws nothing.
+	fs.APIs[0].Operations = []archdoc.Operation{{Method: "GET", Path: "/payments"}, {Method: "GET", Path: "/refunds"}}
+	for _, e := range Derive(fs).Edges {
+		if e.Label == "calls the API of" {
+			t.Errorf("an API nobody here serves drew %s → %s", e.From, e.To)
+		}
+	}
+}
+
+func keysOf(m map[string]archdoc.Edge) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }

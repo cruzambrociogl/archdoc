@@ -2,6 +2,7 @@ package extract
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -107,6 +108,30 @@ func Apps(root string) []archdoc.App {
 		return nil
 	})
 	sort.Slice(out, func(i, j int) bool { return out[i].Manifest < out[j].Manifest })
+
+	// A package that declares a command and also exports code is a tool a person runs — unless
+	// another package here depends on it. Then it is a library: it runs inside them, and its
+	// command is something their build calls (Immich's plugin SDK).
+	for i := range out {
+		a := &out[i]
+		if a.Role != archdoc.RoleCLI || !a.Exports || a.Framework != "" {
+			continue
+		}
+	users:
+		for _, other := range out {
+			// A test suite depends on the tool it tests; that does not make the tool a library.
+			if other.Role == archdoc.RoleTest || other.Role == archdoc.RoleDocs || other.Role == archdoc.RoleTooling || other.Role == archdoc.RoleWorkspace {
+				continue
+			}
+			for _, r := range other.Requires {
+				if r.Name == a.Name && other.Dir != a.Dir {
+					a.Role = archdoc.RoleLibrary
+					a.Why = fmt.Sprintf("a library: it exports code and %s depends on it (%s); its command is a build tool", other.Name, r.Prov)
+					break users
+				}
+			}
+		}
+	}
 	return out
 }
 
@@ -175,6 +200,7 @@ func packageJSON(root, rel string) *archdoc.App {
 				Prov: archdoc.Provenance{File: rel, Line: lineOf(content, `"`+name+`"`)}})
 		}
 	}
+	app.Exports = pkg.Main != "" || pkg.Module != "" || len(pkg.Exports) > 0 || pkg.Types != ""
 	_, hasTS := pkg.Deps["typescript"]
 	if _, dev := pkg.DevDeps["typescript"]; dev || hasTS {
 		app.Language = "TypeScript"

@@ -194,6 +194,8 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 	}
 
 	fromCode(&m, f.Sources, componentOf, declared)
+	apiCalls(&m, f)
+	people(&m, f)
 	flows(&m, f.Sources, componentOf)
 	dependencies(&m, f, componentOf)
 

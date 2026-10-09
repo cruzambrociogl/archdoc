@@ -210,10 +210,38 @@ type FactSet struct {
 	// .env.example, .env.sample — whose values are defaults a real deployment may override.
 	Interpolation *EnvSource `json:"interpolation,omitempty"`
 
+	// APIs are the API descriptions the repository holds — OpenAPI documents — each with the code
+	// that is a client of it.
+	APIs []API `json:"apis,omitempty"`
+
 	// Sources are the code of each application that runs as a container, read with a parser
 	// (F-03): its files and what each one imports. Applications in a language archdoc does not
 	// read yet have none, and coverage says so.
 	Sources []Source `json:"sources,omitempty"`
+}
+
+// API is an API described in a file of the repository: an OpenAPI document, its operations, and
+// the code found to be a client of it.
+type API struct {
+	File       string      `json:"file"`
+	Operations []Operation `json:"operations"`
+	Clients    []APIClient `json:"clients,omitempty"`
+	Prov       Provenance  `json:"provenance"`
+}
+
+// Operation is one method on one path of an API.
+type Operation struct {
+	Method string `json:"method"`
+	Path   string `json:"path"`
+}
+
+// APIClient is code that calls an API: a package whose source is made of the API's paths, or a
+// directory a generator command writes a client into.
+type APIClient struct {
+	App  string     `json:"app"` // the directory of the application or package that holds it
+	Dir  string     `json:"dir"` // where the client's code is
+	How  string     `json:"how"` // what shows it, in words
+	Prov Provenance `json:"provenance"`
 }
 
 // Source is what archdoc read of one application's own code.
@@ -515,6 +543,8 @@ type App struct {
 	// the repository builds that service from this application's directory; the build line is the
 	// evidence. Without it, the application is a container of its own.
 	Deployed *Deployment `json:"deployed,omitempty"`
+	// Exports is set when the manifest offers code to other packages: main, module, exports, types.
+	Exports bool `json:"exports,omitempty"`
 	// Requires are the packages the manifest depends on, each at its line.
 	Requires []Requirement `json:"requires,omitempty"`
 }

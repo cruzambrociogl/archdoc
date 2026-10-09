@@ -210,8 +210,9 @@ func TestARepositoryWithoutComposeIsDocumented(t *testing.T) {
 	write("web/package.json", `{"name": "web", "dependencies": {"react": "^19"}}`)
 
 	out := gen(t, root)
-	if !strings.Contains(out, "2 elements") {
-		t.Errorf("want the two applications as elements:\n%s", out)
+	// The two applications, and the person a web front end is opened by.
+	if !strings.Contains(out, "3 elements, 1 relationships") {
+		t.Errorf("want the two applications and the person who uses the web one:\n%s", out)
 	}
 	b, err := os.ReadFile(filepath.Join(root, modelOut))
 	if err != nil {
