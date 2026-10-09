@@ -237,12 +237,12 @@ are in `docs/decisions.md` under the same date.
 
 | What | Measured | Commit |
 |---|---|---|
-| One table of commands: usage grouped by what a command may do (write, read, ask Claude); `help <command>` and `<command> --help` for each; exit codes 0 done, 1 failed, 2 used wrongly; the nearest command or flag suggested | `generate --help` printed an error before | — |
-| A command that writes needs its path; one that reads writes nothing — not even the history database, which opening the store used to create | A bare `archdoc generate` documented archdoc itself on 9 Oct (cleaned up) | — |
-| `label` and `explain` are commands of their own, so `generate` never costs money. Each says what it sends and what it should cost, asks at a terminal, refuses with no one to ask unless `--yes`, and `--dry-run` prints the requests — built by the same code as the real ones, tested equal | Immich: label estimated $0.02 (its last run cost $0.018); the old flags point to the new commands | — |
-| `status`: the committed model against the code read again, by structure; stale explanations, gaps, what `explain` would ask and cost, what the network has cost | Immich: as documented, 165 of 179 explained, 10 gaps, $3.29 in 11 runs; 1.4 s | — |
-| `show <path> <thing>`: an element, a route with its flow as numbered cited steps, a table with who queries it, a file with its component; ambiguity listed, `--json` | `POST /api/assets`: 40 steps | — |
-| `scan` previews what generate would find (it still spoke of Compose only); `init` creates a commented `rules.yaml`; `diff` says changes as the app does ("cache renamed to store"), `--detail` for the classes; `runs` totals; `serve --open`; `--json` on every command that reads; `--gaps`, `--considered`, `--facts` for the old overlapping "explain" flags | — | — |
+| One table of commands: usage grouped by what a command may do (write, read, ask Claude); `help <command>` and `<command> --help` for each; exit codes 0 done, 1 failed, 2 used wrongly; the nearest command or flag suggested | `generate --help` printed an error before | `b1b5125` |
+| A command that writes needs its path; one that reads writes nothing — not even the history database, which opening the store used to create | A bare `archdoc generate` documented archdoc itself on 9 Oct (cleaned up) | `b1b5125` |
+| `label` and `explain` are commands of their own, so `generate` never costs money. Each says what it sends and what it should cost, asks at a terminal, refuses with no one to ask unless `--yes`, and `--dry-run` prints the requests — built by the same code as the real ones, tested equal | Immich: label estimated $0.02 (its last run cost $0.018); the old flags point to the new commands | `b1b5125` |
+| `status`: the committed model against the code read again, by structure; stale explanations, gaps, what `explain` would ask and cost, what the network has cost | Immich: as documented, 165 of 179 explained, 10 gaps, $3.29 in 11 runs; 1.4 s | `b1b5125` |
+| `show <path> <thing>`: an element, a route with its flow as numbered cited steps, a table with who queries it, a file with its component; ambiguity listed, `--json` | `POST /api/assets`: 40 steps | `b1b5125` |
+| `scan` previews what generate would find (it still spoke of Compose only); `init` creates a commented `rules.yaml`; `diff` says changes as the app does ("cache renamed to store"), `--detail` for the classes; `runs` totals; `serve --open`; `--json` on every command that reads; `--gaps`, `--considered`, `--facts` for the old overlapping "explain" flags | — | `b1b5125` |
 
 **Not done** — known, and left:
 
