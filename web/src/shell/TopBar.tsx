@@ -22,6 +22,7 @@ export function TopBar(props: {
   theme: Theme
   onTheme: () => void
   onSearch: () => void
+  onKeys: () => void
   session?: Session
 }) {
   const { summary: s, route, go } = props
@@ -116,6 +117,9 @@ export function TopBar(props: {
           Local
         </span>
       )}
+      <button className="keys-btn" onClick={props.onKeys} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
+        ?
+      </button>
     </header>
   )
 }

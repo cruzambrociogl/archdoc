@@ -1018,3 +1018,19 @@ top bar now follows the design's order: Run, Publish, Uncommitted, Settings, the
 One thing already built did not follow the design and was fixed: interpreted prose on a component
 page was italic, where the design underlines it with dots so a mostly interpreted page stays
 readable.
+
+**2026-10-09 — The navigation and the Overview follow the design**
+Compared side by side with `Surface Screens` at Cruz's request. Built now, from data the app
+already had: the Architecture explorer card at the top of the navigation (containers and
+components counted, a box per container in its kind's hue); the navigation in the design's order —
+Explorer, Components diagram, Deployment, saved views, Components, Features, Flows, Data model,
+Dependencies, Changes, Coverage, Documents, Intent vs actual, then Corrections and Network runs —
+with the unbuilt ones in place and marked, rather than in a separate group; a `?` button for the
+shortcut sheet; on the Overview the design's stat strip (applications, containers, components,
+entities, flows, entry points, external systems), the trust strip in four (coverage, unresolved,
+interpreted, egress), the containers sketch with only containers, outlined by kind, what changed
+said in names with parts counted under their container, "where to start" with this system's own
+numbers, and the Ask slot docked at the foot of every reading page. Two differences are deliberate:
+coverage is the share of elements and relationships with no gap, which archdoc measures, not the
+design's share of outbound references resolved, which it does not yet; and the component pages in
+the tree — each component under Components — are a placeholder (`wiki-tree`), since Immich has 179.

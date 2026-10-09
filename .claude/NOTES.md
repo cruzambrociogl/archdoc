@@ -59,8 +59,8 @@ raised, not quietly promoted over it.
       `Surface Screens.dc.html` is larger than DesignSync's 256 KB read limit and came back cut
       short: every screen's markup was read in full; the end of its example data (from the Changes
       version list on — likely Corrections, Network runs, Dependencies) was not
-- [ ] The Overview's "What changed" lists a component name twice when two containers have one of
-      that name (`shared-link` in web and mobile): it should say which container
+- [x] The Overview's "What changed" named a component twice when two containers had one of that
+      name; it now says the container and counts parts under it — 9 Oct
 
 ---
 

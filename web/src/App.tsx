@@ -20,6 +20,7 @@ import { Corrections } from './screens/Corrections'
 import { Documents } from './screens/Documents'
 import { NetworkRuns } from './screens/NetworkRuns'
 import { Planned } from './screens/Planned'
+import { AskDock } from './ui/Planned'
 
 const titles: Record<Screen, string> = {
   overview: 'Overview',
@@ -101,11 +102,13 @@ export function App() {
           theme={theme}
           onTheme={nextTheme}
           onSearch={() => setSearching(true)}
+          onKeys={() => setKeys(true)}
           session={session.data}
         />
         <div className="shell-body">
           <Nav summary={s} route={route} go={go} open={navOpen} views={views.data?.views ?? []} coverage={coverage.data} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
+          <div className="main-col">
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
             {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
             {route.screen === 'explorer' && (
@@ -121,6 +124,8 @@ export function App() {
             {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
             {route.screen === 'planned' && <Planned route={route} />}
           </main>
+          {route.screen !== 'explorer' && <AskDock go={go} />}
+          </div>
         </div>
       </div>
       <Palette open={searching} onClose={() => setSearching(false)} go={go} views={views.data?.views ?? []} version={version} />

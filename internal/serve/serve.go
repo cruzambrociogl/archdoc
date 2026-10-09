@@ -209,6 +209,22 @@ func (s *Server) summary(w http.ResponseWriter, r *http.Request) {
 	if render.Tiny(latest.Model) {
 		out["tiny"], out["story"] = true, render.Story(latest.Model)
 	}
+	// What the navigation's explorer card says, and draws: the containers, by kind, and the parts.
+	counts := map[string]int{}
+	var kinds []string
+	for _, n := range latest.Model.Nodes {
+		switch {
+		case n.Kind.Container():
+			counts["containers"]++
+			kinds = append(kinds, string(n.Kind))
+		case n.Kind == archdoc.Component:
+			counts["components"]++
+		case n.Kind == archdoc.Table:
+			counts["tables"]++
+		}
+	}
+	counts["flows"], counts["entries"], counts["unresolved"] = len(latest.Model.Flows), len(latest.Model.Entries), len(latest.Model.Unresolved)
+	out["counts"], out["kinds"] = counts, orEmpty(kinds)
 	send(w, out)
 }
 

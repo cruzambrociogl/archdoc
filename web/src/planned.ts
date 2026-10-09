@@ -55,6 +55,8 @@ export const planned: Plan[] = [
     what: "Packages grouped as framework, database driver, HTTP client, SDK, testing, build; an SDK linked to its external system's box." },
   { id: 'on-this-page', design: S, listOnly: true, area: 'Shell', title: 'On this page', spec: '§4.1',
     what: 'The right rail of a reading page: its headings, to jump between them.' },
+  { id: 'wiki-tree', design: S, area: 'Shell', title: 'Component, flow and entity pages in the tree', spec: '§4.1',
+    what: 'The navigation as a wiki: Components, Flows and Data model each open to a page per component, flow or entity, as the explorer lists them. Today a component page is reached from the diagram or the inspector.' },
   { id: 'keys', listOnly: true, area: 'Shell', title: 'Page shortcuts', spec: '§4.2',
     what: 'g o for the overview, g a for the architecture, [ and ] for the previous and next page.' },
 

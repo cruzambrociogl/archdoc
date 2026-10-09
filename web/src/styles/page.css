@@ -1243,3 +1243,25 @@ button.runs-row:hover {
   padding-top: 14px;
   border-top: 1px solid var(--rule-soft);
 }
+
+/* The trust strip in four, as designed: coverage, unresolved, interpreted, egress. */
+.trust-strip.four {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+.trust-v.tone-unres {
+  color: var(--unres);
+}
+.trust-v.tone-interp {
+  color: var(--interp);
+}
+.trust-bar.tone-unres div {
+  background: var(--unres);
+}
+.trust-bar.tone-interp div {
+  background: var(--interp);
+}
+/* The containers sketch on the Overview: a box per container, outlined in its kind's hue. */
+.thumb-box {
+  border-width: 1.2px;
+  border-style: solid; /* the colour is its kind's, from tile-* */
+}

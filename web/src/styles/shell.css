@@ -529,3 +529,132 @@ kbd {
   color: var(--on-ink);
   border-color: var(--ink);
 }
+
+/* ——— the explorer card, first in the navigation (Surface Screens) ——— */
+.nav-explorer {
+  display: block;
+  width: calc(100% - 20px);
+  margin: 0 10px 12px;
+  padding: 11px 12px;
+  background: var(--paper, #fff);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-explorer:hover,
+.nav-explorer.active {
+  border-color: var(--accent);
+}
+.nav-explorer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+.nav-explorer-arrow {
+  color: var(--accent);
+}
+.nav-explorer-count {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.nav-explorer-sketch {
+  display: flex;
+  gap: 3px;
+  margin-top: 9px;
+}
+.nav-explorer-sketch span {
+  flex: 1;
+  height: 12px;
+  border: 1.2px solid var(--k-slate);
+  background: var(--k-slate-fill);
+}
+.nav-explorer-sketch span.store {
+  border-color: var(--k-teal);
+  background: var(--k-teal-fill);
+}
+
+/* ——— the shortcuts button, last in the top bar ——— */
+.keys-btn {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.keys-btn:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* ——— the main column, with the Ask slot docked at its foot ——— */
+.main-col {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.main-col > .shell-main {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.ask-dock {
+  flex: 0 0 auto;
+  background: var(--panel);
+  border-top: 1px solid var(--ink);
+  box-shadow: 0 -16px 40px -30px rgba(21, 32, 30, 0.6);
+  padding: 8px 14px 10px;
+}
+.ask-dock-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ask-dock-title {
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.ask-dock-slot {
+  padding: 1px 6px;
+  border: 1px dashed var(--muted);
+  font-weight: 600;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ask-dock-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ask-dock-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+@media print {
+  .ask-dock,
+  .nav-explorer {
+    display: none;
+  }
+}

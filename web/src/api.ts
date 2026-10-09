@@ -116,6 +116,10 @@ export interface Summary {
   /** A project small enough for one page: told as a story, shown without the levels a system needs. */
   tiny?: boolean
   story?: { text: string; provenance?: Provenance; interpreted?: boolean }[]
+  /** What the navigation's explorer card says: containers, components, tables, flows, ways in, unresolved calls. */
+  counts?: Partial<Record<'containers' | 'components' | 'tables' | 'flows' | 'entries' | 'unresolved', number>>
+  /** Each container's kind, in model order: what the card draws. */
+  kinds?: string[]
 }
 
 export interface Version {

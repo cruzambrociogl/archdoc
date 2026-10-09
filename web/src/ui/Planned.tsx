@@ -34,3 +34,35 @@ export function PlannedSlot({ id, go }: { id: string; go: Go }) {
     </button>
   )
 }
+
+/**
+ * The Ask panel, docked to the bottom of the main column as the design has it (surface-spec §4.1,
+ * §5.16): a slot, not built this phase. The input does nothing but say so.
+ */
+export function AskDock({ go }: { go: Go }) {
+  const p = plan('ask')
+  if (published || !p) return null
+  return (
+    <div className="ask-dock">
+      <div className="ask-dock-head">
+        <span className="ask-dock-title">Ask the map</span>
+        <span className="ask-dock-slot">Slot · not built this phase</span>
+        <button className="text-link small" onClick={() => go({ screen: 'planned', focus: 'ask' })}>
+          what it will do
+        </button>
+      </div>
+      <form
+        className="ask-dock-row"
+        onSubmit={(e) => {
+          e.preventDefault()
+          go({ screen: 'planned', focus: 'ask' })
+        }}
+      >
+        <input className="ask-dock-input" placeholder="Ask about this system, in your words…" aria-label="Ask the map — not built yet" />
+        <button className="btn btn-outline" type="submit">
+          Ask
+        </button>
+      </form>
+    </div>
+  )
+}

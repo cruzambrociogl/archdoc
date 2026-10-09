@@ -2,7 +2,7 @@ import type { CoverageResponse, DiffResponse, ModelResponse, Node, Provenance, R
 import { bytes, componentLevel, dataLevel, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
-import { Planned, PlannedSlot } from '../ui/Planned'
+import { Planned } from '../ui/Planned'
 import { kindStyle } from '../ui/kinds'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
 
@@ -48,6 +48,13 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
   const written = values.filter((p) => p?.origin === 'model').length
   const interpretedPct = shown ? Math.round((written / shown) * 100) : 0
 
+  const applications = count((n) => n.kind === 'application')
+  const flows = (model.flows ?? []).length
+  const ways = (model.entries ?? []).length
+  const unresolved = (model.unresolved ?? []).length
+  const coveragePct = props.coverage?.items ? Math.floor((props.coverage.complete / props.coverage.items) * 100) : 0
+  const name = (id: string) => (model.nodes ?? []).find((n) => n.id === id)?.name ?? id
+  const kindOf = (id: string) => (model.nodes ?? []).find((n) => n.id === id)?.kind
   const sent = (runs.data ?? []).reduce((s, r) => s + r.bytes_sent, 0)
   const runCount = runs.data?.length ?? 0
 
@@ -98,50 +105,46 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
         </p>
       )}
 
+      {/* The design's strip (Surface Screens): what there is, at each level, each a way in. */}
       <div className="stat-strip">
-        {/* One small application: "1 container, 0 data stores" is a system's vocabulary, not its. */}
+        {!props.summary.tiny && <Stat n={applications} label="applications" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />}
         {!props.summary.tiny && <Stat n={containers} label="containers" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />}
-        {!props.summary.tiny && <Stat n={stores} label="data stores and queues" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />}
-        <Stat n={externals} label="external systems" onClick={() => props.go({ screen: 'explorer', level: 'context' })} />
-        {!props.summary.tiny && <Stat n={edges.length} label="relationships" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />}
         {parts.size > 0 && (
-          <Stat
-            n={parts.size}
-            label={`components in ${m.data.components.length} ${m.data.components.length === 1 ? 'container' : 'containers'}, from the code`}
-            onClick={() => props.go({ screen: 'explorer', level: componentLevel(m.data!.components[0]) })}
-          />
+          <Stat n={parts.size} label="components" onClick={() => props.go({ screen: 'explorer', level: componentLevel(m.data!.components[0]) })} />
         )}
-        {tables.length > 0 && (
-          <Stat n={tables.length} label="tables, from the code" onClick={() => props.go({ screen: 'explorer', level: dataLevel(tables[0].parent!) })} />
-        )}
-        <Stat n={props.summary.versions} label={props.summary.versions === 1 ? 'version' : 'versions'} onClick={() => props.go({ screen: 'changes' })} />
+        {tables.length > 0 && <Stat n={tables.length} label="entities" onClick={() => props.go({ screen: 'explorer', level: dataLevel(tables[0].parent!) })} />}
+        {flows > 0 && <Stat n={flows} label="flows" onClick={() => props.go({ screen: 'features' })} />}
+        {ways > 0 && <Stat n={ways} label="entry points" onClick={() => props.go({ screen: 'features' })} />}
+        <Stat n={externals} label={externals === 1 ? 'external system' : 'external systems'} onClick={() => props.go({ screen: 'explorer', level: 'context' })} />
       </div>
 
-      <div className="trust-strip">
-        <Trust
-          k="Interpreted"
-          v={`${interpretedPct}%`}
-          pct={interpretedPct}
-          of={written ? `${written} of ${shown} values were written by the model; each is marked and cited.` : 'Every value on screen was read from the repository.'}
-        />
-        <Trust
-          k="Left this machine"
-          v={runCount ? bytes(sent) : 'nothing'}
-          pct={0}
-          of={runCount ? `${runCount} ${runCount === 1 ? 'run' : 'runs'}, every byte logged in Network runs.` : 'archdoc has never sent anything from this repository.'}
-          onClick={() => props.go({ screen: 'runs' })}
-        />
+      <div className="trust-strip four">
         {props.coverage ? (
           <Trust
-            k="Could not be resolved"
-            v={`${props.coverage.gaps.reduce((n, g) => n + g.gaps.length, 0)} gaps`}
-            pct={props.coverage.items ? Math.round((props.coverage.complete / props.coverage.items) * 100) : 0}
-            of={`${props.coverage.complete} of ${props.coverage.items} elements and relationships carry no gap. Coverage lists each one.`}
+            k="Coverage"
+            v={`${coveragePct}%`}
+            pct={coveragePct}
+            of={`${props.coverage.complete} of ${props.coverage.items} elements and relationships carry no gap`}
             onClick={() => props.go({ screen: 'coverage' })}
           />
         ) : (
           <Trust k="Evidence" v={model.source} pct={100} of="Every element and relationship cites the file and line that declares it." mono />
         )}
+        <Trust k="Unresolved" v={String(unresolved)} pct={0} tone="unres" of={unresolved ? 'seen and listed, not dropped' : 'every call the code makes goes somewhere it names'} onClick={() => props.go({ screen: 'coverage' })} />
+        <Trust
+          k="Interpreted"
+          v={`${interpretedPct}%`}
+          pct={interpretedPct}
+          tone="interp"
+          of={written ? 'of visible values written by the model, each marked and cited' : 'every value on screen was read from the repository'}
+        />
+        <Trust
+          k="Egress"
+          v={runCount ? bytes(sent) : 'nothing'}
+          pct={0}
+          of={runCount ? `${runCount} ${runCount === 1 ? 'run' : 'runs'} · every byte logged · no code` : 'nothing has ever left this machine'}
+          onClick={() => props.go({ screen: 'runs' })}
+        />
       </div>
 
       <div className="overview-grid">
@@ -155,7 +158,7 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
           <button className="thumb" onClick={() => props.go({ screen: 'explorer', level: 'container' })}>
             <div className="thumb-boundary">
               {(container.nodes ?? [])
-                .filter((n) => n.kind !== 'actor')
+                .filter((n) => ['application', 'datastore', 'queue'].includes(n.kind))
                 .slice(0, 9)
                 .map((n) => (
                   <div key={n.id} className={`thumb-box tile-${kindStyle(n.kind).hue}`}>
@@ -180,24 +183,37 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
             )}
           </div>
           {!previous && <p className="muted small">This is the first version; there is nothing to compare it with yet.</p>}
-          {diff.data && <ChangeList d={diff.data} />}
+          {diff.data && <ChangeList d={diff.data} name={name} kind={kindOf} />}
         </section>
       </div>
 
       <Eyebrow>Where to start</Eyebrow>
       <div className="paths">
-        <PathCard t="Understand it from the top" route="context → containers → each element's passport" onClick={() => props.go({ screen: 'explorer', level: 'context' })} />
-        <PathCard t="What changed" route="the versions, and the difference between any two" onClick={() => props.go({ screen: 'changes' })} />
+        <PathCard
+          t="Understand it from the top"
+          route={
+            props.summary.tiny
+              ? 'what it reaches → what it is made of'
+              : parts.size > 0
+                ? `containers → components${flows ? ' → its flows' : ''}`
+                : "context → containers → each element's passport"
+          }
+          onClick={() => props.go({ screen: 'explorer', level: props.summary.tiny ? 'context' : 'container' })}
+        />
+        <PathCard
+          t="See what changed"
+          route={
+            diff.data && previous
+              ? `v${previous} → v${current} · ${structuralOf(diff.data)} structural · ${wordsOf(diff.data)} words`
+              : 'the first version · nothing to compare yet'
+          }
+          onClick={() => props.go({ screen: 'changes' })}
+        />
         <PathCard
           t="Check the evidence"
-          route={props.coverage ? 'what archdoc could not see, and why' : 'the documents, and what archdoc could not see'}
+          route={props.coverage ? `coverage · ${props.coverage.gaps.reduce((n, g) => n + g.gaps.length, 0)} gaps · ${unresolved} unresolved` : 'the documents, and what archdoc could not see'}
           onClick={() => props.go({ screen: props.coverage ? 'coverage' : 'docs' })}
         />
-      </div>
-
-      {/* The Ask panel docks to the bottom of the main column (surface-spec §4.1); designed, not built. */}
-      <div className="planned-dock">
-        <PlannedSlot id="ask" go={props.go} />
       </div>
     </div>
   )
@@ -212,12 +228,12 @@ function Stat({ n, label, onClick }: { n: number; label: string; onClick: () => 
   )
 }
 
-function Trust(props: { k: string; v: string; pct: number; of: string; onClick?: () => void; mono?: boolean }) {
+function Trust(props: { k: string; v: string; pct: number; of: string; onClick?: () => void; mono?: boolean; tone?: 'unres' | 'interp' }) {
   const body = (
     <>
       <Eyebrow>{props.k}</Eyebrow>
-      <div className={`trust-v ${props.mono ? 'trust-v-small' : ''}`}>{props.v}</div>
-      <div className="trust-bar">
+      <div className={`trust-v ${props.mono ? 'trust-v-small' : ''} ${props.tone ? `tone-${props.tone}` : ''}`}>{props.v}</div>
+      <div className={`trust-bar ${props.tone ? `tone-${props.tone}` : ''}`}>
         <div style={{ width: `${props.pct}%` }} />
       </div>
       <div className="trust-of">{props.of}</div>
@@ -232,22 +248,67 @@ function Trust(props: { k: string; v: string; pct: number; of: string; onClick?:
   )
 }
 
-function ChangeList({ d }: { d: DiffResponse }) {
+const part = (k?: string) => k === 'component' || k === 'table' || k === 'module'
+const wordFields = new Set(['description', 'label', 'name'])
+
+/** Changes that appeared, disappeared or were rewired, as against those that only reworded something. */
+function structuralOf(d: DiffResponse) {
+  const x = d.diff
+  return (
+    (x.added_nodes ?? []).length + (x.removed_nodes ?? []).length + (x.added_edges ?? []).length + (x.removed_edges ?? []).length +
+    (x.added_entries ?? []).length + (x.removed_entries ?? []).length + (x.moved ?? []).length +
+    (x.changed ?? []).filter((c) => !wordFields.has(c.field)).length
+  )
+}
+function wordsOf(d: DiffResponse) {
+  return (d.diff.changed ?? []).filter((c) => wordFields.has(c.field)).length
+}
+
+/**
+ * What changed, said as a reader would say it (Surface Screens): the system's own elements one by
+ * one, by name; the parts inside a container counted under it; rewording kept apart, with a hollow tag.
+ */
+function ChangeList({ d, name, kind }: { d: DiffResponse; name: (id: string) => string; kind: (id: string) => string | undefined }) {
   if (d.empty) return <p className="muted small">Nothing changed between v{d.from} and v{d.to}.</p>
   const x = d.diff
-  const rows: [string, string][] = [
-    ...(x.added_nodes ?? []).map((n): [string, string] => ['+', `${n.name} appeared`]),
-    ...(x.removed_nodes ?? []).map((n): [string, string] => ['−', `${n.name} disappeared`]),
-    ...(x.added_edges ?? []).map((e): [string, string] => ['+', `${e.from} → ${e.to}`]),
-    ...(x.removed_edges ?? []).map((e): [string, string] => ['−', `${e.from} → ${e.to}`]),
-    ...(x.changed ?? []).map((c): [string, string] => ['±', `${c.element}: ${c.field} changed`]),
-  ]
+  const rows: { g: string; t: string; words?: boolean }[] = []
+  const counted = (list: { kind: string; parent?: string; name: string }[], verb: string, g: string) => {
+    const byParent = new Map<string, string[]>()
+    for (const n of list) {
+      if (!part(n.kind)) {
+        rows.push({ g, t: `${n.name} ${verb}` })
+        continue
+      }
+      byParent.set(n.parent ?? '', [...(byParent.get(n.parent ?? '') ?? []), n.name])
+    }
+    for (const [p, names] of byParent) {
+      const shown = names.slice(0, 3).join(', ') + (names.length > 3 ? ` and ${names.length - 3} more` : '')
+      rows.push({ g, t: names.length === 1 ? `${names[0]} ${verb} in ${name(p)}` : `${names.length} parts ${verb} in ${name(p)} — ${shown}` })
+    }
+  }
+  for (const m of x.moved ?? []) rows.push({ g: '→', t: m.class === 'renamed' ? `${m.was} renamed to ${m.is}` : `${m.is} crossed the system boundary` })
+  counted(x.added_nodes ?? [], 'appeared', '+')
+  counted(x.removed_nodes ?? [], 'removed', '−')
+  const top = (e: { from: string; to: string }) => !part(kind(e.from)) && !part(kind(e.to))
+  for (const e of (x.added_edges ?? []).filter(top)) rows.push({ g: '+', t: `${name(e.from)} → ${name(e.to)}` })
+  for (const e of (x.removed_edges ?? []).filter(top)) rows.push({ g: '−', t: `${name(e.from)} → ${name(e.to)} removed` })
+  const inner = [...(x.added_edges ?? []), ...(x.removed_edges ?? [])].filter((e) => !top(e)).length
+  if (inner) rows.push({ g: '±', t: `${inner} ${inner === 1 ? 'use' : 'uses'} between parts rewired` })
+  const added = (x.added_entries ?? []).length
+  const removed = (x.removed_entries ?? []).length
+  if (added || removed) rows.push({ g: '±', t: `${added} ways in appeared, ${removed} disappeared` })
+  for (const c of (x.changed ?? []).filter((c) => !c.field.startsWith('column '))) {
+    const words = wordFields.has(c.field)
+    rows.push({ g: '±', words, t: words ? `${name(c.element)} ${c.field} reworded (words only)` : `${name(c.element)} ${c.field} ${c.before || '—'} → ${c.after || '—'}` })
+  }
+  const columns = (x.changed ?? []).filter((c) => c.field.startsWith('column ')).length
+  if (columns) rows.push({ g: '±', t: `${columns} ${columns === 1 ? 'column' : 'columns'} changed` })
   return (
     <ul className="change-list">
-      {rows.slice(0, 6).map(([g, t], i) => (
+      {rows.slice(0, 6).map((r, i) => (
         <li key={i}>
-          <span className={`delta-tag ${d.structural ? '' : 'hollow'}`}>{g}</span>
-          <span>{t}</span>
+          <span className={`delta-tag ${r.words ? 'hollow' : ''}`}>{r.g}</span>
+          <span>{r.t}</span>
         </li>
       ))}
       {rows.length > 6 && <li className="muted small">and {rows.length - 6} more</li>}
