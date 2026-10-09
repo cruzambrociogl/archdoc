@@ -85,7 +85,7 @@ type Node struct {
 
 	// NameProv is set when the display name was changed after extraction — by a rule or by
 	// the model. Empty means the name is the key the configuration declared.
-	NameProv Provenance `json:"name_provenance,omitempty"`
+	NameProv Provenance `json:"name_provenance,omitzero"`
 	Kind     Kind       `json:"kind"`
 
 	// Description is the one-line responsibility a C4 container should carry. Configuration
@@ -110,7 +110,7 @@ type Node struct {
 	// found (F-02); DirProv proves the tie — the manifest, or the Compose line that builds the
 	// service from that directory. What lies inside is the component level's evidence.
 	Dir     string     `json:"dir,omitempty"`
-	DirProv Provenance `json:"dir_provenance,omitempty"`
+	DirProv Provenance `json:"dir_provenance,omitzero"`
 
 	// Files are a component's files, repository-relative, in path order, and Lines their total —
 	// what the component is made of, and how much of it there is.
@@ -133,8 +133,8 @@ type Node struct {
 	// else. A node is proven by the line that declares it; its technology may come from the
 	// catalog and its description from the model. PRV-05 must tell a reader which parts of a
 	// box were read and which were interpreted, and one provenance per node cannot.
-	DescProv Provenance `json:"description_provenance,omitempty"`
-	TechProv Provenance `json:"technology_provenance,omitempty"`
+	DescProv Provenance `json:"description_provenance,omitzero"`
+	TechProv Provenance `json:"technology_provenance,omitzero"`
 
 	Prov Provenance `json:"provenance"`
 }
@@ -162,7 +162,7 @@ type Edge struct {
 	// LabelProv is where the label came from when something other than extraction wrote it.
 	// Kept apart from Prov on purpose: Prov is the evidence that the relationship exists, and
 	// a model that only reworded the label must never appear as evidence for the arrow.
-	LabelProv Provenance `json:"label_provenance,omitempty"`
+	LabelProv Provenance `json:"label_provenance,omitzero"`
 
 	// Technology is how, when the configuration says so — a URL scheme, a known port.
 	Technology string `json:"technology,omitempty"`
@@ -302,14 +302,14 @@ type Entry struct {
 	Handler string `json:"handler"` // "AlbumController.getAllAlbums"
 	// Summary is the code's own description of the route — a summary its decorators state.
 	Summary     string     `json:"summary,omitempty"`
-	SummaryProv Provenance `json:"summary_provenance,omitempty"`
+	SummaryProv Provenance `json:"summary_provenance,omitzero"`
 	Container   string     `json:"container"`
 	Component   string     `json:"component,omitempty"`
 	// Uses are what the handler's class is given — NestJS's injected services — each resolved by
 	// name to where it is declared.
 	Uses []Symbol `json:"uses,omitempty"`
 	// PrefixProv cites the global prefix the path begins with, when one was applied.
-	PrefixProv Provenance `json:"prefix_provenance,omitempty"`
+	PrefixProv Provenance `json:"prefix_provenance,omitzero"`
 	// PathNote says how a part of the path was resolved when it was not written out: a constant
 	// resolved by name, or an expression archdoc could not resolve, kept in braces.
 	PathNote string     `json:"path_note,omitempty"`

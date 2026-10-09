@@ -1,6 +1,8 @@
 package serve
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -291,5 +293,33 @@ func TestOnlyThisMachineIsServed(t *testing.T) {
 func TestNoHistoryIsAClearError(t *testing.T) {
 	if _, err := New(t.TempDir()); err == nil || !strings.Contains(err.Error(), "archdoc generate") {
 		t.Errorf("got %v", err)
+	}
+}
+
+// The model is sent gzipped to a client that asks, and plain to one that does not.
+func TestTextIsSentCompressed(t *testing.T) {
+	ts, _ := server(t)
+	for _, enc := range []string{"gzip", ""} {
+		req, _ := http.NewRequest("GET", ts.URL+"/api/summary", nil)
+		req.Header.Set("Accept-Encoding", enc) // set by hand, so the client does not decompress
+		res, err := ts.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(res.Body)
+		res.Body.Close()
+		if got := res.Header.Get("Content-Encoding"); got != enc {
+			t.Errorf("asked for %q, sent Content-Encoding %q", enc, got)
+		}
+		if enc == "gzip" {
+			zr, err := gzip.NewReader(bytes.NewReader(body))
+			if err != nil {
+				t.Fatalf("not gzip: %v", err)
+			}
+			body, _ = io.ReadAll(zr)
+		}
+		if !json.Valid(body) {
+			t.Errorf("with Accept-Encoding %q the summary is not JSON: %.80s", enc, body)
+		}
 	}
 }

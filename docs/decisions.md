@@ -753,3 +753,12 @@ Tried on Immich the same evening: one request, 27 operations accepted on the fir
 and the 16 descriptions and 11 edge labels read correctly. Cruz chose it as the default over
 `claude-opus-5-5`, which the entry above had named. `--label-model` asks another model; no
 side-by-side run against Opus 5.5 was made.
+
+**2026-10-08 — `model.json` is laid out, not thinned; the server compresses**
+Immich's model was 3.3 MB. A third of that was layout: a citation took five lines, and 2,128 values
+carried an empty provenance meaning "same as the element". Both are gone — a value that fits in 140
+characters is written on one line, an empty provenance is not written — and the file is 2.6 MB with
+the same content, still a member per line where it matters for a diff. What remains is content
+(364 flows are a third of it) and was kept: the file is the reviewable record, and dropping derived
+parts would make the published site recompute them. The cost a person feels was the browser's
+download, so `archdoc serve` now gzips text: `/api/model` goes from 3.4 MB to 226 KB.

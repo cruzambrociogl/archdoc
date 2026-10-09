@@ -107,7 +107,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "archdoc serves this machine only", http.StatusForbidden)
 		return
 	}
-	s.mux.ServeHTTP(w, r)
+	compressed(s.mux).ServeHTTP(w, r)
 }
 
 // ListenAndServe serves on addr until ctx ends. It binds to the loopback interface only; addr's

@@ -339,7 +339,7 @@ type Include struct {
 type Command struct {
 	Name        string     `json:"name"`
 	Summary     string     `json:"summary,omitempty"`
-	SummaryProv Provenance `json:"summary_provenance,omitempty"`
+	SummaryProv Provenance `json:"summary_provenance,omitzero"`
 	Prov        Provenance `json:"provenance"`
 }
 
@@ -360,7 +360,7 @@ type Method struct {
 	EndLine    int          `json:"end_line,omitempty"`
 	// Doc is the first line of a Python function's docstring: the code describing itself.
 	Doc     string     `json:"doc,omitempty"`
-	DocProv Provenance `json:"doc_provenance,omitempty"`
+	DocProv Provenance `json:"doc_provenance,omitzero"`
 	Prov    Provenance `json:"provenance"`
 }
 
@@ -398,7 +398,7 @@ type Decorator struct {
 	// Exprs are the options whose value is not a literal, as written: { name: JobName.AssetDelete }.
 	Exprs       map[string]string `json:"exprs,omitempty"`
 	Summary     string            `json:"summary,omitempty"`
-	SummaryProv Provenance        `json:"summary_provenance,omitempty"`
+	SummaryProv Provenance        `json:"summary_provenance,omitzero"`
 	Prov        Provenance        `json:"provenance"`
 }
 
@@ -489,7 +489,7 @@ type App struct {
 	// Framework is what the role was judged from — NestJS, SvelteKit, FastAPI, Flutter — and
 	// FrameworkProv is the line in the manifest that names it.
 	Framework     string     `json:"framework,omitempty"`
-	FrameworkProv Provenance `json:"framework_provenance,omitempty"`
+	FrameworkProv Provenance `json:"framework_provenance,omitzero"`
 	Role          AppRole    `json:"role"`
 	Why           string     `json:"why"` // the role, in words: what decided it
 	Prov          Provenance `json:"provenance"`

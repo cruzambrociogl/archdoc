@@ -607,11 +607,11 @@ func write(root, rel, content string) error {
 }
 
 func encode(m archdoc.Model) string {
-	b, err := json.MarshalIndent(m, "", "  ")
+	b, err := m.JSON()
 	if err != nil {
 		return "{}"
 	}
-	return string(b) + "\n"
+	return string(b)
 }
 
 // sortedKeys keeps the order files are written — and therefore the order they are reported —
