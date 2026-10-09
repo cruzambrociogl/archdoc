@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -128,5 +129,117 @@ func TestFlowsFollowFunctionsThatLeadSomewhere(t *testing.T) {
 	}
 	if len(f.Participants) != 3 || f.Participants[1].Kind != "module" || f.Participants[1].Name != "database" {
 		t.Errorf("participants %+v", f.Participants)
+	}
+}
+
+// An event is followed into the methods that listen for it — only from a call that emits — and a
+// job put on a queue is a step to that job, whose handler has a flow of its own.
+func TestFlowsFollowEventsAndQueuedJobs(t *testing.T) {
+	ctl, svc, note, enum := "server/src/controllers/album.controller.ts", "server/src/services/album.service.ts",
+		"server/src/services/notification.service.ts", "server/src/enum.ts"
+	fs := immichLike()
+	fs.Sources[0].Files = []archdoc.SourceFile{
+		{Path: enum, Language: "TypeScript", Lines: 5, Constants: []archdoc.Constant{{Name: "JobName.NotifyAlbum", Value: "NotifyAlbum", Prov: cite(enum, 2)}}},
+		{Path: ctl, Language: "TypeScript", Lines: 20, Classes: []archdoc.Class{{
+			Name: "AlbumController", Prov: cite(ctl, 4),
+			Decorators: []archdoc.Decorator{{Name: "Controller", Arg: "albums", HasArg: true, Prov: cite(ctl, 3)}},
+			Params:     []archdoc.Param{{Name: "service", Type: "AlbumService"}},
+			Methods: []archdoc.Method{{Name: "invite", Prov: cite(ctl, 8), EndLine: 10,
+				Decorators: []archdoc.Decorator{{Name: "Put", Prov: cite(ctl, 7)}},
+				Invokes:    []archdoc.Invocation{{Object: "service", Method: "invite", Prov: cite(ctl, 9)}}}},
+		}}},
+		{Path: svc, Language: "TypeScript", Lines: 30, Classes: []archdoc.Class{{
+			Name: "AlbumService", Params: []archdoc.Param{{Name: "eventRepository", Type: "EventRepository"}, {Name: "socket", Type: "Socket"}},
+			Methods: []archdoc.Method{{Name: "invite", Prov: cite(svc, 10), EndLine: 20, Invokes: []archdoc.Invocation{
+				{Object: "eventRepository", Method: "emit", Args: []string{"AlbumInvite"}, Prov: cite(svc, 11)},
+				{Object: "socket", Method: "serverSend", Args: []string{"AlbumInvite"}, Prov: cite(svc, 12)},
+			}}},
+		}}},
+		{Path: note, Language: "TypeScript", Lines: 40, Classes: []archdoc.Class{{
+			Name: "NotificationService",
+			Methods: []archdoc.Method{
+				{Name: "onAlbumInvite", Prov: cite(note, 10), EndLine: 14,
+					Decorators: []archdoc.Decorator{{Name: "OnEvent", Options: map[string]string{"name": "AlbumInvite"}, Prov: cite(note, 9)}},
+					Named:      []archdoc.Mention{{Expr: "JobName.NotifyAlbum", Prov: cite(note, 12)}, {Value: "NotAJob", Prov: cite(note, 13)}}},
+				{Name: "handleNotify", Prov: cite(note, 20), EndLine: 24,
+					Decorators: []archdoc.Decorator{{Name: "OnJob", Exprs: map[string]string{"name": "JobName.NotifyAlbum"}, Prov: cite(note, 19)}},
+					Queries:    []archdoc.Query{{Table: "album", Op: "reads", Prov: cite(note, 21)}}},
+			},
+		}}},
+	}
+	m := Derive(fs)
+	var route archdoc.Flow
+	for _, f := range m.Flows {
+		if strings.HasPrefix(f.Entry, "route:") {
+			route = f
+		}
+	}
+	var got []string
+	for _, s := range route.Steps {
+		got = append(got, s.From+">"+s.To+":"+s.Call)
+	}
+	want := []string{
+		"AlbumController>AlbumService:invite",
+		"AlbumService>NotificationService:onAlbumInvite",
+		"NotificationService>job:NotifyAlbum:queues",
+	}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("steps %v, want %v", got, want)
+	}
+	if !strings.Contains(route.Steps[1].Note, "AlbumInvite") || !strings.Contains(route.Steps[2].Note, "NotificationService.handleNotify") {
+		t.Errorf("notes %q, %q", route.Steps[1].Note, route.Steps[2].Note)
+	}
+	last := route.Participants[len(route.Participants)-1]
+	if last.Kind != "job" || last.Element != "job:server NotifyAlbum" {
+		t.Errorf("the job's lifeline %+v", last)
+	}
+	if len(m.Flows) != 2 {
+		t.Errorf("%d flows, want the route's and the job's own", len(m.Flows))
+	}
+}
+
+// A Python route followed through a class: a typed parameter's method, the method it calls on
+// itself, a field __init__ gave it, down to a table.
+func TestPythonFlowsFollowClassMethods(t *testing.T) {
+	route, svc, repo := "api/app/routes/users.py", "api/app/service.py", "api/app/repo.py"
+	fs := &archdoc.FactSet{Name: "x",
+		Apps: []archdoc.App{{Name: "api", Dir: "api", Manifest: "api/pyproject.toml", Role: archdoc.RoleService, Language: "Python",
+			Prov: cite("api/pyproject.toml", 1)}},
+		Sources: []archdoc.Source{{App: "api", Root: "api/app", Files: []archdoc.SourceFile{
+			{Path: repo, Language: "Python", Lines: 9, Classes: []archdoc.Class{{Name: "UserRepository", Prov: cite(repo, 1), Methods: []archdoc.Method{
+				{Name: "add", Prov: cite(repo, 3), Queries: []archdoc.Query{{Table: "User", Op: "reads", Prov: cite(repo, 4)}}}}}}},
+			{Path: svc, Language: "Python", Lines: 20, Classes: []archdoc.Class{{Name: "UserService", Prov: cite(svc, 1),
+				Params: []archdoc.Param{{Name: "repo", Type: "Optional[UserRepository]"}},
+				Methods: []archdoc.Method{
+					{Name: "create", Prov: cite(svc, 5), Invokes: []archdoc.Invocation{
+						{Self: true, Method: "check", Prov: cite(svc, 6)},
+						{Self: true, Object: "repo", Method: "add", Prov: cite(svc, 7)},
+						{Self: true, Object: "clock", Method: "now", Prov: cite(svc, 8)}}},
+					{Name: "check", Prov: cite(svc, 10)}}}}},
+			{Path: route, Language: "Python", Lines: 9,
+				Routers: []archdoc.Router{{Var: "router", Kind: "FastAPI"}},
+				Classes: []archdoc.Class{{Methods: []archdoc.Method{{Name: "create_user", Prov: cite(route, 4),
+					Decorators: []archdoc.Decorator{{Name: "router.post", Arg: "/users", HasArg: true, Prov: cite(route, 3)}},
+					Invokes: []archdoc.Invocation{
+						{Object: "service", Method: "create", Type: "Annotated[UserService, Depends()]", Prov: cite(route, 5)},
+						{Object: "session", Method: "commit", Prov: cite(route, 6)}}}}}}},
+		}}},
+	}
+	m := Derive(fs)
+	if len(m.Flows) != 1 {
+		t.Fatalf("flows %+v", m.Flows)
+	}
+	var got []string
+	for _, s := range m.Flows[0].Steps {
+		got = append(got, s.From+">"+s.To+":"+s.Call)
+	}
+	want := []string{
+		route + ">UserService:create",
+		"UserService>UserService:check",
+		"UserService>UserRepository:add",
+		"UserRepository>table:user:reads",
+	}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("steps %v, want %v", got, want)
 	}
 }

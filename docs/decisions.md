@@ -762,3 +762,16 @@ the same content, still a member per line where it matters for a diff. What rema
 (364 flows are a third of it) and was kept: the file is the reviewable record, and dropping derived
 parts would make the published site recompute them. The cost a person feels was the browser's
 download, so `archdoc serve` now gzips text: `/api/model` goes from 3.4 MB to 226 KB.
+
+**2026-10-08 — Flows follow what runs out of line, by name**
+A flow stopped at `eventRepository.emit(…)` and `jobRepository.queue(…)`, where most of what a
+route sets off begins. Now: a call that emits (`emit…`, `publish…`, `dispatch…`) with a literal
+first argument — or a choice between two — continues in the methods `@OnEvent({ name })` marks,
+each step noted "matched by name"; an object literal named after a job (`{ name: JobName.X }`,
+resolved through the enum) is a step to that job, not followed — it runs later and has a flow of
+its own, which the lifeline opens. The same word handed to any other method is not an event:
+`serverSend('ConfigUpdate')` matched at first and drew a fan-out that does not happen here. In
+Python a method is followed where the code states the object's class — `self`, a field `__init__`
+assigns from a typed parameter or a constructor, a typed parameter, a local built from a class —
+and nowhere else: no inference from use. On Immich: 68 flows now reach a queued job, 37 an event
+listener, and `/predict` reaches `InferenceModel.load`. Not done: Celery, RQ and other Python queues.

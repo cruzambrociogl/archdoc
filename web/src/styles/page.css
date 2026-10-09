@@ -1114,6 +1114,10 @@ button.runs-row:hover {
   fill: var(--k-teal-fill);
   stroke: var(--k-teal);
 }
+.seq-job rect {
+  fill: var(--k-violet-fill);
+  stroke: var(--k-violet);
+}
 .seq-unresolved rect,
 .seq-part.seq-unresolved rect {
   fill: var(--unres-fill);
@@ -1140,6 +1144,10 @@ button.runs-row:hover {
 }
 .seq-step text {
   fill: var(--canvas-muted);
+}
+/* Put on a queue: it happens later, in a flow of its own. */
+.seq-step.seq-later line {
+  stroke-dasharray: 5 3;
 }
 .seq-step.seq-unresolved line {
   stroke: var(--unres);

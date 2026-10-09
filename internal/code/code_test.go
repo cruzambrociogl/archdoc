@@ -596,3 +596,82 @@ func TestURLKeys(t *testing.T) {
 		t.Errorf("a URL in a sentence has no key: %+v", h)
 	}
 }
+
+// What a method starts out of line: the event an emit names — one, or either of two — and the job
+// an object literal is named after, but not the name in the decorator above the method.
+func TestEventsAndQueuedJobsAreRead(t *testing.T) {
+	root := tree(t, map[string]string{
+		"server/src/asset.service.ts": "export class AssetService {\n" +
+			"  @OnJob({ name: JobName.AssetDelete, queue: QueueName.Background })\n" +
+			"  async remove(force: boolean) {\n" +
+			"    await this.eventRepository.emit('AssetDelete', { id });\n" +
+			"    await this.eventRepository.emit(force ? 'AssetDeleteAll' : 'AssetTrashAll', { ids });\n" +
+			"    await this.jobRepository.queue({ name: JobName.FileDelete, data: { files } });\n" +
+			"    jobs.push({ name: 'SidecarWrite', data: { id } });\n" +
+			"  }\n" +
+			"}\n",
+	})
+	src, _ := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
+	m := src.Files[0].Classes[0].Methods[0]
+	if len(m.Invokes) != 3 || len(m.Invokes[0].Args) != 1 || m.Invokes[0].Args[0] != "AssetDelete" ||
+		len(m.Invokes[1].Args) != 2 || m.Invokes[1].Args[1] != "AssetTrashAll" || len(m.Invokes[2].Args) != 0 {
+		t.Errorf("invokes %+v", m.Invokes)
+	}
+	if len(m.Named) != 2 || m.Named[0].Expr != "JobName.FileDelete" || m.Named[0].Prov.Line != 6 || m.Named[1].Value != "SidecarWrite" {
+		t.Errorf("named %+v", m.Named)
+	}
+}
+
+// A Python class: its methods, what __init__ says its fields are, calls through self, and calls
+// on a local whose class the code states.
+func TestPythonClassMethods(t *testing.T) {
+	root := tree(t, map[string]string{
+		"api/pyproject.toml":  "[project]\nname = \"api\"\n",
+		"api/app/__init__.py": "",
+		"api/app/service.py": "class UserService(Base):\n" +
+			"    def __init__(self, repo: UserRepository, size: int):\n" +
+			"        self.repo = repo\n" +
+			"        self.cache = Cache(size)\n" +
+			"\n" +
+			"    def create(self, name):\n" +
+			"        self.check(name)\n" +
+			"        return self.repo.add(name)\n" +
+			"\n" +
+			"def handler(service: UserService, session):\n" +
+			"    mailer = Mailer()\n" +
+			"    service.create('a')\n" +
+			"    mailer.send()\n" +
+			"    session.commit()\n",
+	})
+	src, _ := Read(root, archdoc.App{Name: "api", Dir: "api", Language: "Python"}, nil)
+	var cls, module archdoc.Class
+	for _, f := range src.Files {
+		for _, c := range f.Classes {
+			if c.Name == "UserService" {
+				cls = c
+			} else if c.Name == "" {
+				module = c
+			}
+		}
+	}
+	if len(cls.Params) != 2 || cls.Params[0].Name != "repo" || cls.Params[0].Type != "UserRepository" || cls.Params[1].Type != "Cache" {
+		t.Errorf("fields from __init__ %+v", cls.Params)
+	}
+	if len(cls.Methods) != 2 || cls.Methods[1].Name != "create" {
+		t.Fatalf("methods %+v", cls.Methods)
+	}
+	inv := cls.Methods[1].Invokes
+	if len(inv) != 2 || !inv[0].Self || inv[0].Object != "" || inv[0].Method != "check" || !inv[1].Self || inv[1].Object != "repo" || inv[1].Method != "add" {
+		t.Errorf("calls through self %+v", inv)
+	}
+	if len(module.Methods) != 1 || module.Methods[0].Name != "handler" {
+		t.Fatalf("module functions %+v — a method is not a module's function", module.Methods)
+	}
+	byObject := map[string]archdoc.Invocation{}
+	for _, i := range module.Methods[0].Invokes {
+		byObject[i.Object] = i
+	}
+	if byObject["service"].Type != "UserService" || byObject["mailer"].Type != "Mailer" || byObject["session"].Type != "" || byObject["service"].Self {
+		t.Errorf("locals %+v", module.Methods[0].Invokes)
+	}
+}

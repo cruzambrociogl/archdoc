@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Entry, Flow, ModelResponse, Node } from '../api'
 import { componentLevel, dataLevel, useApi } from '../api'
 import type { Route } from '../route'
@@ -112,6 +112,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
                   nodes={nodes}
                   flow={flows.get(e.id)}
                   onTable={(id) => props.go({ screen: 'explorer', level: dataLevel(g.container), focus: id })}
+                  onJob={(id) => props.go({ screen: 'features', focus: id })}
                 />
               ))}
             </div>
@@ -145,6 +146,7 @@ function FeatureRow({
   nodes,
   flow,
   onTable,
+  onJob,
 }: {
   e: Entry
   open: boolean
@@ -152,9 +154,15 @@ function FeatureRow({
   nodes: Map<string, Node>
   flow?: Flow
   onTable: (id: string) => void
+  onJob: (id: string) => void
 }) {
+  // Opened from elsewhere — a queued job, clicked in another flow — it may be far down the page.
+  const row = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (open) row.current?.scrollIntoView({ block: 'nearest' })
+  }, [open])
   return (
-    <div className={`feature ${open ? 'open' : ''}`}>
+    <div ref={row} className={`feature ${open ? 'open' : ''}`}>
       <button className="feature-row" onClick={onToggle} aria-expanded={open}>
         <span className="method">{e.method}</span>
         <span className="mono feature-path">{e.path}</span>
@@ -201,7 +209,7 @@ function FeatureRow({
           {flow && (
             <div className="feature-flow">
               <Eyebrow>What it sets off</Eyebrow>
-              <Sequence flow={flow} onTable={onTable} />
+              <Sequence flow={flow} onTable={onTable} onJob={onJob} />
             </div>
           )}
         </div>

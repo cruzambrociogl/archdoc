@@ -11,12 +11,15 @@ const HEAD = 44
 const ROW = 30
 const PAD = 16
 
-export function Sequence({ flow, onTable }: { flow: Flow; onTable?: (element: string) => void }) {
+export function Sequence({ flow, onTable, onJob }: { flow: Flow; onTable?: (element: string) => void; onJob?: (entry: string) => void }) {
   const cols = new Map(flow.participants.map((p, i) => [p.id, i]))
   const x = (id: string) => PAD + (cols.get(id) ?? 0) * COL + COL / 2
   // A step names its participants by ID; a reader wants the class, the module's name, the table.
-  const names = new Map(flow.participants.map((p) => [p.id, p.kind === 'table' ? `table ${p.name}` : p.kind === 'unresolved' ? 'a computed address' : p.name]))
+  const names = new Map(flow.participants.map((p) => [p.id, p.kind === 'table' ? `table ${p.name}` : p.kind === 'job' ? `job ${p.name}` : p.kind === 'unresolved' ? 'a computed address' : p.name]))
   const label = (id: string) => names.get(id) ?? id
+  // A table opens in the data view; a queued job opens its own flow.
+  const open = (p: Flow['participants'][number]) =>
+    p.element && p.kind === 'table' && onTable ? () => onTable(p.element!) : p.element && p.kind === 'job' && onJob ? () => onJob(p.element!) : undefined
   const width = PAD * 2 + flow.participants.length * COL
   const height = HEAD + 16 + flow.steps.length * ROW + 12
 
@@ -39,8 +42,8 @@ export function Sequence({ flow, onTable }: { flow: Flow; onTable?: (element: st
                   x={cx}
                   y={HEAD / 2 + 4}
                   textAnchor="middle"
-                  className={p.kind === 'table' && p.element ? 'seq-link' : undefined}
-                  onClick={p.kind === 'table' && p.element && onTable ? () => onTable(p.element!) : undefined}
+                  className={open(p) ? 'seq-link' : undefined}
+                  onClick={open(p)}
                 >
                   {p.kind === 'unresolved' ? '? computed address' : p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name}
                 </text>
@@ -65,7 +68,7 @@ export function Sequence({ flow, onTable }: { flow: Flow; onTable?: (element: st
             }
             const left = Math.min(x1, x2)
             return (
-              <g key={i} className={`seq-step ${s.to === 'unresolved' ? 'seq-unresolved' : ''}`}>
+              <g key={i} className={`seq-step ${s.to === 'unresolved' ? 'seq-unresolved' : s.to.startsWith('job:') ? 'seq-later' : ''}`}>
                 <line x1={x1} x2={x2 + (x2 > x1 ? -3 : 3)} y1={y} y2={y} markerEnd="url(#seq-arrow)" />
                 <text x={left + Math.abs(x2 - x1) / 2} y={y - 5} textAnchor="middle">
                   {label}
@@ -88,7 +91,7 @@ export function Sequence({ flow, onTable }: { flow: Flow; onTable?: (element: st
               {s.note && (
                 <span className="small">
                   {' '}
-                  <TruthMark state="unresolved" /> <span className="mono">{s.note}</span>
+                  {s.to === 'unresolved' && <TruthMark state="unresolved" />} <span className={s.to === 'unresolved' ? 'mono' : 'muted'}>{s.note}</span>
                 </span>
               )}{' '}
               <Cite p={s.provenance} compact />

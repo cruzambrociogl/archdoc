@@ -15,7 +15,10 @@ import (
 // declared albumRepository an AlbumRepository (resolved by name, D-4). Inherited fields and
 // methods are found through the classes a class extends. A query builder's table — .selectFrom
 // ('album') — is a step to that table; an HTTP call to a computed address is a step to an
-// unresolved participant. It stops at a fixed depth and length, and says when it did.
+// unresolved participant. What happens out of line is followed by name too: emit('AlbumInvite')
+// continues in the methods @OnEvent({ name: 'AlbumInvite' }) marks, and an object named after a
+// job — { name: JobName.AssetDelete } — is a step to that job, which has a flow of its own.
+// It stops at a fixed depth and length, and says when it did.
 
 const (
 	flowDepth = 4
@@ -58,6 +61,28 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 			files[f.Path] = f
 		}
 		table := func(t string) string { return tableOf[container+"\x00"+t] }
+		// What runs out of line, by the name that starts it: the methods an event reaches, and the
+		// entry a queued job is.
+		out := outOfLine{events: map[string][]handler{}, jobs: map[string]archdoc.Entry{}, constants: map[string]string{}}
+		for _, f := range src.Files {
+			for _, k := range f.Constants {
+				out.constants[k.Name] = k.Value
+			}
+			for _, c := range f.Classes {
+				for _, meth := range c.Methods {
+					for _, d := range meth.Decorators {
+						if name := d.Options["name"]; d.Name == "OnEvent" && name != "" && c.Name != "" {
+							out.events[name] = append(out.events[name], handler{name, c.Name, meth.Name})
+						}
+					}
+				}
+			}
+		}
+		for _, e := range m.Entries {
+			if e.Container == container && e.Kind == "job" && e.Method == "JOB" {
+				out.jobs[e.Path] = e
+			}
+		}
 		for _, e := range m.Entries {
 			// A route, and a job a class handles, are followed; a page or a command has no handler
 			// method to start from.
@@ -66,9 +91,9 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 			}
 			var f archdoc.Flow
 			if strings.HasSuffix(e.Prov.File, ".py") {
-				f = followPython(e, files, componentOf, table)
+				f = followPython(e, classes, files, componentOf, table)
 			} else {
-				f = follow(e, classes, files, componentOf, table)
+				f = follow(e, classes, files, componentOf, table, out)
 			}
 			if len(f.Steps) > 0 {
 				m.Flows = append(m.Flows, f)
@@ -78,7 +103,30 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 	sort.SliceStable(m.Flows, func(i, j int) bool { return m.Flows[i].Entry < m.Flows[j].Entry })
 }
 
-func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdoc.SourceFile, componentOf map[string]string, table func(string) string) archdoc.Flow {
+// outOfLine is what a flow reaches without calling it: an event's handlers, a queued job's entry.
+type outOfLine struct {
+	events    map[string][]handler
+	jobs      map[string]archdoc.Entry
+	constants map[string]string
+}
+
+type handler struct{ event, class, method string }
+
+// listeners are the methods a call reaches by the event it names. Only a call that says it emits —
+// emit, emitAsync, publish, dispatch — is read so: the same word handed to another method
+// (serverSend('ConfigUpdate')) is a message to somewhere else, not an event here.
+func (o outOfLine) listeners(inv archdoc.Invocation) []handler {
+	if !strings.HasPrefix(inv.Method, "emit") && !strings.HasPrefix(inv.Method, "publish") && !strings.HasPrefix(inv.Method, "dispatch") {
+		return nil
+	}
+	var out []handler
+	for _, name := range inv.Args {
+		out = append(out, o.events[name]...)
+	}
+	return out
+}
+
+func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdoc.SourceFile, componentOf map[string]string, table func(string) string, out outOfLine) archdoc.Flow {
 	flow := archdoc.Flow{Entry: e.ID}
 	known := map[string]archdoc.Participant{} // every participant met, whether or not it stays
 	visited := map[string]bool{}
@@ -225,6 +273,26 @@ func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdo
 				if cls == "" {
 					return true // a function has no object of its own to call through
 				}
+				if hs := out.listeners(inv); len(hs) > 0 {
+					// An event: what happens next is in the methods that listen for it.
+					for _, h := range hs {
+						found, next, ok := method(h.class, h.method, 0)
+						if !ok {
+							continue
+						}
+						meet(class(h.class))
+						if !step(archdoc.Step{From: self, To: h.class, Call: h.method, Depth: depth,
+							Note: "on the event " + h.event + ", matched by name", Prov: inv.Prov}) {
+							return false
+						}
+						if depth+1 >= flowDepth {
+							flow.Cut = true
+						} else if !visit(h.class, h.class, found.file, next, depth+1) {
+							return false
+						}
+					}
+					return true
+				}
 				target := cls
 				to := self
 				if inv.Object != "" {
@@ -252,6 +320,23 @@ func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdo
 				p := archdoc.Participant{ID: "table:" + q.Table, Name: q.Table, Kind: "table", Element: table(q.Table)}
 				meet(p)
 				return step(archdoc.Step{From: self, To: p.ID, Call: q.Op, Depth: depth, Prov: q.Prov})
+			}})
+		}
+		for _, n := range m.Named {
+			n := n
+			name := n.Value
+			if name == "" {
+				name = out.constants[n.Expr]
+			}
+			job, ok := out.jobs[name]
+			if !ok {
+				continue
+			}
+			acts = append(acts, act{n.Prov.Line, func() bool {
+				p := archdoc.Participant{ID: "job:" + name, Name: name, Kind: "job", Element: job.ID}
+				meet(p)
+				return step(archdoc.Step{From: self, To: p.ID, Call: "queues", Depth: depth,
+					Note: "handled later by " + job.Handler + ", a flow of its own", Prov: n.Prov})
 			}})
 		}
 		for _, c := range files[file].Calls {
@@ -298,10 +383,11 @@ func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdo
 	return flow
 }
 
-// leads reports whether steps reach beyond helper functions: a table, a call that leaves, a class.
+// leads reports whether steps reach beyond helper functions: a table, a call that leaves, a class,
+// a job.
 func leads(steps []archdoc.Step, known map[string]archdoc.Participant) bool {
 	for _, s := range steps {
-		if k := known[s.To].Kind; k == "table" || k == "unresolved" || k == "class" {
+		if k := known[s.To].Kind; k == "table" || k == "unresolved" || k == "class" || k == "job" {
 			return true
 		}
 	}
@@ -318,9 +404,10 @@ func splitHandler(h string) (string, string) {
 }
 
 // followPython follows a Python route: its function, the functions it calls — of its own module,
-// or of a module it imports (crud.create_user) — and the tables their queries name, select(Item)
-// reading item. A module is a participant, as a class is in TypeScript.
-func followPython(e archdoc.Entry, files map[string]archdoc.SourceFile, componentOf map[string]string, table func(string) string) archdoc.Flow {
+// or of a module it imports (crud.create_user) — the methods it calls on an object whose class the
+// code states (a typed parameter, a local built from a class, self and what __init__ gave it), and
+// the tables their queries name, select(Item) reading item. A module is a participant, as a class is.
+func followPython(e archdoc.Entry, classes map[string]classAt, files map[string]archdoc.SourceFile, componentOf map[string]string, table func(string) string) archdoc.Flow {
 	flow := archdoc.Flow{Entry: e.ID}
 	seen := map[string]bool{}
 	visited := map[string]bool{}
@@ -381,10 +468,67 @@ func followPython(e archdoc.Entry, files map[string]archdoc.SourceFile, componen
 		}
 		return "", archdoc.Method{}, false
 	}
+	// classIn is the class of this code a type as written names: Optional[UserRepository],
+	// "UserRepository", repos.UserRepository.
+	classIn := func(typ string) string {
+		for _, word := range strings.FieldsFunc(typ, func(r rune) bool {
+			return r != '_' && (r < '0' || r > '9') && (r < 'A' || r > 'Z') && (r < 'a' || r > 'z')
+		}) {
+			if at, ok := classes[word]; ok && strings.HasSuffix(at.file, ".py") {
+				return word
+			}
+		}
+		return ""
+	}
+	// method finds a method in a class or the classes it extends, and the class that declares it.
+	var method func(cls, name string, depth int) (classAt, archdoc.Method, bool)
+	method = func(cls, name string, depth int) (classAt, archdoc.Method, bool) {
+		at, ok := classes[cls]
+		if !ok || depth > 8 {
+			return classAt{}, archdoc.Method{}, false
+		}
+		for _, m := range at.class.Methods {
+			if m.Name == name {
+				return at, m, true
+			}
+		}
+		for _, b := range at.class.Extends {
+			if found, m, ok := method(classIn(b), name, depth+1); ok {
+				return found, m, ok
+			}
+		}
+		return classAt{}, archdoc.Method{}, false
+	}
+	// fieldOf is the class of a field: what __init__ gave it, or the class body declares.
+	var fieldOf func(cls, field string, depth int) string
+	fieldOf = func(cls, field string, depth int) string {
+		at, ok := classes[cls]
+		if !ok || depth > 8 {
+			return ""
+		}
+		for _, p := range at.class.Params {
+			if p.Name == field {
+				return classIn(p.Type)
+			}
+		}
+		for _, f := range at.class.Fields {
+			if f.Name == field {
+				return classIn(f.Type)
+			}
+		}
+		for _, b := range at.class.Extends {
+			if t := fieldOf(classIn(b), field, depth+1); t != "" {
+				return t
+			}
+		}
+		return ""
+	}
 
-	var visit func(file string, m archdoc.Method, depth int) bool
-	visit = func(file string, m archdoc.Method, depth int) bool {
-		key := file + "." + m.Name
+	// visit follows one function or method. self is the participant doing the calling — a module's
+	// file, or a class — and cls the class self.… means, empty in a module's function.
+	var visit func(self, cls, file string, m archdoc.Method, depth int) bool
+	visit = func(self, cls, file string, m archdoc.Method, depth int) bool {
+		key := file + "\x00" + cls + "." + m.Name
 		if visited[key] {
 			return true
 		}
@@ -397,16 +541,48 @@ func followPython(e archdoc.Entry, files map[string]archdoc.SourceFile, componen
 		for _, inv := range m.Invokes {
 			inv := inv
 			acts = append(acts, act{inv.Prov.Line, func() bool {
-				target, next, ok := where(file, inv)
+				// A method, where the code states the object's class.
+				target := ""
+				switch {
+				case inv.Self && cls == "":
+					return true
+				case inv.Self && inv.Object == "":
+					target = cls
+				case inv.Self:
+					target = fieldOf(cls, inv.Object, 0)
+				case inv.Type != "":
+					target = classIn(inv.Type)
+				case inv.Object != "":
+					target = classIn(inv.Object) // UserRepository.find(…), called on the class
+				}
+				if target != "" {
+					found, next, ok := method(target, inv.Method, 0)
+					if !ok {
+						return true
+					}
+					add(archdoc.Participant{ID: target, Name: target, Kind: "class", Component: componentOf[classes[target].file]})
+					if !step(archdoc.Step{From: self, To: target, Call: inv.Method, Depth: depth, Prov: inv.Prov}) {
+						return false
+					}
+					if depth+1 < flowDepth {
+						return visit(target, target, found.file, next, depth+1)
+					}
+					flow.Cut = true
+					return true
+				}
+				if inv.Self {
+					return true // a field whose class is not stated, or not of this code
+				}
+				to, next, ok := where(file, inv)
 				if !ok {
 					return true // a library's function, or a method of a value
 				}
-				add(module(target))
-				if !step(archdoc.Step{From: file, To: target, Call: inv.Method, Depth: depth, Prov: inv.Prov}) {
+				add(module(to))
+				if !step(archdoc.Step{From: self, To: to, Call: inv.Method, Depth: depth, Prov: inv.Prov}) {
 					return false
 				}
 				if depth+1 < flowDepth {
-					return visit(target, next, depth+1)
+					return visit(to, "", to, next, depth+1)
 				}
 				flow.Cut = true
 				return true
@@ -418,7 +594,7 @@ func followPython(e archdoc.Entry, files map[string]archdoc.SourceFile, componen
 				name := strings.ToLower(q.Table) // SQLModel names a table after its class
 				p := archdoc.Participant{ID: "table:" + name, Name: name, Kind: "table", Element: table(name)}
 				add(p)
-				return step(archdoc.Step{From: file, To: p.ID, Call: q.Op, Depth: depth, Prov: q.Prov})
+				return step(archdoc.Step{From: self, To: p.ID, Call: q.Op, Depth: depth, Prov: q.Prov})
 			}})
 		}
 		sort.SliceStable(acts, func(i, j int) bool { return acts[i].line < acts[j].line })
@@ -437,6 +613,6 @@ func followPython(e archdoc.Entry, files map[string]archdoc.SourceFile, componen
 		return flow
 	}
 	add(module(file))
-	visit(file, m, 0)
+	visit(file, "", file, m, 0)
 	return flow
 }

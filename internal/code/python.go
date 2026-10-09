@@ -70,15 +70,7 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 				if owner == nil || owner.Type(l) != "module" {
 					return // a method of a class, or a nested function
 				}
-				name := ""
-				if n.NamedChildCount() > 0 {
-					name = text(n.NamedChild(0))
-				}
-				meth := archdoc.Method{Name: name, Decorators: decorators, Prov: at(n),
-					EndLine: at(n).Line + int(n.EndPoint().Row-n.StartPoint().Row)}
-				meth.Doc, meth.DocProv = docstring(n, l, src, at)
-				meth.Invokes, meth.Queries = pyBody(n, l, src, at)
-				module.Methods = append(module.Methods, meth)
+				module.Methods = append(module.Methods, pyMethod(n, decorators, l, src, at))
 			case "class_definition":
 				out.classes = append(out.classes, pyClass(n, l, src, at))
 			case "call":
@@ -197,6 +189,14 @@ func pyClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 		case "block":
 			for j := 0; j < ch.NamedChildCount(); j++ {
 				st := ch.NamedChild(j)
+				if def, decorators := pyDef(st, l, src, at); def != nil {
+					meth := pyMethod(def, decorators, l, src, at)
+					if meth.Name == "__init__" {
+						c.Params = pyFields(def, l, src, at)
+					}
+					c.Methods = append(c.Methods, meth)
+					continue
+				}
 				if st.Type(l) == "expression_statement" && st.NamedChildCount() > 0 {
 					st = st.NamedChild(0)
 				}
@@ -224,6 +224,96 @@ func pyClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 		}
 	}
 	return c
+}
+
+// pyDef is the function a statement of a class body defines, with its decorators, or nil.
+func pyDef(st *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (*ts.Node, []archdoc.Decorator) {
+	if st.Type(l) == "function_definition" {
+		return st, nil
+	}
+	if st.Type(l) != "decorated_definition" {
+		return nil, nil
+	}
+	var def *ts.Node
+	var decorators []archdoc.Decorator
+	for i := 0; i < st.NamedChildCount(); i++ {
+		switch ch := st.NamedChild(i); ch.Type(l) {
+		case "decorator":
+			decorators = append(decorators, pyDecorator(ch, l, src, at))
+		case "function_definition":
+			def = ch
+		}
+	}
+	return def, decorators
+}
+
+// pyMethod reads a function — a module's, or a class's method — as a method is read.
+func pyMethod(n *ts.Node, decorators []archdoc.Decorator, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Method {
+	name := ""
+	if n.NamedChildCount() > 0 {
+		name = n.NamedChild(0).Text(src)
+	}
+	meth := archdoc.Method{Name: name, Decorators: decorators, Prov: at(n),
+		EndLine: at(n).Line + int(n.EndPoint().Row-n.StartPoint().Row)}
+	meth.Doc, meth.DocProv = docstring(n, l, src, at)
+	meth.Invokes, meth.Queries = pyBody(n, l, src, at)
+	return meth
+}
+
+// pyTyped are a function's parameters that state a type: (self, repo: UserRepository).
+func pyTyped(def *ts.Node, l *ts.Language, src []byte) map[string]string {
+	out := map[string]string{}
+	for i := 0; i < def.NamedChildCount(); i++ {
+		ps := def.NamedChild(i)
+		if ps.Type(l) != "parameters" {
+			continue
+		}
+		for j := 0; j < ps.NamedChildCount(); j++ {
+			p := ps.NamedChild(j)
+			if t := p.Type(l); (t != "typed_parameter" && t != "typed_default_parameter") || p.NamedChildCount() < 2 {
+				continue
+			}
+			for k := 1; k < p.NamedChildCount(); k++ {
+				if ty := p.NamedChild(k); ty.Type(l) == "type" {
+					out[p.NamedChild(0).Text(src)] = ty.Text(src)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// pyFields are the fields __init__ gives an object whose class the code states: self.repo = repo,
+// where repo is a typed parameter, and self.cache = ModelCache(…).
+func pyFields(init *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Param {
+	typed := pyTyped(init, l, src)
+	var out []archdoc.Param
+	walk(init, func(n *ts.Node) {
+		if n.Type(l) != "assignment" || n.NamedChildCount() < 2 {
+			return
+		}
+		left, right := n.NamedChild(0), n.NamedChild(n.NamedChildCount()-1)
+		if left.Type(l) != "attribute" || left.NamedChildCount() != 2 || left.NamedChild(0).Text(src) != "self" {
+			return
+		}
+		typ := ""
+		for k := 1; k < n.NamedChildCount()-1; k++ {
+			if t := n.NamedChild(k); t.Type(l) == "type" {
+				typ = t.Text(src) // self.repo: UserRepository = …
+			}
+		}
+		switch {
+		case typ != "":
+		case right.Type(l) == "identifier":
+			typ = typed[right.Text(src)]
+		case right.Type(l) == "call" && right.ChildCount() > 0 && right.Child(0).Type(l) == "identifier":
+			typ = right.Child(0).Text(src)
+		}
+		if typ != "" {
+			out = append(out, archdoc.Param{Name: left.NamedChild(1).Text(src), Type: typ, Prov: at(n)})
+		}
+	})
+	return out
 }
 
 // pyCall reads a call the way a decorator is read: Field(foreign_key="user.id", nullable=False).
@@ -277,9 +367,24 @@ var pyBuiltins = map[string]bool{"print": true, "len": true, "str": true, "int":
 	"enumerate": true, "zip": true, "map": true, "filter": true, "open": true, "super": true, "type": true,
 	"select": true, "col": true, "func": true, "Depends": true, "HTTPException": true}
 
-// pyBody reads what a function calls — a function of its own module, or one in a module it imported
-// (crud.create_user) — and the tables its queries name: select(Item), session.get(User, id).
+// pyBody reads what a function calls — a function of its own module, one in a module it imported
+// (crud.create_user), a method of its own object (self.save(), self.repo.get()), or a method of a
+// local whose class the code states — and the tables its queries name: select(Item),
+// session.get(User, id).
 func pyBody(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (invokes []archdoc.Invocation, queries []archdoc.Query) {
+	// What the code says a local is: a parameter's annotation, or the class it was built from.
+	locals := pyTyped(def, l, src)
+	walk(def, func(n *ts.Node) {
+		if n.Type(l) != "assignment" || n.NamedChildCount() < 2 {
+			return
+		}
+		left, right := n.NamedChild(0), n.NamedChild(n.NamedChildCount()-1)
+		if left.Type(l) == "identifier" && right.Type(l) == "call" && right.ChildCount() > 0 && right.Child(0).Type(l) == "identifier" {
+			if _, stated := locals[left.Text(src)]; !stated {
+				locals[left.Text(src)] = right.Child(0).Text(src)
+			}
+		}
+	})
 	walk(def, func(n *ts.Node) {
 		if n.Type(l) != "call" || n.ChildCount() < 2 {
 			return
@@ -300,15 +405,27 @@ func pyBody(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.
 				invokes = append(invokes, archdoc.Invocation{Method: name, Prov: at(n)})
 			}
 		case "attribute":
-			if fn.NamedChildCount() != 2 || fn.NamedChild(0).Type(l) != "identifier" {
+			if fn.NamedChildCount() != 2 {
 				return
 			}
-			obj, method := fn.NamedChild(0).Text(src), fn.NamedChild(1).Text(src)
+			on, method := fn.NamedChild(0), fn.NamedChild(1).Text(src)
+			if on.Type(l) == "attribute" && on.NamedChildCount() == 2 && on.NamedChild(0).Text(src) == "self" {
+				invokes = append(invokes, archdoc.Invocation{Self: true, Object: on.NamedChild(1).Text(src), Method: method, Prov: at(n)})
+				return
+			}
+			if on.Type(l) != "identifier" {
+				return
+			}
+			obj := on.Text(src)
 			if method == "get" && first != nil && first.Type(l) == "identifier" && strings.ToUpper(first.Text(src)[:1]) == first.Text(src)[:1] {
 				queries = append(queries, archdoc.Query{Table: first.Text(src), Op: "reads", Prov: at(n)})
 				return
 			}
-			invokes = append(invokes, archdoc.Invocation{Object: obj, Method: method, Prov: at(n)})
+			if obj == "self" || obj == "cls" {
+				invokes = append(invokes, archdoc.Invocation{Self: true, Method: method, Prov: at(n)})
+				return
+			}
+			invokes = append(invokes, archdoc.Invocation{Object: obj, Method: method, Type: locals[obj], Prov: at(n)})
 		}
 	})
 	return invokes, queries

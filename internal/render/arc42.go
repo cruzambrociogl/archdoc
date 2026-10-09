@@ -381,9 +381,10 @@ func runtimeFromCode(m archdoc.Model) string {
 	b.WriteString("down to the tables their queries name and the calls that leave the container — each step at\n")
 	b.WriteString("its line, resolved by the declared type of the field it calls through.\n\n")
 	fmt.Fprintf(&b, "Below are the %d flows that reach the most participants; every route's flow is on the\n", min(shownFlows, len(m.Flows)))
-	b.WriteString("Features screen of `archdoc serve` and in `.archdoc/model.json`. What a flow cannot see —\n")
-	b.WriteString("failure handling, queued work picked up elsewhere, calls through functions rather than\n")
-	b.WriteString("objects — is not drawn.\n")
+	b.WriteString("Features screen of `archdoc serve` and in `.archdoc/model.json`. An event is followed, by\n")
+	b.WriteString("name, into the methods that listen for it; a job put on a queue is a step to that job, whose\n")
+	b.WriteString("handler has a flow of its own. What a flow cannot see — failure handling, a call whose\n")
+	b.WriteString("target only a run decides — is not drawn.\n")
 
 	flows := append([]archdoc.Flow(nil), m.Flows...)
 	sort.SliceStable(flows, func(i, j int) bool {
@@ -426,6 +427,8 @@ func FlowMermaid(f archdoc.Flow) string {
 		switch p.Kind {
 		case "table":
 			name = p.Name + " (table)"
+		case "job":
+			name = p.Name + " (queued job)"
 		case "unresolved":
 			name = "address computed at run time"
 		}

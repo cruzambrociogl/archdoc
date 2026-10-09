@@ -272,13 +272,14 @@ type Flow struct {
 	Cut          bool          `json:"cut,omitempty"`
 }
 
-// Participant is a lifeline in a flow: a class, a table, or a call whose target is unknown.
+// Participant is a lifeline in a flow: a class, a table, a job put on a queue, or a call whose
+// target is unknown.
 type Participant struct {
-	ID        string `json:"id"` // "AlbumService", "table:album", "unresolved"
+	ID        string `json:"id"` // "AlbumService", "table:album", "job:AssetDelete", "unresolved"
 	Name      string `json:"name"`
-	Kind      string `json:"kind"` // "class", "table", "unresolved"
+	Kind      string `json:"kind"` // "class", "module", "table", "job", "unresolved"
 	Component string `json:"component,omitempty"`
-	Element   string `json:"element,omitempty"` // a table's node, when the model has it
+	Element   string `json:"element,omitempty"` // a table's node, or a queued job's entry
 }
 
 // Step is one call in a flow, at the line that makes it.

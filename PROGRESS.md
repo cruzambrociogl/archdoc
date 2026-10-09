@@ -114,9 +114,11 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 | **Components are features, not folders**, where file names carry roles; folders as a second view; shared and wiring parts said, not drawn | F-10 |
 | **A fuller context**: external systems from configured URLs and from known client libraries, never from links | F-08 |
 
-Not done: a compact `model.json` (2.6 MB on Immich, a third of it flows); flows through a Python
-class's methods, events and queues; migrations as a schema source; a fresh `--explain` run since
-route summaries were allowed into it — Immich shows its 42 earlier answers, marked stale.
+Done since, 8 Oct: `--explain` on `claude-sonnet-5-5` and `--label` too, small components not asked
+about (Immich: 97 explained for $0.52); `model.json` laid out compactly and the server gzipped;
+flows follow events, queued jobs and a Python class's methods.
+
+Not done: migrations as a schema source; Celery-style queues in Python.
 
 ### Superseded — do not implement as written
 

@@ -328,7 +328,7 @@ func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 						c.Params = params(m, l, src, at)
 					} else {
 						meth := archdoc.Method{Name: name, Decorators: pending, Prov: at(m), EndLine: at(m).Line + int(m.EndPoint().Row-m.StartPoint().Row)}
-						meth.Invokes, meth.Queries = body(m, l, src, at)
+						meth.Invokes, meth.Queries, meth.Named = body(m, l, src, at)
 						c.Methods = append(c.Methods, meth)
 					}
 					pending = nil
@@ -404,7 +404,7 @@ func topLevel(n *ts.Node, l *ts.Language) bool {
 // functionOf reads a module-level function as a method is read: what it calls, the tables it names.
 func functionOf(name string, n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Method {
 	m := archdoc.Method{Name: name, Prov: at(n), EndLine: at(n).Line + int(n.EndPoint().Row-n.StartPoint().Row)}
-	m.Invokes, m.Queries = body(n, l, src, at)
+	m.Invokes, m.Queries, m.Named = body(n, l, src, at)
 	return m
 }
 
@@ -445,8 +445,45 @@ func params(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 var queryOps = map[string]string{"selectFrom": "reads", "insertInto": "writes", "updateTable": "updates", "deleteFrom": "deletes", "mergeInto": "writes"}
 
 // body reads what a method does to its own object, and which tables its queries name.
-func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (invokes []archdoc.Invocation, queries []archdoc.Query) {
+func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (invokes []archdoc.Invocation, queries []archdoc.Query, named []archdoc.Mention) {
+	// arg is what a call's first argument can be, where that is written out: a string literal, or
+	// a choice between two.
+	arg := func(call *ts.Node) []string {
+		for i := 1; i < call.ChildCount(); i++ {
+			args := call.Child(i)
+			if args.Type(l) != "arguments" || args.NamedChildCount() == 0 {
+				continue
+			}
+			first := args.NamedChild(0)
+			if v, ok := literal(first, l, src); ok {
+				return []string{v}
+			}
+			if first.Type(l) == "ternary_expression" && first.NamedChildCount() == 3 {
+				a, okA := literal(first.NamedChild(1), l, src)
+				b, okB := literal(first.NamedChild(2), l, src)
+				if okA && okB {
+					return []string{a, b}
+				}
+			}
+		}
+		return nil
+	}
 	walk(m, func(n *ts.Node) {
+		if n.Type(l) == "pair" && n.NamedChildCount() == 2 && n.NamedChild(0).Text(src) == "name" {
+			// { name: JobName.AssetDelete, data: … } — in the body, not in a decorator above it.
+			for p := n.Parent(); p != nil && p != m; p = p.Parent() {
+				if p.Type(l) == "decorator" {
+					return
+				}
+			}
+			value := n.NamedChild(1)
+			if v, ok := literal(value, l, src); ok {
+				named = append(named, archdoc.Mention{Value: v, Prov: at(n)})
+			} else if value.Type(l) == "member_expression" {
+				named = append(named, archdoc.Mention{Expr: value.Text(src), Prov: at(n)})
+			}
+			return
+		}
 		if fn := misreadGenericCall(n, l); fn != nil {
 			// await this.predict<T>(…), read by the parser as (await this.predict) < T > (…).
 			if fn.Type(l) == "member_expression" && fn.NamedChildCount() == 2 {
@@ -486,12 +523,12 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Prov
 		obj := fn.NamedChild(0)
 		switch {
 		case obj.Type(l) == "this":
-			invokes = append(invokes, archdoc.Invocation{Method: prop, Prov: at(n)})
+			invokes = append(invokes, archdoc.Invocation{Method: prop, Args: arg(n), Prov: at(n)})
 		case obj.Type(l) == "member_expression" && obj.NamedChildCount() == 2 && obj.NamedChild(0).Type(l) == "this":
-			invokes = append(invokes, archdoc.Invocation{Object: obj.NamedChild(1).Text(src), Method: prop, Prov: at(n)})
+			invokes = append(invokes, archdoc.Invocation{Object: obj.NamedChild(1).Text(src), Method: prop, Args: arg(n), Prov: at(n)})
 		}
 	})
-	return invokes, queries
+	return invokes, queries, named
 }
 
 // misreadGenericCall recognises a call with type arguments that the parser read as two

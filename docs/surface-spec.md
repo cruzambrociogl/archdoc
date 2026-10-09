@@ -467,7 +467,9 @@ arrows, and the steps listed beneath, each cited. Followed by name through decla
 four calls deep and forty steps at most, saying when it was cut. arc42 §6 draws the eight widest.
 A job a class handles has a flow like a route, and a plain function call is followed where it leads
 to a table, a class or a call that leaves (8 Oct). Not yet: a flow index of its own, step-through,
-the flow over the canvas; flows do not follow events, queued work, or a Python class's methods.
+the flow over the canvas. An event is followed into its listeners, a queued job is a lifeline that
+opens the job's own flow, and a Python class's methods are followed where the code states the
+object's class (8 Oct).
 
 ### 5.7 Data model
 

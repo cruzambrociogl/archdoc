@@ -357,7 +357,10 @@ type Method struct {
 	Decorators []Decorator  `json:"decorators,omitempty"`
 	Invokes    []Invocation `json:"invokes,omitempty"`
 	Queries    []Query      `json:"queries,omitempty"`
-	EndLine    int          `json:"end_line,omitempty"`
+	// Named are the names its object literals carry — { name: JobName.AssetDelete, data } — the
+	// way a job is put on a queue.
+	Named   []Mention `json:"named,omitempty"`
+	EndLine int       `json:"end_line,omitempty"`
 	// Doc is the first line of a Python function's docstring: the code describing itself.
 	Doc     string     `json:"doc,omitempty"`
 	DocProv Provenance `json:"doc_provenance,omitzero"`
@@ -369,10 +372,25 @@ type Method struct {
 type Invocation struct {
 	Object string `json:"object,omitempty"`
 	Method string `json:"method"`
+	// Args are the string literals its first argument can be: emit('AlbumInvite', …) names one
+	// event, emit(force ? 'AssetDeleteAll' : 'AssetTrashAll', …) either of two.
+	Args []string `json:"args,omitempty"`
+	// Self is set in Python on a call through the object itself — self.save(), self.repo.get() —
+	// where a call on any other name is a module's function or a local's method. Type is the class
+	// the code says that local is: a parameter's annotation, or the class it was built from.
+	Self bool   `json:"self,omitempty"`
+	Type string `json:"type,omitempty"`
 	// Free is set on a plain function call in TypeScript — searchAssetBuilder(…), not this.x.y(…):
 	// the function is the file's own, or one it imports.
 	Free bool       `json:"free,omitempty"`
 	Prov Provenance `json:"provenance"`
+}
+
+// Mention is a name an object literal carries: a literal, or an expression as written.
+type Mention struct {
+	Value string     `json:"value,omitempty"`
+	Expr  string     `json:"expr,omitempty"`
+	Prov  Provenance `json:"provenance"`
 }
 
 // Query is a table a method's query builder names: .selectFrom('album') reads album.
