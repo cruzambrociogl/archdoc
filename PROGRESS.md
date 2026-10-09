@@ -224,10 +224,10 @@ are in `docs/decisions.md` under the same date.
 
 | What | Measured | Commit |
 |---|---|---|
-| Every query in each container's code gathered into `Model.Access` — component, table, operation, count, cited — not only what a flow reaches | Immich: 260 accesses, 250 to a declared table, all in the server | — |
-| A data-flow view: the containers in five stages — People, Clients, Services, Stores, Outside — set by a rule from kind and callers; drawn left to right, a column per stage, in the SVG, Mermaid, the documents and the explorer's Data flow tab | Immich: 15 boxes, 17 arrows; byte-identical across runs | — |
-| The arrow into the store a container's tables live in names what its code writes and reads there, citing a query of each table | Immich: "writes asset, user, asset_face and 49 more tables" | — |
-| Fixed: a layout's unseen arrows — the ones that fold a wide row, and now the ones that keep stages in order — were drawn as stray arrows. Layout version 12 | — | — |
+| Every query in each container's code gathered into `Model.Access` — component, table, operation, count, cited — not only what a flow reaches | Immich: 260 accesses, 250 to a declared table, all in the server | `a65d5fd` |
+| A data-flow view: the containers in five stages — People, Clients, Services, Stores, Outside — set by a rule from kind and callers; drawn left to right, a column per stage, in the SVG, Mermaid, the documents and the explorer's Data flow tab | Immich: 15 boxes, 17 arrows; byte-identical across runs | `a65d5fd` |
+| The arrow into the store a container's tables live in names what its code writes and reads there, citing a query of each table | Immich: "writes asset, user, asset_face and 49 more tables" | `a65d5fd` |
+| Fixed: a layout's unseen arrows — the ones that fold a wide row, and now the ones that keep stages in order — were drawn as stray arrows. Layout version 12 | — | `a65d5fd` |
 
 **Not done** — known, and left:
 
