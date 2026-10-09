@@ -78,9 +78,11 @@ export function NetworkRuns(props: { route: Route; go: (r: Partial<Route>, o?: {
   )
 }
 
-// The only egress mode archdoc has today; others arrive with NFR-3/NFR-4 and are shown by name.
+// What each egress mode sends; one archdoc does not know yet is shown by its name.
 const modes: Record<string, string> = {
   'structure-only': 'names, kinds and relationships only — no file contents, literals or comments',
+  'structure-and-summaries':
+    "names, paths, counts, routes and table columns, plus each route's own one-line summary as the code states it — no code, no other text from a file, no line numbers",
 }
 
 function RunDetail({ id }: { id: number }) {

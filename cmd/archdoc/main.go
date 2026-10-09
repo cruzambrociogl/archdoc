@@ -62,6 +62,11 @@ flags for generate:
   --label          ask Claude for descriptions and edge labels (needs ANTHROPIC_API_KEY,
                    plus ANTHROPIC_WORKSPACE_ID if the key is not tied to a workspace;
                    sends structure only, never file contents)
+  --label-model    with --label: the model to ask
+  --explain        ask Claude what each component does, every sentence cited; sends names,
+                   paths and the code's own one-line route summaries — never code
+  --explain-limit <n>, --explain-only <id>
+                   with --explain: ask about fewer components
 `
 
 func main() {

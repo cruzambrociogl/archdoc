@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/anthropics/anthropic-sdk-go/option"
+
+	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 )
 
 // fakeAnthropic answers like the Messages API and remembers every body it received, so a test can
@@ -126,5 +128,50 @@ func TestTokensAreReportedFromTheResponse(t *testing.T) {
 func TestUnknownModelHasNoGuessedCost(t *testing.T) {
 	if _, known := Cost("some-future-model", 1000, 1000); known {
 		t.Error("a price was invented for an unknown model")
+	}
+}
+
+// AC-8 for --explain, on the wire: what leaves is names, paths, counts and each route's own
+// summary — and nothing else the model holds. No line number, no column type, no description, no
+// note about how a path was resolved, no key.
+func TestExplainSendsStructureAndSummariesAndNothingElse(t *testing.T) {
+	srv, received := fakeAnthropic(t, `{"sentences":[{"text":"It serves albums.","cites":["F1"]}]}`)
+	rec := &Recorder{}
+	complete := ClaudeWith(ExplainModel, ExplainSchema(), ExplainMaxTokens, "low", rec, option.WithBaseURL(srv.URL), option.WithAPIKey("test-key"))
+
+	m := explainModel()
+	for i := range m.Nodes {
+		m.Nodes[i].Description = "a description nobody asked to send"
+		m.Nodes[i].Prov.Line = 7777
+	}
+	m.Nodes = append(m.Nodes, archdoc.Node{ID: "tbl:server/album", Name: "album", Kind: archdoc.Table, Parent: "svc:server",
+		Dir: "server/src/controllers/album.controller.ts", Prov: archdoc.Provenance{File: "server/src/controllers/album.controller.ts", Line: 7777},
+		Columns: []archdoc.Column{{Name: "ownerId", Type: "uuid-type-not-sent"}}})
+	for i := range m.Entries {
+		m.Entries[i].Prov.Line = 7777
+		m.Entries[i].PathNote = "a note about resolution, not sent"
+	}
+	if _, _, _, err := Explain(context.Background(), complete, ExplainModel, m, nil); err != nil {
+		t.Fatalf("explain: %v", err)
+	}
+	if len(*received) == 0 {
+		t.Fatal("nothing was sent")
+	}
+	sent := ""
+	for _, b := range *received {
+		sent += string(b)
+	}
+	for _, want := range []string{"List all albums", "server/src/controllers/album.controller.ts", "ownerId", "GET /api/albums"} {
+		if !strings.Contains(sent, want) {
+			t.Errorf("%q was not sent — the mode says it is", want)
+		}
+	}
+	for _, leak := range []string{"7777", "uuid-type-not-sent", "a description nobody asked to send", "a note about resolution", "provenance", "test-key"} {
+		if strings.Contains(sent, leak) {
+			t.Errorf("%q left the machine", leak)
+		}
+	}
+	if rec.Bytes() != len(sent) {
+		t.Errorf("the recorder holds %d bytes, the server received %d", rec.Bytes(), len(sent))
 	}
 }

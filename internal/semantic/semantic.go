@@ -6,7 +6,8 @@
 // never adds, removes, or excludes an element. Three things hold that line, and none of them is
 // a prompt instruction a model could ignore:
 //
-//  1. It is sent structure only — names, kinds, relationships. No file contents (AC-8).
+//  1. It is sent structure only — names, kinds, relationships. No file contents (AC-8). The one
+//     thing beyond structure is said by name: see the egress modes below.
 //  2. It answers in a strict JSON schema whose only verbs are labelling verbs.
 //  3. Every operation it returns passes through the same validator as a rules.yaml correction,
 //     and OpKind.AllowedFrom rejects anything structural before it can apply.
@@ -29,6 +30,20 @@ import (
 // Model is the default. A caller may override it; nothing else in archdoc depends on which model
 // answered, because nothing else trusts the answer beyond what the validator accepts.
 const Model = "claude-sonnet-5-5"
+
+// The egress modes: what a run sends, by the name the run log records it under (AC-8). A mode is a
+// promise about every byte of every request, kept by the tests in egress_test.go, which read what
+// arrived at the other end.
+const (
+	// StructureOnly is what --label sends: names, kinds, technologies and relationships. No path,
+	// no line, no file contents.
+	StructureOnly = "structure-only"
+	// StructureAndSummaries is what --explain sends: names, paths, counts, routes with their
+	// handlers, table and column names — and each route's own one-line summary, the sentence its
+	// decorator or docstring states. That sentence is text from a file, which is why this is not
+	// called structure-only; it is the only such text. No code, no other string, no line number.
+	StructureAndSummaries = "structure-and-summaries"
+)
 
 // ExplainModel writes what each component does (--explain). Turning a list of facts into three
 // cited sentences does not need the largest model, and there is a request per component: it runs

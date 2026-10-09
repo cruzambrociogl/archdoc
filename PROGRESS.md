@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-10-05 (surface redesign)
+Last updated: 2026-10-09 (AC-6 scored; AC-1 re-measured; the `--explain` egress mode named)
 
 ---
 
@@ -16,14 +16,14 @@ constantly, not just at a review.
 
 | | Criterion | Threshold | Self-checking | Status |
 |---|---|---|---|---|
-| AC-1 | Nodes and edges carry extraction or catalog provenance | ≥ 95% | no | ✓ **100% on all three subjects** (24 nodes, 34 edges, 8 Sep). `PRV-02` closed the catalog hole: a technology now cites the catalog entry that supplied it. Re-measure after the semantic layer, which is where the number can fall |
+| AC-1 | Nodes and edges carry extraction or catalog provenance | ≥ 95% | no | ✓ **100% on Immich with its code read — 1,333 of 1,333 elements and relationships, 9 Oct**, and on every fixture but the one where a rule adds an element (4 of 5, as it should be). Counted on every run now: the first row of the coverage report. The validator already refuses an element nothing vouches for (VAL-05), so what this number can show is the share a rule or a model supplied; `--label` and `--explain` add values and sentences, never elements, and leave it at 100% |
 | AC-2 | Container diagram produced with the LLM disabled | renders + validates, both subjects | **yes** | ✓ **met, 11 Sep.** Renders and validates on all three subjects with no model involved. The live on/off comparison held on Supabase across four versions: identical elements, kinds and relationships — only words changed |
 | AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · **reference due 5–16 Oct (Cruz)**, scored in the evidence sprint 20–24 Oct. Also the answer key for the Code Wiki / DeepWiki comparison |
 | AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | ✓ **13 of 13 rejected, 8 Sep.** Every fault in the suite is a way the draw.io experiment failed, or a way the model could lie without a reader noticing. Grow the suite as new failure modes appear |
 | AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | ✓ **10 of 10, 8 Sep.** Measured by running the whole pipeline from disk twice, not by re-applying a cached model — surviving *regeneration* is the criterion |
-| AC-6 | Drift detection | 100% of synthetic drift set | **yes** | · scheduled — Build 3, 24 Nov – 3 Dec (F-37 diff between commits, F-39 drift set) |
+| AC-6 | Drift detection | 100% of synthetic drift set | **yes** | ✓ **16 of 16 detected and classified, 9 Oct.** `archdoc diff <path> <commit> [<commit>]` (F-37) reads the repository at each revision; the drift set (F-39, `cmd/archdoc/drift_test.go` over `testdata/drift/base`) changes it one way per case — services, dependencies, protocols, routes, columns, renames, a boundary crossing, and a change that is none — and each must be reported under its class with nothing else beside it |
 | AC-7 | Determinism | 5 runs, byte-identical FactSets | **yes** | ✓ **holds end to end** — 5 identical runs on all three subjects, measured on the full generated document rather than the FactSet alone. Covered by tests in four packages |
-| AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | ✓ **met, 12 Sep.** Measured on the wire: the real SDK against a local fake of the API, the recorder holding exactly the bytes the server received, with no path, line, provenance or key among them. Every run is logged, failures included; `archdoc runs --show` prints it unformatted |
+| AC-8 | Egress | `structure-only` transmits zero file contents | **yes** | ✓ **met, 12 Sep, for `--label`**; measured on the wire: the real SDK against a local fake of the API, the recorder holding exactly the bytes the server received, with no path, line, provenance or key among them. **`--explain` is a second mode, named as one since 9 Oct** — `structure-and-summaries`: it also sends paths and each route's own one-line summary, which is text from a file, by decision (8 Oct). Tested on the wire the same way: the summaries arrive, and no line number, column type, description or key does. Until 9 Oct its runs were logged as `structure-only` and announced as "names only", which was not true |
 | AC-9 | Performance | NFR-1 and NFR-2 met on Supabase | no | · scheduled — 5–8 Oct, free to run; re-measured on a code-heavy repo after Build 1 |
 
 > **AC-3 is predicted to miss its threshold.** Immich declares none of its three service
@@ -130,11 +130,25 @@ are in `docs/decisions.md` under the same date.
 | SQL migrations are the schema where the code declares no table, for a container in any language; coverage names the schema files | A Go service with only migrations gets a data view; Immich unchanged, byte for byte | `012c70b` |
 | Fixed: a service whose manifest names no known framework failed validation and nothing was written | Any plain Go module | `012c70b` |
 
+**9 Oct** — the acceptance criteria that could be scored without outside subjects:
+
+| What | Measured | Commit |
+|---|---|---|
+| `archdoc diff` between two commits, or a commit and the working tree; needs git, the only command that does | Immich, one commit against its files: no change, 3 s | `7ddd3c9` |
+| Renames and boundary crossings are one change (MEM-05, MEM-06): matched on a directory, relationships, columns or files, only when the match is unique; a container's parts and routes follow it | A renamed container with code: 1 change, not dozens | `7ddd3c9` |
+| The drift set | AC-6: 16 of 16 | `7ddd3c9` |
+| The Changes screen lists renames and crossings | — | `7ddd3c9` |
+| AC-1 counted in the coverage report | Immich 1,333 of 1,333 | this commit |
+| `--explain` runs logged and announced as `structure-and-summaries`, with a wire test of what that mode sends | — | this commit |
+
 **Not done** — known, and left:
 
 | What | Why it is open |
 |---|---|
 | Stale explanations on small components | Eleven of Immich's one-file components still show an earlier model's answer, marked stale, with advice to run `--explain` — which no longer asks about them. Hide them, or stop marking them: undecided |
+| AC-3 and AC-9 | AC-3 waits for the hand-drawn Immich reference (Cruz). AC-9 waits for Supabase, which is not cloned — no room for it now |
+| `archdoc diff` on real history | The Immich clone holds one commit, so two real commits of a real repository have not been compared; the two-commit test uses the fixture |
+| Earlier `--explain` runs keep their old label | Runs 1–7 in Immich's log still read `structure-only`; the log is a record and was not rewritten |
 | The batch API for `--explain` | Half price, results later; needs the run reworked. Left out on purpose at $0.005 a component |
 | Queues in Python | Celery, RQ: not followed. Only decorator-marked TypeScript jobs and events are |
 | Migrations in a tool's own DSL | Alembic, Knex, Rails' `schema.rb`: not read. Only SQL is |

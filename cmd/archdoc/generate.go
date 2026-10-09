@@ -91,7 +91,7 @@ func generate(args []string, out io.Writer) error {
 
 		// AC-8 — logged whether or not labelling succeeded. A request that left the machine is
 		// in the log; a failed run is exactly the one someone goes looking for.
-		runID := logRun(facts.Root, rec, rep, started, err, out)
+		runID := logRun(facts.Root, semantic.StructureOnly, rec, rep, started, err, out)
 		if err != nil {
 			return fmt.Errorf("labelling failed, nothing written: %w", err)
 		}
@@ -148,7 +148,7 @@ func generate(args []string, out io.Writer) error {
 		}
 	}
 	if *explain {
-		runID := logRun(facts.Root, rec, xrep.Report, started, err, out)
+		runID := logRun(facts.Root, semantic.StructureAndSummaries, rec, xrep.Report, started, err, out)
 		if err == nil {
 			fmt.Fprintf(out, "explained by %s: %d component(s) asked, %d remembered, %d too small to ask about, %d sentence(s) refused for want of a citation\n",
 				xrep.Model, xrep.Asked, xrep.Remembered, xrep.Skipped, xrep.Refused)
@@ -159,7 +159,7 @@ func generate(args []string, out io.Writer) error {
 				fmt.Fprintf(out, "asking stopped %s — what was answered before is kept; run --explain again for the rest\n", xrep.Stopped)
 			}
 			if c, ok := semantic.Cost(xrep.Model, xrep.InputTokens, xrep.OutputTokens); ok {
-				fmt.Fprintf(out, "sent %d request(s), %d bytes, names only · $%.4f\n", len(rec.Exchanges()), rec.Bytes(), c)
+				fmt.Fprintf(out, "sent %d request(s), %d bytes — names, paths and the code's own route summaries, no code · $%.4f\n", len(rec.Exchanges()), rec.Bytes(), c)
 			}
 			if runID > 0 {
 				fmt.Fprintf(out, "run %d logged — 'archdoc runs %s --show %d' prints exactly what was sent\n", runID, root, runID)
@@ -457,7 +457,7 @@ site/
 // logRun records one use of the network: every request exactly as it left, and what it cost. A
 // failure to write the log is reported and does not stop the run — but it is reported, because a
 // run log with a silent gap is not a run log.
-func logRun(root string, rec *semantic.Recorder, rep semantic.Report, started time.Time, runErr error, out io.Writer) int64 {
+func logRun(root, mode string, rec *semantic.Recorder, rep semantic.Report, started time.Time, runErr error, out io.Writer) int64 {
 	h, err := store.Open(root)
 	if err != nil {
 		fmt.Fprintf(out, "run log unavailable: %v\n", err)
@@ -473,7 +473,7 @@ func logRun(root string, rec *semantic.Recorder, rep semantic.Report, started ti
 
 	r := store.Run{
 		StartedAt: started, FinishedAt: time.Now(), Status: status,
-		Commit: render.Commit(root), EgressMode: "structure-only", Model: rep.Model,
+		Commit: render.Commit(root), EgressMode: mode, Model: rep.Model,
 		BytesSent: rec.Bytes(), TokensIn: rep.InputTokens, TokensOut: rep.OutputTokens,
 		CostUSD: cost, CostKnown: known,
 	}

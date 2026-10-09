@@ -792,3 +792,28 @@ was not read. Not read: migrations in a tool's own DSL (Alembic, Knex, Rails' `s
 Found while testing the above: a service whose manifest named no framework archdoc knows — any
 plain Go module — had the technology "Go" with no provenance, failed VAL-05, and nothing was
 written. The manifest is what says the language, so it is what the technology cites.
+
+**2026-10-09 — Comparing two commits runs git; nothing else does**
+`render.Commit` reads `.git/HEAD` by hand so that archdoc works where git is not installed. A diff
+between commits (F-37) needs the files of another commit, which live packed and delta-compressed in
+git's object store. Reading that is git's job: `archdoc diff` runs `git archive`, unpacks it into a
+temporary directory named as the repository is, and reads it as `generate` would — rules applied, no
+model asked, nothing written. A pure-Go git library was the alternative and a large dependency for
+one command. `generate`, `serve` and `export` still need no git.
+
+**2026-10-09 — A changed ID is matched on what stayed the same, or not at all**
+Identity is the ID, and a service's ID is its Compose name — so renaming one read as a removal, an
+addition and every arrow rewired, and for a container with code as hundreds of components, tables
+and routes appearing and disappearing. `model.Compare` now pairs a removed element with an added one
+when exactly one on each side shares what identifies it: a container's directory, or its kind,
+technology and relationships; a table's columns; a component's files. A pair is reported once, as
+renamed, and everything attached is compared under the new ID. The same name inside the system on
+one side and outside it on the other is re-bounded: a service that left the repository and is still
+called. An ambiguous match is not made — two honest changes beat one guessed rename.
+
+**2026-10-09 — `--explain` is its own egress mode, not `structure-only`**
+Since 8 Oct `--explain` sends each route's summary, a sentence from a decorator or a docstring. Its
+runs were still logged as `structure-only` and announced as "names only": the label promised less
+than was sent. The mode is now `structure-and-summaries`, defined beside `structure-only` in
+`internal/semantic`, shown in the run log and the app, and held by a test on the wire. AC-8's
+wording — `structure-only` transmits zero file contents — stays true of `--label`.

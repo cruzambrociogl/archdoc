@@ -339,6 +339,40 @@ func sourcesRead(facts archdoc.FactSet) []ReadFile {
 	return out
 }
 
+// Traced is AC-1, counted: of every element and relationship in the model — containers, external
+// systems, components, tables, and every arrow between any of them — how many rest on something a
+// file states at a line, or on a catalog entry that is named. What a person's rule or a model
+// supplied is not counted as traced, whatever it cites.
+func Traced(m archdoc.Model) (traced, of int) {
+	proven := func(p archdoc.Provenance) bool {
+		return p.Known() && (p.Origin == "" || p.Origin == archdoc.Extraction || p.Origin == archdoc.Catalog)
+	}
+	for _, n := range m.Nodes {
+		of++
+		if proven(n.Prov) {
+			traced++
+		}
+	}
+	for _, e := range m.Edges {
+		of++
+		for _, p := range e.Prov {
+			if proven(p) {
+				traced++
+				break
+			}
+		}
+	}
+	return traced, of
+}
+
+func percent(n, of int) string {
+	if of == 0 {
+		return "nothing to trace"
+	}
+	// Truncated, never rounded up: 99.96% is not 100%.
+	return fmt.Sprintf("%.1f%%", float64(n*1000/of)/10)
+}
+
 // knownCounts is the one place the documents say how much of themselves is backed by what.
 func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 	component := components(m)
@@ -394,7 +428,9 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 		}
 	}
 
+	traced, of := Traced(m)
 	counts := []Count{
+		{"Elements and relationships traced to a file or the catalog", fmt.Sprintf("%d of %d — %s", traced, of, percent(traced, of))},
 		{"Elements declared by this repository", fmt.Sprint(declared)},
 		{"Elements only referenced — they exist, nothing more is known", fmt.Sprint(referenced)},
 		{"Relationships", fmt.Sprint(relationships)},

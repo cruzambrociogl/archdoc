@@ -17,7 +17,7 @@ type Run struct {
 	FinishedAt time.Time
 	Status     string // "ok", or the error that stopped it
 	Commit     string
-	EgressMode string // "structure-only" — the only mode archdoc has
+	EgressMode string // what the run sent, by name: semantic.StructureOnly, semantic.StructureAndSummaries
 	Model      string
 
 	Requests  int
