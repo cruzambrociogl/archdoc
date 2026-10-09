@@ -152,7 +152,7 @@ are in `docs/decisions.md` under the same date.
 | Labels remembered in `.archdoc/labels.json` and applied on every run | `--label` on the clone: 26 operations, $0.018; a plain run after it keeps all 15 descriptions and records no version | `980e42f` |
 | Element order made total (it depended on what else was in the model) | 9 explanations no longer stale for no reason | `980e42f` |
 | Small diagrams keep technology and description when fitted; description text sized as the engine sizes boxes | container view readable at 82% | `980e42f` |
-| The system box has a description; component boxes show the first sentence of their explanation; a rank too wide is folded; labels and notes wrap as the engine sizes them | Immich: context, containers and the server's 16 main components all read with descriptions at fit zoom; `--label` again, $0.018 | COMMIT |
+| The system box has a description; component boxes show the first sentence of their explanation; a rank too wide is folded; labels and notes wrap as the engine sizes them | Immich: context, containers and the server's 16 main components all read with descriptions at fit zoom; `--label` again, $0.018 | `54e6b6d` |
 
 **Not done** — known, and left:
 
