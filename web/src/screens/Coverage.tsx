@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { CodeRead, CoverageResponse } from '../api'
 import { componentLevel, useApi } from '../api'
 import { Cite } from '../ui/Cite'
+import { PlannedSlot } from '../ui/Planned'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
 
@@ -84,6 +85,8 @@ export function Coverage(props: { go: (r: Partial<Route>) => void }) {
           </div>
         ))}
       </div>
+
+      <PlannedSlot id="coverage-headline" go={props.go} />
 
       <div className="coverage-grid">
         <section>

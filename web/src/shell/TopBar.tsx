@@ -63,10 +63,6 @@ export function TopBar(props: {
       </label>
       )}
 
-      <Planned id="freshness" go={go}>
-        Freshness
-      </Planned>
-
       <div className="topbar-spacer">
         <button className="search-box" onClick={props.onSearch} title="Search everything (⌘K)">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -97,8 +93,14 @@ export function TopBar(props: {
         <Planned id="publish" go={go}>
           Publish
         </Planned>
+        <Planned id="git" go={go}>
+          Uncommitted
+        </Planned>
         <Planned id="settings" go={go}>
           Settings
+        </Planned>
+        <Planned id="freshness" go={go}>
+          Up to date?
         </Planned>
       </div>
 

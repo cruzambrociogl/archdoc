@@ -5,6 +5,7 @@ import '@xyflow/react/dist/base.css'
 import type { DiffResponse, Opening, SceneResponse, Version } from '../../api'
 import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, source, structureLevel, structureOf, useApi } from '../../api'
 import type { Route } from '../../route'
+import { Planned } from '../../ui/Planned'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
 import { Inspector } from '../Inspector'
@@ -219,7 +220,13 @@ function Toolbar(props: {
             ))}
         </select>
       </label>
+      <Planned id="lens" go={props.go}>
+        Lens
+      </Planned>
       <div className="toolbar-gap" />
+      <Planned id="share-card" go={props.go}>
+        Share card
+      </Planned>
       {props.editable && (
         <button className="tool" onClick={() => setSaving(true)} title="Name this view — level, selection, search and focus — and keep it in views.yaml">
           Save view…

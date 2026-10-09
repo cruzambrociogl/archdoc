@@ -83,6 +83,9 @@ export function Inspector({
         <div className="inspector-planned">
           <Planned id="correct" go={go}>
             Correct this…
+          </Planned>{' '}
+          <Planned id="inspector-tabs" go={go}>
+            History
           </Planned>
         </div>
       )}

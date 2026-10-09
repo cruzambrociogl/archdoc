@@ -53,7 +53,7 @@ cd archdoc && go build -o archdoc ./cmd/archdoc
 ./archdoc diff ../subjects/immich HEAD      # what changed since a commit
 ```
 
-**Designed and not built:** 20 pieces of the surface spec — the §11 controls, a flows index,
+**Designed and not built:** 34 pieces of the surface spec and the Claude Design files — the §11 controls, a flows index,
 deployment, the correction composer, commits and session summaries in the app, ask the map, intent
 vs actual — are dashed *planned* placeholders in the local app, listed on its "Not built yet" page
 from `web/src/planned.ts`. That file is the list; this paragraph only points at it.

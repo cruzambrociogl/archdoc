@@ -1002,4 +1002,19 @@ on a flow; Two commits and a change summary on Changes; the Ask slot on the Over
 still holds for evidence: a view this repository has no evidence for stays hidden. Placeholders
 are not shown in a published site, which is for readers of the documentation, not of archdoc's
 plans. The comparison was made against `docs/surface-spec.md`, not against the Claude Design
-files, which could not be read this session (no design authorization).
+files, which could not be read at first (no design authorization).
+
+**2026-10-09, later — the Claude Design files read, and the list completed from them**
+Once `/design-login` was run, the five surface files (Foundations, Screens, Controls, Topbar,
+Themes) were read. They draw fourteen pieces the spec did not list: a plain-language reading of
+every interpreted summary, a component page's neighbours diagram, the data it touches and its
+outbound calls, its citations and next and previous links, the citation hover preview, the
+explorer's lens and share card, the inspector's tabs and history, unresolved and egress counts in
+the status bar, the moved tag on the canvas, coverage as a percentage with unresolved grouped by
+reason, progress badges in the navigation, copying and downloading a request, and printing with
+citations in the margin. They are in the list, `web/src/planned.ts`, each naming its design file;
+nine have a placeholder, and five — a hover, a style, a badge — are marked as having none. The
+top bar now follows the design's order: Run, Publish, Uncommitted, Settings, then the status pill.
+One thing already built did not follow the design and was fixed: interpreted prose on a component
+page was italic, where the design underlines it with dots so a mostly interpreted page stays
+readable.

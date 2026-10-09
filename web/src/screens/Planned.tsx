@@ -17,8 +17,9 @@ export function Planned(props: { route: Route }) {
       <Eyebrow>Not built yet · {planned.length} pieces</Eyebrow>
       <h1 className="page-title">Designed, and still to build</h1>
       <p className="lede">
-        What the surface design and its spec describe that this app does not do yet. Each has a dashed placeholder where it will go; this list is
-        what they point to, so nothing designed is forgotten. It is also kept in <span className="mono">PROGRESS.md</span>.
+        What the surface design — the Claude Design files, read on 9 Oct — and its spec describe that this app does not do yet. Most have a dashed
+        placeholder where they will go; this list is what they point to, so nothing designed is forgotten. The list is{' '}
+        <span className="mono">web/src/planned.ts</span>.
       </p>
       {areas.map((a) => (
         <section key={a} className="planned-area">
@@ -31,7 +32,9 @@ export function Planned(props: { route: Route }) {
                   <span className="strong">{p.title}</span>
                   <span className="mono small muted">
                     surface-spec {p.spec}
+                    {p.design ? ` · design: ${p.design}` : ''}
                     {p.waits ? ` · ${p.waits}` : ''}
+                    {p.listOnly ? ' · no placeholder on screen' : ''}
                   </span>
                 </div>
                 <p className="planned-row-what">{p.what}</p>

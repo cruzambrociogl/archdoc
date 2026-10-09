@@ -2,6 +2,7 @@ import type { ModelResponse } from '../api'
 import { componentLevel, dataLevel, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
+import { Planned, PlannedSlot } from '../ui/Planned'
 import { KindTile } from '../ui/KindTile'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
 
@@ -63,11 +64,17 @@ export function Component(props: { version: number | null; route: Route; go: (r:
 
       {explanation ? (
         <section>
-          <Eyebrow>What it does · interpreted</Eyebrow>
+          <Eyebrow>
+            What it does · interpreted{' '}
+            <Planned id="plain" go={props.go}>
+              Plain language
+            </Planned>
+          </Eyebrow>
           {explanation.claims.map((c, i) => (
             <div key={i} className="claim">
-              <p className="interpreted lede">
-                <TruthMark state="interpreted" /> {c.text}
+              {/* Interpreted prose takes a dotted underline, not italics: a page of italics is unreadable (Surface Foundations, 6.1). */}
+              <p className="lede">
+                <TruthMark state="interpreted" /> <span className="interp-sentence">{c.text}</span>
               </p>
               <div className="relation-cites">
                 {c.cites.map((p, j) => (
@@ -162,6 +169,9 @@ export function Component(props: { version: number | null; route: Route; go: (r:
             ))}
           </section>
         )}
+        <PlannedSlot id="neighbours" go={props.go} />
+        <PlannedSlot id="touches" go={props.go} />
+        <PlannedSlot id="component-nav" go={props.go} />
         <section>
           <details className="files">
             <summary>

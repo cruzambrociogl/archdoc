@@ -55,10 +55,9 @@ raised, not quietly promoted over it.
 - [ ] `/tmp/ad` is a copy of the binary used for testing this session; on macOS overwrite it with
       `rm` then `cp`, never `cp` over a running one — the process is killed (exit 137)
 - [ ] The small subjects have not been through `--label` or `--explain`: a few cents for all three
-- [ ] The Claude Design files have not been compared with the app: DesignSync needs `/design-login`
-      from an interactive terminal, and the session's account changed on 9 Oct — the design project
-      may belong to the other account. The placeholders were made from `surface-spec.md` instead;
-      once the design can be read, check it for anything the spec does not list
+- [x] The Claude Design files compared with the app, 9 Oct: 34 pieces in `web/src/planned.ts`.
+      `Surface Screens.dc.html` is larger than DesignSync's 256 KB read limit and came back cut
+      short — its last screens (the palette, the shortcut sheet) were read only in part
 - [ ] The Overview's "What changed" lists a component name twice when two containers have one of
       that name (`shared-link` in web and mobile): it should say which container
 

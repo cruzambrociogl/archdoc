@@ -2,7 +2,7 @@ import type { CoverageResponse, DiffResponse, ModelResponse, Node, Provenance, R
 import { bytes, componentLevel, dataLevel, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
-import { PlannedSlot } from '../ui/Planned'
+import { Planned, PlannedSlot } from '../ui/Planned'
 import { kindStyle } from '../ui/kinds'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
 
@@ -82,7 +82,10 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
             <p className="lede-note">
               {system.description_provenance.origin === 'model' && <TruthMark state="interpreted" />}{' '}
               {system.description_provenance.origin === 'model' ? 'Interpreted by the model' : 'From the repository'} ·{' '}
-              <Cite p={system.description_provenance} compact />
+              <Cite p={system.description_provenance} compact />{' '}
+              <Planned id="plain" go={props.go}>
+                Plain language
+              </Planned>
             </p>
           )}
         </>

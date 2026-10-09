@@ -1,6 +1,7 @@
 import type { Exchange, Run } from '../api'
 import { bytes, published, useApi, when } from '../api'
 import type { Route } from '../route'
+import { Planned } from '../ui/Planned'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
 
 /**
@@ -72,7 +73,7 @@ export function NetworkRuns(props: { route: Route; go: (r: Partial<Route>, o?: {
           made it, in archdoc serve.
         </p>
       ) : (
-        <RunDetail id={open} />
+        <RunDetail id={open} go={props.go} />
       )}
     </div>
   )
@@ -85,7 +86,7 @@ const modes: Record<string, string> = {
     "names, paths, counts, routes and table columns, plus each route's own one-line summary as the code states it — no code, no other text from a file, no line numbers",
 }
 
-function RunDetail({ id }: { id: number }) {
+function RunDetail({ id, go }: { id: number; go: (r: Partial<Route>) => void }) {
   const run = useApi<Run & { exchanges: Exchange[] | null }>(`/api/runs/${id}`)
   if (run.error) return <Failure error={run.error} />
   if (!run.data) return <Loading />
@@ -108,7 +109,12 @@ function RunDetail({ id }: { id: number }) {
               Request {i + 1} · exactly as sent · {bytes(x.body.length)}
             </Eyebrow>
             <span className="mono small muted">
-              {x.method} {x.url} → {x.status || 'no response'}
+              {x.method} {x.url} → {x.status || 'no response'}{' '}
+              {i === 0 && (
+                <Planned id="run-download" go={go}>
+                  Copy · .json
+                </Planned>
+              )}
             </span>
           </div>
           <pre className="payload">{x.body}</pre>
