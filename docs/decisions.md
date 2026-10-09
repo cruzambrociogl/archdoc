@@ -817,3 +817,33 @@ runs were still logged as `structure-only` and announced as "names only": the la
 than was sent. The mode is now `structure-and-summaries`, defined beside `structure-only` in
 `internal/semantic`, shown in the run log and the app, and held by a test on the wire. AC-8's
 wording — `structure-only` transmits zero file contents — stays true of `--label`.
+
+**2026-10-09 — Who calls an API is read from its description, not guessed from who exists**
+Immich's container view drew its web app, mobile app and CLI with no arrow to anything: each calls
+the server through a generated client, and no URL in their code names it. The repository does say
+it, in three steps, each a line: an OpenAPI document; a client of that document — a package whose
+code names most of its paths, or a directory an `openapi-generator` command writes into; and an
+application that holds that client or depends on its package. The document is tied to a container
+by counting its operations against the routes that container's code declares (Immich: 274 of 274),
+so nothing is drawn from a document nobody here serves. A development dependency counts only where
+the code imports it — a bundled CLI lists what it ships with there. Closes O-10 for generated
+clients; hand-written calls to a computed address stay unresolved.
+
+**2026-10-09 — A person reaches what a person runs**
+The only actor evidence was a published port. A web front end, a mobile app and a command-line tool
+are now reached by the person too, each arrow citing the manifest line that makes the application
+what it is. This is the one arrow that rests on what kind of thing an element is rather than on a
+statement about the arrow; its note says so.
+
+**2026-10-09 — A package others run is a library, whatever command it ships**
+`@immich/plugin-sdk` declares a `bin` and was drawn as a container. It also exports code, and a
+package that runs depends on it: it is a library whose command is a build tool. A test suite
+depending on a tool does not count, or the CLI would stop being one.
+
+**2026-10-09 — A large container opens on its main components**
+Immich's server has 75 components and 758 uses: accurate, cited, and unreadable as a picture; C4's
+own advice is to split a component diagram long before that. A container with more than 16
+components now has a main view — the 16 that handle the most routes, pages, commands and jobs, by
+what the code declares, then by size — and the explorer opens on it, with every component and the
+by-folder view one click away. Selecting something outside the main ones shows them all. The rule
+is a count, not a judgement; `main-<container>.svg` is committed beside the full one.

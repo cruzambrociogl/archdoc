@@ -18,6 +18,8 @@ export interface Route {
   q?: string
   /** Explorer: dim everything not one hop from the selection. */
   dim?: string
+  /** Explorer: every component of a large container, where the default is its main ones. */
+  all?: string
   /** Changes: the version compared against. */
   from?: number
   /** Documents: the open file. */
@@ -27,7 +29,7 @@ export interface Route {
 }
 
 // Fixed key order, so the same view always has the same address.
-const order: (keyof Route)[] = ['screen', 'v', 'level', 'focus', 'q', 'dim', 'from', 'doc', 'run']
+const order: (keyof Route)[] = ['screen', 'v', 'level', 'focus', 'q', 'dim', 'all', 'from', 'doc', 'run']
 const numeric = new Set<keyof Route>(['v', 'from', 'run'])
 
 export function parse(hash: string): Route {

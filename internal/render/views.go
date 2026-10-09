@@ -1,6 +1,8 @@
 package render
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -26,7 +28,15 @@ const (
 	// StructurePrefix starts the name of a container's by-folder view, where its components are
 	// features and the folders are the other way to read the same code.
 	StructurePrefix = "structure:"
+	// MainPrefix starts the name of a container's main-components view: the few that do the most,
+	// for a container with more components than a diagram can show.
+	MainPrefix = "main:"
 )
+
+// MainParts is how many components a diagram holds and can still be read; a container with more
+// has a main view of this many. C4's own advice is to split a component diagram well before it
+// has as many boxes as Immich's server has: 75.
+const MainParts = 16
 
 // Views lists every diagram of the model, in a fixed order: context, container, then one
 // component view per container whose code was read, in model order.
@@ -37,6 +47,9 @@ func Views(m archdoc.Model) []View {
 	}
 	for _, id := range m.Components() {
 		out = append(out, componentView(m, id))
+	}
+	for _, id := range Mains(m) {
+		out = append(out, mainView(m, id))
 	}
 	for _, id := range m.Structures() {
 		out = append(out, structureView(m, id))
@@ -59,6 +72,13 @@ func ViewOf(m archdoc.Model, name string) (View, bool) {
 		for _, c := range m.Components() {
 			if c == id {
 				return componentView(m, id), true
+			}
+		}
+	case strings.HasPrefix(name, MainPrefix):
+		id := strings.TrimPrefix(name, MainPrefix)
+		for _, c := range Mains(m) {
+			if c == id {
+				return mainView(m, id), true
 			}
 		}
 	case strings.HasPrefix(name, StructurePrefix):
@@ -89,6 +109,76 @@ func componentView(m archdoc.Model, id string) View {
 		Name:  ComponentPrefix + id,
 		File:  "component-" + strings.ReplaceAll(local, "/", "-"),
 		Title: "Components of " + view.Name,
+		Model: view,
+		Group: true,
+	}
+}
+
+// Mains lists the containers with more components than one diagram can show, in model order.
+func Mains(m archdoc.Model) []string {
+	count := map[string]int{}
+	for _, n := range m.Nodes {
+		if n.Kind == archdoc.Component {
+			count[n.Parent]++
+		}
+	}
+	var out []string
+	for _, id := range m.Components() {
+		if count[id] > MainParts {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+// mainView is a container's components that do the most: the MainParts that handle the most
+// routes, pages, commands and jobs — what the container is for, by what the code declares — or,
+// in a container that declares none, the largest. Only the uses among them are drawn. What each
+// is used by is still counted over all the container's components, so a shared one says so.
+func mainView(m archdoc.Model, id string) View {
+	view := unlabelled(m.Component(id))
+	markShared(&view)
+	handles := map[string]int{}
+	for _, e := range m.Entries {
+		if e.Container == id && e.Component != "" {
+			handles[e.Component]++
+		}
+	}
+	ranked := append([]archdoc.Node(nil), view.Nodes...)
+	sort.SliceStable(ranked, func(i, j int) bool {
+		a, b := ranked[i], ranked[j]
+		if handles[a.ID] != handles[b.ID] {
+			return handles[a.ID] > handles[b.ID]
+		}
+		if a.Lines != b.Lines {
+			return a.Lines > b.Lines
+		}
+		return a.ID < b.ID
+	})
+	keep := map[string]bool{}
+	for i := 0; i < len(ranked) && i < MainParts; i++ {
+		keep[ranked[i].ID] = true
+	}
+	nodes := view.Nodes[:0:0]
+	for _, n := range view.Nodes {
+		if keep[n.ID] {
+			nodes = append(nodes, n)
+		}
+	}
+	edges := view.Edges[:0:0]
+	for _, e := range view.Edges {
+		if keep[e.From] && keep[e.To] {
+			edges = append(edges, e)
+		}
+	}
+	total := len(view.Nodes)
+	view.Nodes, view.Edges = nodes, edges
+	view.Boundary = fmt.Sprintf("%s — the %d components that handle the most, of %d", view.Name, len(nodes), total)
+	_, local, _ := strings.Cut(id, ":")
+	return View{
+		Name:  MainPrefix + id,
+		File:  "main-" + strings.ReplaceAll(local, "/", "-"),
+		Title: "Main components of " + view.Name,
 		Model: view,
 		Group: true,
 	}

@@ -141,6 +141,15 @@ are in `docs/decisions.md` under the same date.
 | AC-1 counted in the coverage report | Immich 1,333 of 1,333 | `05c0040` |
 | `--explain` runs logged and announced as `structure-and-summaries`, with a wire test of what that mode sends | — | `05c0040` |
 
+**9 Oct, later** — the explorer as a C4 picture of Immich, after looking at it level by level:
+
+| What | Measured on Immich | Commit |
+|---|---|---|
+| Clients call the API they are clients of: an OpenAPI document, tied to a container by its routes, and the packages and generated directories that are clients of it | web, mobile and CLI → server, each cited; 274 of 274 operations matched | `9905416` |
+| A person reaches web, mobile and command-line applications | 3 new arrows; context unchanged | `9905416` |
+| A package that running code depends on is a library | `@immich/plugin-sdk` no longer a container: 15 elements, 17 relationships | `9905416` |
+| A large container opens on its 16 main components; all of them and by-folder one click away | server: 16 of 75, mobile: 16 of 18 | next commit |
+
 **Not done** — known, and left:
 
 | What | Why it is open |
@@ -195,7 +204,7 @@ items are ticked.
 | O-7 | Test subject #3 | — | ✓ **closed 26 Aug — Mastodon**, pinned `47ac677`. Chosen to cover `MDL-09`/`MDL-11`/`MDL-16`/`EXT-09`, which the other two leave untested |
 | O-8 | Does `file:line` provenance survive the Compose merge? | — | ✓ **closed 26 Aug — no.** Extraction is two passes; a `Fact` carries one position. See `docs/decisions.md` |
 | O-6 | R1.b sequencing — analysis before clustering? | R1.b only | deferred by design, decide with a working spine |
-| O-10 | Does R1.a resolve service-to-gateway calls by matching route paths? | fuller `MDL-03` | **open.** Routes are read, but a caller's URL names one endpoint and the bridge cannot tell which. Only actors bridge today, so a service calling a gateway loses that edge. Matching `lds` route prefixes against caller URLs would close it — decide before code freeze |
+| O-10 | Does R1.a resolve service-to-gateway calls by matching route paths? | fuller `MDL-03` | **open for gateways; closed 9 Oct for generated API clients** (an OpenAPI document matched to a container's routes). Routes are read, but a caller's URL names one endpoint and the bridge cannot tell which. Only actors bridge today, so a service calling a gateway loses that edge. Matching `lds` route prefixes against caller URLs would close it — decide before code freeze |
 | O-11 | Where does archdoc go beyond configuration? | The roadmap after R1.a | **direction closed 2 Oct, features provisional.** Positioning: the local, verifiable alternative (`vision.md` §2.2). Audience: technical readers losing control. Evidence before building. Features scored in `docs/feature-inventory.md`, confirmed 13–17 Oct. Original note: Proposal in `docs/vision.md`: code as evidence, one model with many lenses, reference docs plus explanations. Seventeen decisions (D-1–D-17) to take or amend; the first step is a cheap comprehension pilot (D-14). Schedule unchanged until agreed |
 | O-9 | Which acceptance criteria gate sprint 2? | Sprint 2 gate | ✓ **closed 6 Sep — §4.3 wins: AC-2, AC-4, AC-5.** The disagreement was a symptom, not a judgement call: the calendar had no rows for the validator or for rules, so nothing in it could have passed AC-4 or AC-5, and the gate had been quietly reconciled to the rows. Six missing rows added instead |
 

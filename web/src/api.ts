@@ -148,8 +148,11 @@ export const structureLevel = (id: string) => `structure:${id}`
 export const structureOf = (level?: string) => (level?.startsWith('structure:') ? level.slice('structure:'.length) : undefined)
 export const componentOf = (level?: string) => (level?.startsWith('component:') ? level.slice('component:'.length) : undefined)
 export const dataOf = (level?: string) => (level?.startsWith('data:') ? level.slice('data:'.length) : undefined)
+/** A large container's main components — the few that handle the most: `main:<container id>`. */
+export const mainLevel = (id: string) => `main:${id}`
+export const mainOf = (level?: string) => (level?.startsWith('main:') ? level.slice('main:'.length) : undefined)
 /** The container a level is inside of, whichever lens. */
-export const insideOf = (level?: string) => componentOf(level) ?? dataOf(level) ?? structureOf(level)
+export const insideOf = (level?: string) => componentOf(level) ?? dataOf(level) ?? structureOf(level) ?? mainOf(level)
 
 // The layout a view is drawn at (internal/archdoc/layout.go), and the scene that pairs them.
 export interface Point {
@@ -182,6 +185,8 @@ export interface SceneResponse {
   components: Opening[]
   /** Containers whose code declares tables; `components` here counts their tables. */
   data: Opening[]
+  /** Containers with more components than a diagram shows: they open on their main ones. */
+  main?: Opening[]
   /** Containers whose components are features, and so have a by-folder view too; counts their folders. */
   structure?: Opening[]
   /** How many elements the container view holds: what the system box opens onto. */

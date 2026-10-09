@@ -3,7 +3,7 @@ import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, V
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
 import type { DiffResponse, Opening, SceneResponse, Version } from '../../api'
-import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, source, structureLevel, structureOf, useApi } from '../../api'
+import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, source, structureLevel, structureOf, useApi } from '../../api'
 import type { Route } from '../../route'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
@@ -46,11 +46,20 @@ export function Explorer(props: {
   editable: boolean
   onViewsChanged: () => void
 }) {
-  const level = levelOf(props.route.level)
+  const asked = levelOf(props.route.level)
   const [reload, setReload] = useState(0)
   const q = props.version ? `&version=${props.version}` : ''
-  const scene = useApi<SceneResponse>(`/api/scene?view=${encodeURIComponent(level)}${q}${reload ? `#${reload}` : ''}`)
   const selected = props.route.focus ?? null
+  // A container with more components than a diagram can show opens on its main ones. Every one of
+  // them is drawn when that is asked for, or when what is selected is not among the main ones.
+  const container = componentOf(asked)
+  const main = useApi<SceneResponse>(container && !props.route.all ? `/api/scene?view=${encodeURIComponent(mainLevel(container))}${q}${reload ? `#${reload}` : ''}` : null)
+  const tryMain = !!container && !props.route.all && !main.error
+  const inMain = !selected || (main.data?.model.nodes ?? []).some((n) => n.id === selected)
+  const useMain = tryMain && !!main.data && inMain
+  const level = useMain ? mainLevel(container!) : asked
+  const full = useApi<SceneResponse>(tryMain && (!main.data || inMain) ? null : `/api/scene?view=${encodeURIComponent(asked)}${q}${reload ? `#${reload}` : ''}`)
+  const scene = useMain ? main : tryMain && !main.data ? { data: undefined, error: undefined } : full
   // Only the latest version can be arranged: an arrangement is for the architecture as it is now.
   const editable = props.editable && props.version === null
 
@@ -62,7 +71,7 @@ export function Explorer(props: {
   const delta = useMemo(() => (diff.data ? toDelta(diff.data, before.data) : undefined), [diff.data, before.data])
 
   const select = (id: string | null) =>
-    props.go({ screen: 'explorer', level: props.route.level, focus: id ?? undefined, q: props.route.q, dim: props.route.dim, from: props.route.from }, { replace: true })
+    props.go({ screen: 'explorer', level: props.route.level, focus: id ?? undefined, q: props.route.q, dim: props.route.dim, all: props.route.all, from: props.route.from }, { replace: true })
 
   return (
     <div className="explorer">
@@ -127,12 +136,16 @@ function Toolbar(props: {
   // The Components and Data tabs open the selected container when it has them, else the one on
   // screen, else the first that does.
   const byFolder = structureOf(props.level) !== undefined
-  const lens = componentOf(props.level) || byFolder ? 'component' : dataOf(props.level) ? 'data' : props.level
+  const onMain = mainOf(props.level) !== undefined
+  const lens = componentOf(props.level) || byFolder || onMain ? 'component' : dataOf(props.level) ? 'data' : props.level
   const inside = insideOf(props.level)
   const openings = { component: props.scene?.components ?? [], data: props.scene?.data ?? [] }
   const targetOf = (list: Opening[]) => list.find((o) => o.id === props.route.focus)?.id ?? list.find((o) => o.id === inside)?.id ?? list[0]?.id
   const target = { component: targetOf(openings.component), data: targetOf(openings.data) }
   const tab = lens
+  const hasMain = !!inside && (props.scene?.main ?? []).some((o) => o.id === inside)
+  const hasFolders = !!inside && (props.scene?.structure ?? []).some((o) => o.id === inside)
+  const allCount = (props.scene?.components ?? []).find((o) => o.id === inside)?.components ?? ''
   return (
     <div className="explorer-toolbar">
       <div className="segmented" role="tablist" aria-label="C4 level">
@@ -164,14 +177,26 @@ function Toolbar(props: {
           noun={lens === 'data' ? 'tables' : 'components'}
         />
       )}
-      {inside && lens === 'component' && (props.scene?.structure ?? []).some((o) => o.id === inside) && (
-        <div className="segmented" role="tablist" aria-label="How the code is grouped" title="The same code, by what it is for or by where its files are">
-          <button className={byFolder ? '' : 'on'} role="tab" aria-selected={!byFolder} onClick={() => props.go({ screen: 'explorer', level: componentLevel(inside), from: props.route.from })}>
-            By feature
+      {inside && lens === 'component' && (hasMain || hasFolders) && (
+        <div className="segmented" role="tablist" aria-label="Which components are shown" title="The same code: the few components that handle the most, every component, or its folders">
+          {hasMain && (
+            <button className={onMain ? 'on' : ''} role="tab" aria-selected={onMain} onClick={() => props.go({ screen: 'explorer', level: componentLevel(inside), from: props.route.from })}>
+              Main
+            </button>
+          )}
+          <button
+            className={!onMain && !byFolder ? 'on' : ''}
+            role="tab"
+            aria-selected={!onMain && !byFolder}
+            onClick={() => props.go({ screen: 'explorer', level: componentLevel(inside), all: hasMain ? '1' : undefined, from: props.route.from })}
+          >
+            {hasMain ? `All ${allCount}` : 'By feature'}
           </button>
-          <button className={byFolder ? 'on' : ''} role="tab" aria-selected={byFolder} onClick={() => props.go({ screen: 'explorer', level: structureLevel(inside), from: props.route.from })}>
-            By folder
-          </button>
+          {hasFolders && (
+            <button className={byFolder ? 'on' : ''} role="tab" aria-selected={byFolder} onClick={() => props.go({ screen: 'explorer', level: structureLevel(inside), from: props.route.from })}>
+              By folder
+            </button>
+          )}
         </div>
       )}
       <label className={`tool compare ${props.route.from !== undefined ? 'on' : ''}`} title="Mark on the diagram what changed since another version">
@@ -201,7 +226,7 @@ function Toolbar(props: {
       <a
         className="tool"
         href={source(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
-        download={`${props.level.replace(/^(component|data|structure):[^:]*:/, '$1-').replace(/[:/]/g, '-')}.svg`}
+        download={`${props.level.replace(/^(component|data|structure|main):[^:]*:/, '$1-').replace(/[:/]/g, '-')}.svg`}
         title="The same scene, as the committed SVG"
       >
         Export SVG
@@ -608,7 +633,8 @@ function ZoomControls({ editable }: { editable: boolean }) {
 function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; selected: string | null; route: Route; delta?: Delta }) {
   const n = scene.model.nodes?.length ?? 0
   const e = scene.model.edges?.length ?? 0
-  const parts = componentOf(scene.view) ?? structureOf(scene.view)
+  const parts = componentOf(scene.view) ?? structureOf(scene.view) ?? mainOf(scene.view)
+  const ofAll = scene.components.find((o) => o.id === mainOf(scene.view))?.components
   const tables = dataOf(scene.view)
   const url = [`level=${scene.view}`, selected && `focus=${selected}`, route.q && `q=${route.q}`, route.dim && 'dim=1', route.from !== undefined && `from=${route.from}`]
     .filter(Boolean)
@@ -617,7 +643,9 @@ function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; se
     <div className="explorer-status">
       <span>
         {parts
-          ? `${n} ${structureOf(scene.view) ? 'folders' : 'components'} of ${scene.model.name} · ${e} uses, each an import`
+          ? mainOf(scene.view)
+            ? `${n} of ${scene.model.name}'s ${ofAll} components — the ones that handle the most routes, pages and jobs · ${e} uses among them`
+            : `${n} ${structureOf(scene.view) ? 'folders' : 'components'} of ${scene.model.name} · ${e} uses, each an import`
           : tables
             ? `${n} tables of ${scene.model.name} · ${e} foreign keys`
             : `${n} elements · ${e} relationships`}

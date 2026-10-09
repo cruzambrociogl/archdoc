@@ -63,7 +63,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
         const active = it.view
           ? inExplorer && level === it.view.level && (route.focus ?? '') === (it.view.focus ?? '') && (route.q ?? '') === (it.view.find ?? '') && (route.dim === '1') === !!it.view.dim
           : it.level
-            ? inExplorer && (level === it.level || (it.label === 'Components' && level.startsWith('component:')) || (it.label === 'Data' && level.startsWith('data:')))
+            ? inExplorer && (level === it.level || (it.label === 'Components' && (level.startsWith('component:') || level.startsWith('structure:'))) || (it.label === 'Data' && level.startsWith('data:')))
             : it.screen === route.screen
         return (
           <div key={i}>

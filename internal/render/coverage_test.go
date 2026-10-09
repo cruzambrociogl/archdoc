@@ -30,3 +30,40 @@ func TestTracedCountsWhatAFileOrTheCatalogStates(t *testing.T) {
 		t.Errorf("2499 of 2500 is %s — it must not round up to 100%%", got)
 	}
 }
+
+// A container with more components than a diagram shows has a main view: the ones that handle the
+// most entries, then the largest, with only the uses among them — and a small container has none.
+func TestMainViewKeepsTheComponentsThatHandleTheMost(t *testing.T) {
+	at := archdoc.Provenance{File: "compose.yml", Line: 1}
+	m := archdoc.Model{Name: "x", Nodes: []archdoc.Node{
+		{ID: "svc:api", Name: "api", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
+		{ID: "svc:small", Name: "small", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
+		{ID: "cmp:small/only", Name: "only", Kind: archdoc.Component, Parent: "svc:small", Files: []string{"a.ts"}, Prov: at},
+	}}
+	for i := 0; i < MainParts+4; i++ {
+		id := "cmp:api/c" + string(rune('a'+i))
+		m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: id[8:], Kind: archdoc.Component, Parent: "svc:api", Lines: 100 - i, Files: []string{id + ".ts"}, Prov: at})
+	}
+	last := "cmp:api/c" + string(rune('a'+MainParts+3)) // the smallest, and the only one that handles a route
+	m.Entries = []archdoc.Entry{{ID: "route:api GET /x", Kind: "http", Method: "GET", Path: "/x", Container: "svc:api", Component: last, Prov: at}}
+	m.Edges = []archdoc.Edge{
+		{From: last, To: "cmp:api/ca", Label: "uses", Weight: 2, Prov: []archdoc.Provenance{at}},
+		{From: "cmp:api/ca", To: "cmp:api/c" + string(rune('a'+MainParts+2)), Label: "uses", Weight: 1, Prov: []archdoc.Provenance{at}},
+	}
+	if got := Mains(m); len(got) != 1 || got[0] != "svc:api" {
+		t.Fatalf("mains %v, want only the large container", got)
+	}
+	v, ok := ViewOf(m, MainPrefix+"svc:api")
+	if !ok || len(v.Model.Nodes) != MainParts {
+		t.Fatalf("main view: %v, %d components", ok, len(v.Model.Nodes))
+	}
+	if _, kept := v.Model.Node(last); !kept {
+		t.Error("the component that handles a route was left out for being small")
+	}
+	if len(v.Model.Edges) != 1 || v.Model.Edges[0].From != last {
+		t.Errorf("edges %+v, want only the use between two components shown", v.Model.Edges)
+	}
+	if _, ok := ViewOf(m, MainPrefix+"svc:small"); ok {
+		t.Error("a container of one component has a main view")
+	}
+}
