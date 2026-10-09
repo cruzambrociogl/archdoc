@@ -1,0 +1,31 @@
+# The drift set's starting point (AC-6): a small system that every case in
+# cmd/archdoc/drift_test.go changes in one way. It stands for someone's repository.
+name: shop
+
+services:
+  api:
+    build: ./api
+    ports:
+      - '8080:3000'
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://shop:secret@db:5432/shop
+      CACHE_HOST: cache
+      MAIL_URL: smtp://mail.example.com:587
+
+  worker:
+    image: example/worker:1.0
+    depends_on:
+      - cache
+    environment:
+      SEARCH_URL: http://search:9200
+
+  search:
+    image: elasticsearch:8.13.0
+
+  db:
+    image: postgres:16
+
+  cache:
+    image: redis:7

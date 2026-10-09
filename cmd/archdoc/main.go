@@ -28,6 +28,8 @@ commands:
   scan <path>      extract services from a repository's configuration
   generate <path>  write C4 diagrams and their evidence into the repository
   history <path>   list every version archdoc has recorded
+  diff <path> <commit> [<commit>]
+                   what changed in the architecture between two commits, or since one
   runs <path>      list every run that used the network, and what it cost
   serve <path>     open the web app for a repository archdoc has documented
   export <path>    build the published site: the web app as static files, for a team
@@ -46,6 +48,9 @@ flags for export:
 
 flags for runs:
   --show <run>     print exactly what that run sent, byte for byte
+
+flags for diff:
+  --json           emit the comparison as JSON
 
 flags for history:
   -n <count>       how many versions to list (default 20)
@@ -81,6 +86,9 @@ func run(args []string, out io.Writer) error {
 
 	case "history":
 		return history(args[1:], out)
+
+	case "diff":
+		return diff(args[1:], out)
 
 	case "runs":
 		return runs(args[1:], out)

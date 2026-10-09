@@ -291,6 +291,8 @@ export interface DiffResponse {
     changed: Change[] | null
     added_entries?: Entry[] | null
     removed_entries?: Entry[] | null
+    /** The same element under another identity: renamed, or carried across the system boundary. */
+    moved?: { class: 'renamed' | 're-bounded'; from: string; to: string; was: string; is: string; why: string }[] | null
   }
 }
 
