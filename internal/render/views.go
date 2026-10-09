@@ -304,6 +304,6 @@ func relational(tech string) bool {
 
 // ComponentFile reports whether name is a file archdoc writes for a component or a data view.
 func ComponentFile(name string) bool {
-	return (strings.HasPrefix(name, "component-") || strings.HasPrefix(name, "data-") || strings.HasPrefix(name, "structure-")) &&
+	return (strings.HasPrefix(name, "component-") || strings.HasPrefix(name, "data-") || strings.HasPrefix(name, "structure-") || strings.HasPrefix(name, "main-")) &&
 		(strings.HasSuffix(name, ".svg") || strings.HasSuffix(name, ".mmd"))
 }
