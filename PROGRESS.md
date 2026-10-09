@@ -35,7 +35,7 @@ on plan against code. The order agreed: (1) small projects accepted ✓, (2) the
 
 | Subject | State |
 |---|---|
-| `immich` | Pinned `cbf5d83a693d0328282ddb0f5d398c351d92558e`, one commit deep. Generated, labelled, explained: 15 elements, 17 relationships, 173 components, 68 tables, 442 ways in, 165 explanations, version 30 |
+| `immich` | Pinned `cbf5d83a693d0328282ddb0f5d398c351d92558e`, one commit deep. Generated, labelled, explained: 15 elements, 17 relationships, 179 components, 68 tables, 442 ways in, 165 explanations, version 30 |
 | `small-script`, `small-page`, `small-app` | Written for the purpose on 9 Oct, generated, never labelled or explained |
 | Mastodon, the FastAPI template, Supabase | Not on this machine. The first two were deleted; Supabase was never cloned |
 
