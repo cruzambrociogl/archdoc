@@ -93,6 +93,8 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		}
 		if lang := languageOf(rel, python); lang != "" && !isTest(d.Name()) && !isConfig(d.Name()) {
 			paths = append(paths, rel)
+		} else if app.Loose && !python && isPage(rel) {
+			paths = append(paths, rel) // a page with no manifest: its own <script> blocks are its code
 		}
 		return nil
 	})
@@ -126,13 +128,17 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		if dart {
 			f.Language = "Dart"
 		}
+		if f.Language == "" && isPage(p) {
+			f.Language = "HTML"
+		}
 		var got facts
 		switch f.Language {
 		case "Dart":
 			got = dartFacts(content)
 		case "Python":
 			got, f.Partial = pythonFacts(content, p)
-		case "Svelte":
+		case "Svelte", "HTML":
+			// A page's <script> blocks are read as a Svelte component's are; the markup is not.
 			got, f.Partial = svelteFacts(content, p)
 		default:
 			got, f.Partial = scriptFacts(content, p, f.Language, 0)
@@ -269,6 +275,10 @@ func languageOf(rel string, python bool) string {
 		return "Svelte"
 	}
 	return ""
+}
+
+func isPage(rel string) bool {
+	return strings.HasSuffix(rel, ".html") || strings.HasSuffix(rel, ".htm")
 }
 
 // isTest reports a test file by its name: foo.spec.ts, foo.test.tsx, test_foo.py, foo_test.py,

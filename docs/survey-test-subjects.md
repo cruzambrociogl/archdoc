@@ -835,3 +835,10 @@ Superseding §3.5:
 4. **Fast filesystem traversal over ~17k paths**, with pruning. *(new)*
 5. **Ordered, stable data structures** for AC-7 byte-identical output. *(unchanged)*
 6. **A template-detection position** — skip and record, do not extract. *(new)*
+
+## Small subjects, written for the purpose (9 Oct)
+
+Kept in `subjects/` beside Immich, not cloned from anywhere: `small-script` (one Python script, no
+manifest, calls an exchange-rate API), `small-page` (one HTML page with an inline script and one it
+loads, no manifest), `small-app` (a six-file React app, two pages, Supabase as its backend). They
+exist to check the vision's "whatever its size" (D-13); see `docs/decisions.md`, 9 Oct.

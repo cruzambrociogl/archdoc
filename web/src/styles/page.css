@@ -24,6 +24,16 @@
 .lede .mono {
   font-size: 14px;
 }
+/* A small project's story: the first line as the lede, the rest as plain sentences, each cited. */
+.story {
+  margin: 0 0 22px;
+}
+.story .story-line {
+  margin: 7px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
 .lede-note {
   display: flex;
   align-items: center;

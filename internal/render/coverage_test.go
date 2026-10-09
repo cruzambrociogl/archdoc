@@ -139,8 +139,8 @@ func TestATinyProjectIsOnePage(t *testing.T) {
 		{From: "app:tool", To: "ext:api.example.com", Label: "calls", Technology: "https", Prov: []archdoc.Provenance{{File: "report.py", Line: 5}}},
 	}, Entries: []archdoc.Entry{{ID: "command:tool python report.py", Kind: "command", Method: "CMD", Path: "python report.py", Prov: archdoc.Provenance{File: "report.py", Line: 20}}}}
 	facts := archdoc.FactSet{Sources: []archdoc.Source{{App: ".", Root: ".", Files: []archdoc.SourceFile{{Path: "report.py"}}}}}
-	if !Tiny(m, facts) || len(PlanFor(m, facts)) != 0 {
-		t.Fatalf("tiny %v, %d sections planned", Tiny(m, facts), len(PlanFor(m, facts)))
+	if !Tiny(m) || len(PlanFor(m, facts)) != 0 {
+		t.Fatalf("tiny %v, %d sections planned", Tiny(m), len(PlanFor(m, facts)))
 	}
 	page := Index(m, nil, Meta{})
 	for _, want := range []string{"A small project: 1 file, 21 lines of Python", "**run** `python report.py`", "`report.py:20`",
@@ -155,9 +155,18 @@ func TestATinyProjectIsOnePage(t *testing.T) {
 	if len(Stubs(m, PlanFor(m, facts), Meta{})) != 0 {
 		t.Error("a tiny project was given sections to fill in")
 	}
-	withCompose := facts
-	withCompose.Source = "docker-compose.yml"
-	if Tiny(m, withCompose) {
-		t.Error("a project with a Compose file is not tiny")
+	deployed := m
+	deployed.Nodes = append([]archdoc.Node(nil), m.Nodes...)
+	deployed.Nodes[1].ID = "svc:tool"
+	if Tiny(deployed) {
+		t.Error("a service a Compose file runs is not a tiny project")
+	}
+	story := Story(m)
+	if len(story) < 4 || story[0].Text != "tool is a tool you run: 1 file, 21 lines of Python." ||
+		story[1].Text != "You run `python report.py`." || story[2].Text != "It calls api.example.com over https." {
+		t.Errorf("story %+v", story)
+	}
+	if !strings.Contains(page, "## In short") || !strings.Contains(page, "You run `python report.py`.") {
+		t.Errorf("the page does not open with the story:\n%s", page)
 	}
 }

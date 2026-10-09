@@ -32,7 +32,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
     ...(inExplorer
       ? ([
           { label: 'Context', screen: 'explorer', level: 'context', depth: 2 },
-          { label: 'Containers', screen: 'explorer', level: 'container', depth: 2 },
+          ...(s.tiny ? [] : [{ label: 'Containers', screen: 'explorer', level: 'container', depth: 2 } as Item]),
           ...(firstInside ? [{ label: 'Components', screen: 'explorer', level: componentLevel(firstInside), depth: 2 }] : []),
           ...(props.coverage?.tables_in?.length ? [{ label: 'Data', screen: 'explorer', level: dataLevel(props.coverage.tables_in[0]), depth: 2 }] : []),
         ] as Item[])

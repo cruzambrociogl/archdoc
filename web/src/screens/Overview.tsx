@@ -61,7 +61,18 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
       </Eyebrow>
       <h1 className="page-title">{props.summary.name}</h1>
 
-      {summary ? (
+      {props.summary.tiny && props.summary.story ? (
+        // A small project is told, not counted: what it is, how it is used, what it reaches.
+        <div className="story">
+          {props.summary.story.map((l, i) => (
+            <p key={i} className={i === 0 ? 'lede' : 'story-line'}>
+              {l.interpreted && <TruthMark state="interpreted" />}{' '}
+              <span className={l.interpreted ? 'interp-sentence' : ''}>{l.text.split('`').map((part, j) => (j % 2 ? <span key={j} className="mono">{part}</span> : part))}</span>{' '}
+              {l.provenance?.file && <Cite p={l.provenance} compact />}
+            </p>
+          ))}
+        </div>
+      ) : summary ? (
         <>
           <p className="lede">
             <span className={system?.description_provenance?.origin === 'model' ? 'interp-sentence' : ''}>{summary}</span>
@@ -84,10 +95,11 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
       )}
 
       <div className="stat-strip">
-        <Stat n={containers} label="containers" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />
-        <Stat n={stores} label="data stores and queues" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />
+        {/* One small application: "1 container, 0 data stores" is a system's vocabulary, not its. */}
+        {!props.summary.tiny && <Stat n={containers} label="containers" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />}
+        {!props.summary.tiny && <Stat n={stores} label="data stores and queues" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />}
         <Stat n={externals} label="external systems" onClick={() => props.go({ screen: 'explorer', level: 'context' })} />
-        <Stat n={edges.length} label="relationships" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />
+        {!props.summary.tiny && <Stat n={edges.length} label="relationships" onClick={() => props.go({ screen: 'explorer', level: 'container' })} />}
         {parts.size > 0 && (
           <Stat
             n={parts.size}

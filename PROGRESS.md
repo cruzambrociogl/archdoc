@@ -163,6 +163,7 @@ are in `docs/decisions.md` under the same date.
 | A project with no manifest is read from its files: scripts, or a page and its scripts | A one-file Python script and a one-page site: both documented | `a0c3bda` |
 | A tiny project gets one page, no chapters, nothing to fill in (D-13) | 21 files written → 8; the page says what it is, does, reaches and is made of | `a0c3bda` |
 | Hosted backends in the catalog; a named URL that is called; Next's page rule only for Next; the root application named | The small app: Supabase drawn, 2 pages for 2 (was 4), the script's API drawn (was "computed at run time") | `a0c3bda` |
+| A small project told as a story, on its page and in the app's Overview; the app without a containers level for it; a page's inline scripts read | `subjects/small-script`, `small-page`, `small-app`: each a cited story of four to six sentences | COMMIT |
 
 **Not done** — known, and left:
 
@@ -174,8 +175,8 @@ are in `docs/decisions.md` under the same date.
 | Earlier `--explain` runs keep their old label | Runs 1–7 in Immich's log still read `structure-only`; the log is a record and was not rewritten |
 | A person choosing a container's main components | The main view picks by count of routes, pages, commands and jobs handled. A rule in `rules.yaml` naming them would be better and is not built |
 | "What the AI did" | The vision's change view: a summary of a commit or a session a person reads (F-38), and plan against code (F-40, F-41). `archdoc diff` is the base; nothing is built on it |
-| A guided story for someone who does not read code | The one page for a small project is plain, but it is reference, not the top-down story the vision gives a vibe coder first |
-| Inline scripts in a page; the app's navigation for a tiny project | A page's `<script>` blocks are not read, only the files it loads. The app shows a one-script project with the same navigation as Immich |
+| A story for a system | A small project opens on a cited story; Immich still opens on counts. The vision's guided story for a large system — where to start, what matters — is not built |
+| A project an AI actually built | The three small subjects were written to test with. Nothing vibe-coded has been through archdoc |
 | The batch API for `--explain` | Half price, results later; needs the run reworked. Left out on purpose at $0.005 a component |
 | Queues in Python | Celery, RQ: not followed. Only decorator-marked TypeScript jobs and events are |
 | Migrations in a tool's own DSL | Alembic, Knex, Rails' `schema.rb`: not read. Only SQL is |

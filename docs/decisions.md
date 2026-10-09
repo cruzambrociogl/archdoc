@@ -973,3 +973,18 @@ its name, not by ".". Measured on the three test projects: all documented, each 
 script's API, the page's fetch and the app's Supabase drawn, two pages reported for two.
 Not done: inline `<script>` in a page is not read; a tiny project in the app still shows the full
 navigation; the one page is not yet the guided story the vision gives a vibe coder.
+
+**2026-10-09 — A small project is told as a story, and its page's own scripts are read**
+What was left of the two steps. The one page and the app's Overview now open with the same story,
+assembled from facts in the order someone who did not write the code asks: what is this, how do I
+use it, what does it talk to, what does it keep, what is it made of, what is it built on — each
+sentence cited ("You run `python report.py`." at `report.py:20`). Only the first line can be a
+model's, where `--label` wrote a description, and it is marked. This is the vision's "a vibe coder
+starts from a story" (§2.7), for the size where a story fits; a system still opens on its numbers.
+For such a project the app drops what only a system needs: the containers level, and counts of
+containers, stores and relationships. "Tiny" is decided from the model alone, so the app asks the
+same question of any stored version. A page with no manifest is itself read: its `<script>` blocks
+are its code, as a Svelte component's are, and a call one makes is cited at its line in the page.
+Three test subjects are kept beside Immich in `subjects/`: `small-script`, `small-page`,
+`small-app`. They are written for the purpose; no project an AI actually built has been through
+archdoc yet, and that is the next thing to learn from.

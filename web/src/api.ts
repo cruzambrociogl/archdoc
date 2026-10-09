@@ -113,6 +113,9 @@ export interface Summary {
   versions: number
   runs: number
   frontend_built: boolean
+  /** A project small enough for one page: told as a story, shown without the levels a system needs. */
+  tiny?: boolean
+  story?: { text: string; provenance?: Provenance; interpreted?: boolean }[]
 }
 
 export interface Version {
@@ -185,6 +188,8 @@ export interface SceneResponse {
   components: Opening[]
   /** Containers whose code declares tables; `components` here counts their tables. */
   data: Opening[]
+  /** One small application: the containers level would only repeat the context. */
+  tiny?: boolean
   /** Containers with more components than a diagram shows: they open on their main ones. */
   main?: Opening[]
   /** Containers whose components are features, and so have a by-folder view too; counts their folders. */

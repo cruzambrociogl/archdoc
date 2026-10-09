@@ -777,14 +777,19 @@ func TestSmallProjectsAreRead(t *testing.T) {
 	}
 
 	root = tree(t, map[string]string{
-		"index.html": "<!doctype html>\n<html><head>\n<title>My todos</title></head><body></body></html>\n",
+		"index.html": "<!doctype html>\n<html><head>\n<title>My todos</title></head><body>\n<script>\n  fetch('https://inline.example.com/hits')\n</script>\n<script src=\"src/app.js\"></script></body></html>\n",
 		"src/app.js": "const API = 'https://todos.example.com/api'\nconst other = somewhere()\nfetch(API)\nfetch(other)\n",
 	})
 	src, ok = Read(root, archdoc.App{Name: "x", Dir: ".", Language: "JavaScript", Loose: true}, nil)
-	if !ok || src.Root != "." || len(src.Files) != 1 {
-		t.Fatalf("page: ok %v, root %q, %d files — with no manifest, src/ is not a convention to assume", ok, src.Root, len(src.Files))
+	if !ok || src.Root != "." || len(src.Files) != 2 {
+		t.Fatalf("page: ok %v, root %q, %d files — with no manifest, src/ is not a convention to assume, and the page is read too", ok, src.Root, len(src.Files))
 	}
-	f = src.Files[0]
+	// The page's own <script> block is its code: what it calls is read, at its line in the page.
+	if page := src.Files[0]; page.Path != "index.html" || page.Language != "HTML" || len(page.Hosts) != 1 ||
+		page.Hosts[0].Host != "inline.example.com" || !page.Hosts[0].Called || page.Hosts[0].Prov.Line != 5 {
+		t.Errorf("the page's inline script: %+v", src.Files[0])
+	}
+	f = src.Files[1]
 	if len(f.Hosts) != 1 || !f.Hosts[0].Called || len(f.Calls) != 1 || f.Calls[0].Target != "other" {
 		t.Errorf("hosts %+v, unresolved calls %+v", f.Hosts, f.Calls)
 	}

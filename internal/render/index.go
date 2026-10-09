@@ -155,16 +155,25 @@ func onePage(m archdoc.Model, meta Meta) string {
 		files += len(n.Files)
 		lines += n.Lines
 	}
-	if m.Description != "" {
-		fmt.Fprintf(&b, "*%s*\n\n", m.Description)
-	}
 	fmt.Fprintf(&b, "A small project: %d %s, %d lines", files, plural(files, "file", "files"), lines)
 	if app.Technology != "" {
 		fmt.Fprintf(&b, " of %s", app.Technology)
 	}
 	b.WriteString(". This page is all of its documentation;\nevery line below cites where in the code it comes from.\n\n")
 
-	b.WriteString("## What it is\n\n")
+	b.WriteString("## In short\n\n")
+	for _, l := range Story(m) {
+		text := l.Text
+		if l.Interpreted {
+			text = "*" + text + "*"
+		}
+		if l.Prov.Known() {
+			text += " <sup>`" + l.Prov.String() + "`</sup>"
+		}
+		b.WriteString(text + "\n")
+	}
+
+	b.WriteString("\n## What it is\n\n")
 	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(m.Context(), false)))
 
 	if len(m.Entries) > 0 {

@@ -198,12 +198,18 @@ func (s *Server) summary(w http.ResponseWriter, r *http.Request) {
 	runs, _ := h.Runs(1000)
 	_, built := web.Assets()
 
-	send(w, map[string]any{
+	out := map[string]any{
 		"name": latest.Model.Name, "root": s.root, "source": latest.Source,
 		"commit": latest.Commit, "latest_version": latest.ID,
 		"versions": len(versions), "runs": len(runs),
 		"frontend_built": built || web.DevServer() != "",
-	})
+	}
+	// A project small enough for one page is told as a story, and shown without the levels a
+	// system needs (vision D-13).
+	if render.Tiny(latest.Model) {
+		out["tiny"], out["story"] = true, render.Story(latest.Model)
+	}
+	send(w, out)
 }
 
 func (s *Server) versions(w http.ResponseWriter, r *http.Request) {
@@ -288,6 +294,8 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 		"components": opens(v.Model, archdoc.Component, v.Model.Components()),
 		// The containers whose code declares tables: they open onto a data view.
 		"data": opens(v.Model, archdoc.Table, v.Model.Datas()),
+		// A project of one small application has no containers level worth a tab of its own.
+		"tiny": render.Tiny(v.Model),
 		// The containers with more components than a diagram shows, which open on their main ones.
 		"main": opens(v.Model, archdoc.Component, render.Mains(v.Model)),
 		// The containers whose components are features, and so have a by-folder view as well.

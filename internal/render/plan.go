@@ -1,6 +1,10 @@
 package render
 
-import "github.com/cruzambrociogl/archdoc/internal/archdoc"
+import (
+	"strings"
+
+	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+)
 
 // A document set proportionate to the repository it describes.
 //
@@ -24,7 +28,7 @@ import "github.com/cruzambrociogl/archdoc/internal/archdoc"
 
 // PlanFor returns the sections to emit for this model, in arc42 order.
 func PlanFor(m archdoc.Model, facts archdoc.FactSet) []Section {
-	if Tiny(m, facts) {
+	if Tiny(m) {
 		return nil // one page says all of it: see onePage
 	}
 	view := m.Container()
@@ -61,22 +65,22 @@ func PlanFor(m archdoc.Model, facts archdoc.FactSet) []Section {
 const tinyFiles = 30
 
 // Tiny reports a project small enough that twelve arc42 chapters would be absurd (vision D-13): a
-// script, a page, a first version of an app. One application, nothing deployed beside it — no
-// store, no second container, no Compose file — and a few files of code. It gets one page; the
-// chapters appear when it grows into them.
-func Tiny(m archdoc.Model, facts archdoc.FactSet) bool {
-	if facts.Source != "" || len(facts.Services) > 0 {
-		return false
-	}
-	containers := 0
+// script, a page, a first version of an app. One application found by its own files — not a
+// service some Compose file runs — nothing deployed beside it, and a few files of code. It gets one
+// page; the chapters appear when it grows into them. Decided from the model alone, so the app
+// asks the same question of a stored version.
+func Tiny(m archdoc.Model) bool {
+	containers, files := 0, 0
 	for _, n := range m.Nodes {
-		if n.Kind.Container() {
+		switch {
+		case n.Kind.Container():
 			containers++
+			if !strings.HasPrefix(n.ID, "app:") {
+				return false
+			}
+		case n.Kind == archdoc.Component:
+			files += len(n.Files)
 		}
-	}
-	files := 0
-	for _, s := range facts.Sources {
-		files += len(s.Files)
 	}
 	return containers == 1 && files > 0 && files <= tinyFiles
 }

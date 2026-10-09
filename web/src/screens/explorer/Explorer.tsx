@@ -110,7 +110,7 @@ export function Explorer(props: {
             reload={() => setReload((n) => n + 1)}
             open={(id) =>
               level === 'context'
-                ? props.go({ screen: 'explorer', level: 'container', from: props.route.from })
+                ? props.go({ screen: 'explorer', level: scene.data?.tiny && scene.data.components[0] ? componentLevel(scene.data.components[0].id) : 'container', from: props.route.from })
                 : props.go({ screen: 'explorer', level: componentLevel(id), from: props.route.from })
             }
           />
@@ -149,7 +149,9 @@ function Toolbar(props: {
   return (
     <div className="explorer-toolbar">
       <div className="segmented" role="tablist" aria-label="C4 level">
-        {levels.map(([id, label]) => (
+        {levels
+          .filter(([id]) => !(id === 'container' && props.scene?.tiny))
+          .map(([id, label]) => (
           <button
             key={id}
             role="tab"
