@@ -25,6 +25,8 @@ export interface BoundaryData extends Record<string, unknown> {
   label: string
   system: boolean
   internal: boolean
+  /** A column of the data-flow view, not a boundary. */
+  stage: boolean
 }
 
 export interface RouteData extends Record<string, unknown> {
@@ -157,7 +159,7 @@ export function toFlow(
       position: { x: g.rect.x, y: g.rect.y },
       width: g.rect.w,
       height: g.rect.h,
-      data: { label: g.label || g.name, system: !!g.system, internal: !!g.internal } satisfies BoundaryData,
+      data: { label: g.label || g.name, system: !!g.system, internal: !!g.internal, stage: !!g.stage } satisfies BoundaryData,
       selectable: false,
       draggable: opts.editable,
       focusable: false,

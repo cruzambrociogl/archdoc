@@ -311,6 +311,19 @@
 .boundary-network {
   background: rgba(255, 255, 255, 0.35);
 }
+/* A data-flow stage is a column: shaded, no line, its name centred over it. */
+.boundary-stage {
+  border: 0;
+  border-radius: 6px;
+  background: var(--boundary-fill);
+  opacity: 0.7;
+}
+.boundary-stage .boundary-label {
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-weight: 600;
+}
 .boundary-label {
   position: absolute;
   left: 12px;

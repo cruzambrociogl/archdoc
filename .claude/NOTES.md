@@ -78,6 +78,12 @@ raised, not quietly promoted over it.
       name; it now says the container and counts parts under it — 9 Oct
 
 ---
+- [ ] Data flow, next steps (9 Oct): (b) one table's lineage — which ways in write it, which
+  components and jobs touch it, who reads it — from `Model.Access` and the flows; what a client's
+  arrow carries (the OpenAPI operations it calls, once those are tied to the client); the jobs on a
+  queue; PII marks as interpretation; the main path emphasised, as Archify does.
+- [ ] Long external names overflow their box in every SVG ("Telemetry collector (OpenTelemetry)",
+  seen on the data-flow view): the name is not wrapped or clipped as descriptions are.
 
 ## Recently resolved
 

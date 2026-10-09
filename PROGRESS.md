@@ -220,6 +220,15 @@ are in `docs/decisions.md` under the same date.
 | Hosted backends in the catalog; a named URL that is called; Next's page rule only for Next; the root application named | The small app: Supabase drawn, 2 pages for 2 (was 4), the script's API drawn (was "computed at run time") | `a0c3bda` |
 | A small project told as a story, on its page and in the app's Overview; the app without a containers level for it; a page's inline scripts read | `subjects/small-script`, `small-page`, `small-app`: each a cited story of four to six sentences | `493ef72` |
 
+**9 Oct, data flow** — F-16, brought back at Cruz's request after looking at Archify's data-flow diagrams (`docs/decisions.md`). Option (a) of two: the whole system at container level; (b), one table's lineage, is next on the same machinery.
+
+| What | Measured | Commit |
+|---|---|---|
+| Every query in each container's code gathered into `Model.Access` — component, table, operation, count, cited — not only what a flow reaches | Immich: 260 accesses, 250 to a declared table, all in the server | — |
+| A data-flow view: the containers in five stages — People, Clients, Services, Stores, Outside — set by a rule from kind and callers; drawn left to right, a column per stage, in the SVG, Mermaid, the documents and the explorer's Data flow tab | Immich: 15 boxes, 17 arrows; byte-identical across runs | — |
+| The arrow into the store a container's tables live in names what its code writes and reads there, citing a query of each table | Immich: "writes asset, user, asset_face and 49 more tables" | — |
+| Fixed: a layout's unseen arrows — the ones that fold a wide row, and now the ones that keep stages in order — were drawn as stray arrows. Layout version 12 | — | — |
+
 **Not done** — known, and left:
 
 | What | Why it is open |
@@ -239,6 +248,8 @@ are in `docs/decisions.md` under the same date.
 | Readers verified on fixtures only | Express, Next.js, React Router, Prisma, SQLAlchemy, Typer and Click; SQL migrations; Python class methods beyond Immich's ML service. No real repository has been through them |
 | No side-by-side of `--label` on Sonnet 5.5 against Opus 5.5 | Sonnet's output read correctly; the comparison was never made |
 | The other test subjects | Mastodon and the FastAPI template were deleted and not cloned again; Supabase never was (AC-9) |
+| Data flow, beyond the store | Only the arrow into a relational store says what moves. A client's arrow to the server, a queue's jobs, a call to the ML service still carry the container view's verb. Sensitivity (PII) labels, the main path emphasised, and one table's lineage (option b) are not built |
+| A component's tables on its page | `Model.Access` now holds them, from all the code; the page does not show them yet (`planned.ts`, data-touched) |
 | `develop` → `main` | `main` holds the initial commit only; no pull request yet, by choice |
 | The published site, and a demo walk-through | Deferred to demo preparation, by choice |
 | Which of Archify's diagrams archdoc should also draw | Raised 8 Oct, not settled |

@@ -225,6 +225,7 @@ func (s *Server) summary(w http.ResponseWriter, r *http.Request) {
 	}
 	counts["flows"], counts["entries"], counts["unresolved"] = len(latest.Model.Flows), len(latest.Model.Entries), len(latest.Model.Unresolved)
 	out["counts"], out["kinds"] = counts, orEmpty(kinds)
+	out["dataflow"] = render.HasDataFlow(latest.Model)
 	send(w, out)
 }
 
@@ -312,6 +313,8 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 		"data": opens(v.Model, archdoc.Table, v.Model.Datas()),
 		// A project of one small application has no containers level worth a tab of its own.
 		"tiny": render.Tiny(v.Model),
+		// The system's containers by stage, from who puts data in to where it is kept.
+		"dataflow": render.HasDataFlow(v.Model),
 		// The containers with more components than a diagram shows, which open on their main ones.
 		"main": opens(v.Model, archdoc.Component, render.Mains(v.Model)),
 		// The containers whose components are features, and so have a by-folder view as well.

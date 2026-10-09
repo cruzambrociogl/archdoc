@@ -53,6 +53,11 @@ func Layout(ctx context.Context, view archdoc.Model, group bool) (archdoc.Layout
 		return parseLayout(out.Bytes(), back, clusters)
 	}
 
+	// A data-flow view reads left to right, a column per stage, whatever shape that makes.
+	if len(view.Stages) > 0 {
+		return lay("LR")
+	}
+
 	// Top to bottom first: it reads as C4 diagrams usually do, people above the system.
 	tall, err := lay("TB")
 	if err != nil {
@@ -152,7 +157,7 @@ func distance(a float64) float64 {
 // LayoutVersion changes whenever what Layout produces changes. Found the first day: a fix to
 // where boundary labels sit did not show on Immich or Mastodon, because their unchanged
 // architectures reused layouts stored by the old code. Bump this with any such change.
-const LayoutVersion = 11
+const LayoutVersion = 12
 
 // Box and text geometry, in points. Shared by the layout and the drawing, so a box is sized for
 // exactly the text that will be drawn in it.
@@ -253,6 +258,10 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 	}
 
 	inside, outside := partition(view.Nodes, group)
+	if len(view.Stages) > 0 {
+		writeStages(&b, view, ids, node, clusters)
+		inside, outside = nil, nil
+	}
 	for _, n := range outside {
 		node("  ", n)
 	}
@@ -304,6 +313,38 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 	return b.String(), clusters
 }
 
+// writeStages puts a data-flow view's stages side by side: each one a boundary holding its boxes in
+// one rank, and an unseen arrow from each stage to the next so they keep their order where no real
+// arrow does — nothing joins a store to an external system.
+func writeStages(b *strings.Builder, view archdoc.Model, ids map[string]string, node func(string, archdoc.Node), clusters map[string]archdoc.Boundary) {
+	b.WriteString("  newrank=true;\n")
+	var firsts []string
+	for i, st := range view.Stages {
+		var members []string
+		for _, n := range view.Nodes {
+			if n.Stage == st {
+				members = append(members, ids[n.ID])
+			}
+		}
+		if len(members) == 0 {
+			continue
+		}
+		id := fmt.Sprintf("cluster_stage_%d", i)
+		clusters[id] = archdoc.Boundary{Name: st, Label: st, Stage: true}
+		fmt.Fprintf(b, "  subgraph %s {\n    label=%s;\n", id, quote(st))
+		for _, n := range view.Nodes {
+			if n.Stage == st {
+				node("    ", n)
+			}
+		}
+		fmt.Fprintf(b, "    { rank=same; %s; }\n  }\n", strings.Join(members, "; "))
+		firsts = append(firsts, members[0])
+	}
+	for i := 1; i < len(firsts); i++ {
+		fmt.Fprintf(b, "  %s -> %s [style=invis, weight=0];\n", firsts[i-1], firsts[i])
+	}
+}
+
 func writeDOTGroup(b *strings.Builder, g *group, ids map[string]string, node func(string, archdoc.Node), indent string, clusters map[string]archdoc.Boundary) {
 	if len(g.Nodes) == 0 && len(g.Children) == 0 {
 		return
@@ -350,10 +391,11 @@ type gvGraph struct {
 		Label  string `json:"label"`
 	} `json:"objects"`
 	Edges []struct {
-		Tail int    `json:"tail"`
-		Head int    `json:"head"`
-		Pos  string `json:"pos"`
-		LP   string `json:"lp"`
+		Tail  int    `json:"tail"`
+		Head  int    `json:"head"`
+		Pos   string `json:"pos"`
+		LP    string `json:"lp"`
+		Style string `json:"style"`
 	} `json:"edges"`
 }
 
@@ -415,8 +457,8 @@ func parseLayout(raw []byte, back map[string]string, clusters map[string]archdoc
 
 	for _, e := range g.Edges {
 		p := archdoc.Path{From: byGVID[e.Tail], To: byGVID[e.Head]}
-		if p.From == "" || p.To == "" {
-			continue
+		if p.From == "" || p.To == "" || e.Style == "invis" {
+			continue // an unseen arrow only holds things in place: a fold, the order of stages
 		}
 		for _, tok := range strings.Fields(e.Pos) {
 			switch {

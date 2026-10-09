@@ -49,8 +49,11 @@ func Index(m archdoc.Model, plan []Section, meta Meta) string {
 	// One component view per container whose code was read, and one data view per container whose
 	// code declares tables.
 	var components, data []View
+	var flow []View
 	for _, v := range Views(m)[2:] {
-		if strings.HasPrefix(v.Name, DataPrefix) {
+		if v.Name == DataFlow {
+			flow = append(flow, v)
+		} else if strings.HasPrefix(v.Name, DataPrefix) {
 			data = append(data, v)
 		} else {
 			components = append(components, v)
@@ -72,6 +75,13 @@ func Index(m archdoc.Model, plan []Section, meta Meta) string {
 			fmt.Fprintf(&b, "\n### %s\n\n", v.Model.Name)
 			b.WriteString(figure(meta, v.Title, v.File+".svg", Mermaid(v.Model, v.Group)))
 		}
+	}
+	for _, v := range flow {
+		b.WriteString("\n## Data flow\n\n")
+		b.WriteString("The containers again, left to right: who puts data in, what handles it, where it is kept and\n")
+		b.WriteString("where it leaves. An arrow into a store names the tables the code writes and reads there,\n")
+		b.WriteString("counted over every query and cited in `.archdoc/model.json`.\n")
+		b.WriteString(figure(meta, v.Title, v.File+".svg", Mermaid(v.Model, v.Group)))
 	}
 
 	b.WriteString("\n## Sections\n\n")

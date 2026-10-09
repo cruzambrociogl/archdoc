@@ -23,11 +23,12 @@ const levels: [string, string][] = [
   ['container', 'Containers'],
   ['component', 'Components'],
   ['data', 'Data'],
+  ['dataflow', 'Data flow'],
 ]
 
 // With no level named, the explorer opens where C4 starts — the system in its context — and each
 // level opens onto the next: the system onto its containers, a container onto its components.
-const levelOf = (raw?: string): Level => (raw === 'container' || insideOf(raw) ? raw! : 'context')
+const levelOf = (raw?: string): Level => (raw === 'container' || raw === 'dataflow' || insideOf(raw) ? raw! : 'context')
 
 type Go = (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void
 
@@ -151,7 +152,7 @@ function Toolbar(props: {
     <div className="explorer-toolbar">
       <div className="segmented" role="tablist" aria-label="C4 level">
         {levels
-          .filter(([id]) => !(id === 'container' && props.scene?.tiny))
+          .filter(([id]) => !(id === 'container' && props.scene?.tiny) && (id !== 'dataflow' || !!props.scene?.dataflow))
           .map(([id, label]) => (
           <button
             key={id}

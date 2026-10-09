@@ -120,6 +120,8 @@ export interface Summary {
   counts?: Partial<Record<'containers' | 'components' | 'tables' | 'flows' | 'entries' | 'unresolved', number>>
   /** Each container's kind, in model order: what the card draws. */
   kinds?: string[]
+  /** The system has a data-flow view: its containers by stage, from who puts data in to where it is kept. */
+  dataflow?: boolean
 }
 
 export interface Version {
@@ -179,7 +181,7 @@ export interface Layout {
   width: number
   height: number
   boxes: { id: string; rect: Rect }[] | null
-  groups?: { name: string; label?: string; internal?: boolean; system?: boolean; rect: Rect; label_at: Point }[] | null
+  groups?: { name: string; label?: string; internal?: boolean; system?: boolean; stage?: boolean; rect: Rect; label_at: Point }[] | null
   paths?: { from: string; to: string; curve: Point[]; tip?: Point; label_at?: Point }[] | null
 }
 
@@ -194,6 +196,8 @@ export interface SceneResponse {
   data: Opening[]
   /** One small application: the containers level would only repeat the context. */
   tiny?: boolean
+  /** The system has a data-flow view. */
+  dataflow?: boolean
   /** Containers with more components than a diagram shows: they open on their main ones. */
   main?: Opening[]
   /** Containers whose components are features, and so have a by-folder view too; counts their folders. */

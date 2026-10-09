@@ -47,6 +47,7 @@ type Boundary struct {
 	Label    string `json:"label,omitempty"`    // the text drawn; given to the engine so it reserves room
 	Internal bool   `json:"internal,omitempty"` // Compose's `internal: true`
 	System   bool   `json:"system,omitempty"`   // the outer system boundary, not a network
+	Stage    bool   `json:"stage,omitempty"`    // a column of a data-flow view
 	Rect     Rect   `json:"rect"`
 	LabelAt  Point  `json:"label_at"`
 }

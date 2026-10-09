@@ -1034,3 +1034,18 @@ numbers, and the Ask slot docked at the foot of every reading page. Two differen
 coverage is the share of elements and relationships with no gap, which archdoc measures, not the
 design's share of outbound references resolved, which it does not yet; and the component pages in
 the tree — each component under Components — are a placeholder (`wiki-tree`), since Immich has 179.
+
+**2026-10-09 — A data-flow view, built from facts (F-16)**
+F-16 was out for this phase (`feature-inventory.md`); brought back at Cruz's request, after
+comparing with Archify's data-flow diagrams: stages as columns, labelled arrows, stores set apart.
+Archify's agent decides every column, label and PII mark; archdoc keeps its rules instead. The view
+is the container view, staged by a rule — an actor is People; an application no other calls but
+that calls one is a Client; any other application a Service; data stores and queues Stores;
+external systems Outside — so the same model draws the same picture. What an arrow says moves comes
+from the code: every query in a container's code is gathered into `Model.Access` (not only what a
+flow reaches, which stops at a depth), and the arrow into the store the container's tables live in
+names the tables written and counts the ones only read, citing a query of each. Access is its own
+list, not edges between components and tables: edges would change the facts every component's
+explanation was written from and mark all of them stale. Left for later: what the other arrows
+carry, sensitivity labels (which would be interpretation, marked so), the main path, and one
+table's lineage — option (b), next.

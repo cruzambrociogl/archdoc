@@ -47,7 +47,7 @@ const mainUses = 2
 const mainOver = MainParts + MainParts/2
 
 // Views lists every diagram of the model, in a fixed order: context, container, then one
-// component view per container whose code was read, in model order.
+// component view per container whose code was read, in model order, and the data-flow view last.
 func Views(m archdoc.Model) []View {
 	out := []View{
 		{Name: "context", File: "context", Title: "System context", Model: m.Context()},
@@ -65,6 +65,9 @@ func Views(m archdoc.Model) []View {
 	for _, id := range m.Datas() {
 		out = append(out, dataView(m, id))
 	}
+	if HasDataFlow(m) {
+		out = append(out, dataFlowView(m))
+	}
 	return out
 }
 
@@ -75,6 +78,10 @@ func ViewOf(m archdoc.Model, name string) (View, bool) {
 		return View{Name: name, File: name, Title: "System context", Model: m.Context()}, true
 	case name == "container":
 		return View{Name: name, File: name, Title: "Containers", Model: m.Container(), Group: true}, true
+	case name == DataFlow:
+		if HasDataFlow(m) {
+			return dataFlowView(m), true
+		}
 	case strings.HasPrefix(name, ComponentPrefix):
 		id := strings.TrimPrefix(name, ComponentPrefix)
 		for _, c := range m.Components() {

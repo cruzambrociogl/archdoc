@@ -45,6 +45,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
           ...(s.tiny ? [] : [{ label: 'Containers', screen: 'explorer', level: 'container', depth: 2 } as Item]),
           ...(firstInside ? [{ label: 'Components', screen: 'explorer', level: componentLevel(firstInside), depth: 2 }] : []),
           ...(props.coverage?.tables_in?.length ? [{ label: 'Data', screen: 'explorer', level: dataLevel(props.coverage.tables_in[0]), depth: 2 }] : []),
+          ...(s.dataflow ? [{ label: 'Data flow', screen: 'explorer', level: 'dataflow', depth: 2 } as Item] : []),
         ] as Item[])
       : []),
     ...(firstInside && !inExplorer ? ([{ label: 'Components diagram', screen: 'explorer', level: componentLevel(firstInside), depth: 1, badge: c.components ? String(c.components) : undefined }] as Item[]) : []),

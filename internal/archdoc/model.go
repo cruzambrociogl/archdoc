@@ -129,6 +129,9 @@ type Node struct {
 	// repository, an index file that re-exports a folder — whose outgoing arrows are not drawn either.
 	UsesMany int `json:"uses_many,omitempty"`
 
+	// Stage is the column a data-flow view puts it in — "Clients", "Stores" — in that view only.
+	Stage string `json:"stage,omitempty"`
+
 	// DescProv and TechProv are separate from Prov because they can come from somewhere
 	// else. A node is proven by the line that declares it; its technology may come from the
 	// catalog and its description from the model. PRV-05 must tell a reader which parts of a
@@ -216,6 +219,9 @@ type Model struct {
 	// is drawn inside its container — "immich-server [Container: NestJS · TypeScript]".
 	Boundary string `json:"boundary,omitempty"`
 
+	// Stages are a data-flow view's columns, left to right; each node names its own.
+	Stages []string `json:"stages,omitempty"`
+
 	// Entries are the ways into the system its code declares — HTTP routes, today (F-04, F-13).
 	// They are what the system does, read from where it says so; the features a reader looks for.
 	Entries []Entry `json:"entries,omitempty"`
@@ -226,6 +232,10 @@ type Model struct {
 
 	// Flows are what happens when an entry is called, followed through the code (F-12).
 	Flows []Flow `json:"flows,omitempty"`
+
+	// Access is every table each component's code queries, and how — over all of the code, not only
+	// what a flow reaches. It is what the data-flow view says moves into and out of a store (F-16).
+	Access []Access `json:"access,omitempty"`
 
 	// Dependencies are the third-party packages each container's manifest declares, and which
 	// of its components import them (F-14).
@@ -300,6 +310,22 @@ type Step struct {
 	Note  string     `json:"note,omitempty"`
 	Prov  Provenance `json:"provenance"`
 }
+
+// Access is one component's queries of one table that do one thing: AlbumRepository's that write
+// album. Table is the name as the queries give it; Element its node, where the code declares it.
+// Count is every such query; Prov cites the first few, in file order.
+type Access struct {
+	Container string       `json:"container"`
+	Component string       `json:"component,omitempty"`
+	Table     string       `json:"table"`
+	Element   string       `json:"element,omitempty"`
+	Op        string       `json:"op"` // "reads", "writes", "updates", "deletes"
+	Count     int          `json:"count"`
+	Prov      []Provenance `json:"provenance"`
+}
+
+// Writes reports whether the access changes the table rather than only reading it.
+func (a Access) Writes() bool { return a.Op != "reads" }
 
 // Entry is one way into the system: an HTTP route, its handler, and what the handler is given.
 type Entry struct {

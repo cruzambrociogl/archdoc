@@ -113,7 +113,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
 
 export function BoundaryNode({ data, draggable }: NodeProps<FlowNode<BoundaryData>>) {
   return (
-    <div className={`boundary ${data.system ? 'boundary-system' : 'boundary-network'} ${draggable ? 'boundary-draggable' : ''}`}>
+    <div className={`boundary ${data.stage ? 'boundary-stage' : data.system ? 'boundary-system' : 'boundary-network'} ${draggable ? 'boundary-draggable' : ''}`}>
       <span className="boundary-label">{data.label}</span>
     </div>
   )

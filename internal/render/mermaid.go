@@ -30,9 +30,23 @@ func Mermaid(m archdoc.Model, group bool) string {
 
 	ids := identifiers(m)
 
-	b.WriteString("flowchart TB\n")
-
 	inside, outside := partition(m.Nodes, group)
+	if len(m.Stages) > 0 {
+		// A data-flow view: left to right, a subgraph per stage.
+		b.WriteString("flowchart LR\n")
+		for i, st := range m.Stages {
+			fmt.Fprintf(&b, "\n    subgraph stage%d[%q]\n", i, st)
+			for _, n := range m.Nodes {
+				if n.Stage == st {
+					fmt.Fprintf(&b, "        %s\n", node(ids[n.ID], n))
+				}
+			}
+			b.WriteString("    end\n")
+		}
+		inside, outside = nil, nil
+	} else {
+		b.WriteString("flowchart TB\n")
+	}
 
 	for _, n := range outside {
 		fmt.Fprintf(&b, "    %s\n", node(ids[n.ID], n))

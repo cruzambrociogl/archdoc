@@ -38,6 +38,14 @@ func SVG(view archdoc.Model, l archdoc.Layout) string {
 		if label == "" {
 			label = g.Name // a layout stored before labels were recorded
 		}
+		if g.Stage {
+			// A data-flow stage is a column, not a boundary: shaded, with its name over it.
+			fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="%s" rx="6" fill="#f4f6f8"/>`+"\n",
+				num(g.Rect.X), num(g.Rect.Y), num(g.Rect.W), num(g.Rect.H))
+			fmt.Fprintf(&b, `<text x="%s" y="%s" font-size="11" font-weight="bold" fill="#5a6470" text-anchor="middle" dominant-baseline="middle" letter-spacing="0.5">%s</text>`+"\n",
+				num(g.Rect.X+g.Rect.W/2), num(g.Rect.Y+12), esc(strings.ToUpper(label)))
+			continue
+		}
 		fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="%s" rx="6" fill="none" stroke="%s" stroke-dasharray="%s"/>`+"\n",
 			num(g.Rect.X), num(g.Rect.Y), num(g.Rect.W), num(g.Rect.H), stroke, dash)
 
