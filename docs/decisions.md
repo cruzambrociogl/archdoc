@@ -988,3 +988,18 @@ are its code, as a Svelte component's are, and a call one makes is cited at its 
 Three test subjects are kept beside Immich in `subjects/`: `small-script`, `small-page`,
 `small-app`. They are written for the purpose; no project an AI actually built has been through
 archdoc yet, and that is the next thing to learn from.
+
+**2026-10-09 — What is designed and not built is shown, marked, in the local app**
+The surface spec's rule 3 hid every unearned view, and the top bar carried "only controls that
+work today". Cruz asked for the opposite where the gap is the app's, not the repository's: the
+design has controls and screens the app does not have yet, and hiding them made them easy to
+forget. Twenty pieces are now placeholders where they will go — dashed, labelled *planned*, each
+opening a "Not built yet" page that says what it will do and which spec section describes it: the
+freshness pill, Run, Publish and Settings in the top bar; Flows, Deployment, Intent vs actual and
+Ask the map in the navigation; Correct this… in the inspector; Step through and Show on the diagram
+on a flow; Two commits and a change summary on Changes; the Ask slot on the Overview. One list,
+`web/src/planned.ts`, feeds them all; building one removes its entry and its placeholder. Rule 3
+still holds for evidence: a view this repository has no evidence for stays hidden. Placeholders
+are not shown in a published site, which is for readers of the documentation, not of archdoc's
+plans. The comparison was made against `docs/surface-spec.md`, not against the Claude Design
+files, which could not be read this session (no design authorization).

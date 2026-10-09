@@ -113,6 +113,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
                   flow={flows.get(e.id)}
                   onTable={(id) => props.go({ screen: 'explorer', level: dataLevel(g.container), focus: id })}
                   onJob={(id) => props.go({ screen: 'features', focus: id })}
+                  go={props.go}
                 />
               ))}
             </div>
@@ -147,6 +148,7 @@ function FeatureRow({
   flow,
   onTable,
   onJob,
+  go,
 }: {
   e: Entry
   open: boolean
@@ -155,6 +157,7 @@ function FeatureRow({
   flow?: Flow
   onTable: (id: string) => void
   onJob: (id: string) => void
+  go: (r: Partial<Route>) => void
 }) {
   // Opened from elsewhere — a queued job, clicked in another flow — it may be far down the page.
   const row = useRef<HTMLDivElement>(null)
@@ -209,7 +212,7 @@ function FeatureRow({
           {flow && (
             <div className="feature-flow">
               <Eyebrow>What it sets off</Eyebrow>
-              <Sequence flow={flow} onTable={onTable} onJob={onJob} />
+              <Sequence flow={flow} onTable={onTable} onJob={onJob} go={go} />
             </div>
           )}
         </div>

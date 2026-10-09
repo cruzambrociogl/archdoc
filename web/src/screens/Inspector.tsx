@@ -4,6 +4,8 @@ import { Cite } from '../ui/Cite'
 import { KindTile } from '../ui/KindTile'
 import { kindStyle } from '../ui/kinds'
 import { Eyebrow, TruthChip, TruthMark } from '../ui/marks'
+import { Planned } from '../ui/Planned'
+import type { Route } from '../route'
 
 /**
  * An element's passport (surface-spec §5.3): what it is, how we know, and what touches it. Every
@@ -23,7 +25,10 @@ export function Inspector({
   onOpenData,
   unresolved,
   onPage,
+  go,
 }: {
+  /** Opens a placeholder's entry on the Not built yet page. */
+  go?: (r: Partial<Route>) => void
   /** Calls to computed addresses, for the box they leave from. */
   unresolved?: Unresolved[]
   model: Model
@@ -73,6 +78,13 @@ export function Inspector({
         <EdgePassport edge={edge} nodes={nodes} onSelect={onSelect} />
       ) : (
         <Index nodes={nodes} edges={edges} onSelect={onSelect} parts={parts} />
+      )}
+      {(node || edge) && go && (
+        <div className="inspector-planned">
+          <Planned id="correct" go={go}>
+            Correct this…
+          </Planned>
+        </div>
       )}
     </aside>
   )

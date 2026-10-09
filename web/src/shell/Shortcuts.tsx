@@ -21,6 +21,14 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
         ['Arrange', ['drag a box or a boundary']],
       ],
     ],
+    [
+      'Not built yet',
+      [
+        ['Overview', ['g', 'o']],
+        ['Architecture', ['g', 'a']],
+        ['Previous, next page', ['[', ']']],
+      ],
+    ],
   ]
   return (
     <div className="dialog-scrim" onClick={onClose}>

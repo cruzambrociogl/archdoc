@@ -1,6 +1,8 @@
 import type { Flow } from '../api'
 import { Cite } from './Cite'
 import { TruthMark } from './marks'
+import { Planned } from './Planned'
+import type { Route } from '../route'
 
 // A flow as a sequence diagram (F-12): a lifeline per participant, a numbered arrow per step, in
 // the order the code makes the calls. Everything drawn is a stored step; the numbers tie each
@@ -11,7 +13,17 @@ const HEAD = 44
 const ROW = 30
 const PAD = 16
 
-export function Sequence({ flow, onTable, onJob }: { flow: Flow; onTable?: (element: string) => void; onJob?: (entry: string) => void }) {
+export function Sequence({
+  flow,
+  onTable,
+  onJob,
+  go,
+}: {
+  flow: Flow
+  onTable?: (element: string) => void
+  onJob?: (entry: string) => void
+  go?: (r: Partial<Route>) => void
+}) {
   const cols = new Map(flow.participants.map((p, i) => [p.id, i]))
   const x = (id: string) => PAD + (cols.get(id) ?? 0) * COL + COL / 2
   // A step names its participants by ID; a reader wants the class, the module's name, the table.
@@ -78,6 +90,16 @@ export function Sequence({ flow, onTable, onJob }: { flow: Flow; onTable?: (elem
           })}
         </svg>
       </div>
+      {go && (
+        <div className="sequence-planned">
+          <Planned id="step-through" go={go}>
+            Step through
+          </Planned>
+          <Planned id="flow-on-canvas" go={go}>
+            Show on the diagram
+          </Planned>
+        </div>
+      )}
       <details className="sequence-steps">
         <summary>
           {flow.steps.length} steps, each at its line{flow.cut ? ' · cut at four calls deep or forty steps' : ''}

@@ -53,6 +53,11 @@ cd archdoc && go build -o archdoc ./cmd/archdoc
 ./archdoc diff ../subjects/immich HEAD      # what changed since a commit
 ```
 
+**Designed and not built:** 20 pieces of the surface spec — the §11 controls, a flows index,
+deployment, the correction composer, commits and session summaries in the app, ask the map, intent
+vs actual — are dashed *planned* placeholders in the local app, listed on its "Not built yet" page
+from `web/src/planned.ts`. That file is the list; this paragraph only points at it.
+
 **Where to read what happened:** the tables under "Code as evidence" below list every piece of work
 of 8–9 Oct with what it measured and its commit; `docs/decisions.md` has the reason for each, dated;
 "Not done" at the end of that section is the full list of what is open.

@@ -2,14 +2,14 @@ import type { Session, Summary, Version } from '../api'
 import { published } from '../api'
 import type { Route } from '../route'
 import type { Theme } from '../theme'
+import { Planned } from '../ui/Planned'
 
 const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
 const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
 
 /**
- * The top bar. It carries only controls that work today: the status pill and the run, publish,
- * git and settings actions arrive with the features behind them (surface-spec §11), not before as
- * dead buttons.
+ * The top bar. The status pill and the run, publish and settings actions (surface-spec §11) are
+ * not built: each is a dashed placeholder that says so and opens the list of what is still to build.
  */
 export function TopBar(props: {
   summary: Summary
@@ -63,6 +63,10 @@ export function TopBar(props: {
       </label>
       )}
 
+      <Planned id="freshness" go={go}>
+        Freshness
+      </Planned>
+
       <div className="topbar-spacer">
         <button className="search-box" onClick={props.onSearch} title="Search everything (⌘K)">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -85,6 +89,18 @@ export function TopBar(props: {
           <span className="btn-text">Explorer</span> <kbd>E</kbd>
         </button>
       )}
+
+      <div className="topbar-planned">
+        <Planned id="run" go={go}>
+          Run
+        </Planned>
+        <Planned id="publish" go={go}>
+          Publish
+        </Planned>
+        <Planned id="settings" go={go}>
+          Settings
+        </Planned>
+      </div>
 
       <button className="icon-btn" onClick={props.onTheme} title={themeLabel[props.theme]} aria-label={themeLabel[props.theme]}>
         {themeGlyph[props.theme]}

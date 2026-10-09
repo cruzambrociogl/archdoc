@@ -1,4 +1,6 @@
 import type { CoverageResponse, SavedView, Summary } from '../api'
+import { published } from '../api'
+import { planned } from '../planned'
 import { componentLevel, dataLevel } from '../api'
 import type { Route, Screen } from '../route'
 
@@ -11,6 +13,8 @@ interface Item {
   badge?: string
   header?: boolean
   divider?: boolean
+  /** Designed, not built: drawn dashed, and opens the list of what is still to build. */
+  planned?: string
 }
 
 /**
@@ -55,6 +59,17 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
       : []),
     { label: 'Corrections', screen: 'rules', depth: 0, divider: true },
     { label: 'Network runs', screen: 'runs', depth: 0, badge: String(s.runs) },
+    // What the spec designs and the app does not do yet: a place in the tree, marked, so it is not forgotten.
+    ...(published
+      ? []
+      : ([
+          { label: 'Not built yet', depth: 0, header: true, divider: true },
+          { label: 'Flows', screen: 'planned', depth: 1, planned: 'flows' },
+          { label: 'Deployment', screen: 'planned', depth: 1, planned: 'deployment' },
+          { label: 'Intent vs actual', screen: 'planned', depth: 1, planned: 'intent' },
+          { label: 'Ask the map', screen: 'planned', depth: 1, planned: 'ask' },
+          { label: 'Everything planned', screen: 'planned', depth: 1, badge: String(planned.length) },
+        ] as Item[])),
   ]
 
   return (
@@ -64,7 +79,9 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
           ? inExplorer && level === it.view.level && (route.focus ?? '') === (it.view.focus ?? '') && (route.q ?? '') === (it.view.find ?? '') && (route.dim === '1') === !!it.view.dim
           : it.level
             ? inExplorer && (level === it.level || (it.label === 'Components' && (level.startsWith('component:') || level.startsWith('structure:'))) || (it.label === 'Data' && level.startsWith('data:')))
-            : it.screen === route.screen
+            : it.planned
+              ? route.screen === 'planned' && route.focus === it.planned
+              : it.screen === route.screen && !(it.screen === 'planned' && route.focus)
         return (
           <div key={i}>
             {it.divider && <div className="nav-divider" />}
@@ -72,19 +89,21 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
               <div className={`nav-item nav-header depth-${it.depth}`}>{it.label}</div>
             ) : (
               <button
-                className={`nav-item depth-${it.depth} ${active ? 'active' : ''}`}
+                className={`nav-item depth-${it.depth} ${active ? 'active' : ''} ${it.planned ? 'nav-planned' : ''}`}
+                title={it.planned ? 'Designed, not built yet' : undefined}
                 onClick={() =>
                   go(
                     it.view
                       ? { screen: 'explorer', level: it.view.level, focus: it.view.focus, q: it.view.find, dim: it.view.dim ? '1' : undefined }
                       : it.level
                         ? { screen: 'explorer', level: it.level }
-                        : { screen: it.screen! },
+                        : { screen: it.screen!, focus: it.planned },
                   )
                 }
               >
                 <span className="nav-label">{it.label}</span>
                 {it.badge && <span className="nav-badge">{it.badge}</span>}
+                {it.planned && <span className="planned-tag">planned</span>}
               </button>
             )}
           </div>

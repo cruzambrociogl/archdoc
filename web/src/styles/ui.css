@@ -197,3 +197,119 @@ a.cite:hover {
     white-space: normal;
   }
 }
+
+/* ——— planned: designed in the spec, not built yet ——— */
+
+/* A dashed chip where a control will go. Quiet on purpose: it marks a gap, it is not a feature. */
+.planned {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px dashed var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.planned:hover {
+  border-color: var(--muted);
+  color: var(--ink);
+}
+.planned-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+/* A dashed slot where a whole panel will go. */
+.planned-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin: 16px 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.planned-slot:hover {
+  border-color: var(--muted);
+}
+.planned-slot-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 13px;
+}
+.planned-slot-what {
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.planned-dock {
+  margin-top: 28px;
+}
+.topbar-planned {
+  display: flex;
+  gap: 6px;
+}
+.inspector-planned {
+  padding: 12px 16px 16px;
+}
+.sequence-planned {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+.nav-item.nav-planned {
+  color: var(--muted);
+  font-style: italic;
+}
+.nav-item.nav-planned .planned-tag {
+  margin-left: auto;
+  font-style: normal;
+}
+
+/* The Not built yet page. */
+.planned-area {
+  margin-top: 26px;
+}
+.planned-row {
+  padding: 10px 12px;
+  border-left: 2px dashed var(--rule);
+  margin: 8px 0;
+}
+.planned-row.focused {
+  border-left-color: var(--canvas-accent);
+  background: var(--k-slate-fill);
+}
+.planned-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.planned-row-what {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .topbar-planned {
+    display: none;
+  }
+}

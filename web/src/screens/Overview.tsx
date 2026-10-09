@@ -2,6 +2,7 @@ import type { CoverageResponse, DiffResponse, ModelResponse, Node, Provenance, R
 import { bytes, componentLevel, dataLevel, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
+import { PlannedSlot } from '../ui/Planned'
 import { kindStyle } from '../ui/kinds'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
 
@@ -189,6 +190,11 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
           route={props.coverage ? 'what archdoc could not see, and why' : 'the documents, and what archdoc could not see'}
           onClick={() => props.go({ screen: props.coverage ? 'coverage' : 'docs' })}
         />
+      </div>
+
+      {/* The Ask panel docks to the bottom of the main column (surface-spec §4.1); designed, not built. */}
+      <div className="planned-dock">
+        <PlannedSlot id="ask" go={props.go} />
       </div>
     </div>
   )

@@ -19,6 +19,7 @@ import { Changes } from './screens/Changes'
 import { Corrections } from './screens/Corrections'
 import { Documents } from './screens/Documents'
 import { NetworkRuns } from './screens/NetworkRuns'
+import { Planned } from './screens/Planned'
 
 const titles: Record<Screen, string> = {
   overview: 'Overview',
@@ -31,6 +32,7 @@ const titles: Record<Screen, string> = {
   coverage: 'Coverage',
   rules: 'Corrections',
   runs: 'Network runs',
+  planned: 'Not built yet',
 }
 
 export function App() {
@@ -117,6 +119,7 @@ export function App() {
             {route.screen === 'coverage' && <Coverage go={go} />}
             {route.screen === 'rules' && <Corrections />}
             {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
+            {route.screen === 'planned' && <Planned route={route} />}
           </main>
         </div>
       </div>
