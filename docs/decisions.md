@@ -842,7 +842,7 @@ depending on a tool does not count, or the CLI would stop being one.
 
 **2026-10-09 — A large container opens on its main components**
 Immich's server has 75 components and 758 uses: accurate, cited, and unreadable as a picture; C4's
-own advice is to split a component diagram long before that. A container with more than 16
+own advice is to split a component diagram long before that. A container with more than 24
 components now has a main view — the 16 that handle the most routes, pages, commands and jobs, by
 what the code declares, then by size — and the explorer opens on it, with every component and the
 by-folder view one click away. Selecting something outside the main ones shows them all. The rule
@@ -869,3 +869,14 @@ The app hid technology and description below 85% zoom, and a container view fitt
 sits below that — boxes with only names, which is not a C4 diagram. Views of twenty elements or
 fewer keep them down to 50%. The app's description text is now set at the line height and width
 the engine sizes boxes for, so what the layout made room for is not cut.
+
+**2026-10-09 — The main view's rule stays a count, and starts later**
+Looked at again on Immich. Ranking by routes, pages, commands and jobs handled keeps `search` and
+`media` and leaves out `sync` and `shared-link`; ranking by handled, stored and size together
+keeps those two and drops `search` and `media` for `stack` and `config`. Neither is what a
+maintainer would pick, and no count will be: which components matter most is a judgement, and
+archdoc states rules it can show. The simple rule stays — it is the one the diagram's own label
+can say in a line — and every component is one click away. One real defect is fixed: a container
+needs more than 24 components to get a main view, not 17, so Immich's mobile app shows all 18
+instead of hiding a three-line and a four-line one. A person choosing the main components, as a
+rule that survives regeneration, is the right way to do better, and is not built.

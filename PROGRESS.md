@@ -148,7 +148,7 @@ are in `docs/decisions.md` under the same date.
 | Clients call the API they are clients of: an OpenAPI document, tied to a container by its routes, and the packages and generated directories that are clients of it | web, mobile and CLI → server, each cited; 274 of 274 operations matched | `9905416` |
 | A person reaches web, mobile and command-line applications | 3 new arrows; context unchanged | `9905416` |
 | A package that running code depends on is a library | `@immich/plugin-sdk` no longer a container: 15 elements, 17 relationships | `9905416` |
-| A large container opens on its 16 main components; all of them and by-folder one click away | server: 16 of 75, mobile: 16 of 18 | `187b7d1` |
+| A container with more than 24 components opens on its 16 main ones; all of them and by-folder one click away | server: 16 of 75; mobile, with 18, shows all | `187b7d1`, then this commit |
 | Labels remembered in `.archdoc/labels.json` and applied on every run | `--label` on the clone: 26 operations, $0.018; a plain run after it keeps all 15 descriptions and records no version | `980e42f` |
 | Element order made total (it depended on what else was in the model) | 9 explanations no longer stale for no reason | `980e42f` |
 | Small diagrams keep technology and description when fitted; description text sized as the engine sizes boxes | container view readable at 82% | `980e42f` |
@@ -161,7 +161,7 @@ are in `docs/decisions.md` under the same date.
 | AC-3 and AC-9 | AC-3 waits for the hand-drawn Immich reference (Cruz). AC-9 waits for Supabase, which is not cloned — no room for it now |
 | `archdoc diff` on real history | The Immich clone holds one commit, so two real commits of a real repository have not been compared; the two-commit test uses the fixture |
 | Earlier `--explain` runs keep their old label | Runs 1–7 in Immich's log still read `structure-only`; the log is a record and was not rewritten |
-| Three explanations stale after the ordering fix | `album`, `asset` and `cluster-group` were asked while the order was arbitrary; a `--explain` run re-asks them, about two cents |
+| A person choosing a container's main components | The main view picks by count of routes, pages, commands and jobs handled. A rule in `rules.yaml` naming them would be better and is not built |
 | The batch API for `--explain` | Half price, results later; needs the run reworked. Left out on purpose at $0.005 a component |
 | Queues in Python | Celery, RQ: not followed. Only decorator-marked TypeScript jobs and events are |
 | Migrations in a tool's own DSL | Alembic, Knex, Rails' `schema.rb`: not read. Only SQL is |

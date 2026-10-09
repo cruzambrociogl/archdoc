@@ -40,15 +40,16 @@ func TestMainViewKeepsTheComponentsThatHandleTheMost(t *testing.T) {
 		{ID: "svc:small", Name: "small", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
 		{ID: "cmp:small/only", Name: "only", Kind: archdoc.Component, Parent: "svc:small", Files: []string{"a.ts"}, Prov: at},
 	}}
-	for i := 0; i < MainParts+4; i++ {
+	const parts = 26 // a to z: more than half again what a main view holds
+	for i := 0; i < parts; i++ {
 		id := "cmp:api/c" + string(rune('a'+i))
 		m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: id[8:], Kind: archdoc.Component, Parent: "svc:api", Lines: 100 - i, Files: []string{id + ".ts"}, Prov: at})
 	}
-	last := "cmp:api/c" + string(rune('a'+MainParts+3)) // the smallest, and the only one that handles a route
+	last := "cmp:api/c" + string(rune('a'+parts-1)) // the smallest, and the only one that handles a route
 	m.Entries = []archdoc.Entry{{ID: "route:api GET /x", Kind: "http", Method: "GET", Path: "/x", Container: "svc:api", Component: last, Prov: at}}
 	m.Edges = []archdoc.Edge{
 		{From: last, To: "cmp:api/ca", Label: "uses", Weight: 2, Prov: []archdoc.Provenance{at}},
-		{From: "cmp:api/ca", To: "cmp:api/c" + string(rune('a'+MainParts+2)), Label: "uses", Weight: 1, Prov: []archdoc.Provenance{at}},
+		{From: "cmp:api/ca", To: "cmp:api/c" + string(rune('a'+parts-2)), Label: "uses", Weight: 1, Prov: []archdoc.Provenance{at}},
 	}
 	if got := Mains(m); len(got) != 1 || got[0] != "svc:api" {
 		t.Fatalf("mains %v, want only the large container", got)
@@ -65,5 +66,10 @@ func TestMainViewKeepsTheComponentsThatHandleTheMost(t *testing.T) {
 	}
 	if _, ok := ViewOf(m, MainPrefix+"svc:small"); ok {
 		t.Error("a container of one component has a main view")
+	}
+	// Two more than a main view holds is not worth hiding two.
+	m.Nodes = m.Nodes[:3+MainParts+2]
+	if got := Mains(m); len(got) != 0 {
+		t.Errorf("a container of %d components has a main view: %v", MainParts+2, got)
 	}
 }

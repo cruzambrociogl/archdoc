@@ -38,6 +38,11 @@ const (
 // has as many boxes as Immich's server has: 75.
 const MainParts = 16
 
+// mainOver is how many components a container must have before it gets a main view. Above
+// MainParts by half again: a view that leaves out two of eighteen hides more than it clears up —
+// Immich's mobile app lost a three-line and a four-line component to it.
+const mainOver = MainParts + MainParts/2
+
 // Views lists every diagram of the model, in a fixed order: context, container, then one
 // component view per container whose code was read, in model order.
 func Views(m archdoc.Model) []View {
@@ -124,7 +129,7 @@ func Mains(m archdoc.Model) []string {
 	}
 	var out []string
 	for _, id := range m.Components() {
-		if count[id] > MainParts {
+		if count[id] > mainOver {
 			out = append(out, id)
 		}
 	}
