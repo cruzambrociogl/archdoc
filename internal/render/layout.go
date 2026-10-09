@@ -152,7 +152,7 @@ func distance(a float64) float64 {
 // LayoutVersion changes whenever what Layout produces changes. Found the first day: a fix to
 // where boundary labels sit did not show on Immich or Mastodon, because their unchanged
 // architectures reused layouts stored by the old code. Bump this with any such change.
-const LayoutVersion = 10
+const LayoutVersion = 11
 
 // Box and text geometry, in points. Shared by the layout and the drawing, so a box is sized for
 // exactly the text that will be drawn in it.

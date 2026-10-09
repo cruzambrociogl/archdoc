@@ -644,7 +644,7 @@ function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; se
       <span>
         {parts
           ? mainOf(scene.view)
-            ? `${n} of ${scene.model.name}'s ${ofAll} components — the ones that handle the most routes, pages and jobs · ${e} uses among them`
+            ? `${n} of ${scene.model.name}'s ${ofAll} components — its main ones, as the boundary says · ${e} uses drawn, each one's strongest`
             : `${n} ${structureOf(scene.view) ? 'folders' : 'components'} of ${scene.model.name} · ${e} uses, each an import`
           : tables
             ? `${n} tables of ${scene.model.name} · ${e} foreign keys`

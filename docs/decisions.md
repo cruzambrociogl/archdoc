@@ -919,3 +919,13 @@ components, 26 of them features holding about half its files (`asset`, `admin`, 
 `album`, `auth`, `people`, `workflow`, `shared-link`…); mobile 18 → 54. The server, which has the
 suffix convention, is unchanged at 75. The rule is names, so it is as good as the naming: `people`
 and `person` are two features in the web app because the code spells them two ways.
+
+**2026-10-09 — A main view draws each component's strongest uses**
+The full component view says "used by most" on a box and leaves those arrows out, which makes
+seventy-five components readable. Carried into the main view it failed: the main components of a
+tightly knit application are nearly all used by most, so Immich's mobile app drew sixteen boxes and
+no line, with 155 uses between them. A main view now draws, for each component, its two strongest
+uses of the others — by number of imports — and says so on its boundary, with the count it chose
+from. Every use is still in the inspector and in the full view. Where a container declares no
+route, page or job, the boundary says the components are its largest, since that is the rule that
+picked them.

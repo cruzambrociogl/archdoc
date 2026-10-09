@@ -64,6 +64,28 @@ func TestMainViewKeepsTheComponentsThatHandleTheMost(t *testing.T) {
 	if len(v.Model.Edges) != 1 || v.Model.Edges[0].From != last {
 		t.Errorf("edges %+v, want only the use between two components shown", v.Model.Edges)
 	}
+	// A component that uses many of the others is drawn with its strongest uses, and no box says
+	// its arrows are left out.
+	busy := m
+	busy.Edges = append([]archdoc.Edge(nil), m.Edges...)
+	for i, to := range []string{"cmp:api/cb", "cmp:api/cc", "cmp:api/cd", "cmp:api/ce"} {
+		busy.Edges = append(busy.Edges, archdoc.Edge{From: "cmp:api/ca", To: to, Label: "uses", Weight: 10 - i, Prov: []archdoc.Provenance{at}})
+	}
+	bv, _ := ViewOf(busy, MainPrefix+"svc:api")
+	var from []string
+	for _, e := range bv.Model.Edges {
+		if e.From == "cmp:api/ca" {
+			from = append(from, e.To)
+		}
+	}
+	if len(from) != 2 || from[0] != "cmp:api/cb" || from[1] != "cmp:api/cc" {
+		t.Errorf("drawn from the busy component: %v, want its two strongest uses", from)
+	}
+	for _, n := range bv.Model.Nodes {
+		if n.UsedBy != 0 || n.UsesMany != 0 {
+			t.Errorf("%s is marked as having arrows left out", n.ID)
+		}
+	}
 	if _, ok := ViewOf(m, MainPrefix+"svc:small"); ok {
 		t.Error("a container of one component has a main view")
 	}

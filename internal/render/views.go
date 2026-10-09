@@ -38,6 +38,9 @@ const (
 // has as many boxes as Immich's server has: 75.
 const MainParts = 16
 
+// mainUses is how many of a component's uses of the others a main view draws: its strongest.
+const mainUses = 2
+
 // mainOver is how many components a container must have before it gets a main view. Above
 // MainParts by half again: a view that leaves out two of eighteen hides more than it clears up —
 // Immich's mobile app lost a three-line and a four-line component to it.
@@ -173,16 +176,45 @@ func mainView(m archdoc.Model, id string) View {
 			nodes = append(nodes, n)
 		}
 	}
-	edges := view.Edges[:0:0]
+	// Which arrows: each component's strongest uses of the others shown, by how many imports. The
+	// device the full view uses — say "used by most" on a box and leave those arrows out — fails
+	// here: among the main components of a tightly knit application nearly every one is used by
+	// most, and every arrow went. Immich's mobile app drew sixteen boxes and no lines, with 155
+	// uses between them.
+	out := map[string][]archdoc.Edge{}
+	among := 0
 	for _, e := range view.Edges {
 		if keep[e.From] && keep[e.To] {
-			edges = append(edges, e)
+			out[e.From] = append(out[e.From], e)
+			among++
 		}
+	}
+	var edges []archdoc.Edge
+	for i := range nodes {
+		nodes[i].UsedBy, nodes[i].UsesMany, nodes[i].Among = 0, 0, 0
+		uses := out[nodes[i].ID]
+		sort.SliceStable(uses, func(a, b int) bool {
+			if uses[a].Weight != uses[b].Weight {
+				return uses[a].Weight > uses[b].Weight
+			}
+			return uses[a].To < uses[b].To
+		})
+		if len(uses) > mainUses {
+			uses = uses[:mainUses]
+		}
+		edges = append(edges, uses...)
 	}
 	total := len(view.Nodes)
 	view.Nodes, view.Edges = nodes, edges
 	describeParts(&view, m)
 	view.Boundary = fmt.Sprintf("%s — the %d components that handle the most, of %d", view.Name, len(nodes), total)
+	if len(handles) == 0 {
+		// Nothing here declares a route, a page or a job — a mobile app's code — so the rule is size.
+		view.Boundary = fmt.Sprintf("%s — its %d largest components, of %d", view.Name, len(nodes), total)
+	}
+	if among > len(edges) {
+		view.Boundary += fmt.Sprintf(" · each one's %d strongest uses, of %d between them", mainUses, among)
+	}
 	_, local, _ := strings.Cut(id, ":")
 	return View{
 		Name:  MainPrefix + id,
