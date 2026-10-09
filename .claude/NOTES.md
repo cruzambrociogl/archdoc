@@ -57,7 +57,8 @@ raised, not quietly promoted over it.
 - [ ] The small subjects have not been through `--label` or `--explain`: a few cents for all three
 - [x] The Claude Design files compared with the app, 9 Oct: 34 pieces in `web/src/planned.ts`.
       `Surface Screens.dc.html` is larger than DesignSync's 256 KB read limit and came back cut
-      short — its last screens (the palette, the shortcut sheet) were read only in part
+      short: every screen's markup was read in full; the end of its example data (from the Changes
+      version list on — likely Corrections, Network runs, Dependencies) was not
 - [ ] The Overview's "What changed" lists a component name twice when two containers have one of
       that name (`shared-link` in web and mobile): it should say which container
 
