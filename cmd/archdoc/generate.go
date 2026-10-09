@@ -89,15 +89,15 @@ func generate(args []string, out io.Writer) error {
 		return err
 	}
 	extracted := m
-	if !*label {
-		// What a model wrote before is applied again while what it was written about is unchanged
-		// (F-30): no request, no cost, and the documents do not lose their descriptions.
-		if recalled := semantic.Recall(labels, extracted); len(recalled) > 0 {
-			if again, res := validate.Apply(m, recalled); res.OK() {
-				m = again
-			} else {
-				fmt.Fprintf(out, "remembered labels no longer fit the model and were left out — run --label to write new ones\n")
-			}
+	// What a model wrote before is applied again while what it was written about is unchanged
+	// (F-30): no request, no cost, and the documents do not lose their descriptions. It is applied
+	// before a new --label too, which then writes over it: a label run and the plain run after it
+	// must give the same model, or the second records a version nothing caused.
+	if recalled := semantic.Recall(labels, extracted); len(recalled) > 0 {
+		if again, res := validate.Apply(m, recalled); res.OK() {
+			m = again
+		} else {
+			fmt.Fprintf(out, "remembered labels no longer fit the model and were left out — run --label to write new ones\n")
 		}
 	}
 	if *label {

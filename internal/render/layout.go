@@ -36,8 +36,9 @@ func Layout(ctx context.Context, view archdoc.Model, group bool) (archdoc.Layout
 	}
 	defer g.Close()
 
+	var fold [][2]string // pairs kept a rank apart, to break up a rank too wide to read
 	lay := func(dir string) (archdoc.Layout, error) {
-		src, clusters := toDOT(view, group, ids, dir)
+		src, clusters := toDOT(view, group, ids, dir, fold)
 
 		graph, err := graphviz.ParseBytes([]byte(src))
 		if err != nil {
@@ -69,10 +70,62 @@ func Layout(ctx context.Context, view archdoc.Model, group bool) (archdoc.Layout
 	if err != nil {
 		return tall, nil // the first layout is still correct, only wide
 	}
+	best := tall
 	if distance(aspect(wide)) < distance(aspect(tall)) {
-		return wide, nil
+		best = wide
 	}
-	return tall, nil
+	if aspect(best) <= maxAspect && aspect(best) >= 1/maxAspect {
+		return best, nil
+	}
+
+	// Still a strip, either way round. Found on Immich's server once its components carried
+	// descriptions: sixteen boxes with few arrows between them make two ranks, ten boxes wide. A
+	// rank with more boxes than fit a readable width is folded: each box past the limit is put a
+	// rank below the one that many places before it, so one row of ten becomes two of five.
+	fold = folds(tall, ids)
+	if len(fold) == 0 {
+		return best, nil
+	}
+	folded, err := lay("TB")
+	if err != nil || distance(aspect(folded)) >= distance(aspect(best)) {
+		return best, nil
+	}
+	return folded, nil
+}
+
+// rankWidth is how many boxes sit side by side before a rank is folded.
+const rankWidth = 5
+
+// folds reads the ranks off a top-to-bottom layout — boxes at one height — and, for each rank with
+// more than rankWidth boxes, pairs every box with the one rankWidth places to its right.
+func folds(l archdoc.Layout, ids map[string]string) [][2]string {
+	ranks := map[int][]archdoc.Box{}
+	for _, b := range l.Boxes {
+		y := int(b.Rect.Y+b.Rect.H/2) / 20 // boxes of different heights in one rank share a centre line
+		ranks[y] = append(ranks[y], b)
+	}
+	keys := make([]int, 0, len(ranks))
+	for y := range ranks {
+		keys = append(keys, y)
+	}
+	sort.Ints(keys)
+	var out [][2]string
+	for _, y := range keys {
+		row := ranks[y]
+		if len(row) <= rankWidth {
+			continue
+		}
+		sort.Slice(row, func(i, j int) bool {
+			if row[i].Rect.X != row[j].Rect.X {
+				return row[i].Rect.X < row[j].Rect.X
+			}
+			return row[i].ID < row[j].ID
+		})
+		for i := 0; i+rankWidth < len(row); i++ {
+			out = append(out, [2]string{ids[row[i].ID], ids[row[i+rankWidth].ID]})
+		}
+	}
+	return out
 }
 
 // maxAspect is how much wider than tall a diagram may be before the other orientation is tried.
@@ -99,7 +152,7 @@ func distance(a float64) float64 {
 // LayoutVersion changes whenever what Layout produces changes. Found the first day: a fix to
 // where boundary labels sit did not show on Immich or Mastodon, because their unchanged
 // architectures reused layouts stored by the old code. Bump this with any such change.
-const LayoutVersion = 8
+const LayoutVersion = 10
 
 // Box and text geometry, in points. Shared by the layout and the drawing, so a box is sized for
 // exactly the text that will be drawn in it.
@@ -119,7 +172,7 @@ const (
 func boxLines(n archdoc.Node) (name, kind string, desc []string) {
 	desc = wrap(n.Description, descChars, descMax)
 	if n.UsedBy > 0 || n.UsesMany > 0 {
-		desc = append([]string{sharedLine(n)}, desc...)
+		desc = append(wrap(sharedLine(n), descChars, 2), desc...)
 	}
 	return n.Name, svgTypeLabel(n), desc
 }
@@ -130,9 +183,9 @@ func sharedLine(n archdoc.Node) string {
 	case n.UsedBy > 0 && n.UsesMany > 0:
 		return fmt.Sprintf("used by %d, uses %d of %d · not drawn", n.UsedBy, n.UsesMany, n.Among)
 	case n.UsesMany > 0:
-		return fmt.Sprintf("uses %d of %d · arrows not drawn", n.UsesMany, n.Among)
+		return fmt.Sprintf("uses %d of %d · not drawn", n.UsesMany, n.Among)
 	}
-	return fmt.Sprintf("used by %d of %d · arrows not drawn", n.UsedBy, n.Among)
+	return fmt.Sprintf("used by %d of %d · not drawn", n.UsedBy, n.Among)
 }
 
 // A table is drawn with its columns, one line each, up to tableRows; the rest are counted.
@@ -171,7 +224,7 @@ func boxHeight(n archdoc.Node) float64 {
 
 // toDOT writes the Graphviz input. Order is fixed — nodes and edges in view order, which is
 // already sorted — because the output must be byte-identical across runs.
-func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string) (string, map[string]archdoc.Boundary) {
+func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string, fold [][2]string) (string, map[string]archdoc.Boundary) {
 	var b strings.Builder
 	clusters := map[string]archdoc.Boundary{}
 
@@ -241,6 +294,10 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 		// The label is given to the engine so it reserves room and reports where the label
 		// sits; archdoc draws the text itself.
 		fmt.Fprintf(&b, "  %s -> %s [label=%s];\n", from, to, quote(strings.Join(wrap(edgeText(e), labelChars, 3), "\n")))
+	}
+
+	for _, f := range fold {
+		fmt.Fprintf(&b, "  %s -> %s [style=invis];\n", f[0], f[1])
 	}
 
 	b.WriteString("}\n")

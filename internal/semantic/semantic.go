@@ -158,7 +158,8 @@ readable — never to change what it says exists.
 
 Return operations:
 - set_description: one sentence on what an element is responsible for. Every container and
-  external system should get one.
+  external system should get one, and so should the element whose id is "system": what the
+  system as a whole is for, to the people who use it.
 - set_technology: only for elements whose technology is empty, and only when the name makes the
   technology evident. Leave it out when unsure.
 - set_edge_label: a short verb phrase for a relationship ("reads and writes user data"), replacing
@@ -198,6 +199,8 @@ type relationship struct {
 
 func describe(m archdoc.Model) (string, error) {
 	p := payload{System: m.Name}
+	// The system itself, so it can be given the one line its box carries in the context view.
+	p.Elements = append(p.Elements, element{ID: archdoc.SystemID, Name: m.Name, Kind: string(archdoc.System), Description: m.Description})
 
 	// Components are not sent: the semantic layer works at the container level, and describing a
 	// component needs its code in the prompt (F-19), not a directory's name.

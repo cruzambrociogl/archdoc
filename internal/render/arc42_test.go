@@ -255,7 +255,7 @@ func TestSharedComponentsAreSaidNotDrawn(t *testing.T) {
 	if len(v.Model.Edges) != 6 {
 		t.Errorf("the view lost edges: %d — they stay in the model, only the layout leaves them out", len(v.Model.Edges))
 	}
-	dot, _ := toDOT(v.Model, v.Group, identifiers(v.Model), "TB")
+	dot, _ := toDOT(v.Model, v.Group, identifiers(v.Model), "TB", nil)
 	if strings.Count(dot, "->") != 1 {
 		t.Errorf("the layout draws %d arrows, want only a → b:\n%s", strings.Count(dot, "->"), dot)
 	}

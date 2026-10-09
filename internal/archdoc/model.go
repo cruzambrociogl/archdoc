@@ -189,12 +189,21 @@ type Edge struct {
 
 // Model is the whole system as archdoc understands it: one graph, from which every view is a
 // projection. The C4 levels are not extraction levels — they are filters over this.
+// SystemID names the system as a whole: the box everything declared collapses into in the context
+// view, and the target of an operation that describes it.
+const SystemID = "system"
+
 type Model struct {
 	// Name is the system under documentation.
 	Name string `json:"name"`
 
 	// Source is the file the model was derived from, repository-relative.
 	Source string `json:"source"`
+
+	// Description is what the system as a whole is for: the line on its box in the context view.
+	// No file states it, so it is only ever something a model or a person wrote, and says so.
+	Description string     `json:"description,omitempty"`
+	DescProv    Provenance `json:"description_provenance,omitzero"`
 
 	Nodes []Node `json:"nodes"`
 	Edges []Edge `json:"edges"`
@@ -401,10 +410,12 @@ func (m Model) Container() Model {
 // this view costs almost nothing once container works.
 func (m Model) Context() Model {
 	system := Node{
-		ID:       "system",
-		Name:     m.Name,
-		Kind:     System,
-		Evidence: Declared,
+		ID:          SystemID,
+		Name:        m.Name,
+		Kind:        System,
+		Evidence:    Declared,
+		Description: m.Description,
+		DescProv:    m.DescProv,
 	}
 
 	keep := map[string]bool{}

@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 )
@@ -36,6 +37,17 @@ func basis(m archdoc.Model, op archdoc.Op) (string, bool) {
 			}
 		}
 		return "", false
+	}
+	if op.Target == archdoc.SystemID {
+		// The system is what it contains: described again when a container comes or goes.
+		var inside []string
+		for _, n := range m.Nodes {
+			if !n.Kind.Part() && n.Evidence == archdoc.Declared && n.Kind != archdoc.Actor {
+				inside = append(inside, n.ID)
+			}
+		}
+		sort.Strings(inside)
+		return "system\x00" + m.Name + "\x00" + strings.Join(inside, "\x00"), true
 	}
 	n, ok := m.Node(op.Target)
 	if !ok {

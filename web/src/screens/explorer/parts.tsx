@@ -94,8 +94,8 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
               {n.used_by && n.uses_many
                 ? `used by ${n.used_by}, uses ${n.uses_many} of ${n.among} · not drawn`
                 : n.uses_many
-                  ? `uses ${n.uses_many} of ${n.among} · arrows not drawn`
-                  : `used by ${n.used_by} of ${n.among} · arrows not drawn`}
+                  ? `uses ${n.uses_many} of ${n.among} · not drawn`
+                  : `used by ${n.used_by} of ${n.among} · not drawn`}
             </span>
           </div>
         ) : null}

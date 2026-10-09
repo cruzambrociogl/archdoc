@@ -89,7 +89,10 @@ func Ops(m archdoc.Model, ops []archdoc.Op) Result {
 			requireValue(&r, id, op)
 
 		default:
-			requireNode(&r, nodes, id, op.Target, op)
+			// The system as a whole is not an element of the model, and can be described.
+			if !(op.Kind == archdoc.SetDescription && op.Target == archdoc.SystemID) {
+				requireNode(&r, nodes, id, op.Target, op)
+			}
 			requireValue(&r, id, op)
 		}
 	}
@@ -183,6 +186,11 @@ func apply(m *archdoc.Model, op archdoc.Op) {
 				m.Entries[i].Summary, m.Entries[i].SummaryProv = op.Value, op.Prov
 			}
 		}
+		return
+	}
+
+	if op.Kind == archdoc.SetDescription && op.Target == archdoc.SystemID {
+		m.Description, m.DescProv = op.Value, op.Prov
 		return
 	}
 

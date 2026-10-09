@@ -70,6 +70,9 @@ func Compare(a, b archdoc.Model) Diff {
 
 func compare(a, b archdoc.Model) Diff {
 	var d Diff
+	if a.Description != b.Description {
+		d.Changed = append(d.Changed, Change{Element: archdoc.SystemID, Field: "description", Before: a.Description, After: b.Description})
+	}
 
 	before := map[string]archdoc.Node{}
 	for _, n := range a.Nodes {

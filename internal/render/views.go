@@ -109,6 +109,9 @@ func componentView(m archdoc.Model, id string) View {
 	// the weight — how many imports — is drawn as the arrow's thickness instead.
 	view := unlabelled(m.Component(id))
 	markShared(&view)
+	if len(view.Nodes) <= mainOver {
+		describeParts(&view, m)
+	}
 	_, local, _ := strings.Cut(id, ":")
 	return View{
 		Name:  ComponentPrefix + id,
@@ -178,6 +181,7 @@ func mainView(m archdoc.Model, id string) View {
 	}
 	total := len(view.Nodes)
 	view.Nodes, view.Edges = nodes, edges
+	describeParts(&view, m)
 	view.Boundary = fmt.Sprintf("%s — the %d components that handle the most, of %d", view.Name, len(nodes), total)
 	_, local, _ := strings.Cut(id, ":")
 	return View{
@@ -186,6 +190,26 @@ func mainView(m archdoc.Model, id string) View {
 		Title: "Main components of " + view.Name,
 		Model: view,
 		Group: true,
+	}
+}
+
+// describeParts puts on each component's box the first sentence a model wrote about what it does
+// (F-19), where one is current — marked as the model's, as a container's description is. A view
+// of more components than a diagram shows is left to names: seventy-five paragraphs are not a
+// picture. An answer about an earlier version of the code is not shown as if it were about this.
+func describeParts(view *archdoc.Model, m archdoc.Model) {
+	said := map[string]archdoc.Explanation{}
+	for _, x := range m.Explanations {
+		if !x.Stale && len(x.Claims) > 0 {
+			said[x.Element] = x
+		}
+	}
+	for i := range view.Nodes {
+		n := &view.Nodes[i]
+		if x, ok := said[n.ID]; ok && n.Description == "" {
+			n.Description = x.Claims[0].Text
+			n.DescProv = archdoc.Provenance{Origin: archdoc.Semantic, Note: x.Prov.Note}
+		}
 	}
 }
 

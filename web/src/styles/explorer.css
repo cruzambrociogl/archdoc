@@ -269,6 +269,13 @@
   line-height: 13px;
   color: var(--canvas-muted);
 }
+/* The engine draws at most five lines of a description; so does the app. */
+.el-desc > span:last-child {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+}
 .el-desc-interp {
   font-style: italic;
   color: var(--k-slate-ink);
@@ -337,9 +344,13 @@
   background: #ffffff;
   border: 1px solid transparent;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
+  line-height: 1.25;
   color: var(--canvas-ink);
-  white-space: nowrap;
+  /* Wrapped where the engine wraps it (internal/render/layout.go: labelChars), so a label takes the
+     room the layout left for it and does not run under a box. */
+  max-width: 27ch;
+  text-align: center;
   pointer-events: all;
   cursor: pointer;
 }

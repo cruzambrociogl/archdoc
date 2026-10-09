@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
 
 func explainModel() archdoc.Model {
@@ -261,5 +262,42 @@ func TestLabelsAreRememberedAgainstTheirBasis(t *testing.T) {
 	again := Remember(kept, m, []archdoc.Op{{Kind: archdoc.SetDescription, Target: "svc:api", Value: "Serves the public API.", Origin: archdoc.Semantic, Prov: by}})
 	if len(again) != 2 || Recall(again, m)[0].Value != "Serves the public API." {
 		t.Errorf("a newer label did not replace the older: %+v", again)
+	}
+}
+
+// The system as a whole can be described: the operation passes the validator, lands on the box of
+// the context view, and is remembered until what the system contains changes.
+func TestTheSystemItselfIsDescribed(t *testing.T) {
+	at := archdoc.Provenance{File: "compose.yml", Line: 2}
+	m := archdoc.Model{Name: "shop", Nodes: []archdoc.Node{
+		{ID: "svc:api", Name: "api", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
+	}}
+	op := archdoc.Op{Kind: archdoc.SetDescription, Target: archdoc.SystemID, Value: "Sells things.", Origin: archdoc.Semantic,
+		Prov: archdoc.Provenance{Origin: archdoc.Semantic, Note: "a model"}}
+	out, res := validate.Apply(m, []archdoc.Op{op})
+	if !res.OK() {
+		t.Fatalf("refused: %s", res.Error())
+	}
+	var box archdoc.Node
+	for _, n := range out.Context().Nodes {
+		if n.ID == archdoc.SystemID {
+			box = n
+		}
+	}
+	if box.Description != "Sells things." || !box.DescProv.Origin.Interpretation() {
+		t.Errorf("the system box says %q, by %q", box.Description, box.DescProv.Origin)
+	}
+	kept := Remember(nil, m, []archdoc.Op{op})
+	if len(Recall(kept, m)) != 1 {
+		t.Error("not recalled for the same system")
+	}
+	grown := m
+	grown.Nodes = append(append([]archdoc.Node(nil), m.Nodes...), archdoc.Node{ID: "svc:worker", Name: "worker", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at})
+	if len(Recall(kept, grown)) != 0 {
+		t.Error("recalled for a system that has gained a container")
+	}
+	prompt, _ := describe(m)
+	if !strings.Contains(prompt, `"id": "system"`) {
+		t.Error("the system is not among what the model is asked to describe")
 	}
 }

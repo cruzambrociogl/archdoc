@@ -73,3 +73,30 @@ func TestMainViewKeepsTheComponentsThatHandleTheMost(t *testing.T) {
 		t.Errorf("a container of %d components has a main view: %v", MainParts+2, got)
 	}
 }
+
+// A component's box says what it does in the model's first sentence about it — marked as the
+// model's — unless that sentence is about an earlier version of the code.
+func TestComponentBoxesCarryTheirCurrentExplanation(t *testing.T) {
+	at := archdoc.Provenance{File: "compose.yml", Line: 1}
+	by := archdoc.Provenance{Origin: archdoc.Semantic, Note: "a model"}
+	m := archdoc.Model{Name: "x", Nodes: []archdoc.Node{
+		{ID: "svc:api", Name: "api", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
+		{ID: "cmp:api/orders", Name: "orders", Kind: archdoc.Component, Parent: "svc:api", Files: []string{"o.ts"}, Prov: at},
+		{ID: "cmp:api/users", Name: "users", Kind: archdoc.Component, Parent: "svc:api", Files: []string{"u.ts"}, Prov: at},
+	}, Explanations: []archdoc.Explanation{
+		{Element: "cmp:api/orders", Prov: by, Claims: []archdoc.Claim{{Text: "It takes orders."}, {Text: "It stores them."}}},
+		{Element: "cmp:api/users", Prov: by, Stale: true, Claims: []archdoc.Claim{{Text: "It was about something else."}}},
+	}}
+	v, _ := ViewOf(m, ComponentPrefix+"svc:api")
+	orders, _ := v.Model.Node("cmp:api/orders")
+	users, _ := v.Model.Node("cmp:api/users")
+	if orders.Description != "It takes orders." || !orders.DescProv.Origin.Interpretation() {
+		t.Errorf("orders says %q, by %q", orders.Description, orders.DescProv.Origin)
+	}
+	if users.Description != "" {
+		t.Errorf("a stale answer is on the box: %q", users.Description)
+	}
+	if n, _ := m.Node("cmp:api/orders"); n.Description != "" {
+		t.Error("the model itself was given the description; only the view should carry it")
+	}
+}

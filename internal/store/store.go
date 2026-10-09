@@ -173,7 +173,9 @@ func Fingerprint(m archdoc.Model) (string, error) {
 		Networks []network
 		Entries  []string            `json:",omitempty"`
 		Columns  map[string][]column `json:",omitempty"`
-	}{Name: m.Name}
+		// What the system is said to be for, when something says it.
+		Description string `json:",omitempty"`
+	}{Name: m.Name, Description: m.Description}
 	for _, e := range m.Entries {
 		arch.Entries = append(arch.Entries, e.ID)
 	}

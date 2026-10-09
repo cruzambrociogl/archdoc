@@ -880,3 +880,26 @@ can say in a line — and every component is one click away. One real defect is 
 needs more than 24 components to get a main view, not 17, so Immich's mobile app shows all 18
 instead of hiding a three-line and a four-line one. A person choosing the main components, as a
 rule that survives regeneration, is the right way to do better, and is not built.
+
+**2026-10-09 — The system has a description; a component's box says what it does**
+The context view's own box had a name and nothing else: no file says what a system is for, and
+the system is not an element a label could land on. The model now carries the system's
+description, `--label` is asked for it under the id `system`, the validator lets that one
+operation through without an element, and it is remembered until the system gains or loses a
+container. A component's box shows the first sentence of its explanation, marked as a model's like
+any description — in a view of 24 components or fewer, and never from an answer about an earlier
+version of the code. The view carries it; the model's component does not, so nothing a model wrote
+enters the architecture's fingerprint through it.
+
+**2026-10-09 — A rank too wide to read is folded**
+With descriptions on them, the sixteen main components of Immich's server laid out as two ranks ten
+boxes wide — a strip in either orientation, since few arrows are drawn among them. When neither
+orientation is within twice as wide as tall, a rank of more than five boxes is folded: each box past
+the fifth is put a rank below the one five places before it, by an invisible constraint, and the
+result is kept only if its shape is nearer a page's. Arrow labels and the note on a shared
+component are now wrapped in the app where the engine wraps them, so neither runs under a box.
+
+**2026-10-09 — A label run starts from what is remembered**
+`--label` ignored remembered labels and applied only what the new answer held, while the plain run
+after it applied both — so the two runs gave different models and the second recorded a version
+nothing had caused. Remembered labels are now applied before a new run, which writes over them.
