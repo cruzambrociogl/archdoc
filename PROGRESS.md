@@ -163,7 +163,7 @@ are in `docs/decisions.md` under the same date.
 | A project with no manifest is read from its files: scripts, or a page and its scripts | A one-file Python script and a one-page site: both documented | `a0c3bda` |
 | A tiny project gets one page, no chapters, nothing to fill in (D-13) | 21 files written → 8; the page says what it is, does, reaches and is made of | `a0c3bda` |
 | Hosted backends in the catalog; a named URL that is called; Next's page rule only for Next; the root application named | The small app: Supabase drawn, 2 pages for 2 (was 4), the script's API drawn (was "computed at run time") | `a0c3bda` |
-| A small project told as a story, on its page and in the app's Overview; the app without a containers level for it; a page's inline scripts read | `subjects/small-script`, `small-page`, `small-app`: each a cited story of four to six sentences | COMMIT |
+| A small project told as a story, on its page and in the app's Overview; the app without a containers level for it; a page's inline scripts read | `subjects/small-script`, `small-page`, `small-app`: each a cited story of four to six sentences | `493ef72` |
 
 **Not done** — known, and left:
 
