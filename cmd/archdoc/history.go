@@ -74,6 +74,14 @@ func history(e env, args []string) error {
 	}
 	w.Flush()
 
+	all, err := h.Versions(1 << 30)
+	if err != nil {
+		return err
+	}
+	if len(versions) < len(all) {
+		fmt.Fprintf(out, "\nThe latest %d of %d versions — -n shows more. A run that changes nothing records nothing.\n", len(versions), len(all))
+		return nil
+	}
 	fmt.Fprintf(out, "\n%d version(s). A run that changes nothing records nothing.\n", len(versions))
 	return nil
 }

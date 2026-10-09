@@ -212,7 +212,7 @@ func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
 	if n.Dir != "" {
 		fmt.Fprintf(out, "  code in %s\n", n.Dir)
 	}
-	if len(n.Files) > 0 {
+	if len(n.Files) > 0 && n.Lines > 0 { // a table names its file, and counts no lines
 		fmt.Fprintf(out, "  %d file(s), %d lines\n", len(n.Files), n.Lines)
 	}
 

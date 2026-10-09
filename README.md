@@ -242,6 +242,203 @@ uninstall.
 excluded gateway, and the only one where the distinction between "declares a dependency" and
 "declares that traffic flows" is visible.
 
+### Every command, on Immich
+
+The whole CLI, run from this directory against the Immich clone, in the order a person meets it.
+The output is real (9 October, Immich pinned at `cbf5d83`), shortened where marked `…`.
+`./archdoc help` lists the commands; `./archdoc help <command>` shows one command's flags.
+
+**Preview first.** `scan` reads the repository exactly as `generate` will, and writes nothing:
+
+```console
+$ ./archdoc scan ../subjects/immich
+immich — …/subjects/immich
+
+APPLICATION              ROLE       BUILT ON    WHERE
+immich-ml                service    FastAPI     machine-learning
+immich_mobile            mobile     Flutter     mobile
+@immich/cli              cli        —           packages/cli
+immich                   service    NestJS      server
+immich-web               web        SvelteKit   web
+…                                                              (15 manifests in all)
+
+4 services in docker/docker-compose.yml
+15 elements, 17 relationships, from docker/docker-compose.yml
+179 components in 5 containers, 1694 uses between them, from the code
+68 tables in 1 container, 65 foreign keys between them, from the code
+304 routes, 55 pages, 17 commands, 66 jobs, and 11 calls whose target is computed at run time
+364 flows followed through the code from them
+
+Nothing written. 'archdoc generate ../subjects/immich' writes it.
+```
+
+**Where corrections go.** `init` creates `.archdoc/rules.yaml`, every line a comment until you write
+a rule; it never overwrites anything:
+
+```console
+$ ./archdoc init ../subjects/immich
+created .archdoc/rules.yaml — corrections that survive regeneration; every line is a comment until you write one
+kept    .archdoc/.gitignore — already there
+```
+
+**Write it.** `generate` is offline and free, always. Descriptions and explanations a model wrote
+before are reused while what they describe is unchanged:
+
+```console
+$ ./archdoc generate ../subjects/immich
+documenting …/subjects/immich
+wrote 41 files into docs/architecture and .archdoc — --verbose lists them
+architecture unchanged since version 30
+
+15 elements, 17 relationships, from docker/docker-compose.yml
+179 components in 5 containers, 1694 uses between them, from the code
+68 tables in 1 container, 65 foreign keys between them, from the code
+304 routes, 55 pages, 17 commands, 66 jobs, and 11 calls whose target is computed at run time
+364 flows followed through the code from them
+10 gap(s) — 'archdoc generate ../subjects/immich --gaps' lists them
+```
+
+**Is it still true?** `status` reads the code again and compares it with what was documented, by
+structure: a description a model reworded is not the code changing.
+
+```console
+$ ./archdoc status ../subjects/immich
+immich — …/subjects/immich
+
+documented     version 30, recorded 9 Oct 2026 01:10 at commit cbf5d83
+the code now   at commit cbf5d83 — the architecture is as documented
+descriptions   15 written by a model, marked as such — 'archdoc label ../subjects/immich' asks again
+explanations   165 of 179 components, 8 of them about facts that have since changed
+gaps           10 — 'archdoc generate ../subjects/immich --gaps' lists them
+network        11 run(s), $3.29 in all — 'archdoc runs ../subjects/immich' lists them
+```
+
+**Ask about one thing.** `show` answers from the committed model: a route with its flow as numbered
+steps, a component, a table and who queries it, or a file and the component it belongs to. Every
+line carries its citation; what a model wrote is marked `◇`.
+
+```console
+$ ./archdoc show ../subjects/immich "POST /api/assets"
+POST /api/assets  [http in immich-server]
+  "Upload asset" — the code's own description, server/src/controllers/asset-media.controller.ts:72
+  handled by AssetMediaController.uploadAsset, declared at server/src/controllers/asset-media.controller.ts:51
+  in component asset
+
+flow — 40 step(s) through 27 participant(s), followed by name through the code:
+  1  AssetMediaController → AssetMediaService.uploadAsset             server/src/controllers/asset-media.controller.ts:83
+  2    AssetMediaService → AssetMediaService.requireAccess            server/src/services/asset-media.service.ts:133
+  3    AssetMediaService → AssetMediaService.requireQuota             server/src/services/asset-media.service.ts:140
+  4    AssetMediaService → AssetRepository.create                     server/src/services/asset-media.service.ts:149
+  5      AssetRepository writes asset                                 server/src/repositories/asset.repository.ts:448
+  …
+ 21    AssetMediaService queues AssetExtractMetadata                  server/src/services/asset-media.service.ts:187
+       handled later by MetadataService.handleMetadataExtraction, a flow of its own
+  …
+
+$ ./archdoc show ../subjects/immich album
+"album" matches 4 things — name one:
+
+  cmp:immich-server/album                  component in immich-server
+  cmp:mobile/album                         component in immich_mobile
+  cmp:web/album                            component in immich-web
+  tbl:immich-server/album                  table in immich-server
+
+$ ./archdoc show ../subjects/immich tbl:immich-server/album
+album  [table in immich-server]
+  id tbl:immich-server/album · declared at server/src/schema/tables/album.table.ts:18
+  …
+queried by:
+  reads    album                                      7× · first at server/src/repositories/album.repository.ts:91
+  updates  album                                      4× · first at server/src/repositories/album.repository.ts:236
+  writes   album                                      1× · first at server/src/repositories/album.repository.ts:325
+  …
+
+$ ./archdoc show ../subjects/immich server/src/services/album.service.ts
+server/src/services/album.service.ts
+  in component album, component in immich-server
+  …
+```
+
+**What changed.** `diff` reads the repository at a commit — and at another, or as the files are now
+— and says what changed in the architecture. Immich's clone is one commit deep, so here it has
+nothing to say; on two commits it reads like "cache renamed to store", and `--detail` lists every
+change under its class:
+
+```console
+$ ./archdoc diff ../subjects/immich HEAD
+HEAD → the working tree
+
+no change to the architecture
+```
+
+**Ask Claude — the only two commands that cost money.** Each says what it will send and what that
+should cost, and asks; with no one to ask it sends nothing unless given `--yes`. `--dry-run` prints
+every request exactly as it would go, and stops:
+
+```console
+$ ./archdoc label ../subjects/immich
+documenting …/subjects/immich
+label: 1 request(s) to claude-sonnet-5-5, 7483 bytes — about $0.02, estimated from its size.
+Sends names, kinds, technologies and relationships of the containers — no path, no code. A corrected answer is asked for again and costs more.
+Send? [y/N]
+
+$ ./archdoc label ../subjects/immich --dry-run
+── request 1 of 1 · system · 7483 bytes ──
+[system]
+You label software architecture models for documentation.
+…
+dry run — 1 request(s) would go to claude-sonnet-5-5, 7483 bytes, about $0.02, estimated from its size. Nothing sent, nothing written.
+
+$ ./archdoc explain ../subjects/immich --dry-run
+documenting …/subjects/immich
+nothing to ask: every component has a remembered answer for its facts, or is too small to ask about
+dry run — nothing sent, nothing written.
+```
+
+Every component of Immich worth asking about has a remembered answer, so `explain` has nothing to
+send; on a repository explained for the first time it lists one request per component, and
+`--only <id>` or `--limit <n>` asks about fewer.
+
+**What was sent, and what it cost.** `runs` lists every run that used the network; `--show <run>`
+prints its requests byte for byte, and the answers:
+
+```console
+$ ./archdoc runs ../subjects/immich -n 3
+RUN  WHEN              MODE                     REQUESTS  BYTES SENT  TOKENS IN/OUT   COST     STATUS
+11   2026-10-09 07:14  structure-and-summaries  91        270139      107916 / 22358  $0.4394  ok
+10   2026-10-09 07:04  structure-only           1         7055        2555 / 1290     $0.0180  ok
+9    2026-10-09 06:53  structure-and-summaries  3         19799       7747 / 936      $0.0249  ok
+
+11 run(s), $3.29 in all — the latest 3 listed; -n shows more
+'archdoc runs ../subjects/immich --show <run>' prints exactly what a run sent.
+```
+
+**Every version.** A run that changes nothing records nothing, so this is the number of times the
+architecture moved:
+
+```console
+$ ./archdoc history ../subjects/immich -n 3
+VERSION  RECORDED          COMMIT        SOURCE
+30       2026-10-09 07:10  cbf5d83a693d  docker/docker-compose.yml
+29       2026-10-09 07:09  cbf5d83a693d  docker/docker-compose.yml
+28       2026-10-09 07:09  cbf5d83a693d  docker/docker-compose.yml
+
+The latest 3 of 30 versions — -n shows more. A run that changes nothing records nothing.
+```
+
+**Look at it, and share it.** `serve` opens the app on this machine only; `export --site` builds the
+same app as a static site for a team:
+
+```console
+$ ./archdoc serve ../subjects/immich --open
+archdoc serving ../subjects/immich at http://localhost:7474 — this machine only. Ctrl-C to stop.
+
+$ ./archdoc export ../subjects/immich --site
+```
+
+Scripts and coding agents get `--json` from every command that reads, and exit codes they can test:
+0 done, 1 failed, 2 used wrongly.
+
 ### Checking it rather than trusting it
 
 ```console
