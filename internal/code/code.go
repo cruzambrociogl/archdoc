@@ -43,11 +43,13 @@ func Reads(language string) bool {
 
 // Read parses the code of the application in dir, a repository-relative directory of repo.
 // nested lists other applications' directories: a package inside this one is its own code, not
-// part of this application's. ok is false when the language is not one archdoc reads, or when
-// no file was found.
+// part of this application's. ok is false when nothing was read: no file in a language archdoc
+// reads, and no schema file beside it.
 func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok bool) {
 	if !Reads(app.Language) {
-		return src, false
+		// Its code is not read, but what it says its tables are still is.
+		src = archdoc.Source{App: app.Dir, Root: app.Dir, Schemas: schemas(repo, app.Dir)}
+		return src, len(src.Schemas) > 0
 	}
 	python := app.Language == "Python"
 	dart := app.Language == "Dart"
@@ -91,9 +93,9 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		}
 		return nil
 	})
-	src.Schemas = prismaSchemas(repo, app.Dir)
+	src.Schemas = schemas(repo, app.Dir)
 	if len(paths) == 0 {
-		return src, false
+		return src, len(src.Schemas) > 0
 	}
 
 	known := make(map[string]bool, len(paths))
@@ -140,6 +142,12 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		src.Files = append(src.Files, f)
 	}
 	return src, true
+}
+
+// schemas are the schema files beside an application's code: Prisma's, and the SQL its
+// migrations are written in.
+func schemas(repo, dir string) []archdoc.SourceFile {
+	return append(prismaSchemas(repo, dir), sqlSchemas(repo, dir)...)
 }
 
 // rawImport is an import as the parser found it, before resolution.

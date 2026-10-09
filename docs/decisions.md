@@ -775,3 +775,20 @@ Python a method is followed where the code states the object's class — `self`,
 assigns from a typed parameter or a constructor, a typed parameter, a local built from a class —
 and nowhere else: no inference from use. On Immich: 68 flows now reach a queued job, 37 an event
 listener, and `/predict` reaches `InferenceModel.load`. Not done: Celery, RQ and other Python queues.
+
+**2026-10-08 — SQL migrations are the schema where the code declares none**
+Until now tables came only from what the code declares — ORM classes, a Prisma schema — on the
+reasoning that migrations say how a schema got here, not what it is. That left a container with no
+ORM, or in a language archdoc does not read, with no data view at all. Now the `.sql` files under an
+application's directory are folded in path order — `CREATE TABLE`, `ALTER TABLE` (add, drop, rename,
+type, nullability, keys), `DROP TABLE` — into the schema they leave: each table cited at its
+`CREATE TABLE`, each column at the statement that last defined it. The way back is not applied
+(`.down.sql`, below `-- +goose Down`). Declarations still win: a container with one declared table
+ignores its migrations, so nothing is counted twice and Immich is unchanged. Read for any
+language — a Go service gets a data view from its migrations alone, and coverage says its code
+was not read. Not read: migrations in a tool's own DSL (Alembic, Knex, Rails' `schema.rb`).
+
+**2026-10-08 — A language with no framework cites its manifest**
+Found while testing the above: a service whose manifest named no framework archdoc knows — any
+plain Go module — had the technology "Go" with no provenance, failed VAL-05, and nothing was
+written. The manifest is what says the language, so it is what the technology cites.

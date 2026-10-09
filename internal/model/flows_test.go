@@ -243,3 +243,49 @@ func TestPythonFlowsFollowClassMethods(t *testing.T) {
 		t.Fatalf("steps %v, want %v", got, want)
 	}
 }
+
+// Migrations are the schema only where the code declares no table.
+func TestMigrationsStandInForDeclaredTables(t *testing.T) {
+	sql := archdoc.SourceFile{Path: "api/migrations/001.sql", Language: "SQL", Lines: 9, Classes: []archdoc.Class{
+		{Name: "users", Prov: cite("api/migrations/001.sql", 1), Decorators: []archdoc.Decorator{{Name: "Table", Arg: "users", HasArg: true}},
+			Fields: []archdoc.Field{{Name: "id", Prov: cite("api/migrations/001.sql", 2),
+				Decorators: []archdoc.Decorator{{Name: "Column", Options: map[string]string{"type": "serial", "primary": "true"}}}}}},
+		{Name: "posts", Prov: cite("api/migrations/001.sql", 4), Decorators: []archdoc.Decorator{{Name: "Table", Arg: "posts", HasArg: true}},
+			Fields: []archdoc.Field{{Name: "author_id", Prov: cite("api/migrations/001.sql", 5),
+				Decorators: []archdoc.Decorator{{Name: "Column", Target: "users", Options: map[string]string{"type": "int"}}}}}},
+	}}
+	facts := func(code []archdoc.SourceFile) *archdoc.FactSet {
+		return &archdoc.FactSet{Name: "x",
+			Apps:    []archdoc.App{{Name: "api", Dir: "api", Manifest: "api/go.mod", Role: archdoc.RoleService, Language: "Go", Prov: cite("api/go.mod", 1)}},
+			Sources: []archdoc.Source{{App: "api", Root: "api", Files: code, Schemas: []archdoc.SourceFile{sql}}}}
+	}
+	tablesOf := func(m archdoc.Model) (names []string, refs int) {
+		for _, n := range m.Nodes {
+			if n.Kind == archdoc.Table {
+				names = append(names, n.Name)
+			}
+		}
+		for _, e := range m.Edges {
+			if e.Label == "references" {
+				refs++
+			}
+		}
+		return names, refs
+	}
+	// A language with no framework recognised still cites what says so: the manifest.
+	for _, n := range Derive(facts(nil)).Nodes {
+		if n.Kind == archdoc.Application && (n.Technology != "Go" || !n.TechProv.Known()) {
+			t.Errorf("technology %q, cited at %v", n.Technology, n.TechProv)
+		}
+	}
+	names, refs := tablesOf(Derive(facts(nil)))
+	if strings.Join(names, " ") != "posts users" && strings.Join(names, " ") != "users posts" || refs != 1 {
+		t.Errorf("from migrations alone: tables %v, %d foreign keys", names, refs)
+	}
+	declared := []archdoc.SourceFile{{Path: "api/src/account.ts", Language: "TypeScript", Lines: 5, Classes: []archdoc.Class{
+		{Name: "Account", Prov: cite("api/src/account.ts", 2), Decorators: []archdoc.Decorator{{Name: "Entity", Prov: cite("api/src/account.ts", 1)}}}}}}
+	names, _ = tablesOf(Derive(facts(declared)))
+	if strings.Join(names, " ") != "Account" {
+		t.Errorf("with a declared table: %v, want only what the code declares", names)
+	}
+}

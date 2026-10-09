@@ -3,6 +3,7 @@ package code
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cruzambrociogl/archdoc/internal/archdoc"
@@ -673,5 +674,86 @@ func TestPythonClassMethods(t *testing.T) {
 	}
 	if byObject["service"].Type != "UserService" || byObject["mailer"].Type != "Mailer" || byObject["session"].Type != "" || byObject["service"].Self {
 		t.Errorf("locals %+v", module.Methods[0].Invokes)
+	}
+}
+
+// SQL migrations, folded in file order into the schema they leave — for an application in a
+// language whose code is not read, too. The way back is not applied, and neither is a temporary
+// table, a comment, or a semicolon inside a function's body.
+func TestSQLMigrations(t *testing.T) {
+	root := tree(t, map[string]string{
+		"api/go.mod": "module api\n",
+		"api/migrations/001_init.up.sql": "-- users first\n" +
+			"CREATE TABLE users (\n" +
+			"  id serial PRIMARY KEY,\n" +
+			"  email varchar(255) NOT NULL UNIQUE,\n" +
+			"  legacy text\n" +
+			");\n" +
+			"CREATE TABLE IF NOT EXISTS \"public\".\"posts\" (\n" +
+			"  id uuid NOT NULL,\n" +
+			"  author_id integer NOT NULL REFERENCES users (id) ON DELETE CASCADE,\n" +
+			"  price numeric(10, 2) DEFAULT 0,\n" +
+			"  CONSTRAINT posts_pkey PRIMARY KEY (id)\n" +
+			");\n" +
+			"CREATE TEMP TABLE scratch (id int);\n" +
+			"CREATE TABLE drafts (id int);\n",
+		"api/migrations/001_init.down.sql": "DROP TABLE users;\nDROP TABLE posts;\n",
+		"api/migrations/002_more.up.sql": "CREATE FUNCTION touch() RETURNS trigger AS $$ BEGIN NEW.at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql;\n" +
+			"ALTER TABLE users ADD COLUMN team_id int, DROP COLUMN legacy;\n" +
+			"/* teams\n   came later */\n" +
+			"CREATE TABLE teams (id int PRIMARY KEY, name text);\n" +
+			"ALTER TABLE ONLY users ADD CONSTRAINT users_team FOREIGN KEY (team_id) REFERENCES teams(id);\n" +
+			"ALTER TABLE posts RENAME TO articles;\n" +
+			"ALTER TABLE articles ALTER COLUMN price SET NOT NULL, RENAME COLUMN author_id TO writer_id;\n" +
+			"DROP TABLE IF EXISTS drafts CASCADE;\n" +
+			"-- +goose Down\n" +
+			"DROP TABLE teams;\n",
+	})
+	src, ok := Read(root, archdoc.App{Name: "api", Dir: "api", Language: "Go"}, nil)
+	if !ok || len(src.Files) != 0 {
+		t.Fatalf("ok %v, %d code files — want only the schema read", ok, len(src.Files))
+	}
+	tables := map[string]archdoc.Class{}
+	var order []string
+	for _, f := range src.Schemas {
+		for _, c := range f.Classes {
+			tables[c.Name] = c
+			order = append(order, c.Name)
+		}
+	}
+	if strings.Join(order, " ") != "users articles teams" {
+		t.Fatalf("tables %v, want users, articles (renamed), teams — not scratch, not drafts", order)
+	}
+	column := func(table, name string) archdoc.Decorator {
+		for _, f := range tables[table].Fields {
+			if f.Name == name {
+				d := f.Decorators[0]
+				d.Prov = f.Prov
+				return d
+			}
+		}
+		t.Errorf("%s has no column %s: %+v", table, name, tables[table].Fields)
+		return archdoc.Decorator{}
+	}
+	if len(tables["users"].Fields) != 3 || tables["users"].Prov.Line != 2 {
+		t.Errorf("users: %d columns at line %d, want id, email, team_id at line 2", len(tables["users"].Fields), tables["users"].Prov.Line)
+	}
+	if id := column("users", "id"); id.Options["primary"] != "true" || id.Options["type"] != "serial" || id.Options["nullable"] != "" {
+		t.Errorf("users.id %+v", id)
+	}
+	if e := column("users", "email"); e.Options["type"] != "varchar(255)" || e.Options["nullable"] != "" || e.Prov.Line != 4 {
+		t.Errorf("users.email %+v", e)
+	}
+	if team := column("users", "team_id"); team.Target != "teams" || team.Options["nullable"] != "true" || team.Prov.File != "api/migrations/002_more.up.sql" || team.Prov.Line != 2 {
+		t.Errorf("users.team_id %+v", team)
+	}
+	if id := column("articles", "id"); id.Options["primary"] != "true" {
+		t.Errorf("articles.id is not the primary key its constraint names: %+v", id)
+	}
+	if w := column("articles", "writer_id"); w.Target != "users" {
+		t.Errorf("articles.writer_id %+v", w)
+	}
+	if p := column("articles", "price"); p.Options["type"] != "numeric(10, 2)" || p.Options["nullable"] != "" {
+		t.Errorf("articles.price %+v", p)
 	}
 }

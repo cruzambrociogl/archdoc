@@ -75,6 +75,9 @@ type CodeRead struct {
 	Files      int    `json:"files"`
 	Lines      int    `json:"lines"`
 	Components int    `json:"components"`
+	// Schemas are the schema files read beside the code — a Prisma schema, SQL migrations — whether
+	// or not the code itself was.
+	Schemas []string `json:"schemas,omitempty"`
 	// Imports counts every import by how it was resolved: path, alias, module, package, unresolved.
 	Imports map[archdoc.Resolution]int `json:"imports"`
 	// Unresolved are the imports that look like the application's own code and match no file.
@@ -255,6 +258,12 @@ func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) str
 			own := c.Imports[archdoc.ByPath] + c.Imports[archdoc.ByAlias] + c.Imports[archdoc.ByModule]
 			fmt.Fprintf(&b, "| `%s` | %s | %d | %d | %d | %d own, %d packages | %d | %d |\n", c.Root, c.Language,
 				c.Files, c.Lines, c.Components, own, c.Imports[archdoc.ByPackage], len(c.Unresolved), len(c.Partial))
+		}
+		for _, c := range r.Code {
+			if len(c.Schemas) > 0 {
+				fmt.Fprintf(&b, "\n- `%s`: its tables are read from %d schema %s — `%s`", c.App, len(c.Schemas),
+					plural(len(c.Schemas), "file", "files"), strings.Join(c.Schemas, "`, `"))
+			}
 		}
 		for _, c := range r.Code {
 			for _, i := range c.Unresolved {
@@ -445,7 +454,11 @@ func codeRead(m archdoc.Model, facts archdoc.FactSet) []CodeRead {
 		c := CodeRead{App: a.Dir, Container: containerOf[a.Dir], Language: a.Language,
 			Imports: map[archdoc.Resolution]int{}, Unresolved: []archdoc.Import{}, Partial: []string{}}
 		if s, ok := sources[a.Dir]; ok {
-			c.Read, c.Root, c.Files, c.Components = true, s.Root, len(s.Files), count[c.Container]
+			for _, f := range s.Schemas {
+				c.Schemas = append(c.Schemas, f.Path)
+			}
+			// A source with schema files alone is an application whose code was not read.
+			c.Read, c.Root, c.Files, c.Components = len(s.Files) > 0, s.Root, len(s.Files), count[c.Container]
 			for _, f := range s.Files {
 				c.Lines += f.Lines
 				if f.Partial {
@@ -473,7 +486,7 @@ var limits = []Limit{
 	{"The order of calls in a scenario", "Application source, or runtime traces"},
 	{"What happens on failure — retries, fallbacks, queues", "Application source"},
 	{insideLimit, "Application source"},
-	{"The shape of the data a container stores", "Schema or migration files"},
+	{"The shape of the data a container stores", "Tables its code declares, a Prisma schema, or SQL migrations — read where they exist"},
 	{"Connections built at runtime from assembled values", "Application source"},
 	{"Why any of it is this way", "A person — sections 1, 4 and 9"},
 }

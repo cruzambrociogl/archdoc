@@ -17,8 +17,9 @@ import (
 //     Field(foreign_key="user.id") names the other end.
 //   - Python, SQLAlchemy's declarative style: a class with a __tablename__.
 //
-// Migrations are the other source of a schema; they say how it got here, not what it is, and are
-// not read for it.
+// Migrations are the other source of a schema. They say how it got here, not what it is, so they
+// are read only where the code declares no table: then the SQL they are written in, folded in file
+// order, is the schema (internal/code/sql.go).
 
 // TypeORM's relation decorators: the field holds a relation, not necessarily a column.
 var relationDecorators = map[string]bool{"ManyToOne": true, "OneToOne": true, "OneToMany": true, "ManyToMany": true}
@@ -27,6 +28,7 @@ type tableClass struct {
 	class archdoc.Class
 	file  string
 	name  string
+	sql   bool // from migrations, not from a declaration
 }
 
 func tables(m *archdoc.Model, sources []archdoc.Source) {
@@ -59,9 +61,23 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 		for _, f := range all {
 			for _, c := range f.Classes {
 				if name, ok := tableName(c, f.Language); ok {
-					found = append(found, tableClass{class: c, file: f.Path, name: name})
+					found = append(found, tableClass{class: c, file: f.Path, name: name, sql: f.Language == "SQL"})
 				}
 			}
+		}
+		// What the code declares is the schema; migrations stand in only where it declares nothing.
+		declared := false
+		for _, t := range found {
+			declared = declared || !t.sql
+		}
+		if declared {
+			kept := found[:0]
+			for _, t := range found {
+				if !t.sql {
+					kept = append(kept, t)
+				}
+			}
+			found = kept
 		}
 		if len(found) == 0 {
 			continue

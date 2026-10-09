@@ -82,12 +82,18 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 		if a.Language != "" {
 			tech = strings.TrimPrefix(tech+" · "+a.Language, " · ")
 		}
+		// With no framework recognised the technology is the language alone, and what says so is
+		// the manifest itself: a go.mod is Go.
+		techProv := a.FrameworkProv
+		if !techProv.Known() {
+			techProv = a.Prov
+		}
 		if a.Deployed != nil {
 			if i, ok := byID[serviceID(a.Deployed.Service)]; ok {
 				n := &m.Nodes[i]
 				n.Dir, n.DirProv = a.Dir, a.Deployed.Prov
 				if n.Technology == "" {
-					n.Technology, n.TechProv = tech, a.FrameworkProv
+					n.Technology, n.TechProv = tech, techProv
 				}
 				continue
 			}
@@ -97,7 +103,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 			Name:       a.Name,
 			Kind:       archdoc.Application,
 			Technology: tech,
-			TechProv:   a.FrameworkProv,
+			TechProv:   techProv,
 			Evidence:   archdoc.Declared,
 			Dir:        a.Dir,
 			DirProv:    a.Prov,

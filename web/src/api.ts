@@ -250,6 +250,8 @@ export interface CodeRead {
   files: number
   lines: number
   components: number
+  /** Schema files read beside the code, whether or not the code was. */
+  schemas?: string[]
   imports: Partial<Record<'path' | 'alias' | 'module' | 'package' | 'unresolved', number>>
   unresolved: { spec: string; provenance: Provenance }[]
   partial: string[]

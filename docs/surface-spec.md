@@ -487,7 +487,7 @@ columns — PK, FK and nullable marked — and foreign keys as arrows, from tabl
 decorators, SQLModel, SQLAlchemy's `__tablename__`); the inspector is the entity page's fields.
 Prisma schemas and SQLAlchemy's `Column(…, ForeignKey(…))` are read as well (8 Oct). Not yet:
 clustering (Immich's 68 tables are one view), the entity table, who reads and writes a table outside
-a flow. Migrations are not read.
+a flow. SQL migrations are read where the code declares no table (8 Oct).
 
 ### 5.8 Dependencies
 

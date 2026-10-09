@@ -19,6 +19,7 @@ function CodeRow({ c, go }: { c: CodeRead; go: (r: Partial<Route>) => void }) {
         </div>
         <div className="read-why">
           <TruthMark state="unresolved" /> {c.language}: archdoc has no reader for it yet, so this container's inside is not drawn.
+          {c.schemas?.length ? ` Its tables are read from ${c.schemas.length} schema ${c.schemas.length === 1 ? 'file' : 'files'}: ${c.schemas.join(', ')}.` : ''}
         </div>
       </div>
     )

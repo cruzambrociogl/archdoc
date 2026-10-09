@@ -116,9 +116,11 @@ the FastAPI template. Worked through in order, without dates, until the 9 Oct de
 
 Done since, 8 Oct: `--explain` on `claude-sonnet-5-5` and `--label` too, small components not asked
 about (Immich: 97 explained for $0.52); `model.json` laid out compactly and the server gzipped;
-flows follow events, queued jobs and a Python class's methods.
+flows follow events, queued jobs and a Python class's methods; SQL migrations are the schema where
+the code declares no table, for a container in any language.
 
-Not done: migrations as a schema source; Celery-style queues in Python.
+Not done: Celery-style queues in Python; migrations written in a tool's own DSL (Alembic, Knex,
+Rails' `schema.rb`).
 
 ### Superseded — do not implement as written
 
