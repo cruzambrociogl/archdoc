@@ -138,8 +138,8 @@ are in `docs/decisions.md` under the same date.
 | Renames and boundary crossings are one change (MEM-05, MEM-06): matched on a directory, relationships, columns or files, only when the match is unique; a container's parts and routes follow it | A renamed container with code: 1 change, not dozens | `7ddd3c9` |
 | The drift set | AC-6: 16 of 16 | `7ddd3c9` |
 | The Changes screen lists renames and crossings | — | `7ddd3c9` |
-| AC-1 counted in the coverage report | Immich 1,333 of 1,333 | this commit |
-| `--explain` runs logged and announced as `structure-and-summaries`, with a wire test of what that mode sends | — | this commit |
+| AC-1 counted in the coverage report | Immich 1,333 of 1,333 | `05c0040` |
+| `--explain` runs logged and announced as `structure-and-summaries`, with a wire test of what that mode sends | — | `05c0040` |
 
 **Not done** — known, and left:
 
