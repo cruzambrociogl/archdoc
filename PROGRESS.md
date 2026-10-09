@@ -248,7 +248,8 @@ are in `docs/decisions.md` under the same date.
 | Readers verified on fixtures only | Express, Next.js, React Router, Prisma, SQLAlchemy, Typer and Click; SQL migrations; Python class methods beyond Immich's ML service. No real repository has been through them |
 | No side-by-side of `--label` on Sonnet 5.5 against Opus 5.5 | Sonnet's output read correctly; the comparison was never made |
 | The other test subjects | Mastodon and the FastAPI template were deleted and not cloned again; Supabase never was (AC-9) |
-| Data flow, beyond the store | Only the arrow into a relational store says what moves. A client's arrow to the server, a queue's jobs, a call to the ML service still carry the container view's verb. Sensitivity (PII) labels, the main path emphasised, and one table's lineage (option b) are not built |
+| **The Flows screen — planned, next to build** | The design's Flow screen (spec §5.6): every flow, main ones first by a stated rule; a page per flow with step-through and a step list; lanes by kind, styled arrows, bands, Simple / Every step; then the flow on the canvas. The plan, and what is not drawn on purpose, is in `docs/decisions.md`, 9 Oct, "The Flows screen". Not started |
+| Data flow, beyond the store | Only the arrow into a relational store says what moves. A client's arrow to the server, a queue's jobs, a call to the ML service still carry the container view's verb. Sensitivity (PII) labels, the main path emphasised, and one table's lineage (option b) are not built. Not what was asked for (see the Flows screen); whether the view stays is open |
 | A component's tables on its page | `Model.Access` now holds them, from all the code; the page does not show them yet (`planned.ts`, data-touched) |
 | `develop` → `main` | `main` holds the initial commit only; no pull request yet, by choice |
 | The published site, and a demo walk-through | Deferred to demo preparation, by choice |

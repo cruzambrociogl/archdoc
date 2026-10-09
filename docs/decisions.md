@@ -1048,4 +1048,35 @@ names the tables written and counts the ones only read, citing a query of each. 
 list, not edges between components and tables: edges would change the facts every component's
 explanation was written from and mark all of them stale. Left for later: what the other arrows
 carry, sensitivity labels (which would be interpretation, marked so), the main path, and one
-table's lineage — option (b), next.
+table's lineage — option (b).
+*Seen in the app the same night: not what Cruz meant. The Archify diagrams in question are its
+sequence diagrams, and the design's Flow screen — see the next entry. Whether this view stays is
+open (`.claude/NOTES.md`).*
+
+**2026-10-09 — The Flows screen: planned, to build later**
+What Cruz asked for is the design's Flow screen (`Surface Screens`, "Flows · assets · arc42 §6";
+spec §5.6), drawn the way Archify draws a sequence: one flow, stepped through. Agreed as the plan,
+not started.
+- **Every flow, main ones first.** One screen shows any of the flows extraction already has (Immich:
+  364 — 299 routes, 65 jobs); none is drawn by hand, as Archify's agent does. The index opens on the
+  main flows, picked by a stated rule — the most tables touched, jobs queued, listeners reached,
+  calls that leave — as the main components view picks sixteen; the rest by search and by
+  component, the one-to-three-step ones (Immich: 95) folded. arc42 §6, which picks its eight by width
+  alone, uses the same rule. A curated set only, Archify's way, was the alternative, and was not chosen.
+- **Phase 1, the screen.** An index (`#screen=flows`) and a page per flow: the design's header
+  (the code's own summary as title, else method and path; "traced from" cited; the handling
+  component linked), the diagram beside a step list, step-through (buttons and arrow keys, the
+  current step in magenta, later ones faded, reduced motion respected, every step in an export).
+  Linked from each Features row and from component pages.
+- **Phase 2, the diagram.** Lane cards by kind — a class with its component and role, a table in
+  teal with its store, a queued job, an event's listener, an unknown target in ochre; a caller lane
+  first (a route: the API's clients, from the OpenAPI facts; a job: its queue); arrows styled by
+  what the code shows (call, table write or read, queued or emitted, unresolved, cut), with a
+  legend; activation bars from call depth; a band per call the handler's service makes, labelled
+  with the call; a Simple / Every step toggle that hides self-calls and helpers that lead nowhere
+  new, keeping them in the list.
+- **Phase 3, on canvas.** The flow over the explorer's component view: its components numbered in
+  step order, the rest dimmed.
+- **Not drawn, on purpose:** return arrows (the code records no return values), "security" arrows
+  (which call is the check would be a guess), prose per step (model-written). The last may come as
+  a paid, marked option: `--explain` writing one sentence per band, cited to its steps.

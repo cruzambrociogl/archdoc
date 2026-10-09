@@ -78,10 +78,13 @@ raised, not quietly promoted over it.
       name; it now says the container and counts parts under it — 9 Oct
 
 ---
-- [ ] Data flow, next steps (9 Oct): (b) one table's lineage — which ways in write it, which
-  components and jobs touch it, who reads it — from `Model.Access` and the flows; what a client's
-  arrow carries (the OpenAPI operations it calls, once those are tied to the client); the jobs on a
-  queue; PII marks as interpretation; the main path emphasised, as Archify does.
+- [ ] The data-flow view (built 9 Oct, `a65d5fd`) was not what Cruz meant — that is the Flows
+  screen, planned in `docs/decisions.md`. Undecided: remove the view (tab, menu entry,
+  `dataflow.svg`, the index section) and keep `Model.Access` for component pages, or keep it as a
+  secondary view. If kept, its next steps: one table's lineage; what a client's arrow carries; the
+  jobs on a queue; PII marks as interpretation; the main path emphasised.
+- [ ] Flows screen, before building: lanes by class (the design) or by component, and whether to
+  stop after phase 2 for a review. Recommended: class, with Simple mode folding; all three phases.
 - [ ] Long external names overflow their box in every SVG ("Telemetry collector (OpenTelemetry)",
   seen on the data-flow view): the name is not wrapped or clipped as descriptions are.
 
