@@ -59,6 +59,21 @@ raised, not quietly promoted over it.
       `Surface Screens.dc.html` is larger than DesignSync's 256 KB read limit and came back cut
       short: every screen's markup was read in full; the end of its example data (from the Changes
       version list on — likely Corrections, Network runs, Dependencies) was not
+- [ ] Where the app still differs from the design (Surface Screens), after the 9 Oct pass on the
+      navigation and the Overview — to work on later:
+      - Coverage on the Overview and in the navigation is the share of elements and relationships
+        with no gap (Immich 68%). The design's is "outbound references resolved" (96 of 110), which
+        archdoc does not measure yet: count calls that leave a component, and how many reach a
+        known element
+      - Component pages in the navigation: "Components" is a placeholder (`wiki-tree` in
+        `web/src/planned.ts`). The design lists each component's page under it; Immich has 179, so
+        it needs deciding which ones show — main ones, or the open container's
+      - Navigation badges: Coverage as %, Documents as written of planned (7/12), Changes as "•N"
+        since the compared version (`nav-badges` in planned.ts)
+      - Run, Publish, Uncommitted, Settings and the status pill are dashed placeholders (§11
+        controls; `run`, `publish`, `git`, `settings`, `freshness` in planned.ts)
+      - The Overview summary has no inline citations: the design's carries [1], [2] on each claim
+        and "Interpreted by … from N proven facts". Ours is one `--label` sentence with one cite
 - [x] The Overview's "What changed" named a component twice when two containers had one of that
       name; it now says the container and counts parts under it — 9 Oct
 
