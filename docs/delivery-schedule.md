@@ -1,6 +1,6 @@
 # archdoc — R1 delivery schedule
 
-> Planned 2026-08-24, second revision. **Delivery at the review of Friday 9 October 2026.**
+> Planned 2026-08-24; revised 2 Oct and 9 Oct 2026. **Delivery on Friday 11 December 2026.**
 >
 > A working plan. Building will change it; the review dates will not. Depends on
 > `product-definition.md` (what), `stack-decision.md` (with what) and
@@ -66,6 +66,15 @@ seven views. **Seven of the nine acceptance criteria are met**, AC-2 — the the
 Review 1 (11 Sep) and Review 2 (25 Sep) were both held and both went well. 9 Oct turned out to be a
 progress review rather than the delivery, so the 2 Oct code freeze is void: the project is in an
 extension phase that ends with delivery on **11 Dec**. That phase is §7.
+
+**Where it stands — 9 Oct 2026.** The code-as-evidence plan ran in five days instead of seven
+weeks. **Build 1 is done**, all of it, 5–6 Oct; **most of Build 2** landed 5–8 Oct; and part of
+**Build 3** — component pages, output sized to the project, the diff between two commits with its
+drift set (AC-6, 16 of 16) — landed 6–9 Oct. Work the calendar never had was added on 9 Oct: small
+projects told as a story, the data-flow view (F-16, brought back), the CLI reworked, Supabase
+back as a subject with an overview a reader can take in, and Java and C# read. **27 Oct – 13 Nov is now free**; the
+planning week (13–17 Oct) decides what fills it. AC-9 missed its 5–8 Oct slot — Supabase was not on
+disk — and moves to the evidence sprint. `PROGRESS.md` has each piece with what it measured.
 
 ---
 
@@ -339,18 +348,24 @@ retreat: **the local, verifiable alternative** (`vision.md` §2.2).
 
 ### The blocks
 
+Revised 9 Oct: what landed early is marked with when it landed, and Builds 2 and 3 now hold only
+what remains. `schedule.csv` has the rows.
+
 | | Period | Work | Gate |
 |---|---|---|---|
 | | 4–5 Oct | **Surface redesign — pulled forward from Build 3** (S-4): spec, Claude Design, shell, explorer drawn by the app, change lens, documents, coverage, arrangements and saved views, search, action gate, published site | ✓ done — every screen driven in a browser, the explorer checked at 300 elements |
-| | 5–8 Oct | Performance measurement (AC-9); review preparation | AC-9 scored |
+| 1 | 5–6 Oct | **Build 1 — foundations, pulled forward from 27 Oct – 13 Nov**: parsing in the binary, application discovery, import graph, the NestJS, Express and FastAPI packs, schema reading; identity, unresolved, interpretation memory, symbol egress rules | ✓ met 5 Oct — Immich's server→machine-learning edge from `config.dto.ts:624`, cited at its line |
+| 2 | 5–8 Oct | **Build 2 — lenses, pulled forward from 10–21 Nov**: component, data and flow views; feature list, dependency map; arc42 §5, §6, §12; coverage of the code; cited-claim validation; rules for the new kinds | ✓ met — Immich: 179 components, 68 tables, 364 flows; every element opens at its line |
+| 3 | 6–9 Oct | **Part of Build 3, pulled forward**: component pages with cited explanations (paid, asked first); output sized to the project; `archdoc diff` between two commits and the drift set | ✓ AC-6 met, 16 of 16 |
+| | 9 Oct | **Added, not in the plan**: the explorer read as a C4 picture of Immich; small projects told as a story; the data-flow view (F-16); the CLI reworked; Supabase back, its overview cut from 389 external systems to the 12 the most containers reach; **Java and C# read** — Spring and ASP.NET Core, measured on spring-petclinic, its microservices and eShopOnWeb | ✓ done — `PROGRESS.md` and `decisions.md`, 9 Oct |
 | | 5–16 Oct | **Hand-drawn Immich reference — owner: Cruz** | The answer key exists. Blocks AC-3 and the comparison |
 | | 9 Oct | Progress review | R1.a shown; direction presented |
-| | 13–17 Oct | **Planning week** — `feature-inventory.md` marked in or out; `vision.md` D-1 to D-17 settled; capability catalog and calendar rewritten | A chosen list, not a menu |
-| | 20–24 Oct | **Evidence sprint** — pilot, competitor comparison, structure-only and local-model quality checks | Numbers that can redirect the build |
-| 1 | 27 Oct – 13 Nov | **Foundations and stability** — parsing in the binary, application discovery, import graph, one backend pack, schema reading; identity, unresolved, interpretation memory, symbol egress rules | Immich's server→machine-learning edge recovered from TypeScript, cited at its line |
+| | 13–17 Oct | **Planning week** — `feature-inventory.md` marked in or out; `vision.md` D-1 to D-17 settled; capability catalog and calendar rewritten; **what fills 27 Oct – 13 Nov** | A chosen list, not a menu |
+| | 20–24 Oct | **Evidence sprint** — pilot, competitor comparison, structure-only and local-model quality checks; **AC-9**, moved from 5–8 Oct | Numbers that can redirect the build |
+| | 27 Oct – 13 Nov | **Free — Build 1 landed early.** Candidates: the change view (F-38, F-40, F-41), the Flows screen, the deployment view, Kotlin | Decided in the planning week |
 | | 13 Nov | Mid-phase checkpoint | Confirm or cut the stretch items |
-| 2 | 10–21 Nov | **Lenses and output** — component, data and flow views; feature list, dependency map, deployment view; arc42 §5/§6/§8; coverage report; cited-claim validation | A reader learns how Immich works from the documents, and every element opens at its line |
-| 3 | 24 Nov – 3 Dec | **Surfaces and change** — component pages, diff between two commits, change summary, the missing CLI commands, the app's run and publish controls, loose ends (the web app at scale and the publishable site moved to 4–5 Oct) | AC-6 scored on the drift set; the app readable at hundreds of elements |
+| 2 | 10–21 Nov | **What remains of Build 2** — F-15 deployment view (arc42 §7 exists from Compose; CI files and the app screen do not), arc42 §8, the Flows screen, F-34 local model path; flex F-40 | Dates redrawn in the planning week |
+| 3 | 24 Nov – 3 Dec | **What remains of Build 3** — F-38 change summary, F-41 plan against code if the checkpoint keeps it, the app's run and publish controls, F-54 browser pass on every subject, F-49 gateway route paths, export formats other than `--site` | The app readable at hundreds of elements |
 | | 4 Dec | **Code freeze** | No new capability |
 | | 4–8 Dec | Acceptance measurement — all nine criteria | Every criterion has a number, including the ones that fall short |
 | | 7–10 Dec | Report and slides, from measured results | Shortfalls written as findings |
@@ -359,7 +374,8 @@ retreat: **the local, verifiable alternative** (`vision.md` §2.2).
 ### What slips first
 
 Agreed in advance, so slipping is a decision already made rather than an argument in December:
-F-18, F-17, F-16, F-29, F-27, F-26, F-09, F-23 are already out; after them, work is dropped from
+F-18, F-17, F-29, F-27, F-26, F-09, F-23 are already out (F-16, the data-flow view, was brought
+back and built on 9 Oct); after them, work is dropped from
 the bottom of Build 3. **Never cut:** provenance on every element, the unresolved state, the
 coverage report, and the acceptance measurement. Those are what the thesis is.
 
