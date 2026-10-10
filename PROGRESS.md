@@ -252,12 +252,12 @@ are in `docs/decisions.md` under the same date.
 
 | What | Measured | Commit |
 |---|---|---|
-| A URL in a list of records is data; code served as it is (`public/`, `static/`, `*.min.js`) is not read; reserved example domains are placeholders | Supabase: 389 external systems → 28 | not yet committed |
-| Examples are not containers; a front-end package another depends on is a library | Supabase: 59 containers → 17 | not yet committed |
-| The context and container views draw the 12 external systems the most containers reach, the rest counted and in the tables; `context:all`, `container:all` in the app | Supabase: 12 drawn of 28; Immich unchanged | not yet committed |
-| A stored layout is reused only if it places every element of the view; layout version 13 | Arrows to boxes that were not there, seen once on Supabase | not yet committed |
-| Java: `pom.xml` and `build.gradle(.kts)` modules; Spring routes, MVC pages, JPA tables, Spring Data queries, starters, `application.yml`/`.properties` hosts; a module tied to the service running its image | petclinic: 6 routes, 11 pages, 6 tables, 9 flows. Microservices: 8 modules tied to their services, gateway→customers/visits and genai→vets from the code, genai→OpenAI from its pom | not yet committed |
-| C#: `.csproj` projects by SDK; types resolved by name; ASP.NET controllers, minimal APIs, Razor Pages; EF Core tables from referenced libraries; `appsettings*.json` hosts and connection strings | eShopOnWeb: 3 containers, 19 routes, 25 pages, 14 tables with their keys, both services → `sqlserver` (Azure SQL Edge) | not yet committed |
+| A URL in a list of records is data; code served as it is (`public/`, `static/`, `*.min.js`) is not read; reserved example domains are placeholders | Supabase: 389 external systems → 28 | `f829927` |
+| Examples are not containers; a front-end package another depends on is a library | Supabase: 59 containers → 17 | `f829927` |
+| The context and container views draw the 12 external systems the most containers reach, the rest counted and in the tables; `context:all`, `container:all` in the app | Supabase: 12 drawn of 28; Immich unchanged | `f829927` |
+| A stored layout is reused only if it places every element of the view; layout version 13 | Arrows to boxes that were not there, seen once on Supabase | `f829927` |
+| Java: `pom.xml` and `build.gradle(.kts)` modules; Spring routes, MVC pages, JPA tables, Spring Data queries, starters, `application.yml`/`.properties` hosts; a module tied to the service running its image | petclinic: 6 routes, 11 pages, 6 tables, 9 flows. Microservices: 8 modules tied to their services, gateway→customers/visits and genai→vets from the code, genai→OpenAI from its pom | `f829927` |
+| C#: `.csproj` projects by SDK; types resolved by name; ASP.NET controllers, minimal APIs, Razor Pages; EF Core tables from referenced libraries; `appsettings*.json` hosts and connection strings | eShopOnWeb: 3 containers, 19 routes, 25 pages, 14 tables with their keys, both services → `sqlserver` (Azure SQL Edge) | `f829927` |
 
 **Not done** — known, and left:
 
