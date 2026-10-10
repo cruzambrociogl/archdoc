@@ -146,6 +146,16 @@ func apiCalls(m *archdoc.Model, f *archdoc.FactSet) {
 	}
 }
 
+// firstPage is where a container's code first declares a page, in entry order.
+func firstPage(m *archdoc.Model, container string) (archdoc.Provenance, bool) {
+	for _, e := range m.Entries {
+		if e.Container == container && e.Kind == "page" {
+			return e.Prov, true
+		}
+	}
+	return archdoc.Provenance{}, false
+}
+
 // people ties the person to the applications a person runs (F-08): a web front end, a mobile app,
 // a command-line tool. What makes an application one of those is a line in its manifest — the
 // framework it depends on, the command it declares — and that line is what the arrow cites.
@@ -180,6 +190,16 @@ func people(m *archdoc.Model, f *archdoc.FactSet) {
 		case archdoc.RoleCLI:
 			label, why = "runs", "a command-line tool is what a person runs"
 		default:
+			// A service that serves pages — Razor Pages, an MVC view — is a site: what a person opens.
+			if p, ok := firstPage(m, id); ok {
+				p.Note = "it serves pages, and a page is what a person opens — " + a.Why
+				if !hasActor {
+					hasActor = true
+					m.Nodes = append(m.Nodes, archdoc.Node{ID: actorID, Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: p})
+				}
+				reached[id] = true
+				m.Edges = append(m.Edges, archdoc.Edge{From: actorID, To: id, Label: "uses", Traffic: true, Prov: []archdoc.Provenance{p}})
+			}
 			continue
 		}
 		prov := a.FrameworkProv

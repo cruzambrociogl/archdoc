@@ -24,7 +24,7 @@ web app builds (`cd web && npm run build`), and `go build -o archdoc ./cmd/archd
 | "What the AI did" | Not built. `archdoc diff` compares two commits and classifies every change; nothing yet turns that into a summary a person reads, and nothing reads a plan file |
 
 **Acceptance criteria:** seven of nine met — AC-1, 2, 4, 5, 6, 7, 8. AC-3 waits for the hand-drawn
-Immich reference (Cruz). AC-9 waits for Supabase, which is not cloned.
+Immich reference (Cruz). AC-9 can be measured now that Supabase is on disk again (9 Oct): moved to the evidence sprint.
 
 **Against the vision** (`docs/vision.md`; the check itself is in `docs/decisions.md`, 9 Oct): on
 path for a system; back on path for small projects; not started on the change view per session and
@@ -35,9 +35,13 @@ on plan against code. The order agreed: (1) small projects accepted ✓, (2) the
 
 | Subject | State |
 |---|---|
-| `immich` | Pinned `cbf5d83a693d0328282ddb0f5d398c351d92558e`, one commit deep. Generated, labelled, explained: 15 elements, 17 relationships, 179 components, 68 tables, 442 ways in, 165 explanations, version 30 |
+| `immich` | Pinned `cbf5d83a693d0328282ddb0f5d398c351d92558e`, one commit deep. Generated, labelled, explained: 15 elements, 17 relationships, 179 components, 68 tables, 442 ways in, 165 explanations, version 30. **Its output was moved out on 9 Oct for the demo** — to `../demo-backup-2026-10-09/immich`, with its paid labels and explanations; move `.archdoc/` back to keep them |
+| `supabase` | Cloned 9 Oct at `2d5768d3c114b6746c730a91881483f91e99ec6f`, one commit deep. Output moved out with Immich's |
+| `spring-petclinic` | Cloned 9 Oct at `500158f732419217507c7656904b8e6aa1bcc0d6` — Spring Boot, Spring MVC pages, JPA |
+| `spring-petclinic-microservices` | Cloned 9 Oct at `1d76b00d683e86b62867a6bf59530f8ab301244f` — eight Spring modules, a gateway, Eureka, Compose |
+| `eShopOnWeb` | Cloned 9 Oct at `4da8212117e87d808d4bbc7da6286fd2147ce606` — ASP.NET Core MVC, Razor Pages, minimal APIs, Blazor, EF Core in class libraries |
 | `small-script`, `small-page`, `small-app` | Written for the purpose on 9 Oct, generated, never labelled or explained |
-| Mastodon, the FastAPI template, Supabase | Not on this machine. The first two were deleted; Supabase was never cloned |
+| Mastodon, the FastAPI template | Not on this machine: deleted, not cloned again |
 
 **Money spent on Immich so far:** $3.29 across eleven runs, logged in its `.archdoc/history.db`
 (`archdoc runs ../subjects/immich`), plus $0.02 on a throwaway copy. The first two runs, on Claude
@@ -244,12 +248,23 @@ are in `docs/decisions.md` under the same date.
 | `show <path> <thing>`: an element, a route with its flow as numbered cited steps, a table with who queries it, a file with its component; ambiguity listed, `--json` | `POST /api/assets`: 40 steps | `b1b5125` |
 | `scan` previews what generate would find (it still spoke of Compose only); `init` creates a commented `rules.yaml`; `diff` says changes as the app does ("cache renamed to store"), `--detail` for the classes; `runs` totals; `serve --open`; `--json` on every command that reads; `--gaps`, `--considered`, `--facts` for the old overlapping "explain" flags | — | `b1b5125` |
 
+**9 Oct, the overview and Java and C#** — the reasons are in `docs/decisions.md`, 9 Oct.
+
+| What | Measured | Commit |
+|---|---|---|
+| A URL in a list of records is data; code served as it is (`public/`, `static/`, `*.min.js`) is not read; reserved example domains are placeholders | Supabase: 389 external systems → 28 | not yet committed |
+| Examples are not containers; a front-end package another depends on is a library | Supabase: 59 containers → 17 | not yet committed |
+| The context and container views draw the 12 external systems the most containers reach, the rest counted and in the tables; `context:all`, `container:all` in the app | Supabase: 12 drawn of 28; Immich unchanged | not yet committed |
+| A stored layout is reused only if it places every element of the view; layout version 13 | Arrows to boxes that were not there, seen once on Supabase | not yet committed |
+| Java: `pom.xml` and `build.gradle(.kts)` modules; Spring routes, MVC pages, JPA tables, Spring Data queries, starters, `application.yml`/`.properties` hosts; a module tied to the service running its image | petclinic: 6 routes, 11 pages, 6 tables, 9 flows. Microservices: 8 modules tied to their services, gateway→customers/visits and genai→vets from the code, genai→OpenAI from its pom | not yet committed |
+| C#: `.csproj` projects by SDK; types resolved by name; ASP.NET controllers, minimal APIs, Razor Pages; EF Core tables from referenced libraries; `appsettings*.json` hosts and connection strings | eShopOnWeb: 3 containers, 19 routes, 25 pages, 14 tables with their keys, both services → `sqlserver` (Azure SQL Edge) | not yet committed |
+
 **Not done** — known, and left:
 
 | What | Why it is open |
 |---|---|
 | Stale explanations on small components | Eleven of Immich's one-file components still show an earlier model's answer, marked stale, with advice to run `--explain` — which no longer asks about them. Hide them, or stop marking them: undecided |
-| AC-3 and AC-9 | AC-3 waits for the hand-drawn Immich reference (Cruz). AC-9 waits for Supabase, which is not cloned — no room for it now |
+| AC-3 and AC-9 | AC-3 waits for the hand-drawn Immich reference (Cruz). AC-9 waits for its slot in the evidence sprint; Supabase is on disk again. A first informal timing: `generate` on Supabase, code read, 10.3 s |
 | `archdoc diff` on real history | The Immich clone holds one commit, so two real commits of a real repository have not been compared; the two-commit test uses the fixture |
 | Earlier `--explain` runs keep their old label | Runs 1–7 in Immich's log still read `structure-only`; the log is a record and was not rewritten |
 | A person choosing a container's main components | The main view picks by count of routes, pages, commands and jobs handled. A rule in `rules.yaml` naming them would be better and is not built |
@@ -262,7 +277,8 @@ are in `docs/decisions.md` under the same date.
 | Coverage lists only the migration files that create a table | One that only alters is read and applied, and not named |
 | Readers verified on fixtures only | Express, Next.js, React Router, Prisma, SQLAlchemy, Typer and Click; SQL migrations; Python class methods beyond Immich's ML service. No real repository has been through them |
 | No side-by-side of `--label` on Sonnet 5.5 against Opus 5.5 | Sonnet's output read correctly; the comparison was never made |
-| The other test subjects | Mastodon and the FastAPI template were deleted and not cloned again; Supabase never was (AC-9) |
+| The other test subjects | Mastodon and the FastAPI template were deleted and not cloned again |
+| Java and C#, what is not read | Kotlin; JPA column names under Spring's snake_case naming (the field's name is shown); EF Core fluent configuration (`ToTable`, keys); a call that leaves for another container as a flow step; Razor markup; Maven and NuGet dependencies matched to imports (they list with no import count); Spring Cloud Gateway routes held in a config server's repository |
 | **The Flows screen — planned, next to build** | The design's Flow screen (spec §5.6): every flow, main ones first by a stated rule; a page per flow with step-through and a step list; lanes by kind, styled arrows, bands, Simple / Every step; then the flow on the canvas. The plan, and what is not drawn on purpose, is in `docs/decisions.md`, 9 Oct, "The Flows screen". Not started |
 | Data flow, beyond the store | Only the arrow into a relational store says what moves. A client's arrow to the server, a queue's jobs, a call to the ML service still carry the container view's verb. Sensitivity (PII) labels, the main path emphasised, and one table's lineage (option b) are not built. Not what was asked for (see the Flows screen); whether the view stays is open |
 | A component's tables on its page | `Model.Access` now holds them, from all the code; the page does not show them yet (`planned.ts`, data-touched) |

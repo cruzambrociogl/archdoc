@@ -40,11 +40,14 @@ func Index(m archdoc.Model, plan []Section, meta Meta) string {
 
 	fmt.Fprintf(&b, "Derived from `%s`. Every element below cites the line that declares it.\n\n", meta.Source)
 
+	context, container := Overview(m, m.Context()), Overview(m, m.Container())
 	b.WriteString("## System context\n\n")
-	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(m.Context(), false)))
+	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(context, false)))
+	b.WriteString(folded(context, &Sections()[2]))
 
 	b.WriteString("\n## Containers\n\n")
-	b.WriteString(figure(meta, "Containers", "container.svg", Mermaid(m.Container(), true)))
+	b.WriteString(figure(meta, "Containers", "container.svg", Mermaid(container, true)))
+	b.WriteString(folded(container, &Sections()[4]))
 
 	// One component view per container whose code was read, and one data view per container whose
 	// code declares tables.
@@ -184,7 +187,9 @@ func onePage(m archdoc.Model, meta Meta) string {
 	}
 
 	b.WriteString("\n## What it is\n\n")
-	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(m.Context(), false)))
+	context := Overview(m, m.Context())
+	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(context, false)))
+	b.WriteString(folded(context, nil))
 
 	if len(m.Entries) > 0 {
 		b.WriteString("\n## What it does\n\n")

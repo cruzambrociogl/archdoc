@@ -1,6 +1,8 @@
 package render
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -168,5 +170,63 @@ func TestATinyProjectIsOnePage(t *testing.T) {
 	}
 	if !strings.Contains(page, "## In short") || !strings.Contains(page, "You run `python report.py`.") {
 		t.Errorf("the page does not open with the story:\n%s", page)
+	}
+}
+
+// A context or container view with more external systems than a diagram holds draws the ones the
+// most containers reach, then those seen used over those only configured; the rest are counted,
+// and the whole view is still there by name.
+func TestOverviewDrawsTheExternalsTheMostContainersReach(t *testing.T) {
+	at := archdoc.Provenance{File: "compose.yml", Line: 1}
+	m := archdoc.Model{Name: "x", Nodes: []archdoc.Node{
+		{ID: "svc:a", Name: "a", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
+		{ID: "svc:b", Name: "b", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
+	}}
+	const many = externalsOver + 2
+	for i := 0; i < many; i++ {
+		id := fmt.Sprintf("ext:e%02d", i)
+		m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: id[4:], Kind: archdoc.External, Evidence: archdoc.Referenced, Prov: at})
+		m.Edges = append(m.Edges, archdoc.Edge{From: "svc:a", To: id, Label: archdoc.Configured, Traffic: true, Prov: []archdoc.Provenance{at, at}})
+	}
+	last := fmt.Sprintf("ext:e%02d", many-1)
+	m.Edges = append(m.Edges, archdoc.Edge{From: "svc:b", To: last, Label: "calls", Traffic: true, Prov: []archdoc.Provenance{at}})
+	called := fmt.Sprintf("ext:e%02d", many-2)
+	m.Edges[many-2].Label = "calls"
+
+	for _, name := range []string{"context", "container"} {
+		v, _ := ViewOf(m, name)
+		var drawn []string
+		for _, n := range v.Model.Nodes {
+			if n.Kind == archdoc.External {
+				drawn = append(drawn, n.ID)
+			}
+		}
+		if len(drawn) != MainExternals || v.Model.Folded != many-MainExternals {
+			t.Fatalf("%s: %d drawn, %d folded", name, len(drawn), v.Model.Folded)
+		}
+		if !slices.Contains(drawn, last) || !slices.Contains(drawn, called) {
+			t.Errorf("%s: %v, want the one two containers reach and the one called among them", name, drawn)
+		}
+		if slices.Contains(drawn, fmt.Sprintf("ext:e%02d", many-3)) {
+			t.Errorf("%s: an external only configured was drawn ahead of the others by its name", name)
+		}
+		all, ok := ViewOf(m, name+AllSuffix)
+		if !ok || all.Model.Folded != 0 || len(all.Model.Nodes) < many {
+			t.Errorf("%s: the whole view has %d elements", name, len(all.Model.Nodes))
+		}
+	}
+}
+
+// A stored layout is drawn from only when it places every element of the view and nothing else: one
+// from before the view changed would draw an arrow to a box that is not there.
+func TestPlacesEveryElementOrIsNotReused(t *testing.T) {
+	view := archdoc.Model{Nodes: []archdoc.Node{{ID: "svc:a"}, {ID: "ext:b"}}}
+	l := archdoc.Layout{Boxes: []archdoc.Box{{ID: "svc:a"}, {ID: "ext:b"}}}
+	if !Places(l, view) {
+		t.Error("a layout of exactly the view's elements was refused")
+	}
+	l.Boxes[1].ID = "ext:gone"
+	if Places(l, view) {
+		t.Error("a layout with a box for an element no longer drawn, and none for one that is, was reused")
 	}
 }

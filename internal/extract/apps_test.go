@@ -134,3 +134,31 @@ func TestPythonAndOtherManifests(t *testing.T) {
 		t.Errorf("api cited at name line %d, framework line %d", a.Prov.Line, a.FrameworkProv.Line)
 	}
 }
+
+// An application under examples/ is a sample of how to use the system, not a part of it; a front-end
+// package that exports code another depends on is a library built into it. A repository of
+// examples alone keeps them.
+func TestExamplesAndComponentLibraries(t *testing.T) {
+	root := tree(t, map[string]string{
+		"apps/www/package.json":              `{"name": "www", "dependencies": {"next": "^15", "ui": "workspace:*"}}`,
+		"packages/ui/package.json":           `{"name": "ui", "main": "./index.tsx", "dependencies": {"react": "^19"}}`,
+		"packages/widget/package.json":       `{"name": "widget", "main": "./index.tsx", "dependencies": {"react": "^19"}}`,
+		"examples/todo/nextjs/package.json":  `{"name": "todo", "dependencies": {"next": "^15", "widget": "*"}}`,
+		"examples/auth/flutter/pubspec.yaml": "name: auth\ndependencies:\n  flutter:\n    sdk: flutter\n",
+	})
+	apps := byDir(Apps(root))
+	want := map[string]archdoc.AppRole{
+		"apps/www": archdoc.RoleWeb, "packages/ui": archdoc.RoleLibrary, "packages/widget": archdoc.RoleWeb,
+		"examples/todo/nextjs": archdoc.RoleExample, "examples/auth/flutter": archdoc.RoleExample,
+	}
+	for dir, role := range want {
+		if apps[dir].Role != role {
+			t.Errorf("%s: role %q, want %q (%s)", dir, apps[dir].Role, role, apps[dir].Why)
+		}
+	}
+
+	only := tree(t, map[string]string{"examples/todo/package.json": `{"name": "todo", "dependencies": {"next": "^15"}}`})
+	if a := byDir(Apps(only))["examples/todo"]; a.Role != archdoc.RoleWeb {
+		t.Errorf("a repository of examples alone: %q (%s)", a.Role, a.Why)
+	}
+}

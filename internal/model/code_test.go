@@ -264,3 +264,23 @@ func TestCommandsAndJobs(t *testing.T) {
 		t.Errorf("a job's flow: %+v", m.Flows)
 	}
 }
+
+// A field of a record among many is not a setting, and the top-level domains reserved for examples
+// name no real system.
+func TestRowsAndReservedNamesAreNotEndpoints(t *testing.T) {
+	f := archdoc.SourceFile{Path: "src/config.ts", Language: "TypeScript"}
+	setting := archdoc.HostRef{Host: "api.io", Scheme: "https", Key: "url"}
+	if !configured(setting, f) {
+		t.Error("a URL a url key holds is configured")
+	}
+	setting.Row = true
+	if configured(setting, f) {
+		t.Error("a URL in a list of records was taken for a setting")
+	}
+	for host, want := range map[string]bool{"mcp.northwind.example": true, "avatars.example": true, "x.test": true,
+		"api.example.net": true, "example.io": false, "supabase.com": false} {
+		if placeholder(host) != want {
+			t.Errorf("placeholder(%q) = %v, want %v", host, !want, want)
+		}
+	}
+}

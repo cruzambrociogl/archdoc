@@ -73,6 +73,8 @@ export interface Model {
   flows?: Flow[]
   explanations?: Explanation[]
   dependencies?: Package[]
+  /** External systems a context or container view leaves out: the ones the fewest containers reach. */
+  folded?: number
 }
 
 /** A package a container's manifest declares, and where its code imports it (F-14). */
@@ -159,6 +161,8 @@ export const componentOf = (level?: string) => (level?.startsWith('component:') 
 export const dataOf = (level?: string) => (level?.startsWith('data:') ? level.slice('data:'.length) : undefined)
 /** A large container's main components — the few that handle the most: `main:<container id>`. */
 export const mainLevel = (id: string) => `main:${id}`
+/** The context and container views draw the external systems the most containers reach; `<level>:all` is every one. */
+export const overview = (level?: string) => level === 'context' || level === 'container'
 export const mainOf = (level?: string) => (level?.startsWith('main:') ? level.slice('main:'.length) : undefined)
 /** The container a level is inside of, whichever lens. */
 export const insideOf = (level?: string) => componentOf(level) ?? dataOf(level) ?? structureOf(level) ?? mainOf(level)
@@ -270,7 +274,9 @@ export interface CodeRead {
   components: number
   /** Schema files read beside the code, whether or not the code was. */
   schemas?: string[]
-  imports: Partial<Record<'path' | 'alias' | 'module' | 'package' | 'unresolved', number>>
+  /** Configuration files read for the addresses they hold: application.yml, appsettings.json. */
+  settings?: string[]
+  imports: Partial<Record<'path' | 'alias' | 'module' | 'name' | 'package' | 'unresolved', number>>
   unresolved: { spec: string; provenance: Provenance }[]
   partial: string[]
 }

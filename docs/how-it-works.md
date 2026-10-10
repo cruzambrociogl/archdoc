@@ -142,11 +142,11 @@ node.parent    which container it lives inside   (set on components)
 
 | View | Is a filter over the model | New evidence needed |
 |---|---|---|
-| **Container** | `kind ∈ {application, datastore, queue}`, plus the external systems they touch | Node kind, edge protocol, catalog for technology |
-| **Context** | Collapse everything `declared` into one box; keep `referenced` and actors; keep edges crossing the line | Only **actors** |
-| **Component** | Components whose `parent` is a given container, and the imports between them. A component is a feature — a name spanning the roles its files carry (`album.controller`, `album.service`, …) — where the code is named that way, a folder otherwise | The code itself: parsed with tree-sitter, every import resolved and cited (since 5 Oct) |
+| **Container** | `kind ∈ {application, datastore, queue}`, plus the external systems they touch — the 12 the most containers reach when there are more than 18; every one stays in the tables and in `container:all` | Node kind, edge protocol, catalog for technology |
+| **Context** | Collapse everything `declared` into one box; keep `referenced` and actors; keep edges crossing the line — external systems cut the same way, `context:all` for all of them | Only **actors** |
+| **Component** | Components whose `parent` is a given container, and the imports between them. A component is a feature — a name spanning the roles its files carry (`album.controller`, `album.service`, …) — where the code is named that way, a folder otherwise | The code itself: parsed with tree-sitter, every import resolved and cited (since 5 Oct) — TypeScript, JavaScript, Svelte, Python, Dart, and Java and C# since 9 Oct; C#'s by the types a file names |
 | **By folder** | Modules whose `parent` is a given container: the same code by where its files are, kept beside the features | The same |
-| **Data** | Tables whose `parent` is a given container, and the foreign keys between them | The classes the code marks as tables — TypeORM-style decorators, SQLModel, SQLAlchemy |
+| **Data** | Tables whose `parent` is a given container, and the foreign keys between them | The classes the code marks as tables — TypeORM-style decorators, SQLModel, SQLAlchemy, JPA entities, EF Core contexts (read from the class libraries a .NET or Java service is built with) |
 
 Beside the graph, the model carries what the code says the system *does*: **entries** (HTTP routes
 and pages, where a framework declares them), **flows** (what a route sets off, followed call by

@@ -58,6 +58,20 @@ func figure(meta Meta, title, svg, mermaid string) string {
 		title, svg, fence(mermaid))
 }
 
+// folded says, under a context or container figure the overview cut, what it left out and where
+// every element is: the element table below, or the section given.
+func folded(view archdoc.Model, in *Section) string {
+	if view.Folded == 0 {
+		return ""
+	}
+	where := "the element table below lists every one"
+	if in != nil {
+		where = fmt.Sprintf("[%s](%s) lists every one", in.Title, in.File())
+	}
+	return fmt.Sprintf("\n*The diagram draws the %d external systems the most containers reach. %d more are not drawn; %s.*\n",
+		MainExternals, view.Folded, where)
+}
+
 // elementTable is the answer to "how do you know?" for every box on the diagram.
 func elementTable(m archdoc.Model) string {
 	var b strings.Builder

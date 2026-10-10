@@ -32,10 +32,20 @@ var skipDirs = map[string]bool{
 	"e2e": true, "fixtures": true,
 }
 
+// servedAsIs are the folders a framework copies to the browser untouched — Next.js's and Vite's
+// public/, SvelteKit's static/. What is in them was not built from the application's code: it is
+// someone else's, copied in (Supabase's studio keeps all of Monaco there). A page with no
+// manifest has no such convention, and its public/ may be all the code it has.
+var servedAsIs = map[string]bool{"public": true, "static": true}
+
+// dotnetSkip are a .NET project's folders that hold no code of its own: the build's output, the
+// static files it serves, and the migrations Entity Framework generates.
+var dotnetSkip = map[string]bool{"bin": true, "obj": true, "wwwroot": true, "Migrations": true}
+
 // Reads reports whether archdoc reads code in this language.
 func Reads(language string) bool {
 	switch language {
-	case "TypeScript", "JavaScript", "Python", "Dart":
+	case "TypeScript", "JavaScript", "Python", "Dart", "Java", "C#":
 		return true
 	}
 	return false
@@ -53,12 +63,24 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 	}
 	python := app.Language == "Python"
 	dart := app.Language == "Dart"
+	java := app.Language == "Java"
+	csharp := app.Language == "C#"
 	root := sourceRoot(repo, app, python)
 	if dart {
 		root = app.Dir
 		if fi, err := os.Stat(filepath.Join(repo, filepath.FromSlash(app.Dir), "lib")); err == nil && fi.IsDir() {
 			root = path.Join(app.Dir, "lib") // a Dart package's own code is its lib/
 		}
+	}
+	// Java's packages start at src/main/java; its parts are the folders under the module's own base
+	// package, com/example/petclinic. C# keeps a project's code at the project's own folder.
+	var jroot string
+	if java {
+		jroot = javaRoot(repo, app.Dir)
+		root = javaBase(repo, jroot)
+	}
+	if csharp {
+		root = app.Dir
 	}
 	if app.Loose {
 		root = app.Dir // no manifest, so no src/ convention: every file is the application's
@@ -80,25 +102,41 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		rel, _ := filepath.Rel(repo, p)
 		rel = filepath.ToSlash(rel)
 		if d.IsDir() {
-			if rel != root && (skipDirs[d.Name()] || skipNested[rel] || strings.HasPrefix(d.Name(), ".")) {
+			if rel != root && (skipDirs[d.Name()] || skipNested[rel] || strings.HasPrefix(d.Name(), ".") || !app.Loose && servedAsIs[d.Name()] ||
+				csharp && dotnetSkip[d.Name()]) {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if dart {
+		if strings.HasSuffix(d.Name(), ".min.js") {
+			return nil // minified: a copy of someone else's code, as a tool left it
+		}
+		switch {
+		case dart:
 			if isDart(d.Name()) {
 				paths = append(paths, rel)
 			}
-			return nil
-		}
-		if lang := languageOf(rel, python); lang != "" && !isTest(d.Name()) && !isConfig(d.Name()) {
-			paths = append(paths, rel)
-		} else if app.Loose && !python && isPage(rel) {
-			paths = append(paths, rel) // a page with no manifest: its own <script> blocks are its code
+		case java:
+			if strings.HasSuffix(d.Name(), ".java") && !strings.HasSuffix(d.Name(), "Test.java") && !strings.HasSuffix(d.Name(), "Tests.java") {
+				paths = append(paths, rel)
+			}
+		case csharp:
+			if isCSharp(d.Name()) {
+				paths = append(paths, rel)
+			}
+		default:
+			if lang := languageOf(rel, python); lang != "" && !isTest(d.Name()) && !isConfig(d.Name()) {
+				paths = append(paths, rel)
+			} else if app.Loose && !python && isPage(rel) {
+				paths = append(paths, rel) // a page with no manifest: its own <script> blocks are its code
+			}
 		}
 		return nil
 	})
 	src.Schemas = schemas(repo, app.Dir)
+	if java || csharp {
+		src.Settings = settings(repo, app.Dir, java)
+	}
 	if app.Loose {
 		src.Documents = documents(repo, app.Dir)
 	}
@@ -106,52 +144,85 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		return src, len(src.Schemas) > 0
 	}
 
-	known := make(map[string]bool, len(paths))
-	for _, p := range paths {
-		known[p] = true
-	}
-	var r resolver
-	if dart {
-		r = &dartResolver{name: app.Name, lib: root, known: known}
-	} else if python {
-		r = newPyResolver(root, app.Dir, known)
-	} else {
-		r = newTSResolver(repo, app, known)
-	}
-
+	// Every file is read before any import is resolved: a C# file's uses are the types it names, and
+	// which file declares a type is only known once all of them have been read.
+	got := make(map[string]facts, len(paths))
+	files := make([]archdoc.SourceFile, 0, len(paths))
 	for _, p := range paths {
 		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(p)))
 		if err != nil {
 			continue
 		}
 		f := archdoc.SourceFile{Path: p, Language: languageOf(p, python), Lines: lines(content)}
-		if dart {
+		switch {
+		case dart:
 			f.Language = "Dart"
+		case java:
+			f.Language = "Java"
+		case csharp:
+			f.Language = "C#"
 		}
 		if f.Language == "" && isPage(p) {
 			f.Language = "HTML"
 		}
-		var got facts
+		var g facts
 		switch f.Language {
 		case "Dart":
-			got = dartFacts(content)
+			g = dartFacts(content)
 		case "Python":
-			got, f.Partial = pythonFacts(content, p)
+			g, f.Partial = pythonFacts(content, p)
+		case "Java":
+			g, f.Partial = javaFacts(content, p)
+		case "C#":
+			g, f.Partial = csharpFacts(content, p)
 		case "Svelte", "HTML":
 			// A page's <script> blocks are read as a Svelte component's are; the markup is not.
-			got, f.Partial = svelteFacts(content, p)
+			g, f.Partial = svelteFacts(content, p)
 		default:
-			got, f.Partial = scriptFacts(content, p, f.Language, 0)
+			g, f.Partial = scriptFacts(content, p, f.Language, 0)
 		}
-		for _, imp := range got.imports {
-			for _, res := range r.resolve(p, imp) {
-				res.Prov = archdoc.Provenance{File: p, Line: imp.line, Column: imp.column}
+		got[p] = g
+		files = append(files, f)
+	}
+
+	known := make(map[string]bool, len(files))
+	for _, f := range files {
+		known[f.Path] = true
+	}
+	var r resolver
+	switch {
+	case dart:
+		r = &dartResolver{name: app.Name, lib: root, known: known}
+	case python:
+		r = newPyResolver(root, app.Dir, known)
+	case java:
+		r = newJavaResolver(jroot, root, known)
+	case csharp:
+		names := make([]string, 0, len(files))
+		for _, f := range files {
+			names = append(names, f.Path)
+		}
+		r = newCSResolver(names, got)
+	default:
+		r = newTSResolver(repo, app, known)
+	}
+
+	for _, f := range files {
+		g := got[f.Path]
+		imports := g.imports
+		for _, ref := range g.refs {
+			ref.spec = csMention + ref.spec
+			imports = append(imports, ref)
+		}
+		for _, imp := range imports {
+			for _, res := range r.resolve(f.Path, imp) {
+				res.Prov = archdoc.Provenance{File: f.Path, Line: imp.line, Column: imp.column}
 				f.Imports = append(f.Imports, res)
 			}
 		}
-		f.Classes, f.Hosts, f.Calls, f.Prefix, f.Constants = got.classes, got.hosts, got.calls, got.prefix, got.consts
-		f.Routers, f.Includes, f.Exports, f.Pages, f.Commands = got.routers, got.incs, got.exports, got.pages, got.cmds
-		f.Main = got.main
+		f.Classes, f.Hosts, f.Calls, f.Prefix, f.Constants = g.classes, g.hosts, g.calls, g.prefix, g.consts
+		f.Routers, f.Includes, f.Exports, f.Pages, f.Commands = g.routers, g.incs, g.exports, g.pages, g.cmds
+		f.Main = g.main
 		src.Files = append(src.Files, f)
 	}
 	return src, true

@@ -25,7 +25,7 @@ function CodeRow({ c, go }: { c: CodeRead; go: (r: Partial<Route>) => void }) {
       </div>
     )
   }
-  const own = (c.imports.path ?? 0) + (c.imports.alias ?? 0) + (c.imports.module ?? 0)
+  const own = (c.imports.path ?? 0) + (c.imports.alias ?? 0) + (c.imports.module ?? 0) + (c.imports.name ?? 0)
   return (
     <div className="read-row">
       <div className="mono small">
@@ -42,6 +42,11 @@ function CodeRow({ c, go }: { c: CodeRead; go: (r: Partial<Route>) => void }) {
         {c.unresolved.length > 0 ? ` · ${c.unresolved.length} unresolved` : ' · none unresolved'}
         {c.partial.length > 0 && ` · ${c.partial.length} ${c.partial.length === 1 ? 'file' : 'files'} parsed in part`}
       </div>
+      {c.settings?.length ? (
+        <div className="read-why">
+          Addresses also read from {c.settings.length} configuration {c.settings.length === 1 ? 'file' : 'files'}: <span className="mono">{c.settings.join(', ')}</span>
+        </div>
+      ) : null}
       {c.unresolved.map((u, i) => (
         <div key={i} className="read-why">
           <TruthMark state="unresolved" /> <span className="mono">{u.spec}</span> <Cite p={u.provenance} compact />

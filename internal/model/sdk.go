@@ -101,6 +101,53 @@ var sdkPrefixes = []struct {
 	{"@clerk/", sdk{"Clerk", "signs users in with"}},
 }
 
+// Java packages and .NET namespaces name their client libraries by the vendor's own name: a package
+// is matched when it is one of these or inside one, the longest first.
+var namespaceCatalog = map[string]sdk{
+	// Java
+	"com.stripe":                                 {"Stripe", "takes payments through"},
+	"software.amazon.awssdk.services.s3":         {"Object storage (S3)", "stores objects in"},
+	"com.amazonaws.services.s3":                  {"Object storage (S3)", "stores objects in"},
+	"software.amazon.awssdk":                     {"Amazon Web Services", "calls"},
+	"com.amazonaws":                              {"Amazon Web Services", "calls"},
+	"com.google.cloud.storage":                   {"Google Cloud Storage", "stores objects in"},
+	"com.azure.storage.blob":                     {"Azure Blob Storage", "stores objects in"},
+	"com.twilio":                                 {"Twilio", "sends messages through"},
+	"com.sendgrid":                               {"SendGrid", "sends email through"},
+	"jakarta.mail":                               {"Email server (SMTP)", "sends email through"},
+	"javax.mail":                                 {"Email server (SMTP)", "sends email through"},
+	"org.springframework.mail":                   {"Email server (SMTP)", "sends email through"},
+	"org.springframework.security.oauth2.client": {"Identity provider (OAuth 2)", "signs users in with"},
+	"com.google.firebase":                        {"Firebase", "calls"},
+	"com.slack.api":                              {"Slack", "posts to"},
+	"io.sentry":                                  {"Sentry", "reports errors to"},
+	"com.openai":                                 {"OpenAI API", "calls a model at"},
+	"org.springframework.ai.openai":              {"OpenAI API", "calls a model at"},
+	"dev.langchain4j.model.openai":               {"OpenAI API", "calls a model at"},
+	"com.anthropic":                              {"Anthropic API", "calls a model at"},
+	"org.springframework.ai.anthropic":           {"Anthropic API", "calls a model at"},
+	"org.springframework.ai.azure.openai":        {"Azure OpenAI", "calls a model at"},
+	"io.opentelemetry.exporter":                  {"Telemetry collector (OpenTelemetry)", "exports telemetry to"},
+	// .NET
+	"Stripe":                  {"Stripe", "takes payments through"},
+	"Amazon.S3":               {"Object storage (S3)", "stores objects in"},
+	"Amazon":                  {"Amazon Web Services", "calls"},
+	"Azure.Storage.Blobs":     {"Azure Blob Storage", "stores objects in"},
+	"Azure.AI.OpenAI":         {"Azure OpenAI", "calls a model at"},
+	"Azure.Security.KeyVault": {"Azure Key Vault", "reads secrets from"},
+	"Google.Cloud.Storage":    {"Google Cloud Storage", "stores objects in"},
+	"Twilio":                  {"Twilio", "sends messages through"},
+	"SendGrid":                {"SendGrid", "sends email through"},
+	"MailKit":                 {"Email server (SMTP)", "sends email through"},
+	"System.Net.Mail":         {"Email server (SMTP)", "sends email through"},
+	"Microsoft.Identity.Web":  {"Microsoft Entra ID", "signs users in with"},
+	"Auth0":                   {"Auth0", "signs users in with"},
+	"Sentry":                  {"Sentry", "reports errors to"},
+	"OpenAI":                  {"OpenAI API", "calls a model at"},
+	"Anthropic":               {"Anthropic API", "calls a model at"},
+	"OpenTelemetry.Exporter":  {"Telemetry collector (OpenTelemetry)", "exports telemetry to"},
+}
+
 func lookupSDK(pkg string) (sdk, bool) {
 	if s, ok := sdkCatalog[pkg]; ok {
 		return s, true
@@ -110,7 +157,67 @@ func lookupSDK(pkg string) (sdk, bool) {
 			return p.sdk, true
 		}
 	}
+	for ns := pkg; ns != ""; {
+		if s, ok := namespaceCatalog[ns]; ok {
+			return s, true
+		}
+		i := strings.LastIndex(ns, ".")
+		if i < 0 {
+			break
+		}
+		ns = ns[:i]
+	}
 	return sdk{}, false
+}
+
+// starterCatalog: a Spring Boot starter in a module's build names the system it connects to by
+// itself — the starter configures the client, and the code may only ever use Spring's own interface
+// to it (ChatClient, JavaMailSender). The manifest line is the evidence.
+var starterCatalog = map[string]sdk{
+	"spring-ai-starter-model-openai":          {"OpenAI API", "calls a model at"},
+	"spring-ai-openai-spring-boot-starter":    {"OpenAI API", "calls a model at"},
+	"spring-ai-starter-model-anthropic":       {"Anthropic API", "calls a model at"},
+	"spring-ai-anthropic-spring-boot-starter": {"Anthropic API", "calls a model at"},
+	"spring-ai-starter-model-azure-openai":    {"Azure OpenAI", "calls a model at"},
+	"spring-ai-starter-model-ollama":          {"Ollama", "calls a model at"},
+	"spring-boot-starter-mail":                {"Email server (SMTP)", "sends email through"},
+	"spring-boot-starter-oauth2-client":       {"Identity provider (OAuth 2)", "signs users in with"},
+	"spring-cloud-starter-aws":                {"Amazon Web Services", "calls"},
+	"spring-cloud-azure-starter-storage-blob": {"Azure Blob Storage", "stores objects in"},
+}
+
+// starters adds the external systems a Java module's starters name.
+func starters(m *archdoc.Model, f *archdoc.FactSet) {
+	containerOf := map[string]string{}
+	has := map[string]bool{}
+	for _, n := range m.Nodes {
+		has[n.ID] = true
+		if n.Dir != "" && n.Kind == archdoc.Application {
+			containerOf[n.Dir] = n.ID
+		}
+	}
+	for _, a := range f.Apps {
+		container, ok := containerOf[a.Dir]
+		if !ok || a.Language != "Java" {
+			continue
+		}
+		for _, r := range a.Requires {
+			_, artifact, _ := strings.Cut(r.Name, ":")
+			s, ok := starterCatalog[artifact]
+			if !ok || r.Dev {
+				continue
+			}
+			id := externalID(strings.ToLower(strings.NewReplacer(" ", "-", "(", "", ")", "").Replace(s.system)))
+			lookup := archdoc.Provenance{Origin: archdoc.Catalog, Note: "starter: " + artifact}
+			if !has[id] {
+				has[id] = true
+				m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: s.system, NameProv: lookup, Kind: archdoc.External,
+					Evidence: archdoc.Referenced, Prov: r.Prov})
+			}
+			m.Edges = append(m.Edges, archdoc.Edge{From: container, To: id, Label: s.label, LabelProv: lookup,
+				Traffic: true, Prov: []archdoc.Provenance{r.Prov}})
+		}
+	}
 }
 
 // sdks adds the external systems a container's imports name, and its relationship to each.

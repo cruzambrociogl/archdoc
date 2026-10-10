@@ -101,13 +101,22 @@ func Apps(root string) []archdoc.App {
 			app = pubspec(root, rel)
 		case "go.mod":
 			app = goMod(root, rel)
+		case "pom.xml":
+			app = pomXML(root, rel)
+		case "build.gradle", "build.gradle.kts":
+			app = gradleBuild(root, rel)
+		default:
+			if strings.HasSuffix(d.Name(), ".csproj") {
+				app = csproj(root, rel)
+			}
 		}
 		if app != nil {
 			out = append(out, *app)
 		}
 		return nil
 	})
-	sort.Slice(out, func(i, j int) bool { return out[i].Manifest < out[j].Manifest })
+	out = oneBuildPerDir(out)
+	examples(out)
 
 	// No manifest anywhere that describes something that runs: the repository may still be a
 	// program — a folder of scripts, a page and the script it loads. That is the usual shape of
@@ -125,28 +134,66 @@ func Apps(root string) []archdoc.App {
 
 	// A package that declares a command and also exports code is a tool a person runs — unless
 	// another package here depends on it. Then it is a library: it runs inside them, and its
-	// command is something their build calls (Immich's plugin SDK).
+	// command is something their build calls (Immich's plugin SDK). A front-end package that
+	// exports code another one here depends on is the same: components that are built into the
+	// applications using them — Supabase's ui, ui-patterns and marketing — not a site of its own.
 	for i := range out {
 		a := &out[i]
-		if a.Role != archdoc.RoleCLI || !a.Exports || a.Framework != "" {
+		cli := a.Role == archdoc.RoleCLI && a.Framework == ""
+		web := a.Role == archdoc.RoleWeb
+		if !a.Exports || !cli && !web {
 			continue
 		}
 	users:
 		for _, other := range out {
 			// A test suite depends on the tool it tests; that does not make the tool a library.
-			if other.Role == archdoc.RoleTest || other.Role == archdoc.RoleDocs || other.Role == archdoc.RoleTooling || other.Role == archdoc.RoleWorkspace {
+			if other.Role == archdoc.RoleTest || other.Role == archdoc.RoleDocs || other.Role == archdoc.RoleTooling ||
+				other.Role == archdoc.RoleWorkspace || other.Role == archdoc.RoleExample {
 				continue
 			}
 			for _, r := range other.Requires {
 				if r.Name == a.Name && other.Dir != a.Dir {
 					a.Role = archdoc.RoleLibrary
 					a.Why = fmt.Sprintf("a library: it exports code and %s depends on it (%s); its command is a build tool", other.Name, r.Prov)
+					if web {
+						a.Why = fmt.Sprintf("a library: it exports %s code and %s depends on it (%s), which builds it in", a.Framework, other.Name, r.Prov)
+					}
 					break users
 				}
 			}
 		}
 	}
 	return out
+}
+
+// exampleDirs are the folders a repository keeps samples of its own use in.
+var exampleDirs = map[string]bool{"examples": true, "example": true, "samples": true}
+
+// examples marks every application under an examples folder as one: a sample of how to use the
+// system, not a part of it — Supabase keeps 38. Unless nothing else here runs: a repository that is
+// only examples is documented by them.
+func examples(apps []archdoc.App) {
+	inExamples := func(dir string) string {
+		for _, seg := range strings.Split(dir, "/") {
+			if exampleDirs[seg] {
+				return seg
+			}
+		}
+		return ""
+	}
+	other := false
+	for _, a := range apps {
+		other = other || a.Role.Container() && inExamples(a.Dir) == ""
+	}
+	if !other {
+		return
+	}
+	for i := range apps {
+		a := &apps[i]
+		if seg := inExamples(a.Dir); seg != "" && a.Role.Container() {
+			a.Role, a.Why = archdoc.RoleExample, "an example: it lives in "+seg+"/, a sample of how to use the system rather than a part of it"
+		}
+	}
 }
 
 func dirOf(rel string) string {
@@ -543,9 +590,54 @@ func sources(root string, apps []archdoc.App) []archdoc.Source {
 		if !a.Role.Container() {
 			continue
 		}
-		if src, ok := code.Read(root, a, dirs); ok {
+		src, ok := code.Read(root, a, dirs)
+		if libs := libraries(a, apps); len(libs) > 0 {
+			if more := code.LibrarySchemas(root, libs); len(more) > 0 {
+				src.Schemas, ok = append(src.Schemas, more...), true
+			}
+		}
+		if ok {
 			out = append(out, src)
 		}
 	}
+	return out
+}
+
+// libraries are the Java or .NET libraries of this repository an application is built with: the
+// projects its manifest references, and theirs. A Maven dependency names a module by group and
+// artifact; a .NET project reference by the project's name.
+func libraries(a archdoc.App, apps []archdoc.App) []archdoc.App {
+	if a.Language != "C#" && a.Language != "Java" {
+		return nil
+	}
+	byName := map[string]int{}
+	for i, x := range apps {
+		if x.Role == archdoc.RoleLibrary && x.Language == a.Language {
+			byName[x.Name] = i
+		}
+	}
+	var out []archdoc.App
+	seen := map[int]bool{}
+	var visit func(x archdoc.App, depth int)
+	visit = func(x archdoc.App, depth int) {
+		if depth > 8 {
+			return
+		}
+		for _, r := range x.Requires {
+			name := r.Name
+			if _, artifact, ok := strings.Cut(name, ":"); ok {
+				name = artifact
+			}
+			i, ok := byName[name]
+			if !ok || seen[i] || r.Dev {
+				continue
+			}
+			seen[i] = true
+			out = append(out, apps[i])
+			visit(apps[i], depth+1)
+		}
+	}
+	visit(a, 0)
+	sortedApps(out)
 	return out
 }

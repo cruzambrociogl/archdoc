@@ -260,6 +260,10 @@ type Source struct {
 	// Schemas are schema files read beside the code — a Prisma schema — whose models are tables.
 	// They are not part of any component.
 	Schemas []SourceFile `json:"schemas,omitempty"`
+	// Settings are the configuration files beside the code that name where it connects — Spring's
+	// application.properties, .NET's appsettings.json — read for their hosts only. They are not
+	// part of any component either.
+	Settings []SourceFile `json:"settings,omitempty"`
 }
 
 // SourceFile is one file and what it imports.
@@ -313,6 +317,10 @@ const (
 	ByAlias Resolution = "alias"
 	// ByModule: a Python absolute import, found as a module of the application's own package.
 	ByModule Resolution = "module"
+	// ByName: a type the file names, found by the name the application's code declares it under.
+	// C# imports a namespace, not a file, so which file a class uses is read from the types it
+	// mentions.
+	ByName Resolution = "name"
 	// ByPackage: not the application's own code — a dependency, the standard library, or a
 	// framework's virtual module. Package names it.
 	ByPackage Resolution = "package"
@@ -323,7 +331,10 @@ const (
 
 // Class is a class a file declares.
 type Class struct {
-	Name       string      `json:"name"`
+	Name string `json:"name"`
+	// Interface is set on a Java or C# interface: what a class is given may be one, and the class
+	// that implements it is where the work is.
+	Interface  bool        `json:"interface,omitempty"`
 	Extends    []string    `json:"extends,omitempty"` // the classes it extends, by name
 	Decorators []Decorator `json:"decorators,omitempty"`
 	// Options are a Python class's keyword arguments — SQLModel's table=True — as written.
@@ -483,8 +494,11 @@ type HostRef struct {
 	Key string `json:"key,omitempty"`
 	// Built is set when the literal is only the start of a string the code completes —
 	// `https://github.com/…/${version}` — which is a link being made, not an endpoint configured.
-	Built bool       `json:"built,omitempty"`
-	Prov  Provenance `json:"provenance"`
+	Built bool `json:"built,omitempty"`
+	// Row is set when the literal is a field of one record among many alike — the url of each
+	// company in a list of survey participants. That is data the code holds, not a setting.
+	Row  bool       `json:"row,omitempty"`
+	Prov Provenance `json:"provenance"`
 }
 
 // Call is an outbound HTTP call — fetch, axios, requests — whose target is an expression, not a
@@ -522,6 +536,8 @@ const (
 	RoleTest AppRole = "test"
 	// RoleDocs is a documentation site: about the system, not part of it.
 	RoleDocs AppRole = "docs"
+	// RoleExample is a sample of how to use the system — an app under examples/ — not part of it.
+	RoleExample AppRole = "example"
 	// RoleWorkspace is a monorepo root that only gathers other packages.
 	RoleWorkspace AppRole = "workspace"
 	// RoleTooling is anything else: scripts, configuration, build helpers.

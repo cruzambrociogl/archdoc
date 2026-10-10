@@ -27,6 +27,10 @@ var catalog = map[string]entry{
 	"mysql":      {archdoc.Datastore, "MySQL"},
 	"mariadb":    {archdoc.Datastore, "MariaDB"},
 	"cockroach":  {archdoc.Datastore, "CockroachDB"},
+	// Microsoft's: the image's last segment alone is too generic for mssql/server, so it is keyed
+	// with its namespace.
+	"mssql/server":   {archdoc.Datastore, "SQL Server"},
+	"azure-sql-edge": {archdoc.Datastore, "Azure SQL Edge"},
 
 	// Key-value and document
 	"redis":     {archdoc.Datastore, "Redis"},
@@ -69,6 +73,10 @@ func classify(image string) (kind archdoc.Kind, tech string, prov archdoc.Proven
 	name, tag := splitImage(image)
 
 	e, ok := catalog[name]
+	if ns := namespaced(image); !ok && ns != "" {
+		e, ok = catalog[ns]
+		name = ns
+	}
 	if !ok {
 		return archdoc.Application, "", archdoc.Provenance{}
 	}
@@ -82,6 +90,18 @@ func classify(image string) (kind archdoc.Kind, tech string, prov archdoc.Proven
 		return e.kind, e.tech + " " + v, prov
 	}
 	return e.kind, e.tech, prov
+}
+
+// namespaced is an image's last two path segments, without tag or digest: mcr.microsoft.com/mssql/server:2022
+// is mssql/server.
+func namespaced(image string) string {
+	image, _, _ = strings.Cut(image, "@")
+	parts := strings.Split(image, "/")
+	if len(parts) < 2 {
+		return ""
+	}
+	last, _, _ := strings.Cut(parts[len(parts)-1], ":")
+	return strings.ToLower(parts[len(parts)-2] + "/" + last)
 }
 
 // splitImage reduces a reference to the image name and its tag. Registry, namespace and digest

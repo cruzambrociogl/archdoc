@@ -133,7 +133,9 @@ func contextSection(m archdoc.Model, meta Meta) string {
 	var b strings.Builder
 	b.WriteString("The system as a whole, and what surrounds it. Everything the repository declares is\n")
 	b.WriteString("inside one box; everything it only references sits outside.\n\n")
-	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(view, false)))
+	drawn := Overview(m, view)
+	b.WriteString(figure(meta, "System context", "context.svg", Mermaid(drawn, false)))
+	b.WriteString(folded(drawn, nil))
 	b.WriteString("\n")
 	b.WriteString(elementTable(view))
 
@@ -157,7 +159,9 @@ func buildingBlockSection(m archdoc.Model, meta Meta) string {
 
 	var b strings.Builder
 	b.WriteString("The separately deployable pieces inside the system, and what talks to what.\n\n")
-	b.WriteString(figure(meta, "Containers", "container.svg", Mermaid(view, true)))
+	drawn := Overview(m, view)
+	b.WriteString(figure(meta, "Containers", "container.svg", Mermaid(drawn, true)))
+	b.WriteString(folded(drawn, nil))
 	b.WriteString("\n")
 	b.WriteString(elementTable(view))
 	b.WriteString("\n")

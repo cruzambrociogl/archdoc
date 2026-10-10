@@ -378,6 +378,13 @@ use — utilities, shared types — is marked shared: its box says "used by 12 o
 drawn" and nothing is drawn into it; one that uses most of the others — a base class, an index
 file — is marked the same way, outward. That is what keeps a large application's picture readable.
 
+**As built — context and containers at monorepo scale (9 Oct).** With more than 18 external systems,
+both levels draw the 12 the most containers reach, those seen used before those only configured
+(`decisions.md`, 9 Oct). A Main / All switch beside the level tabs shows every one, the status bar
+says how many are not drawn, and selecting one that is not drawn — from search, say — opens All, as
+selecting a component outside a container's main ones does. The committed documents say the same
+under each figure, and their element tables list every one.
+
 ### 5.3 Inspector — an element's passport
 
 **Answers:** what exactly is this, how do we know, and what touches it?

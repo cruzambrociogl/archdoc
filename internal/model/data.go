@@ -22,7 +22,8 @@ import (
 // order, is the schema (internal/code/sql.go).
 
 // TypeORM's relation decorators: the field holds a relation, not necessarily a column.
-var relationDecorators = map[string]bool{"ManyToOne": true, "OneToOne": true, "OneToMany": true, "ManyToMany": true}
+var relationDecorators = map[string]bool{"ManyToOne": true, "OneToOne": true, "OneToMany": true, "ManyToMany": true,
+	"Collection": true} // the last: a C# property holding many of an entity, as the C# reader marks it
 
 type tableClass struct {
 	class archdoc.Class
@@ -58,9 +59,21 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 				}
 			}
 		}
+		sets := efTables(all)
+		// A DbSet's class is the one beside its context — both in the application's code, or both in a
+		// library it is built with — not another class of the same name: eShopOnWeb's Web has a
+		// Basket view component as well as the Basket entity.
+		schema := map[string]bool{}
+		for _, f := range src.Schemas {
+			schema[f.Path] = true
+		}
 		for _, f := range all {
 			for _, c := range f.Classes {
-				if name, ok := tableName(c, f.Language); ok {
+				name, ok := tableName(c, f.Language)
+				if set, held := sets[c.Name]; !ok && held && f.Language == "C#" && !c.Interface && schema[f.Path] == schema[set.Prov.File] {
+					name, ok = set.Name, true // EF Core names a table after the DbSet that holds it
+				}
+				if ok {
 					found = append(found, tableClass{class: c, file: f.Path, name: name, sql: f.Language == "SQL"})
 				}
 			}
@@ -98,9 +111,14 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 			seen[id] = true
 			var cols []archdoc.Column
 			python := strings.HasSuffix(t.file, ".py")
-			if python {
+			switch {
+			case python:
 				cols = pyColumns(t.class, classes, byName)
-			} else {
+			case strings.HasSuffix(t.file, ".java"):
+				cols = javaColumns(t.class, classes, byClass)
+			case strings.HasSuffix(t.file, ".cs"):
+				cols = csColumns(t.class, classes, byClass)
+			default:
 				cols = tsColumns(t.class, byClass)
 			}
 			m.Nodes = append(m.Nodes, archdoc.Node{
@@ -142,20 +160,21 @@ func tableName(c archdoc.Class, language string) (string, bool) {
 		}
 		return "", false
 	}
+	// A name the declaration gives wins over the class's: JPA's @Entity @Table(name = "owners").
+	found := false
 	for _, d := range c.Decorators {
 		if d.Name != "Table" && d.Name != "Entity" {
 			continue
 		}
+		found = true
 		switch {
 		case d.HasArg && d.Arg != "":
 			return d.Arg, true
 		case d.Options["name"] != "":
 			return d.Options["name"], true
-		default:
-			return c.Name, true
 		}
 	}
-	return "", false
+	return c.Name, found
 }
 
 // tsColumns are the fields a column decorator marks.

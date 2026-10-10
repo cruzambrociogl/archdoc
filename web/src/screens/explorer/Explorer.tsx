@@ -3,7 +3,7 @@ import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, V
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
 import type { DiffResponse, Opening, SceneResponse, Version } from '../../api'
-import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, source, structureLevel, structureOf, useApi } from '../../api'
+import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, overview, source, structureLevel, structureOf, useApi } from '../../api'
 import type { Route } from '../../route'
 import { Planned } from '../../ui/Planned'
 import { Failure, Loading } from '../../ui/marks'
@@ -60,7 +60,14 @@ export function Explorer(props: {
   const inMain = !selected || (main.data?.model.nodes ?? []).some((n) => n.id === selected)
   const useMain = tryMain && !!main.data && inMain
   const level = useMain ? mainLevel(container!) : asked
-  const full = useApi<SceneResponse>(tryMain && (!main.data || inMain) ? null : `/api/scene?view=${encodeURIComponent(asked)}${q}${reload ? `#${reload}` : ''}`)
+  const sceneName = overview(asked) && props.route.all ? `${asked}:all` : asked
+  const full = useApi<SceneResponse>(tryMain && (!main.data || inMain) ? null : `/api/scene?view=${encodeURIComponent(sceneName)}${q}${reload ? `#${reload}` : ''}`)
+  // A selection the overview leaves out opens every external system, as one outside the main components does.
+  const outside = overview(asked) && !props.route.all && !!selected && !!full.data?.model.folded && !(full.data.model.nodes ?? []).some((n) => n.id === selected)
+  useEffect(() => {
+    if (outside) props.go({ ...props.route, all: '1' }, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outside])
   const scene = useMain ? main : tryMain && !main.data ? { data: undefined, error: undefined } : full
   // Only the latest version can be arranged: an arrangement is for the architecture as it is now.
   const editable = props.editable && props.version === null
@@ -69,7 +76,7 @@ export function Explorer(props: {
   const current = scene.data?.version
   const compare = props.route.from !== undefined && props.route.from !== current ? props.route.from : undefined
   const diff = useApi<DiffResponse>(compare !== undefined && current !== undefined ? `/api/diff?from=${compare}&to=${current}` : null)
-  const before = useApi<SceneResponse>(compare !== undefined ? `/api/scene?view=${encodeURIComponent(level)}&version=${compare}` : null)
+  const before = useApi<SceneResponse>(compare !== undefined ? `/api/scene?view=${encodeURIComponent(useMain ? level : sceneName)}&version=${compare}` : null)
   const delta = useMemo(() => (diff.data ? toDelta(diff.data, before.data) : undefined), [diff.data, before.data])
 
   const select = (id: string | null) =>
@@ -101,7 +108,7 @@ export function Explorer(props: {
       {scene.data && (
         <ReactFlowProvider>
           <Arranged
-            key={`${level}-${props.version ?? 'latest'}`}
+            key={`${useMain ? level : sceneName}-${props.version ?? 'latest'}`}
             scene={scene.data}
             route={props.route}
             go={props.go}
@@ -148,6 +155,7 @@ function Toolbar(props: {
   const hasMain = !!inside && (props.scene?.main ?? []).some((o) => o.id === inside)
   const hasFolders = !!inside && (props.scene?.structure ?? []).some((o) => o.id === inside)
   const allCount = (props.scene?.components ?? []).find((o) => o.id === inside)?.components ?? ''
+  const externals = (props.scene?.model.nodes ?? []).filter((n) => n.kind === 'external').length + (props.scene?.model.folded ?? 0)
   return (
     <div className="explorer-toolbar">
       <div className="segmented" role="tablist" aria-label="C4 level">
@@ -201,6 +209,16 @@ function Toolbar(props: {
               By folder
             </button>
           )}
+        </div>
+      )}
+      {overview(props.level) && (props.route.all || !!props.scene?.model.folded) && (
+        <div className="segmented" role="tablist" aria-label="Which external systems are shown" title="The external systems the most containers reach, or every one">
+          <button className={!props.route.all ? 'on' : ''} role="tab" aria-selected={!props.route.all} onClick={() => props.go({ screen: 'explorer', level: props.level, from: props.route.from })}>
+            Main
+          </button>
+          <button className={props.route.all ? 'on' : ''} role="tab" aria-selected={!!props.route.all} onClick={() => props.go({ screen: 'explorer', level: props.level, all: '1', from: props.route.from })}>
+            All{externals ? ` ${externals}` : ''}
+          </button>
         </div>
       )}
       <label className={`tool compare ${props.route.from !== undefined ? 'on' : ''}`} title="Mark on the diagram what changed since another version">
@@ -289,7 +307,7 @@ function Arranged(props: {
   const opens = useMemo(() => {
     const m = new Map(scene.components.map((o) => [o.id, o.components]))
     // In the context view, the system box opens onto the containers.
-    if (scene.view === 'context') for (const n of scene.model.nodes ?? []) if (n.kind === 'system') m.set(n.id, scene.containers ?? 0)
+    if (scene.view === 'context' || scene.view === 'context:all') for (const n of scene.model.nodes ?? []) if (n.kind === 'system') m.set(n.id, scene.containers ?? 0)
     return m
   }, [scene])
   const holds = useMemo(() => new Map((scene.data ?? []).map((o) => [o.id, o.components])), [scene.data])
@@ -659,7 +677,7 @@ function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; se
             : `${n} ${structureOf(scene.view) ? 'folders' : 'components'} of ${scene.model.name} · ${e} uses, each an import`
           : tables
             ? `${n} tables of ${scene.model.name} · ${e} foreign keys`
-            : `${n} elements · ${e} relationships`}
+            : `${n} elements · ${e} relationships${scene.model.folded ? ` · ${scene.model.folded} external systems not drawn, the ones the fewest containers reach` : ''}`}
       </span>
       <span>v{scene.version}</span>
       {delta && (

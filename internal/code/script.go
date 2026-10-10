@@ -23,6 +23,10 @@ type facts struct {
 	pages   []archdoc.Literal
 	cmds    []archdoc.Command
 	main    *archdoc.Provenance // where a Python file says it is run directly
+	// C#: the types a file names, the types it declares, and the namespaces it declares them in.
+	refs       []rawImport
+	declares   []string
+	namespaces []string
 }
 
 func (f *facts) add(g facts) {
@@ -42,7 +46,7 @@ func (f *facts) add(g facts) {
 }
 
 // A URL with a host: what a configured endpoint looks like in code.
-var urlLiteral = regexp.MustCompile(`^(https?|wss?|redis|rediss|postgres|postgresql|mysql|mongodb|amqp|amqps|nats|grpc)://(?:[^@/\s]*@)?([A-Za-z0-9_.-]+)(?::(\d+))?`)
+var urlLiteral = regexp.MustCompile(`^(https?|wss?|redis|rediss|postgres|postgresql|mysql|mariadb|sqlserver|mongodb|amqp|amqps|nats|grpc)://(?:[^@/\s]*@)?([A-Za-z0-9_.-]+)(?::(\d+))?`)
 
 // A key that names a host: host, hostname, redisHost, DB_HOSTNAME.
 var hostKey = regexp.MustCompile(`(?i)(^|_|[a-z])host(name)?$`)
@@ -242,6 +246,7 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 								if p.NamedChildCount() > 0 {
 									h.Key = unquote(text(p.NamedChild(0)))
 								}
+								h.Row = row(p, l)
 							}
 							break
 						}
@@ -707,6 +712,30 @@ func urlPrefix(n *ts.Node, l *ts.Language, src []byte) (string, bool) {
 		}
 	}
 	return b.String(), b.Len() > 0
+}
+
+// rowsMin is how many records alike make a list of data rather than a setting: a client given
+// two servers to try is configured; a page given forty companies to link to is content.
+const rowsMin = 3
+
+// row reports a pair that is a field of one object among at least rowsMin in a list literal:
+// [{ company: 'Abriz', url: 'https://abriz.ai' }, …].
+func row(pair *ts.Node, l *ts.Language) bool {
+	obj := pair.Parent()
+	if obj == nil || obj.Type(l) != "object" {
+		return false
+	}
+	list := obj.Parent()
+	if list == nil || list.Type(l) != "array" {
+		return false
+	}
+	objects := 0
+	for i := 0; i < list.NamedChildCount(); i++ {
+		if list.NamedChild(i).Type(l) == "object" {
+			objects++
+		}
+	}
+	return objects >= rowsMin
 }
 
 func hostOf(v string) (archdoc.HostRef, bool) {

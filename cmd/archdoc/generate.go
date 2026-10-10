@@ -538,7 +538,7 @@ func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc
 				// Only a layout from the running engine is reused; an older one is recomputed.
 				current := true
 				for _, v := range render.Views(m) {
-					if l, ok := latest.Layouts[v.Name]; !ok || l.Version != render.LayoutVersion {
+					if l, ok := latest.Layouts[v.Name]; !ok || l.Version != render.LayoutVersion || !render.Places(l, v.Model) {
 						current = false
 					}
 				}

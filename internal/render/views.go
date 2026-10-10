@@ -46,12 +46,24 @@ const mainUses = 2
 // Immich's mobile app lost a three-line and a four-line component to it.
 const mainOver = MainParts + MainParts/2
 
+// MainExternals is how many external systems a context or container view draws when there are
+// more than externalsOver: C4's overview holds a dozen or two elements, and Supabase's code names
+// fifty systems outside it. Which ones is a count, not a judgement — the ones the most containers
+// reach — and the rest stay in the element tables and one click away in the app.
+const (
+	MainExternals = 12
+	externalsOver = MainExternals + MainExternals/2
+)
+
+// AllSuffix names the whole of a context or container view the overview cut: "container:all".
+const AllSuffix = ":all"
+
 // Views lists every diagram of the model, in a fixed order: context, container, then one
 // component view per container whose code was read, in model order, and the data-flow view last.
 func Views(m archdoc.Model) []View {
 	out := []View{
-		{Name: "context", File: "context", Title: "System context", Model: m.Context()},
-		{Name: "container", File: "container", Title: "Containers", Model: m.Container(), Group: true},
+		{Name: "context", File: "context", Title: "System context", Model: Overview(m, m.Context())},
+		{Name: "container", File: "container", Title: "Containers", Model: Overview(m, m.Container()), Group: true},
 	}
 	for _, id := range m.Components() {
 		out = append(out, componentView(m, id))
@@ -75,9 +87,13 @@ func Views(m archdoc.Model) []View {
 func ViewOf(m archdoc.Model, name string) (View, bool) {
 	switch {
 	case name == "context":
-		return View{Name: name, File: name, Title: "System context", Model: m.Context()}, true
+		return View{Name: name, File: name, Title: "System context", Model: Overview(m, m.Context())}, true
 	case name == "container":
-		return View{Name: name, File: name, Title: "Containers", Model: m.Container(), Group: true}, true
+		return View{Name: name, File: name, Title: "Containers", Model: Overview(m, m.Container()), Group: true}, true
+	case name == "context"+AllSuffix:
+		return View{Name: name, File: "context-all", Title: "System context", Model: m.Context()}, true
+	case name == "container"+AllSuffix:
+		return View{Name: name, File: "container-all", Title: "Containers", Model: m.Container(), Group: true}, true
 	case name == DataFlow:
 		if HasDataFlow(m) {
 			return dataFlowView(m), true
@@ -130,6 +146,70 @@ func componentView(m archdoc.Model, id string) View {
 		Model: view,
 		Group: true,
 	}
+}
+
+// Overview is a context or container view of m with its external systems cut to the
+// MainExternals that the most containers reach — then those seen used rather than only
+// configured, then the most citations, then by ID — when it has more than externalsOver. What it
+// leaves out is counted in Folded.
+func Overview(m, view archdoc.Model) archdoc.Model {
+	var externals []string
+	for _, n := range view.Nodes {
+		if n.Kind == archdoc.External {
+			externals = append(externals, n.ID)
+		}
+	}
+	if len(externals) <= externalsOver {
+		return view
+	}
+	// Counted over the whole model, not the view: in the context view every container is one box.
+	kind := make(map[string]archdoc.Kind, len(m.Nodes))
+	for _, n := range m.Nodes {
+		kind[n.ID] = n.Kind
+	}
+	reachedBy, cited, used := map[string]map[string]bool{}, map[string]int{}, map[string]bool{}
+	for _, e := range m.Edges {
+		if k, ok := kind[e.From]; !ok || k == archdoc.External {
+			continue
+		}
+		if reachedBy[e.To] == nil {
+			reachedBy[e.To] = map[string]bool{}
+		}
+		reachedBy[e.To][e.From] = true
+		cited[e.To] += len(e.Prov)
+		used[e.To] = used[e.To] || e.Label != archdoc.Configured
+	}
+	sort.SliceStable(externals, func(i, j int) bool {
+		a, b := externals[i], externals[j]
+		if len(reachedBy[a]) != len(reachedBy[b]) {
+			return len(reachedBy[a]) > len(reachedBy[b])
+		}
+		if used[a] != used[b] {
+			return used[a]
+		}
+		if cited[a] != cited[b] {
+			return cited[a] > cited[b]
+		}
+		return a < b
+	})
+	drop := map[string]bool{}
+	for _, id := range externals[MainExternals:] {
+		drop[id] = true
+	}
+	out := view
+	out.Nodes, out.Edges = nil, nil
+	for _, n := range view.Nodes {
+		if !drop[n.ID] {
+			out.Nodes = append(out.Nodes, n)
+		}
+	}
+	for _, e := range view.Edges {
+		if !drop[e.From] && !drop[e.To] {
+			out.Edges = append(out.Edges, e)
+		}
+	}
+	out.Folded = len(drop)
+	return out
 }
 
 // Mains lists the containers with more components than one diagram can show, in model order.

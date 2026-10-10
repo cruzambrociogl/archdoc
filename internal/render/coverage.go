@@ -78,6 +78,9 @@ type CodeRead struct {
 	// Schemas are the schema files read beside the code — a Prisma schema, SQL migrations — whether
 	// or not the code itself was.
 	Schemas []string `json:"schemas,omitempty"`
+	// Settings are the configuration files read for the addresses they hold: application.yml,
+	// appsettings.json.
+	Settings []string `json:"settings,omitempty"`
 	// Imports counts every import by how it was resolved: path, alias, module, package, unresolved.
 	Imports map[archdoc.Resolution]int `json:"imports"`
 	// Unresolved are the imports that look like the application's own code and match no file.
@@ -246,8 +249,9 @@ func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) str
 	if len(r.Code) > 0 {
 		b.WriteString("\n## What code was read\n\n")
 		b.WriteString("Each running application's own code, parsed. An import is resolved by path, by an alias\n")
-		b.WriteString("its configuration declares, or as a module of its own package; one that names its own\n")
-		b.WriteString("code and matches no file is unresolved, and listed.\n\n")
+		b.WriteString("its configuration declares, or as a module of its own package — in C#, which imports\n")
+		b.WriteString("namespaces rather than files, by the types a file names; one that names its own code\n")
+		b.WriteString("and matches no file is unresolved, and listed.\n\n")
 		b.WriteString("| Application | Language | Files | Lines | Components | Imports resolved | Unresolved | Parsed in part |\n")
 		b.WriteString("|---|---|---|---|---|---|---|---|\n")
 		for _, c := range r.Code {
@@ -255,7 +259,7 @@ func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) str
 				fmt.Fprintf(&b, "| `%s` | %s | not read — archdoc has no reader for %s yet | | | | | |\n", c.App, c.Language, c.Language)
 				continue
 			}
-			own := c.Imports[archdoc.ByPath] + c.Imports[archdoc.ByAlias] + c.Imports[archdoc.ByModule]
+			own := c.Imports[archdoc.ByPath] + c.Imports[archdoc.ByAlias] + c.Imports[archdoc.ByModule] + c.Imports[archdoc.ByName]
 			fmt.Fprintf(&b, "| `%s` | %s | %d | %d | %d | %d own, %d packages | %d | %d |\n", c.Root, c.Language,
 				c.Files, c.Lines, c.Components, own, c.Imports[archdoc.ByPackage], len(c.Unresolved), len(c.Partial))
 		}
@@ -263,6 +267,12 @@ func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) str
 			if len(c.Schemas) > 0 {
 				fmt.Fprintf(&b, "\n- `%s`: its tables are read from %d schema %s — `%s`", c.App, len(c.Schemas),
 					plural(len(c.Schemas), "file", "files"), strings.Join(c.Schemas, "`, `"))
+			}
+		}
+		for _, c := range r.Code {
+			if len(c.Settings) > 0 {
+				fmt.Fprintf(&b, "\n- `%s`: the addresses it connects to are also read from %d configuration %s — `%s`", c.App, len(c.Settings),
+					plural(len(c.Settings), "file", "files"), strings.Join(c.Settings, "`, `"))
 			}
 		}
 		for _, c := range r.Code {
@@ -492,6 +502,9 @@ func codeRead(m archdoc.Model, facts archdoc.FactSet) []CodeRead {
 		if s, ok := sources[a.Dir]; ok {
 			for _, f := range s.Schemas {
 				c.Schemas = append(c.Schemas, f.Path)
+			}
+			for _, f := range s.Settings {
+				c.Settings = append(c.Settings, f.Path)
 			}
 			// A source with schema files alone is an application whose code was not read.
 			c.Read, c.Root, c.Files, c.Components = len(s.Files) > 0, s.Root, len(s.Files), count[c.Container]

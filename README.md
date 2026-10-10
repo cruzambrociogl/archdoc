@@ -33,10 +33,12 @@ Two rules govern the design:
 ## Status
 
 **R1.a is built, the surface was redesigned on 4–5 October 2026, and since 5 October archdoc reads
-code as well as configuration** — TypeScript, JavaScript, Svelte and Python, and Dart for its
-files and imports — with NestJS, Express, FastAPI, SvelteKit, Next.js, React Router and TanStack
-Router understood by their conventions, and tables read from TypeORM-style classes, SQLModel,
-SQLAlchemy and Prisma schemas. What it does not read
+code as well as configuration** — TypeScript, JavaScript, Svelte, Python, Java and C#, and Dart
+for its files and imports — with NestJS, Express, FastAPI, SvelteKit, Next.js, React Router,
+TanStack Router, Spring and ASP.NET Core understood by their conventions, and tables read from
+TypeORM-style classes, SQLModel, SQLAlchemy, Prisma schemas, JPA entities and EF Core contexts.
+Since 9 October a Java module is found by its `pom.xml` or `build.gradle`, a .NET project by its
+`.csproj`, and both are read with their `application.yml` or `appsettings.json`. What it does not read
 yet it says so, in the coverage report. Where the work stands is in [`PROGRESS.md`](PROGRESS.md);
 the reasoning is in [`docs/vision.md`](docs/vision.md). Delivery is 11 December 2026.
 

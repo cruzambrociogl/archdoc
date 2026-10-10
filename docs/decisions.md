@@ -1097,3 +1097,54 @@ requests, built by the same functions the real ones are and tested to be equal. 
 the committed model, so a coding agent can ask what a part is and where that is proven — a first
 step towards F-27 that needs no protocol. Exit codes: 0 done, 1 failed, 2 used wrongly.
 
+
+**2026-10-09 — Supabase's overview: data is not configuration, examples are not containers, and
+twelve external systems are drawn**
+Supabase's context and container views drew 389 external systems and 59 containers. Almost none of
+it was architecture: 336 "systems" were the `url` of each company in the www site's survey and
+showcase lists, 759 citations came from Monaco copied into studio's `public/`, and 38 containers
+were sample apps under `examples/`. Decided: a URL that is a field of one record among three or
+more in a list literal is data, not a setting (`HostRef.Row`); `public/` and `static/` (served as
+they are) and `*.min.js` are not read, except in a page with no manifest; RFC 2606's reserved
+domains (`.example`, `.test`, `.invalid`) are placeholders. An application under `examples/`,
+`example/` or `samples/` is `RoleExample`, not a container, unless nothing else runs; a front-end
+package that exports code another package depends on is a library (Supabase's `ui`, `ui-patterns`,
+`marketing`, `dev-tools`). With more than 18 external systems, the context and container views
+draw the 12 the most containers reach, ranking those seen used over those only configured, then
+by citations. The figure says how many it left out, the element tables still list every one, and
+`context:all` and `container:all` show them all in the app. Result on Supabase: 28 external
+systems (12 drawn) and 17 containers. Immich is unchanged. **Rejected:** folding hosts named like
+the system into it. Immich's `tiles.immich.cloud` and `version.immich.cloud` are real services
+outside the repository. LayoutVersion 13, and a stored layout is reused only if it places every
+element of the view (`render.Places`). Without that check, an unchanged model kept a layout made
+for a different cut and drew arrows to boxes that did not exist.
+
+**2026-10-09 — Java and C# are read**
+Asked for by Cruz after the Supabase work. gotreesitter already ships both grammars; the two add
+0.85 MB to the binary (47.9 → 48.8 MB). A Java module is found by `pom.xml` (a pom beside a
+`build.gradle` is kept, the Gradle file dropped) or `build.gradle(.kts)`, read by pattern; a .NET
+project by its `.csproj`, whose SDK says most of what it is. Both readers fill the facts TypeScript
+does — annotations and attributes are decorators — so the routes, tables and flows machinery
+mostly carries over. What differs, and why:
+- **C# imports namespaces, not files.** A file uses the files that declare the types it names: a
+  type index over the project, resolved as `ByName`. Usings of the project's own namespaces are
+  not imports; others are packages.
+- **Addresses live in configuration.** `application.properties`/`.yml` and `appsettings*.json` are
+  read for hosts, every profile, as `Source.Settings`; any URL in them is configured, and a
+  connection string names its server (`Server=sqlserver,1433` → `sqlserver`).
+- **Data models live in class libraries** (eShopOnWeb: entities in ApplicationCore, the DbContext
+  in Infrastructure). The table classes of the libraries a service references are read as schema
+  files: tables, not components. An EF table's class is the one beside its context — Web's
+  `Basket` view component is not the `Basket` entity.
+- **Jib/buildpacks publish an image under the module's name**, so a Compose service running
+  `acme/shop-vets-service` is tied to module `shop-vets-service` — exact, Java modules only.
+- A Spring Boot *starter* names an external system by itself (`spring-ai-starter-model-openai`);
+  a Spring Data call through a repository field queries its entity's table, by the method's verb;
+  a C# class given an interface is followed into its one implementation. A controller that renders
+  views answers a GET with a page, and a service that serves pages is reached by a person.
+Measured on spring-petclinic, spring-petclinic-microservices and eShopOnWeb (SHAs in PROGRESS):
+the microservices' gateway→customers/visits and genai→vets calls from the code, eShopOnWeb's 14
+tables with their keys; Immich and Supabase byte-identical to before. **Not done:** Kotlin; JPA
+column names under Spring's snake_case naming; EF fluent configuration (`ToTable`); a call that
+leaves for another container as a flow step; Razor markup; Maven/NuGet dependencies matched to
+imports.

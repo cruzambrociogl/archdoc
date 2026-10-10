@@ -17,18 +17,28 @@ import (
 var endpointKey = regexp.MustCompile(`(?i)(url|uri|endpoint|host|hostname|server|origin|issuer|style)s?$`)
 
 // configured reports a URL a configuration key holds, whole, in code that is not a template: an
-// endpoint the application is set up to reach. A link an email or a page shows is not one.
+// endpoint the application is set up to reach. A link an email or a page shows is not one, and
+// nor is a field of one record among many — the url of each company a page lists.
 func configured(h archdoc.HostRef, f archdoc.SourceFile) bool {
-	if h.Built || h.Scheme == "" || !endpointKey.MatchString(h.Key) {
+	if h.Built || h.Row || h.Scheme == "" || !endpointKey.MatchString(h.Key) {
 		return false
 	}
 	return f.Language != "TSX" && f.Language != "Svelte" && !strings.HasSuffix(f.Path, ".jsx")
 }
 
-// placeholder reports a host that stands for no real system: this machine, or documentation's.
+// placeholder reports a host that stands for no real system: this machine, or documentation's —
+// the names and the top-level domains RFC 2606 reserves for examples and tests.
 func placeholder(host string) bool {
-	return host == "localhost" || host == "0.0.0.0" || strings.HasPrefix(host, "127.") ||
-		host == "example.com" || host == "example.org" || strings.HasSuffix(host, ".example.com") || strings.HasSuffix(host, ".local")
+	if host == "localhost" || host == "0.0.0.0" || strings.HasPrefix(host, "127.") || strings.HasSuffix(host, ".local") ||
+		host == "host.docker.internal" {
+		return true
+	}
+	for _, d := range []string{"example.com", "example.net", "example.org", "example", "test", "invalid", "localhost"} {
+		if host == d || strings.HasSuffix(host, "."+d) {
+			return true
+		}
+	}
+	return false
 }
 
 // NestJS's route decorators, and the HTTP method each declares.
@@ -56,16 +66,23 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 		}
 		sdks(m, src, container, has)
 		m.Entries = append(m.Entries, routes(src, container, componentOf)...)
+		m.Entries = append(m.Entries, controllerRoutes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, fastapiRoutes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, pages(src, container, componentOf)...)
 		m.Entries = append(m.Entries, commandsAndJobs(src, container, componentOf)...)
 
-		for _, f := range src.Files {
+		// A configuration file — application.yml, appsettings.json — holds settings and nothing else:
+		// every address in one is an endpoint the application is set up to reach.
+		setting := map[string]bool{}
+		for _, f := range src.Settings {
+			setting[f.Path] = true
+		}
+		for _, f := range append(append([]archdoc.SourceFile(nil), src.Files...), src.Settings...) {
 			for _, h := range f.Hosts {
 				to := ""
 				if name, ok := declared[h.Host]; ok {
 					to = serviceID(name)
-				} else if (h.Called || configured(h, f)) && !placeholder(h.Host) {
+				} else if (h.Called || configured(h, f) || setting[f.Path] && h.Scheme != "" && !h.Built) && !placeholder(h.Host) {
 					// Not this repository's, and either called directly or held by a configuration
 					// key — url, endpoint, host: an external system the code reaches. A URL in a
 					// sentence, a link or a comment is none of these, and draws nothing.
@@ -82,7 +99,7 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 				label := "connects to"
 				switch {
 				case !h.Called && strings.HasPrefix(to, "ext:"):
-					label = "is configured to reach" // a default the code holds, not a call it was seen to make
+					label = archdoc.Configured // a default the code holds, not a call it was seen to make
 				case h.Scheme == "http" || h.Scheme == "https" || h.Scheme == "ws" || h.Scheme == "wss":
 					label = "calls"
 				}
@@ -204,8 +221,8 @@ func routes(src archdoc.Source, container string, componentOf map[string]string)
 var fastapiVerbs = map[string]string{"get": "GET", "post": "POST", "put": "PUT", "patch": "PATCH",
 	"delete": "DELETE", "head": "HEAD", "options": "OPTIONS", "api_route": "ANY", "websocket": "WS", "all": "ALL"}
 
-// The applications a router is finally included into: FastAPI's, Express's.
-var rootRouters = map[string]bool{"FastAPI": true, "express": true}
+// The applications a router is finally included into: FastAPI's, Express's, ASP.NET's.
+var rootRouters = map[string]bool{"FastAPI": true, "express": true, "aspnet": true}
 
 type routerKey struct{ file, name string }
 

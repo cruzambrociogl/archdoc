@@ -157,7 +157,27 @@ func distance(a float64) float64 {
 // LayoutVersion changes whenever what Layout produces changes. Found the first day: a fix to
 // where boundary labels sit did not show on Immich or Mastodon, because their unchanged
 // architectures reused layouts stored by the old code. Bump this with any such change.
-const LayoutVersion = 12
+const LayoutVersion = 13
+
+// Places reports whether a stored layout has a box for every element of the view, and nothing
+// else: one stored for the same architecture can still be for a different picture of it, when
+// what a view shows changes and LayoutVersion was not bumped. Then an arrow is drawn to a box that
+// is not there — the context view of Supabase, the day it began leaving external systems out.
+func Places(l archdoc.Layout, view archdoc.Model) bool {
+	if len(l.Boxes) != len(view.Nodes) {
+		return false
+	}
+	has := make(map[string]bool, len(l.Boxes))
+	for _, b := range l.Boxes {
+		has[b.ID] = true
+	}
+	for _, n := range view.Nodes {
+		if !has[n.ID] {
+			return false
+		}
+	}
+	return true
+}
 
 // Box and text geometry, in points. Shared by the layout and the drawing, so a box is sized for
 // exactly the text that will be drawn in it.

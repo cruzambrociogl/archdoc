@@ -153,6 +153,10 @@ type Column struct {
 	Prov       Provenance `json:"provenance"`
 }
 
+// Configured is the label of an edge to an address the code holds and was not seen to call: a
+// default URL in a setting. Weaker evidence of use than a call, an import or a connection.
+const Configured = "is configured to reach"
+
 // Edge is a directed relationship between two nodes.
 type Edge struct {
 	From string `json:"from"`
@@ -218,6 +222,11 @@ type Model struct {
 	// Boundary is what a view's enclosing box says, when it is not the system: a component view
 	// is drawn inside its container — "immich-server [Container: NestJS · TypeScript]".
 	Boundary string `json:"boundary,omitempty"`
+
+	// Folded is how many external systems a context or container view leaves out: the ones the
+	// fewest containers reach, when there are more than a diagram holds. Every one is still in the
+	// model, and in the element tables.
+	Folded int `json:"folded,omitempty"`
 
 	// Stages are a data-flow view's columns, left to right; each node names its own.
 	Stages []string `json:"stages,omitempty"`

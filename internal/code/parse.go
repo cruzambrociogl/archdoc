@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	ts "github.com/odvcencio/gotreesitter"
+	"github.com/odvcencio/gotreesitter/grammars/c_sharp"
+	"github.com/odvcencio/gotreesitter/grammars/java"
 	"github.com/odvcencio/gotreesitter/grammars/javascript"
 	"github.com/odvcencio/gotreesitter/grammars/python"
 	"github.com/odvcencio/gotreesitter/grammars/svelte"
@@ -29,6 +31,10 @@ func language(name string) *ts.Language {
 		return python.Language()
 	case "Svelte":
 		return svelte.Language()
+	case "Java":
+		return java.Language()
+	case "C#":
+		return c_sharp.Language()
 	default:
 		return javascript.Language()
 	}

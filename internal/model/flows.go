@@ -61,6 +61,7 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 			files[f.Path] = f
 		}
 		table := func(t string) string { return tableOf[container+"\x00"+t] }
+		impl := implementations(classes)
 		// What runs out of line, by the name that starts it: the methods an event reaches, and the
 		// entry a queued job is.
 		out := outOfLine{events: map[string][]handler{}, jobs: map[string]archdoc.Entry{}, constants: map[string]string{}}
@@ -93,7 +94,7 @@ func flows(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]st
 			if strings.HasSuffix(e.Prov.File, ".py") {
 				f = followPython(e, classes, files, componentOf, table)
 			} else {
-				f = follow(e, classes, files, componentOf, table, out)
+				f = follow(e, classes, files, componentOf, table, out, impl)
 			}
 			if len(f.Steps) > 0 {
 				m.Flows = append(m.Flows, f)
@@ -126,7 +127,7 @@ func (o outOfLine) listeners(inv archdoc.Invocation) []handler {
 	return out
 }
 
-func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdoc.SourceFile, componentOf map[string]string, table func(string) string, out outOfLine) archdoc.Flow {
+func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdoc.SourceFile, componentOf map[string]string, table func(string) string, out outOfLine, impl map[string]string) archdoc.Flow {
 	flow := archdoc.Flow{Entry: e.ID}
 	known := map[string]archdoc.Participant{} // every participant met, whether or not it stays
 	visited := map[string]bool{}
@@ -297,6 +298,9 @@ func follow(e archdoc.Entry, classes map[string]classAt, files map[string]archdo
 				to := self
 				if inv.Object != "" {
 					target = typeOf(cls, inv.Object, 0)
+					if i, ok := impl[target]; ok {
+						target = i // an interface it is given, and the one class that implements it
+					}
 					to = target
 				}
 				found, next, ok := method(target, inv.Method, 0)

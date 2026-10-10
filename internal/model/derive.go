@@ -113,6 +113,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 
 	componentOf := components(&m, f.Sources)
 	tables(&m, f.Sources)
+	springData(f.Sources)
 
 	external := map[string]archdoc.Node{}
 	var actor *archdoc.Node
@@ -194,6 +195,7 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 	}
 
 	fromCode(&m, f.Sources, componentOf, declared)
+	starters(&m, f)
 	apiCalls(&m, f)
 	people(&m, f)
 	flows(&m, f.Sources, componentOf)

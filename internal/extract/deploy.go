@@ -142,7 +142,34 @@ func deploy(apps []archdoc.App, services []archdoc.Service, bs []build) {
 		prov := s.Prov
 		prov.Note = "tied by name: the service is named like the application, and no build line ties them"
 		apps[idx[0]].Deployed = &archdoc.Deployment{Service: s.Name, Prov: prov, ByName: true}
+		tied[s.Name] = true
 	}
+
+	// The same, by the image a service runs: a Maven or Gradle build publishes its image under the
+	// module's name (Jib, Spring Boot's build-image), so springcommunity/spring-petclinic-vets-service
+	// is the module spring-petclinic-vets-service. The image's own name, without registry, owner or
+	// tag, must be exactly the module's — and only a Java module's: that is whose convention it is.
+	for _, s := range services {
+		idx := byName[imageName(s.Image)]
+		if s.Image == "" || tied[s.Name] || len(idx) != 1 || apps[idx[0]].Deployed != nil ||
+			apps[idx[0]].Language != "Java" && apps[idx[0]].Language != "Kotlin" {
+			continue
+		}
+		prov := s.Prov
+		prov.Note = "tied by image: the service runs " + s.Image + ", named exactly like the application, and no build line ties them"
+		apps[idx[0]].Deployed = &archdoc.Deployment{Service: s.Name, Prov: prov, ByName: true}
+		tied[s.Name] = true
+	}
+}
+
+// imageName is an image reference's own name: ghcr.io/org/app:1.2 is app.
+func imageName(ref string) string {
+	ref, _, _ = strings.Cut(ref, "@")
+	if i := strings.LastIndex(ref, "/"); i >= 0 {
+		ref = ref[i+1:]
+	}
+	name, _, _ := strings.Cut(ref, ":")
+	return name
 }
 
 func unscoped(name string) string {

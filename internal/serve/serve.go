@@ -381,7 +381,7 @@ func engineLayout(ctx context.Context, v *store.Version, name string) (archdoc.M
 		return archdoc.Model{}, archdoc.Layout{}, fmt.Errorf("%w: %q in version %d", errNoView, name, v.ID)
 	}
 	l, ok := v.Layouts[name]
-	if !ok || l.Version != render.LayoutVersion {
+	if !ok || l.Version != render.LayoutVersion || !render.Places(l, view.Model) {
 		var err error
 		if l, err = render.Layout(ctx, view.Model, view.Group); err != nil {
 			return archdoc.Model{}, archdoc.Layout{}, err

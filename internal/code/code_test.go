@@ -797,3 +797,201 @@ func TestSmallProjectsAreRead(t *testing.T) {
 		t.Errorf("documents %+v", src.Documents)
 	}
 }
+
+// A URL that is a field of one record among many is data the code holds — a page's list of
+// companies — and is marked so; two records alike are still settings. Code a framework serves as
+// it is, and minified code, is someone else's and is not read.
+func TestRowsAndCopiedCode(t *testing.T) {
+	root := tree(t, map[string]string{
+		"web/package.json": `{"name": "web"}`,
+		"web/src/participants.ts": "export const participants = [\n" +
+			"  { company: 'A', url: 'https://a.io' },\n  { company: 'B', url: 'https://b.io' },\n  { company: 'C', url: 'https://c.io' },\n]\n",
+		"web/src/servers.ts":          "export const servers = [{ url: 'https://eu.api.io' }, { url: 'https://us.api.io' }]\n",
+		"web/public/monaco/worker.js": "fetch('https://copied.io/x')\n",
+		"web/src/lib/editor.min.js":   "fetch('https://minified.io/x')\n",
+		"web/src/lib/index.ts":        "fetch('https://own.io/x')\n",
+	})
+	src, _ := Read(root, archdoc.App{Dir: "web", Language: "TypeScript"}, nil)
+	hosts := map[string]archdoc.HostRef{}
+	for _, f := range src.Files {
+		for _, h := range f.Hosts {
+			hosts[h.Host] = h
+		}
+	}
+	for _, h := range []string{"a.io", "b.io", "c.io"} {
+		if !hosts[h].Row || hosts[h].Key != "url" {
+			t.Errorf("%s is a field of one of three records: %+v", h, hosts[h])
+		}
+	}
+	if hosts["eu.api.io"].Row {
+		t.Error("two servers to try were read as rows of data")
+	}
+	for _, h := range []string{"copied.io", "minified.io"} {
+		if _, ok := hosts[h]; ok {
+			t.Errorf("%s: code copied in was read as the application's", h)
+		}
+	}
+	if !hosts["own.io"].Called {
+		t.Error("the application's own code was not read")
+	}
+}
+
+// Java: imports resolve by package path, the module's own base package is where its parts start,
+// annotations are decorators, what the constructor and the fields hold is recorded by name, calls
+// through a field are kept, and an HTTP client's literal address is a call. Its settings name hosts.
+func TestJavaReader(t *testing.T) {
+	root := tree(t, map[string]string{
+		"pom.xml": "<project/>",
+		"src/main/java/com/acme/shop/owner/OwnerResource.java": "package com.acme.shop.owner;\n" +
+			"import com.acme.shop.vet.VetClient;\nimport org.springframework.web.bind.annotation.*;\nimport com.acme.shop.missing.Gone;\n" +
+			"@RestController\n@RequestMapping(\"/owners\")\nclass OwnerResource {\n" +
+			"  private final OwnerRepository owners;\n" +
+			"  @Value(\"${vets.url:http://vets-service:8080}\") String vetsUrl;\n" +
+			"  OwnerResource(OwnerRepository owners) { this.owners = owners; }\n" +
+			"  @GetMapping(value = \"/{id}\") Owner find(@PathVariable int id) { restTemplate.getForObject(\"http://visits-service/x\", String.class); return owners.findById(id); }\n" +
+			"}\n",
+		"src/main/java/com/acme/shop/owner/OwnerRepository.java": "package com.acme.shop.owner;\ninterface OwnerRepository extends JpaRepository<Owner, Integer> {}\n",
+		"src/main/java/com/acme/shop/vet/VetClient.java":         "package com.acme.shop.vet;\npublic class VetClient {}\n",
+		"src/main/resources/application.yml":                     "spring:\n  datasource:\n    url: jdbc:mysql://db:3306/shop\neureka:\n  client:\n    serviceUrl:\n      defaultZone: http://discovery:8761/eureka/\n",
+		"src/main/resources/application-docker.properties":       "spring.data.redis.host=cache\n# a comment\nai.endpoint=https://api.example.ai/v1\n",
+	})
+	src, ok := Read(root, archdoc.App{Dir: ".", Name: "shop", Language: "Java"}, nil)
+	if !ok || src.Root != "src/main/java/com/acme/shop" {
+		t.Fatalf("root %q, want the base package", src.Root)
+	}
+	imps := imports(src)
+	owner := "src/main/java/com/acme/shop/owner/OwnerResource.java"
+	if i := imps[owner+":2 com.acme.shop.vet.VetClient"]; i.Target != "src/main/java/com/acme/shop/vet/VetClient.java" {
+		t.Errorf("own import: %+v", i)
+	}
+	if i := imps[owner+":3 org.springframework.web.bind.annotation.*"]; i.How != archdoc.ByPackage || i.Package != "org.springframework.web.bind.annotation" {
+		t.Errorf("package import: %+v", i)
+	}
+	if i := imps[owner+":4 com.acme.shop.missing.Gone"]; i.How != archdoc.NoMatch {
+		t.Errorf("an import of the module's own package that matches no file: %+v", i)
+	}
+	var res, repo archdoc.Class
+	hosts := map[string]archdoc.HostRef{}
+	for _, f := range src.Files {
+		for _, c := range f.Classes {
+			switch c.Name {
+			case "OwnerResource":
+				res = c
+			case "OwnerRepository":
+				repo = c
+			}
+		}
+		for _, h := range f.Hosts {
+			hosts[h.Host] = h
+		}
+	}
+	if len(res.Decorators) != 2 || res.Decorators[1].Name != "RequestMapping" || res.Decorators[1].Arg != "/owners" {
+		t.Errorf("class annotations %+v", res.Decorators)
+	}
+	if len(res.Injects) != 1 || res.Injects[0].Value != "OwnerRepository" {
+		t.Errorf("injects %+v", res.Injects)
+	}
+	m := res.Methods[0]
+	if m.Decorators[0].Name != "GetMapping" || m.Decorators[0].Arg != "/{id}" || len(m.Invokes) != 2 || m.Invokes[1].Object != "owners" || m.Invokes[1].Method != "findById" {
+		t.Errorf("method %+v", m)
+	}
+	if !repo.Interface || repo.Options["entity"] != "Owner" || repo.Extends[0] != "JpaRepository" {
+		t.Errorf("repository %+v", repo)
+	}
+	if h := hosts["vets-service"]; h.Key != "url" || h.Port != "8080" {
+		t.Errorf("@Value default: %+v", h)
+	}
+	if !hosts["visits-service"].Called {
+		t.Error("a RestTemplate's literal address is a call")
+	}
+
+	settings := map[string]archdoc.HostRef{}
+	for _, f := range src.Settings {
+		for _, h := range f.Hosts {
+			settings[h.Host] = h
+		}
+	}
+	if h := settings["db"]; h.Scheme != "mysql" || h.Key != "spring.datasource.url" || h.Prov.Line != 3 {
+		t.Errorf("a jdbc URL in application.yml: %+v", h)
+	}
+	if h := settings["discovery"]; h.Key != "eureka.client.serviceUrl.defaultZone" || h.Prov.Line != 7 {
+		t.Errorf("a nested YAML key: %+v", h)
+	}
+	if h := settings["cache"]; h.Scheme != "" || h.Prov.File != "src/main/resources/application-docker.properties" || h.Prov.Line != 1 {
+		t.Errorf("a host property in a profile's properties: %+v", h)
+	}
+}
+
+// C#: a file uses another when it names a type the other declares — a namespace is not a file;
+// a using of a namespace the project does not declare is a package. Attributes are decorators;
+// minimal APIs are routers with prefixes; a Razor page's code-behind is a page; a connection string
+// names its server.
+func TestCSharpReader(t *testing.T) {
+	root := tree(t, map[string]string{
+		"src/Api/Api.csproj": "<Project/>",
+		"src/Api/Controllers/OrdersController.cs": "using Microsoft.AspNetCore.Mvc;\nusing Shop.Api.Services;\nnamespace Shop.Api.Controllers;\n" +
+			"[ApiController]\n[Route(\"api/[controller]\")]\npublic class OrdersController(IOrderService orders) : ControllerBase\n{\n" +
+			"    [HttpGet(\"{id}\")]\n    public Order Get(int id) => orders.Find(id);\n}\n",
+		"src/Api/Services/OrderService.cs": "namespace Shop.Api.Services;\npublic interface IOrderService { Order Find(int id); }\n" +
+			"public class OrderService : IOrderService\n{\n    private readonly HttpClient _http;\n    public Order Find(int id) { _http.GetAsync(\"http://payments:8080/x\"); return null; }\n}\n",
+		"src/Api/Models/Order.cs": "namespace Shop.Api.Models;\npublic class Order { public int Id { get; set; } public int Total => 0; }\n",
+		"src/Api/Endpoints.cs": "public static class Endpoints {\n    public static void Map(this IEndpointRouteBuilder app) {\n" +
+			"        var api = app.MapGroup(\"/api/catalog\");\n        api.MapGet(\"/items/{id}\", GetItem);\n    }\n}\n",
+		"src/Api/Pages/Basket/Checkout.cshtml.cs": "public class CheckoutModel : PageModel { }\n",
+		"src/Api/obj/Debug/Generated.cs":          "public class Generated {}\n",
+		"src/Api/appsettings.Docker.json":         "{\n  \"ConnectionStrings\": {\n    \"Catalog\": \"Server=sqlserver,1433;Database=Catalog;\"\n  },\n  \"Payments\": { \"BaseUrl\": \"http://payments:8080\" }\n}\n",
+	})
+	src, ok := Read(root, archdoc.App{Dir: "src/Api", Name: "Api", Language: "C#"}, nil)
+	if !ok {
+		t.Fatal("nothing read")
+	}
+	files := map[string]archdoc.SourceFile{}
+	for _, f := range src.Files {
+		files[strings.TrimPrefix(f.Path, "src/Api/")] = f
+	}
+	if _, read := files["obj/Debug/Generated.cs"]; read {
+		t.Error("the build's output was read as code")
+	}
+	targets := map[string]archdoc.Import{}
+	for _, i := range files["Controllers/OrdersController.cs"].Imports {
+		targets[i.Spec] = i
+	}
+	if i := targets["IOrderService"]; i.How != archdoc.ByName || i.Target != "src/Api/Services/OrderService.cs" {
+		t.Errorf("a type the controller names: %+v", i)
+	}
+	if i := targets["Order"]; i.Target != "src/Api/Models/Order.cs" {
+		t.Errorf("a type the controller names: %+v", i)
+	}
+	if i := targets["Microsoft.AspNetCore.Mvc"]; i.How != archdoc.ByPackage {
+		t.Errorf("a namespace from outside: %+v", i)
+	}
+	if _, ok := targets["Shop.Api.Services"]; ok {
+		t.Error("a using of the project's own namespace was kept as an import")
+	}
+	ctl := files["Controllers/OrdersController.cs"].Classes[0]
+	if ctl.Decorators[1].Name != "Route" || ctl.Decorators[1].Arg != "api/[controller]" || ctl.Injects[0].Value != "IOrderService" ||
+		ctl.Methods[0].Decorators[0].Name != "HttpGet" || ctl.Methods[0].Decorators[0].Arg != "{id}" || ctl.Methods[0].Invokes[0].Object != "orders" {
+		t.Errorf("controller %+v", ctl)
+	}
+	if svc := files["Services/OrderService.cs"]; !svc.Classes[0].Interface || svc.Classes[1].Extends[0] != "IOrderService" || !svc.Hosts[0].Called {
+		t.Errorf("service %+v", svc.Classes)
+	}
+	if order := files["Models/Order.cs"].Classes[0]; len(order.Fields) != 1 || order.Fields[0].Name != "Id" {
+		t.Errorf("a computed property was taken for a stored one: %+v", order.Fields)
+	}
+	ep := files["Endpoints.cs"]
+	if len(ep.Routers) != 2 || ep.Routers[1].Var != "api" || ep.Routers[1].Prefix != "/api/catalog" || ep.Includes[0].Parent != "app" ||
+		ep.Classes[1].Methods[0].Decorators[0].Name != "api.get" || ep.Classes[1].Methods[0].Name != "GetItem" {
+		t.Errorf("minimal API: routers %+v, includes %+v, classes %+v", ep.Routers, ep.Includes, ep.Classes)
+	}
+	if p := files["Pages/Basket/Checkout.cshtml.cs"].Pages; len(p) != 1 || p[0].Value != "/Basket/Checkout" {
+		t.Errorf("razor page %+v", p)
+	}
+	var hosts []archdoc.HostRef
+	for _, f := range src.Settings {
+		hosts = append(hosts, f.Hosts...)
+	}
+	if len(hosts) != 2 || hosts[0].Host != "sqlserver" || hosts[0].Scheme != "sqlserver" || hosts[0].Prov.Line != 3 || hosts[1].Key != "BaseUrl" {
+		t.Errorf("appsettings hosts %+v", hosts)
+	}
+}
