@@ -56,7 +56,7 @@ section for the task at hand and nothing else.
 | `docs/survey-test-subjects.md` §1–2 | Writing or fixing a parser — real dialects, real failures |
 | `docs/how-it-works.md` | Orienting — the pipeline on one screen, and which stage lives in which package |
 | `docs/delivery-schedule.md` | Planning or scoping. **Not** while building |
-| `docs/surface-spec.md` | Working on the web app or the published site — screens, design system, modes, what the app may do. Design: Claude Design project (memory). The platform's flows, its screens and the question-first navigation: `docs/platform-surface.md`, which reverses rule 7 |
+| `docs/surface-spec.md` | Working on the web app or the published site — screens, design system, modes, what the app may do. Design: Claude Design project (memory). The information architecture of the whole app — one app for local, hosted and published; where every screen lives; related repositories — plus the platform's flows and screens: `docs/platform-surface.md` §4, which supersedes surface-spec §4.1 and reverses rule 7 |
 | `docs/vision.md` | Discussing scope beyond configuration — code as evidence, lenses, explanations. **A proposal:** until a decision there is recorded in `decisions.md`, the definition wins |
 | `PROGRESS.md` | Starting work — what is done, what gate is next |
 | `.claude/NOTES.md` | Starting or ending a session — the inbox of unplanned items |

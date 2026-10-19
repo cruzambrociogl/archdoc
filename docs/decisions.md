@@ -1170,3 +1170,15 @@ S3-compatible object storage for sites. Frontend stays **React + Vite**, now wit
 and Query, Radix and React Hook Form + Zod, as a single-page app — not Vue (a rewrite) and not
 Next.js (a Node server to serve search for a few pages).
 → `docs/platform-plan.md`
+
+**2026-10-19 — One app, and systems of several repositories**
+After the first platform design round the team found it had designed by adding: plain sentences on
+top of the old density, platform screens beside the existing app (every Explore entry linked out to
+it), local and hosted drawn as different places, and a menu of up to twenty entries with duplicates.
+Decided: **one app** — local, hosted and published share one shell, navigation and set of pages, and
+a feature appears only where it can work; a **density budget** for every screen and menu; **plain
+names** first; six menu entries and Settings, every existing screen moved rather than cut. And a new
+level: a **system** groups repositories, its map shows how they link — cited at both ends, with
+version drift — grouped by the user first, suggested by archdoc second, never guessed. The plan's
+shared viewer becomes a shared app with an adapter per place.
+→ `docs/platform-surface.md` §4, §12; `docs/platform-plan.md` step 2

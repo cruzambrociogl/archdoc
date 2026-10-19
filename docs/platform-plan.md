@@ -44,14 +44,14 @@ production beside Go, to solve search for a handful of pages.
 
 | Repository | Visibility | Licence | Holds |
 |---|---|---|---|
-| `archdoc` — this one, `github.com/cruzambrociogl/archdoc` | **Public** (step 3) | **FSL** — free to read, use, modify and self-host; no competing service; each version becomes Apache 2.0 after two years | The engine, its public API, the CLI, the local web app, the shared viewer, the GitHub Action later |
+| `archdoc` — this one, `github.com/cruzambrociogl/archdoc` | **Public** (step 3) | **FSL** — free to read, use, modify and self-host; no competing service; each version becomes Apache 2.0 after two years | The engine, its public API, the CLI, the shared app (local, published and the platform's), the GitHub Action later |
 | `archdoc-platform` — new | **Private** | Closed | API server, worker, platform web app, migrations, deployment |
 
 - **Local development across both:** a Go workspace (`go.work`) in the platform repository points at a
   sibling checkout of the engine, so the platform builds against local engine changes without a
   release per change. `go.work` is not committed; CI builds against a tagged engine version.
 - **Engine versions:** semantic version tags (`v0.x.y`) on the engine; the platform pins one.
-- **The viewer** (step 2) is published from the engine repository as a package the platform installs.
+- **The app** (step 2) is published from the engine repository as a package the platform installs, with its hosted adapter.
 
 ---
 
@@ -77,19 +77,25 @@ Go forbids importing `internal/` from another module, and the pipeline lives in 
 SHAs is byte-identical to before (AC-7); the network-boundary check passes unchanged; an example
 program outside the module generates a repository through the API.
 
-### Step 2 — The shared viewer
+### Step 2 — The shared app
 
-The diagram explorer, flows, components, citations, coverage and documents screens are needed by the
-local app and the platform alike. Two copies would drift.
+**One app, not a shared viewer** (`platform-surface.md` §4.1, revision 3). The local app, the platform
+and the published site are the same application — one shell, one navigation, one set of pages — and
+each place adds or lacks a few features. Two copies would drift; so would a shared set of screens
+inside two different shells.
 
-- Split `web/` into a **viewer** package (screens that show a model) and the **local app** (the
-  shell around it: navigation, corrections, network runs — what only a local user does).
-- The viewer takes its data through an interface, not from `archdoc serve`'s endpoints directly, so
-  the platform can feed it from its own API.
-- An npm workspace in the engine repository; the viewer published as a package.
+- Move `web/` into an **app** package: the shell and every page, with the information architecture
+  of `platform-surface.md` §4.
+- The app reads its data and its **capabilities** through an interface: what this place can do —
+  generate, write corrections, share, sign in — decides which features appear (§4.5 there). It never
+  calls `archdoc serve`'s endpoints directly.
+- Three adapters: **local** (`archdoc serve`), **published** (the static JSON of `export --site`) and,
+  in the platform repository, **hosted** (the platform API).
+- An npm workspace in the engine repository; the app published as a package.
 
-**Done when:** the local app is built from the viewer and works as before; `export --site` output is
-unchanged; the viewer builds and renders a stored model on its own.
+**Done when:** the local app runs from the package through the local adapter and works as before;
+`export --site` output is unchanged; the app renders a stored model through the published adapter
+with no server.
 
 ### Step 3 — The engine goes public
 
@@ -110,7 +116,7 @@ archdoc-platform/
   internal/         platform packages
   db/migrations/    goose
   db/queries/       sqlc
-  web/              the platform app — imports the viewer
+  web/              the hosted adapter — imports the app
   compose.yaml      Postgres, MinIO
   .env.example
   CLAUDE.md
@@ -148,7 +154,7 @@ The walking skeleton: proof that every layer connects, not a feature.
 2. A River job: the worker shallow-clones at the default branch's commit into a throwaway
    directory, calls the engine's `Generate` and `ExportSite`, uploads the site to object storage,
    stores the model, and **deletes the clone, on success or failure**.
-3. `GET /runs/{id}` reports status; when done, the viewer shows the result.
+3. `GET /runs/{id}` reports status; when done, the app shows the result.
 4. A second request for the same `repo@commit` is served from what is stored (AC-7 makes that safe).
 
 **The worker is locked down from the first job.** It clones strangers' repositories, and git itself
@@ -167,7 +173,7 @@ with a clear message and leave nothing behind.
 ### Step 7 — The platform web app
 
 - Vite + React + TypeScript, TanStack Router and Query, Radix, the design system's tokens.
-- Three screens only: paste a link; a run in progress; the result, through the viewer.
+- Three screens only: paste a link; a run in progress; the result, in the shared app.
 - **Generated sites are served from a separate origin** — a different registrable domain in
   production (as GitHub serves raw files from `githubusercontent.com`), a different host and port
   locally. A site carries text from a stranger's repository; on the app's own origin a malicious
@@ -180,7 +186,7 @@ with a clear message and leave nothing behind.
 ### Step 8 — Continuous integration
 
 - **Engine:** as today — gofmt, vet, build, race tests, the network boundary — plus the API example
-  and the viewer build.
+  and the app build.
 - **Platform:** gofmt, vet, tests against a Postgres service, migrations up and down, sqlc diff,
   web typecheck and build.
 
@@ -208,7 +214,7 @@ environment first; none of it is needed to have it.
 ## 5. Exit criteria — when the freeze lifts
 
 1. The CLI runs on the engine's public API, with output byte-identical to before.
-2. The local app and the platform show models through one shared viewer.
+2. The local app, the published site and the platform are one shared app, each through its adapter.
 3. The engine repository is public, FSL-licensed and tagged.
 4. A fresh clone of the platform runs locally with one command.
 5. Pasting a public repository's URL in the local platform shows its documentation, end to end —
@@ -221,7 +227,7 @@ environment first; none of it is needed to have it.
 ## 6. Open questions
 
 1. **Public types** — aliases of `internal/archdoc`, or moved out (step 1)?
-2. **The viewer package** — published to npm, to GitHub Packages, or consumed from git (step 2)?
+2. **The app package** — published to npm, to GitHub Packages, or consumed from git (step 2)?
 3. **What stays out of the public repository** — the report, the origin notes, the brief (step 3)?
 4. **The product's name and domain** — does the platform stay "archdoc"?
 5. **Hosting** — Fly.io, Render, Railway, a cloud provider. Not needed until deployment, which is
