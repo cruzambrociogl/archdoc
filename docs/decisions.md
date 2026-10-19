@@ -1159,3 +1159,14 @@ user: a solo developer who directed an AI rather than writing the code. Readable
 plain answer first, the evidence one step behind. Nothing is built yet, so `product-definition.md`
 §7 and `vision.md` §2.2 still stand; both are amended when the platform work starts.
 → `docs/hosted-proposal.md` §8
+
+**2026-10-19 — Code frozen; the platform's stack**
+The code is frozen for new features until the platform's development environment exists; setting
+it up — the engine's public API, a shared viewer, the repository split — is allowed under the
+freeze, since it adds no capability. Backend Go; **Postgres** with the engine's output in `JSONB`,
+not MongoDB — the platform's own data is relational and needs transactions, and only the engine's
+output has an unsettled shape; pgx, sqlc, goose, and **River** as the queue, inside Postgres;
+S3-compatible object storage for sites. Frontend stays **React + Vite**, now with TanStack Router
+and Query, Radix and React Hook Form + Zod, as a single-page app — not Vue (a rewrite) and not
+Next.js (a Node server to serve search for a few pages).
+→ `docs/platform-plan.md`

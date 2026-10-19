@@ -4,9 +4,10 @@ Reads an existing codebase and produces the architecture documentation it should
 accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
 web app, one static binary.
 
-**Phase:** extension — R1.a built; surface redesigned (5 Oct); code read since 5 Oct — components,
-data, routes, flows, cited explanations. Small projects — a script, a page — documented on one page
-since 9 Oct. Start from `PROGRESS.md`, "Where this stands": what works, what is next, how to run it.
+**Phase:** frozen for new features since 19 Oct, while the development environment for the
+platform is set up — `docs/platform-plan.md` (the steps, and when the freeze lifts) and
+`docs/hosted-proposal.md` §8 (the direction). What the engine does today: `PROGRESS.md`, "Where this
+stands".
 **Target:** code freeze 4 Dec 2026, delivered 11 Dec 2026.
 
 ---

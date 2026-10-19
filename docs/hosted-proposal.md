@@ -324,8 +324,9 @@ features, follow when teams do.
 The discussion of 17–19 October ended with these agreed. Everything else in this document stays
 open until the platform plan takes it up.
 
-1. **Order.** Nothing here starts now. First the current state is wrapped up; then the project is
-   prepared for the move; then it becomes a platform. The path is planned separately.
+1. **Order.** The code is frozen as it stands — no new features — and that is the wrap-up. The
+   freeze lasts until the development environment for the platform is set up; feature work resumes
+   inside it. The path is planned separately.
 2. **Direction.** Both: the local tool made usable by anyone (A, B), and a hosted service (C, then
    D, with E falling out of D). A business is an explicit aim.
 3. **Positioning.** "Verifiable, wherever it runs" (§2). Locality is an option offered, not the
