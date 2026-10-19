@@ -1148,3 +1148,14 @@ tables with their keys; Immich and Supabase byte-identical to before. **Not done
 column names under Spring's snake_case naming; EF fluent configuration (`ToTable`); a call that
 leaves for another container as a flow step; Razor markup; Maven/NuGet dependencies matched to
 imports.
+
+**2026-10-19 — After the current work: a platform, verifiable wherever it runs**
+Raised by the professor, adopted by the team; discussed 17–19 Oct in `docs/hosted-proposal.md`.
+archdoc becomes both a local tool anyone can use and a hosted service, with a business as an aim —
+**after** the current state is wrapped up, on a plan of its own. Positioning moves from "the local,
+verifiable alternative" to **"verifiable, wherever it runs"**: locality is an option offered, not
+the identity. The engine is free under the FSL, the platform closed, in two repositories. First
+user: a solo developer who directed an AI rather than writing the code. Readable before complete:
+plain answer first, the evidence one step behind. Nothing is built yet, so `product-definition.md`
+§7 and `vision.md` §2.2 still stand; both are amended when the platform work starts.
+→ `docs/hosted-proposal.md` §8
