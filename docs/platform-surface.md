@@ -16,7 +16,8 @@
 > files `Platform Components`, `Platform Repository`, `Platform Flows`, `Platform Notifications` and
 > its `Platform Findings`. What changed is listed in §11. **Revision 3, 2026-10-19**: one app for every
 place, a density budget, plain names, and related repositories — the information architecture of §4;
-what changed is listed in §12. **Nothing here is built**: the code is
+what changed is listed in §12. **Revision 4, 2026-10-20**, after round 3 (`App.dc.html`, `App Findings`):
+corrections, not a redesign — listed in §13. **Nothing here is built**: the code is
 > frozen until the platform's development environment exists (`platform-plan.md`); designing is not
 > building, and is the right work now. Direction: `hosted-proposal.md` §8.
 
@@ -37,6 +38,7 @@ what changed is listed in §12. **Nothing here is built**: the code is
 | What is still open | §10 |
 | What the first design round changed | §11 |
 | What revision 3 changed | §12 |
+| What revision 4 changed | §13 |
 
 ### Pieces
 
@@ -47,6 +49,10 @@ Screens are marked with the piece of `hosted-proposal.md` §3 that first needs t
 | **L** | The local tool — `archdoc` on the user's machine |
 | **C** | Hosted, public repositories — no account |
 | **D** | Hosted, private repositories — signed in with GitHub |
+
+These marks are the **business pieces**, not the places the app runs. The places are **three**:
+**Local**, the **Website** — either **signed in** or **signed out** — and the **Published site**
+(§4.5). Whether a visitor may *change* a repository is a separate permission, owner or viewer.
 
 ---
 
@@ -120,11 +126,18 @@ The rules of `surface-spec.md` §2, one by one:
 15. **The density budget.** The first view of a screen holds one question, one sentence, one picture
     and at most one primary action. Lists stop at five, with "see all". More is a deliberate step
     away — another page or a panel the user opens — never an expanded section of the same page. No
-    menu holds more than seven entries at any level (§4.1).
+    menu holds more than seven entries at any level (§4.1). **Two exceptions:** the Overview's trust
+    sentence is its one allowed second sentence, because it states the guarantee; and the limit of
+    five is for lists, not sequences — a flow shows every step, grouped into at most five stages
+    when it is longer.
 16. **Plain names first.** Menus, levels and headings are named in plain words; the technical term
     follows, smaller, where it helps (§4.1).
 17. **Absent, not disabled.** A feature that does not apply in a place — local, hosted, published —
     is not there, rather than greyed out (§4.5).
+18. **Meaning first, the count second.** A sentence leads with what something is or does, and the
+    number follows: "Everything is kept in one Postgres database; most of its 68 tables hang off
+    two", not "68 tables in one Postgres database". Lists and tables say what each row is before
+    how many; an inspector opens on a sentence, not on a table of figures.
 
 Rule 7's reversal applies to the **local app too**: it is the same app (§4.1), and the first user
 meets it there as often as on the platform.
@@ -265,15 +278,29 @@ site have only the repository level.
 
 **Top bar:**
 - **Breadcrumb** with a switcher at each level.
-- **Status** (6.16, and the freshness pill of `surface-spec.md` §11.7): *Up to date* · *Code changed*
-  · *Generating…* · *Failed*. Its menu holds the action that fits: **Generate** locally, with the
+- **Status** (6.16, and the freshness pill of `surface-spec.md` §11.7): *Up to date* · *Out of date*
+  · *Generating…* · *Failed*. "Out of date" means the documentation is behind the code; it is never
+  called "changed", which is kept for the architecture (What changed) — two concepts, two words, two
+  glyphs. Its menu holds the action that fits: **Generate** locally, with the
   progress of 6.17; on the hosted platform regeneration follows each push; in the published site,
   "Generated from commit … on …". Locally the same menu shows **archdoc's uncommitted files** and the
   command to commit them (`surface-spec.md` C-4).
 - **Search** everything (`surface-spec.md` §5.17).
 - **Share** — the same entry everywhere, with what each place can do (§5.6).
-- **Theme**, and **⋯** for the version picker, keyboard shortcuts (`?`), the truth-state legend and,
-  on the platform, the account.
+- **Theme**, in every place — the account only remembers a default.
+- **⋯** for what belongs to the page: the version picker, keyboard shortcuts (`?`, in every place),
+  the truth-state legend.
+- **The far-right slot is "you"**, and differs by place:
+
+  | Place | Far-right slot |
+  |---|---|
+  | Local | A settings icon → **This machine** (§5.9) |
+  | Website, signed in | Your avatar → **Account settings**, **Connect a repository**, **Sign out** |
+  | Website, signed out | **Sign in with GitHub** |
+  | Published site | Nothing |
+
+- **+ Connect**, beside the avatar, on Home and the system pages when signed in. Home keeps its own
+  Connect button only in its empty state, so no page has two of the same action (rule 15).
 
 **Left menu — the repository level, six entries and Settings:**
 
@@ -287,7 +314,8 @@ site have only the repository level.
 | **Reference** | Where is the complete detail? | The documentation, every component, every table, everything it relies on |
 | **Settings** | How does this repository behave? | Per place (§4.5) |
 
-**Ask** is docked at the foot of every repository screen. The **right rail** opens when something
+**Ask** is docked at the foot of every repository screen where it exists — locally and on the
+hosted private platform; absent on hosted public pages and the published site (§4.5). The **right rail** opens when something
 is selected — the inspector, Impact, "On this page" — and is closed otherwise.
 
 **The system level** has its own short menu: **System map**, **What changed** (across its
@@ -306,11 +334,12 @@ now lives. *Moved* means reached from a new place; nothing below is cut unless m
 | Architecture explorer §5.2 | **Map** | Menu | Its levels become a control on the canvas, not menu entries |
 | — level: context | The outside world *(context)* | Map level | Moved |
 | — level: containers | Apps and services *(containers)* | Map level | Moved |
-| — level: components | Inside an app *(components)* | Map level | Moved; "Components diagram" in the menu **removed** as a duplicate |
-| — level: data | Data *(entities)* | Map level | Moved; "Data model" in the menu **removed** — it opened the same screen |
+| — level: components | Inside *the part* — "Inside immich-server" *(components)* | Map level | Moved; named after the part it opens, not generically. "Components diagram" in the menu **removed** as a duplicate |
+| — level: data | What it stores *(entities)* | Map level | Moved; "Data model" in the menu **removed** — it opened the same screen |
 | — level: data flow | How data moves *(data flow)* | Map level | Moved |
-| Deployment §5.9 | How it runs *(deployment)* | Map level | Moved |
-| Saved views, lens | Saved views | Inside Map | Moved |
+| Deployment §5.9 | Where it runs *(deployment)* | Map level | Moved |
+| Saved views, lens | Saved views | Inside Map | Moved; **only views a person saved** |
+| The diagram in delta mode (§5.12) | Compare | A **mode** of the Map, beside Saved views — not a saved view | Moved from What changed; "See it on the map" opens it |
 | Inspector §5.3 | — | Right rail, on selection | Unchanged |
 | Impact (§6.4) | What does this touch? | Right rail, from any element | Unchanged |
 | Component pages §5.4 | Every component | Reference | Moved; also reached from the inspector, search and Ask |
@@ -318,13 +347,14 @@ now lives. *Moved* means reached from a new place; nothing below is cut unless m
 | Flows §5.6 | How each thing works *(flows)* | Inside What it does, under each feature | Merged |
 | Data model tables §5.7 | Every table | Reference | Moved; the picture stays the Map's Data level |
 | Dependencies §5.8 | What it relies on *(dependencies)* | Reference | Moved |
-| Documents §5.10 | Documentation *(arc42)* | Reference | Moved |
+| The list of entry points — every route, page, command and job (the old Features, §5.5) | Every entry point | Reference | **Kept**: "What it does" replaced the screen with feature sentences, and the list had lost its home |
+| Documents §5.10 | Documentation *(arc42)* | Reference | Moved; each chapter its own page with "On this page" in the rail — a twelve-chapter document is not cut to five rows |
 | Coverage §5.11 | What archdoc couldn't read *(coverage)* | **About these docs** | Moved; reached from the Overview's trust sentence |
 | Changes §5.12 | What changed | Menu | Reworked (§6.2) |
-| Corrections §5.13 | Your corrections | Settings | Moved; "Correct this…" stays in the inspector |
-| Network runs §5.14 | What left this machine | About these docs (local) · AI usage in Settings (platform) | Moved |
+| Corrections §5.13 | Your corrections | Settings | Moved; "Correct this…" stays in the inspector. On the published site, which has no Settings: **Corrections in force**, in About these docs |
+| Network runs §5.14 | What left this machine | About these docs (local) · AI usage in Account settings (website) | Moved |
 | Intent vs actual §5.15 | Did it build what I asked? | Menu | Promoted (§6.3) |
-| Ask the map §5.16 | Ask | Docked on every screen | Promoted (§6.5) |
+| Ask the map §5.16 | Ask | Docked where it exists (§4.5) | Promoted (§6.5) |
 | Global search §5.17 | Search | Top bar | Unchanged |
 | "Not built yet" | — | — | **Removed from the product**; shown in development builds only |
 
@@ -354,30 +384,36 @@ menu entry.
 | Generating §5.2 | The status's progress; full screen on a first run | Unchanged |
 | Home §5.3 | Home level — **local too** | Start (§5.8) merged into it |
 | Connect a repository §5.4 | Home (D) | Unchanged |
-| Repository settings §5.5 | Settings | One Settings, per place |
+| Repository settings §5.5 | Settings | Only the repository's own choices; the person's defaults in Account settings or This machine (§5.9) |
 | Share §5.6 | Top bar | Local publishing joins it |
 | Connect your agent §5.7 | Settings, and Home's ⋯ | Unchanged |
 | Start §5.8 | — | **Merged into Home** |
-| Account §5.9 | Top bar ⋯ (D) | Unchanged |
+| Account §5.9 | **Account settings**, from the avatar (signed in); **This machine** locally | Reworked (§5.9) |
 | System map | System level | **New** (§4.6) |
 
 ### 4.5 What appears where
 
 One app; a feature shows where what it needs exists.
 
-| Feature | Local (L) | Hosted public (C) | Hosted private (D) | Published site |
+**Three places, and the website has two states.** archdoc runs on your machine, on the archdoc
+website, or as static files you published. On the website, what changes the screen is the visitor,
+not the repository: signed in or signed out. A signed-in visitor to someone else's public
+repository has their avatar and account but none of that repository's settings — **viewer**, not
+**owner**. The "signed in" column below is the owner's.
+
+| Feature | Local | Website, signed out | Website, signed in | Published site |
 |---|---|---|---|---|
 | Home | Recent folders and systems | — (Landing instead) | Your systems and repositories | — |
 | System level | A folder of repositories, or a workspace file | — | Connected repositories | — |
 | Every repository screen | ✓ | ✓ | ✓ | ✓, one version and its baseline |
 | Generate | From the status menu | Automatic, on request | Automatic, on every push | — |
-| What changed — "since you last looked" | Since the last generate | Since the previous commit | Since this user last opened it | Since the publisher's baseline |
-| Did it build what I asked? | ✓ | — | ✓ | Read-only |
+| What changed — "since you last looked" | **Since you last opened it on this machine** — remembered locally, so it means the same as on the platform | Since the previous commit | Since this user last opened it | Since the publisher's baseline |
+| Did it build what I asked? | ✓ — with its plans in local Settings | — | ✓ | Read-only |
 | Ask | Local model or the user's key | — | ✓ | — |
 | Your corrections | Written to `rules.yaml`, append-only, after a preview (C-2) | — | Opens a pull request | Read-only list |
 | Share | Publish: build the site, copy the CI workflow | Link | Link, embed, badge | Link |
 | Uncommitted files | ✓ | — | — | — |
-| What left this machine | ✓ | — | AI usage in Settings | Summary |
+| What left this machine | ✓ | — | AI usage in Account settings | Summary |
 | Watch mode | ✓ | — | — | — |
 | Notifications | Through the agent | — | Agent, email, pull requests | — |
 | Connect your agent | `archdoc mcp` | — | ✓ | — |
@@ -401,6 +437,8 @@ them.
 - **Images:** a Compose file runs an image another repository builds.
 - **Calls:** a configured address in one repository resolves to a server another declares.
 - **Shared contracts:** an API schema or table definitions one publishes and another uses.
+- **Distribution:** one installs or deploys the other's releases — a package formula, a deployment
+  repository, a release workflow that publishes where another fetches.
 
 What archdoc cannot prove stays what it is today — an outside system, unresolved where the evidence
 is incomplete. **A link is never guessed.**
@@ -419,8 +457,10 @@ engine is at v0.5.0".
 **The System map screen:**
 1. **The sentence**: "archdoc is three repositories. The platform imports the engine at v0.3.0 and
    installs its app; the engine is two versions ahead."
-2. **The picture**: repositories as boxes, each with its status line (6.16); arrows labelled by kind
-   of link; drift marked on the arrow.
+2. **The picture**: repositories as boxes, each with **what it is** in one line (from the same source
+   as the Overview's paragraph, §6.1) and its status line (6.16); arrows labelled by kind of link;
+   drift marked on the arrow. Two links between the same pair draw as parallel arrows; from five
+   up, they bundle into one arrow with a count.
 3. **The evidence**, for any arrow: the lines at both ends.
 4. Any box opens that repository's Overview.
 
@@ -499,20 +539,21 @@ Home appears from the second repository on.
 - **Then** the GitHub App installation and the repository picker.
 - Which branch to track.
 
-### 5.5 Settings · L, D
+### 5.5 Repository settings · L, D
 
 **Answers:** how should this repository behave?
 
-One Settings, with what each place has (§4.5). Locally: your corrections (written to `rules.yaml`
-after a preview), watch mode, the AI settings read-only (`surface-spec.md` C-3), connect your agent.
-On the platform, everything below.
+Only this repository's own choices. Anything that belongs to the person — AI, notifications, agent
+setup, theme — lives in **Account settings** on the website, or **This machine** locally (§5.9); a
+repository setting that overrides one of those defaults says so and links to it.
 
-- Branch tracked; visibility (private, link-only, public).
-- **Plans** for Flow 4: which files, issues or tasks are the intent.
-- **Notifications**: email, pull-request comments, the agent.
-- **AI**: on or off; a monthly spending cap; usage so far. **When the cap is reached**, explanations
-  fall back to templates (§6.1) and the screens say so — the product is complete without the model.
-- **Corrections**: the rules in force; new ones open a pull request.
+- Branch tracked; visibility (private, link-only, public). *Website.*
+- **Plans** for Flow 4: which files, issues or tasks are the intent. *Both.*
+- **Corrections**: the rules in force; locally written to `rules.yaml` after a preview, on the website
+  a pull request. *Both.*
+- **Watch mode**. *Local.*
+- **Overrides** of the account's defaults — notifications for this repository, AI off for this
+  repository — each linking to the default it overrides. *Website.*
 
 ### 5.6 Share · L, C, D, published
 
@@ -549,9 +590,26 @@ Kept for the record; Home holds all of it now.
 - For a folder never generated: one button, **Generate**, and what it will do — offline, nothing
   sent.
 
-### 5.9 Account · D
+### 5.9 Account settings · signed in — and This machine · local
 
-Profile, connected GitHub, agent tokens. Later: usage and billing. No design effort beyond the slot.
+**Answers:** how is archdoc set up for me?
+
+**Account settings**, on the website, reached from the avatar:
+- Profile, and the connected GitHub account.
+- **AI: usage and cap** — this month's use and the monthly cap. **When the cap is reached**,
+  explanations fall back to templates (§6.1) and the screens say so — the product is complete
+  without the model. No key field yet: whether the website uses archdoc's key or the
+  user's own is `hosted-proposal.md` question 3, still open.
+- **Agent tokens** — connect your agent (§5.7).
+- **Notification defaults** — agent, email, pull-request comments (6.21); a repository may override.
+- **Theme default.**
+- **Billing** — a slot. Kept together with the AI cap as one section, since both move to organisations
+  when teams arrive.
+
+**This machine**, locally, reached from the settings icon:
+- **AI** — the key read from the environment, shown and never changed here (`surface-spec.md` C-3).
+- **Connect your agent** — `archdoc mcp`.
+- **Theme default.**
 
 ---
 
@@ -568,8 +626,7 @@ In order, nothing else above the fold:
    service." Each clause cited (6.15).
 2. **One diagram** — the most useful level, clickable into the Map.
 3. **What it does** — the main features as sentences, each linking to its flow.
-4. **Since you last looked** — at most three lines, linking to What changed.
-5. **Trust in one sentence**: "Every part and connection here is proven from your code; the plain
+4. **Trust in one sentence** — the one second sentence the density budget allows (rule 15): "Every part and connection here is proven from your code; the plain
    sentences are written by AI on top of them. 11 things couldn't be resolved." Links to Coverage.
    With no AI used: "Everything here is proven from your code; 11 things couldn't be resolved."
    The sentence opens **About these docs** (§4.4).
@@ -587,25 +644,30 @@ trust strip becomes the trust sentence.
 - **On C with no manifest description**, the Overview leads with the structure sentence and **drops
   "What it does"** rather than show route counts in its place.
 
-**States:** first run (no "since you last looked"); nothing could be read (6.18); no AI used — the
-structure sentence alone, "What it does" only if a manifest describes it.
+**No "since you last looked" here** (revision 4): it is What changed's opening strip and the count
+beside What changed in the menu.
+
+**States:** nothing could be read (6.18); no AI used — the structure sentence alone, "What it does"
+only if a manifest describes it.
 
 ### 6.2 What changed — reworks `surface-spec.md` §5.12
 
 **Answers:** what just changed in the architecture?
 
-- **Always opens on one push**, the latest unless another was chosen, **told as a story**: "This push
-  added comments on albums — a new route `POST /albums/:id/comments`, an `album_comment` table, a
-  job that notifies album members, and a call to Firebase Cloud Messaging." "What changed since I
-  last looked" is the Overview's question, not this screen's: it answers it in three lines and links
-  here, one push at a time.
+- **Opens with a strip** answering "what changed since I last looked?" — "3 pushes changed the
+  architecture since you last looked" — which is also the picker between them.
+- **Then one push**, the latest unless another was picked, **told as a story**: "This push added
+  comments on albums — a new route `POST /albums/:id/comments`, an `album_comment` table, a job that
+  notifies album members, and a call to Firebase Cloud Messaging." 
 - Grouped by **what it means**, not by kind of edit:
   - new capability (routes, pages, jobs);
   - new outside service;
   - data changes (tables, columns, keys);
+  - **changed** — renamed, rewired, or a new technology for an existing part ("the job queue moved
+    from Valkey 8 to Valkey 9"); the engine's `diff` already tells these apart;
   - removed;
   - wording only (the model relabelled something) — kept apart, as today.
-- The diagram in delta mode, below the story.
+- **"See it on the map"** opens the Map's Compare mode (§4.4); the diagram is not on this screen.
 - **Evidence in view** (rule 12): each item's citation stays visible, muted, right-aligned.
 - **Advanced**: the timeline, and comparing any two versions or commits — today's screen, intact.
 
@@ -661,7 +723,12 @@ always present.
 `surface-spec.md` §5.2–§5.11, §5.13, §5.17 — redistributed in revision 3 (§4.4): the explorer and
 its levels into **Map**, features and flows into **What it does**, component pages, tables,
 dependencies and documents into **Reference**, coverage into **About these docs**, corrections into
-**Settings**. Unchanged in content, but each now under the density budget (rule 15). Each gains the three-layer opening of 6.15 where it does not already start with a
+**Settings**. Unchanged in content, but each now under the density budget (rule 15).
+
+**What it does without AI** (hosted public, or AI off): never a list of route counts. Deterministic
+templates turn each area's routes into verbs — `POST`, `GET`, `DELETE /assets` → "Adds, lists and
+deletes assets" — cited to the routes they come from. Where that is not possible, the entry is
+absent rather than a list of numbers (rule 17). Each gains the three-layer opening of 6.15 where it does not already start with a
 sentence.
 
 ---
@@ -673,11 +740,11 @@ Numbered on from `surface-spec.md` §6, so the design system stays one list.
 | # | Component | Notes |
 |---|---|---|
 | 6.15 | **Three-layer block** — sentence, picture, evidence | The shape of every screen's opening. A question line, then the plain sentence; the picture is one diagram or a short list; the evidence (citations, the full table). **Evidence closed on screens that explain, open on screens that review** (rule 12). AI-written sentences marked by the block (rule 13); a citation marker in the sentence opens the evidence at its row. The single most important new component |
-| 6.16 | **Status line** | One sentence of state for a repository: current, changed, unresolved, generating, failed. Used on cards, Home, the shell, the notification subject. **What is counted: pushes that changed the architecture** — "3 pushes changed the architecture since you last looked". A push counts when its diff has anything in the first four groups of 6.20; wording only never counts, or the model relabelling something would raise it. Sessions as the unit are a later refinement. **Priority:** failed, then generating, then changed. **Unresolved shows only when its count rose** since the user last looked; a standing count belongs in the Overview's trust sentence, or it would hide every change |
+| 6.16 | **Status line** | One sentence of state for a repository: current, changed, unresolved, generating, failed. Used on cards, Home, the shell, the notification subject. **What is counted: pushes that changed the architecture** — "3 pushes changed the architecture since you last looked". Locally the unit is commits. A push counts when its diff has anything in any group of 6.20 but wording only; wording only never counts, or the model relabelling something would raise it. Sessions as the unit are a later refinement. **Priority:** failed, then generating, then changed. **The shell's pill is separate** (§4.3): Up to date · Out of date · Generating… · Failed — freshness, with its own glyph, never Δ **Unresolved shows only when its count rose** since the user last looked; a standing count belongs in the Overview's trust sentence, or it would hide every change |
 | 6.17 | **Progress narrative** | The live "what I'm finding" of §5.2. Lines appear as the engine reports them; a calm sense of progress without a fake percentage. Any picture of what is found so far carries an **in progress** mark |
 | 6.18 | **Partial-result state** | When archdoc read only part of a repository: what was read, what was not, what is still shown. Extends `surface-spec.md` 6.8 |
 | 6.19 | **Repository card** | Name, status line, last change, thumbnail. Home, the System map, the gallery. A **system card** holds its repositories' status lines together |
-| 6.20 | **Change story** | A push or session as a sentence, its grouped changes beneath, in five groups always in this order: new capability, new outside service, data changes, removed, wording only. **Grouped by the engine** (§10, question 2), so every channel and the local app agree. The template has a **tense and subject slot**: "this push added" once pushed, "this pull request adds" before the merge |
+| 6.20 | **Change story** | A push or session as a sentence, its grouped changes beneath, in **six** groups always in this order: new capability, new outside service, data changes, changed (renamed, rewired, new technology), removed, wording only. The diagram is not part of the story; it is the Map's Compare mode. Wording only uses `~`. **Grouped by the engine** (§10, question 2), so every channel and the local app agree. The template has a **tense and subject slot**: "this push added" once pushed, "this pull request adds" before the merge |
 | 6.21 | **Notifications** | The same change story in three places: an email, a pull-request comment, a message the agent receives. Designed together so they say the same thing. **The agent is the default channel** for the first user (§10, question 4): the session is where the work happens, and the plan check is something it can act on at once. Email for pushes that did not come from an agent; pull-request comments when work arrives as pull requests |
 
 ---
@@ -690,7 +757,7 @@ All of it is platform API, except where marked L (the local app's `serve`).
 |---|---|---|
 | Run status and progress stream | Generating | The engine's progress callback (`platform-plan.md` step 1), relayed live |
 | Repositories with status line | Home (L, D), System map | Per repository: last run, last change, unresolved count |
-| Last seen, per user and repository | "Since you last looked" | D only; C falls back to the previous commit |
+| Last seen, per user and repository | "Since you last looked" | D on the platform; L in the local cache; C falls back to the previous commit |
 | Change story | What changed, Home feed, notifications | Grouping of diff results by meaning (§6.2), in the engine; whether a push counts (6.16) |
 | Plain-language summary | Overview | The structure sentence from templates; manifest descriptions read and cited; the model's purpose and feature sentences where AI is on (§6.1) |
 | Impact for an element | Impact | A query over the model: readers, writers, routes, flows, outside services |
@@ -828,3 +895,55 @@ the product. Everything else moved; §4.4 lists where.
 too; the corrections composer locally writes `rules.yaml` after a preview, as `surface-spec.md` C-2
 decided — revision 1 had said it copies YAML; `platform-plan.md` step 2 shares the whole app, not a
 viewer.
+
+---
+
+## 13. Revision 4 — corrections after round 3
+
+Round 3 drew one app (`App.dc.html`), and it holds: one shell, six entries and Settings, the places
+differing only where §4.5 says. Revision 4 corrects what reviewing it showed.
+
+**Found in review:**
+
+| Problem | Now |
+|---|---|
+| "Changed" meant two things: the pill's "Code changed" (the docs are behind the code) and What changed (the architecture changed), side by side on the local Home card | The pill says **Out of date**, with its own glyph; "changed" is the architecture's only (§4.3, 6.16) |
+| "Since you last looked" meant four things; locally, the last generate against the one before | Locally it is since you last opened it on this machine, remembered in the cache — the same as on the platform; only the published site and hosted public differ (§4.5) |
+| The five change groups had no place for a rename, a rewiring or a new technology — round 3 counted "Valkey 8 → 9" with no group for it | A sixth group, **changed**, before removed (§6.2, 6.20) |
+| The list of every route, page, command and job — the old Features screen — had lost its home when What it does replaced it | **Every entry point**, a fifth door of Reference (§4.4) |
+| Without AI, What it does fell back to route counts | Verb templates from the routes, or absent (§6.6) |
+| "Compared with v11" sat among the user's saved views | **Compare** is a mode of the Map; Saved views are only what a person saved (§4.4) |
+| Numbers crept back to the front of sentences, rows and the inspector | Rule 18: meaning first, the count second |
+| The design invented `archdoc publish` and `archdoc.yaml` | Wrong: publishing is `archdoc export --site`, and no `archdoc.yaml` exists — local settings are read-only (`surface-spec.md` C-3). Corrected in round 4 |
+| The five-item limit fit no flow longer than five steps | The limit is for lists; a sequence shows every step, grouped into at most five stages (rule 15) |
+| The round's notifications and its four frame files were described in its findings but never saved; the notifications still carry round 1's "4 of 6 found" and ochre | To be drawn in round 4 |
+
+**Taken from the round's findings:**
+- The Overview drops "since you last looked"; What changed opens with it as a strip and picker, and the
+  menu carries the count (§6.1, §6.2).
+- The trust sentence is the Overview's one allowed second sentence (rule 15).
+- Plain names: **What it stores** (data), **Where it runs** (deployment), and the components level
+  named after the part it opens — "Inside immich-server" (§4.4). "Reference" and "Did it build what I
+  asked?" stay.
+- A fifth kind of link between repositories, **distribution**; each System map box says what its
+  repository is; parallel arrows bundle from five up (§4.6).
+- On the published site, corrections in force live in About these docs; plans exist in local
+  Settings; Ask is absent on hosted public pages and the published site, as §4.5 always said (§4.3).
+- arc42 chapters are pages with "On this page", not a list cut to five (§4.4).
+
+**Settings and places**, settled after round 3 in discussion with the design:
+- The places are **three — Local, the Website, the Published site — and the website is signed in or
+  signed out** (Pieces, §4.5). "Hosted public" and "hosted private" named the repository; what
+  changes the screen is the visitor. Owner and viewer are a permission inside the website.
+- **Account settings** hold what belongs to the person — AI usage and cap, agent tokens, notification
+  defaults, theme default, billing; **Repository settings** hold only that repository's choices, each
+  override linking to the default (§5.5, §5.9). Locally, **This machine** plays Account's part.
+- **The far-right slot is "you"**: settings icon locally, avatar signed in, "Sign in with GitHub"
+  signed out, nothing published (§4.3). Theme stays in the top bar everywhere; keyboard shortcuts stay
+  on `?` and ⋯, not in the avatar menu; **+ Connect** sits beside the avatar on Home and the system
+  pages, and Home's own button only in its empty state.
+
+**Still open from the findings:** the Home feed page and component and table detail pages are not
+drawn; a "place note" at the foot of the menu ("On this machine · ~/code/immich") is kept as drawn,
+to be judged in use; the rule for clustering tables (§10, question 6) is still needed — round 3 shows
+the 34-table cluster on the Map.
