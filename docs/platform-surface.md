@@ -138,6 +138,17 @@ The rules of `surface-spec.md` §2, one by one:
     number follows: "Everything is kept in one Postgres database; most of its 68 tables hang off
     two", not "68 tables in one Postgres database". Lists and tables say what each row is before
     how many; an inspector opens on a sentence, not on a table of figures.
+19. **Nothing costs money or sends data without saying so** (`surface-spec.md` §11.1, line 3). The
+    one-click action is always the free, offline one. Updating with AI explanations is a separate,
+    deliberate step that shows what will be sent and roughly what it costs; Ask says once that it
+    uses the model and roughly what a question costs.
+20. **Dates and pushes, not version numbers.** Versions are archdoc's bookkeeping. Screens say "since
+    12 Oct, when you last looked", "pinned to the 18 Oct push"; version numbers appear only under
+    Advanced, where versions are compared.
+21. **Copy says what the user can do and what something means — never why we designed it so.**
+    No sentence on screen explains a rule of this document ("named in a fixed order… never
+    chosen").
+22. **One vocabulary** (§4.7), the same in the legend, the marks, the sentences and the notifications.
 
 Rule 7's reversal applies to the **local app too**: it is the same app (§4.1), and the first user
 meets it there as often as on the platform.
@@ -260,7 +271,7 @@ site have only the repository level.
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
-│ archdoc   Home › archdoc › engine ▾   ● Up to date ▾   [⌘K Search…]   Share  ◐ ⋯ │
+│ archdoc   Home › archdoc › engine ▾   ● Up to date ▾  [⌘K Search or ask…] Share ◐ ⋯ ◯│
 ├────────────────────┬──────────────────────────────────────────┬───────────────┤
 │ Overview           │                                          │ Inspector /   │
 │ What changed    Δ  │              main content                │ Impact /      │
@@ -272,7 +283,7 @@ site have only the repository level.
 │ Reference ▸        │                                          │               │
 │ ─────────────      │                                          │               │
 │ Settings           │                                          │               │
-│                    │  [ Ask about engine…                  ]  │               │
+│                    │                                          │               │
 └────────────────────┴──────────────────────────────────────────┴───────────────┘
 ```
 
@@ -281,11 +292,14 @@ site have only the repository level.
 - **Status** (6.16, and the freshness pill of `surface-spec.md` §11.7): *Up to date* · *Out of date*
   · *Generating…* · *Failed*. "Out of date" means the documentation is behind the code; it is never
   called "changed", which is kept for the architecture (What changed) — two concepts, two words, two
-  glyphs. Its menu holds the action that fits: **Generate** locally, with the
-  progress of 6.17; on the hosted platform regeneration follows each push; in the published site,
+  glyphs. Its menu holds the action that fits: locally **Update** — free, offline, one click,
+  with the progress of 6.17 — and, as a separate and deliberate step, **Update with AI
+  explanations**, which first shows what will be sent and roughly what it costs (rule 19); on the hosted platform regeneration follows each push; in the published site,
   "Generated from commit … on …". Locally the same menu shows **archdoc's uncommitted files** and the
   command to commit them (`surface-spec.md` C-4).
-- **Search** everything (`surface-spec.md` §5.17).
+- **Search and Ask, one box** (`surface-spec.md` §5.17, §6.5 here): it finds parts, routes, tables
+  and pages as you type; when what you type is a question, it offers **Ask about…**. Two boxes made
+  the user guess which one to use.
 - **Share** — the same entry everywhere, with what each place can do (§5.6).
 - **Theme**, in every place — the account only remembers a default.
 - **⋯** for what belongs to the page: the version picker, keyboard shortcuts (`?`, in every place),
@@ -314,9 +328,15 @@ site have only the repository level.
 | **Reference** | Where is the complete detail? | The documentation, every component, every table, everything it relies on |
 | **Settings** | How does this repository behave? | Per place (§4.5) |
 
-**Ask** is docked at the foot of every repository screen where it exists — locally and on the
-hosted private platform; absent on hosted public pages and the published site (§4.5). The **right rail** opens when something
-is selected — the inspector, Impact, "On this page" — and is closed otherwise.
+**Ask** lives in the search box (above), wherever Ask exists — locally and for a signed-in owner on
+the website; absent signed out and on the published site (§4.5). Its answer opens in the right rail.
+
+The **right rail** opens when something is selected — the inspector, Impact, an Ask answer, "On this
+page" — and is closed otherwise.
+
+**Where am I** is said once: the breadcrumb carries every level and sub-page (`Reference › Every
+table`, `What changed › Every version`), with the menu's highlight. No separate back links inside a
+section, and no place note at the foot of the menu — the far-right slot already says the place.
 
 **The system level** has its own short menu: **System map**, **What changed** (across its
 repositories), **Settings**. **Home** has none: it is a page.
@@ -331,7 +351,7 @@ now lives. *Moved* means reached from a new place; nothing below is cut unless m
 | Feature | Plain name (technical) | Lives in | Change |
 |---|---|---|---|
 | Overview §5.1 | Overview | Menu | Reworked (§6.1) |
-| Architecture explorer §5.2 | **Map** | Menu | Its levels become a control on the canvas, not menu entries |
+| Architecture explorer §5.2 | **Map** | Menu | Its levels become a control on the canvas, not menu entries. **Two ways to move, both kept:** the tabs, and **double-clicking a part** to go inside it. The tabs are grouped as what they are — **zoom** (the outside world, apps and services, inside a part) and **lenses** on the same system (what it stores, how data moves, where it runs) — so "inside" always has a part |
 | — level: context | The outside world *(context)* | Map level | Moved |
 | — level: containers | Apps and services *(containers)* | Map level | Moved |
 | — level: components | Inside *the part* — "Inside immich-server" *(components)* | Map level | Moved; named after the part it opens, not generically. "Components diagram" in the menu **removed** as a duplicate |
@@ -354,8 +374,8 @@ now lives. *Moved* means reached from a new place; nothing below is cut unless m
 | Corrections §5.13 | Your corrections | Settings | Moved; "Correct this…" stays in the inspector. On the published site, which has no Settings: **Corrections in force**, in About these docs |
 | Network runs §5.14 | What left this machine | About these docs (local) · AI usage in Account settings (website) | Moved |
 | Intent vs actual §5.15 | Did it build what I asked? | Menu | Promoted (§6.3) |
-| Ask the map §5.16 | Ask | Docked where it exists (§4.5) | Promoted (§6.5) |
-| Global search §5.17 | Search | Top bar | Unchanged |
+| Ask the map §5.16 | Ask | In the search box, where it exists (§4.5) | Promoted and merged with search (§6.5) |
+| Global search §5.17 | Search | Top bar, one box with Ask | Merged |
 | "Not built yet" | — | — | **Removed from the product**; shown in development builds only |
 
 **About these docs** is one page, reached from the trust sentence and from the ⋯ menu: what archdoc
@@ -471,6 +491,26 @@ depend on it.
 **Engine work this needs** — after the freeze: composing several repositories' models and matching
 one's outside systems against another's declared services (`product-definition.md`'s R2
 "cross-repo visibility"; S6 in `hosted-proposal.md` §7).
+
+### 4.7 Words
+
+One word per idea, everywhere — the legend, the marks, the sentences, the notifications (rule 22):
+
+| Idea | Say | Not |
+|---|---|---|
+| Extracted from the code, with its line | **Proven** | — |
+| Written by the model on top of proven facts | **Written by AI** | interpreted, the AI's reading, AI-written |
+| Evidence that something exists, which archdoc could not identify | **Couldn't be resolved** | unresolved, not provable, seen but not provable |
+| A file or language archdoc does not parse | **Not read** | couldn't read, not read yet, named — and never mixed up with *couldn't be resolved* |
+| The documentation is behind the code | **Out of date** → **Update** | code changed, Generate |
+| A match the model made against a plan | **Looks built** / **looks missing** | found, missing |
+| Archdoc proposes, the user decides | **Suggested** | reachable, not grouped |
+| When something happened | a date, a push, a commit | v14 (only under Advanced, rule 20) |
+
+The truth states keep their technical names in this document and in `surface-spec.md`; on screen,
+the left column is never shown — only "Say".
+
+The Landing's button says what the visitor gets — **Show its architecture** — rather than "Read it".
 
 ---
 
@@ -714,9 +754,10 @@ A panel, opened from any element — in a diagram, a search result, an Ask answe
 
 ### 6.5 Ask — promotes `surface-spec.md` §5.16
 
-Docked on every repository screen. Answers drawn only from the validated model, each sentence
-cited; "not resolved — here is what archdoc saw" is a designed answer. Same content as there; now
-always present.
+In the search box (§4.3): a question offers **Ask about…**, and the answer opens in the right rail.
+Answers drawn only from the validated model, each sentence cited; "not resolved — here is what archdoc
+saw" is a designed answer. **Ask uses the model, so it says so** (rule 19): once, plainly, with roughly
+what a question costs — locally on the user's key, on the website within the AI cap.
 
 ### 6.6 Map, What it does, Reference — formerly Explore
 
@@ -780,7 +821,7 @@ content) and §6 (the design system).
 **Ask for, in this order** — the first two set what everything else reuses:
 
 1. **The shell** (§4.3) on Immich: breadcrumb, status, search, Share, the menu of six entries and
-   Settings, Ask docked, the right rail closed and open. Then the same shell in the three places of
+   Settings, search and Ask in one box, the right rail closed and open. Then the same shell in the three places of
    §4.5 — local, hosted private, published — so the differences are visible and nothing else differs.
 2. **The Map**, with its levels as a control on the canvas under their plain names (§4.4), saved
    views, the inspector, and Impact.
@@ -942,6 +983,18 @@ differing only where §4.5 says. Revision 4 corrects what reviewing it showed.
   signed out, nothing published (§4.3). Theme stays in the top bar everywhere; keyboard shortcuts stay
   on `?` and ⋯, not in the avatar menu; **+ Connect** sits beside the avatar on Home and the system
   pages, and Home's own button only in its empty state.
+
+**After a review of round 3** (`App.dc.html`), also settled:
+- **Update** is free, offline and one click; updating with AI explanations is a separate step that
+  shows what is sent and what it costs. Ask says it uses the model and what a question costs (rule
+  19, §4.3, §6.5). Round 3 had one Generate sending to the model, and a silent Ask.
+- **Dates and pushes, not v-numbers** on screen (rule 20).
+- **One vocabulary** (§4.7, rule 22): Proven · Written by AI · Couldn't be resolved · Not read · Out
+  of date → Update · Looks built · Suggested. Round 3 used up to four words for each.
+- **Copy never explains the design** (rule 21).
+- **The Map**: tabs and double-clicking into a part, both kept; the tabs grouped as zoom and lenses.
+- **Search and Ask are one box.**
+- **Where am I is said once**: the breadcrumb carries sub-pages; no back links, no place note.
 
 **Still open from the findings:** the Home feed page and component and table detail pages are not
 drawn; a "place note" at the foot of the menu ("On this machine · ~/code/immich") is kept as drawn,
