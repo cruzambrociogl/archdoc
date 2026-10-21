@@ -45,10 +45,13 @@ production beside Go, to solve search for a handful of pages.
 
 | Repository | Visibility | Licence | Holds |
 |---|---|---|---|
-| `archdoc` — this one, `github.com/cruzambrociogl/archdoc` | **Public** (step 3) | **FSL** — free to read, use, modify and self-host; no competing service; each version becomes Apache 2.0 after two years | The engine, its public API, the CLI, the shared app (local, published and the platform's), the GitHub Action later |
-| `archdoc-platform` — `github.com/cruzambrociogl/archdoc-platform` | **Private** — public for now, by choice (2026-10-20) | Closed | API server, worker, platform web app, migrations, deployment, **the development environment** (step 4) |
-| `archdoc-website` — `github.com/cruzambrociogl/archdoc-website` | **Private** — public for now, by choice (2026-10-20) | Closed | The website at the root domain (§7): Astro, the gallery, its own deploy |
+| `archdoc` — this one, `github.com/cruzambrociogl/archdoc` | **Public** — licensed and tagged in step 3 | **FSL** — free to read, use, modify and self-host; no competing service; each version becomes Apache 2.0 after two years | The engine, its public API, the CLI, the shared app (local, published and the platform's), the GitHub Action later |
+| `archdoc-platform` — `github.com/cruzambrociogl/archdoc-platform` | **Private** | Closed | API server, worker, platform web app, migrations, deployment, **the development environment** (step 4) |
+| `archdoc-website` — `github.com/cruzambrociogl/archdoc-website` | **Private** | Closed | The website at the root domain (§7): Astro, the gallery, its own deploy |
 
+- **Private depends on public, never the reverse.** The platform and the website build on the
+  public engine — `go get`, the app package, the CLI release and its docs need no credentials,
+  locally, in the Dev Container or in CI. Nothing public depends on anything private.
 - **Three repositories, side by side.** Cloned as siblings in one folder that holds nothing else —
   `archdoc/`, `archdoc-platform/`, `archdoc-website/` (here, `archdoc-workspace/`). The development environment (step 4) mounts
   that folder, so every repository sees the others at `../`.
@@ -141,14 +144,15 @@ inside two different shells.
 `export --site` output is unchanged; the app renders a stored model through the published adapter
 with no server.
 
-### Step 3 — The engine goes public
+### Step 3 — The engine, licensed and tagged
 
 - `LICENSE` with the FSL; the README states what the licence allows.
-- Review what is in the repository and its history before it is public — `docs/origin/`,
-  `docs/brief.md`, the report material, anything naming people or courses — and decide what stays.
+- **No review before publishing.** The repository has been public since before this plan, so
+  everything in it and its history has already been readable. What should not stay public from
+  here on — anything naming people or courses — is removed going forward; its history stays.
 - First tagged version, `v0.1.0`.
 
-**Done when:** the repository is public, licensed and tagged, and `go get` of the tag works from a
+**Done when:** the repository is licensed and tagged, and `go get` of the tag works from a
 clean machine.
 
 ### Step 4 — The platform repository and the development environment
@@ -354,7 +358,8 @@ environment first; none of it is needed to have it.
 
 1. **Public types** — aliases of `internal/archdoc`, or moved out (step 1)?
 2. **The app package** — published to npm, to GitHub Packages, or consumed from git (step 2)?
-3. **What stays out of the public repository** — the report, the origin notes, the brief (step 3)?
+3. ~~What stays out of the public repository~~ — moot: it is already public (step 3). What to remove
+   going forward is decided in step 3.
 4. **The product's name and domain** — does the platform stay "archdoc"? Three origins need it: the
    website, the app, and the generated sites on a domain of their own (§7).
 5. **Hosting** — Fly.io, Render, Railway, a cloud provider. Not needed until deployment, which is

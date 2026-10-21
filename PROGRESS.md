@@ -18,7 +18,7 @@ below. archdoc is becoming a platform — local and hosted, "verifiable, whereve
 
 - **Three repositories**, siblings in `archdoc-workspace/`: this engine; `archdoc-platform` (API,
   worker, hosted app, the development environment); `archdoc-website` (the static site at the root
-  domain). All three public for now; work on `develop` in each (`platform-plan.md` §2).
+  domain). The engine is public, the platform and the website private; work on `develop` in each (`platform-plan.md` §2).
 - **The platform's stack**: Go, Postgres with the engine's output in `JSONB`, River, pgx/sqlc/goose,
   S3-compatible storage — SeaweedFS locally — and the shared React app (§1); the data rules of
   step 5.

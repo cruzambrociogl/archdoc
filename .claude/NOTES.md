@@ -91,9 +91,10 @@ raised, not quietly promoted over it.
   design does not answer them: (1) pages only the platform has (Connect, Account, billing — the Landing
   is now the website)
   — the shared app exports its routes and the platform adds its own, or the app ships every page;
-  (2) `hosted-proposal.md`, `platform-plan.md` and `platform-surface.md` move to the private platform
-  repository before the engine goes public (step 3), history included — check Claude Design can
-  read a private remote first. Also: rename `internal/archdoc` → `internal/core` in step 1 — 2026-10-20
+  (2) where the platform documents belong — no longer a privacy question (the engine was always
+  public; 2026-10-21). Proposed after the final design: `platform-surface.md` stays beside the
+  shared app; `platform-plan.md`'s platform half and `hosted-proposal.md` move when step 4 creates
+  the platform repository. Proposed for (1): the app ships every page, gated by capabilities. Also: rename `internal/archdoc` → `internal/core` in step 1 — 2026-10-20
 
 ## Recently resolved
 

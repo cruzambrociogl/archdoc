@@ -1225,3 +1225,11 @@ own. The worker runs locked down as in production, reaching only GitHub through 
 6's lockdown is tested on every local run. It lives in the platform repository and mounts the
 folder holding all three; the engine keeps no Dev Container and its CI a bare runner (hard rule 7).
 → `docs/platform-plan.md` step 4
+
+**2026-10-21 — Visibility: the engine public, the platform and the website private**
+As the plan intended: the engine is the free product under the FSL; the platform and the website
+are closed. For a day the reverse held — the new repositories public, the engine briefly private —
+and every flow from the engine would have needed credentials. Private depends on public, never the
+reverse, so nothing needs a token to read the engine. The engine was public before this plan, so
+step 3 has no review before publishing: what it holds was already readable.
+→ `docs/platform-plan.md` §2, step 3
