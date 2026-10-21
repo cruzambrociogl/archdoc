@@ -15,7 +15,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 )
 
@@ -71,7 +71,7 @@ func interactive(f *os.File) bool {
 }
 
 func version(e env) error {
-	fmt.Fprintln(e.out, archdoc.Build())
+	fmt.Fprintln(e.out, core.Build())
 	return nil
 }
 
@@ -141,7 +141,7 @@ func scan(e env, args []string) error {
 	return nil
 }
 
-func listConsidered(out io.Writer, f *archdoc.FactSet) {
+func listConsidered(out io.Writer, f *core.FactSet) {
 	if len(f.Considered) == 0 {
 		return
 	}

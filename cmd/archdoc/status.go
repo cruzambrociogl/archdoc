@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/semantic"
@@ -91,7 +91,7 @@ func status(e env, args []string) error {
 		if n.DescProv.Origin.Interpretation() || n.NameProv.Origin.Interpretation() {
 			r.Labelled++
 		}
-		if n.Kind == archdoc.Component {
+		if n.Kind == core.Component {
 			r.Components++
 		}
 	}
@@ -187,15 +187,15 @@ func structuralChanges(d model.Diff) int {
 
 // committedModel is .archdoc/model.json: the durable record generate writes and a repository
 // commits, which a fresh clone has and its local history does not.
-func committedModel(root string) (archdoc.Model, bool, error) {
+func committedModel(root string) (core.Model, bool, error) {
 	b, err := os.ReadFile(filepath.Join(root, modelOut))
 	if os.IsNotExist(err) {
-		return archdoc.Model{}, false, nil
+		return core.Model{}, false, nil
 	}
 	if err != nil {
-		return archdoc.Model{}, false, err
+		return core.Model{}, false, err
 	}
-	var m archdoc.Model
+	var m core.Model
 	if err := json.Unmarshal(b, &m); err != nil {
 		return m, false, fmt.Errorf("%s: %w", modelOut, err)
 	}

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Diff is what changed between two versions of an architecture (MEM-04, MEM-05 in part).
@@ -14,15 +14,15 @@ import (
 // the system; "a description was reworded" is news about the documentation, and a reader
 // scanning for the first should not have to wade through the second.
 type Diff struct {
-	AddedNodes   []archdoc.Node `json:"added_nodes"`
-	RemovedNodes []archdoc.Node `json:"removed_nodes"`
-	AddedEdges   []archdoc.Edge `json:"added_edges"`
-	RemovedEdges []archdoc.Edge `json:"removed_edges"`
-	Changed      []Change       `json:"changed"`
+	AddedNodes   []core.Node `json:"added_nodes"`
+	RemovedNodes []core.Node `json:"removed_nodes"`
+	AddedEdges   []core.Edge `json:"added_edges"`
+	RemovedEdges []core.Edge `json:"removed_edges"`
+	Changed      []Change    `json:"changed"`
 	// What the code declares: routes and pages that appeared or disappeared (F-13). A table's
 	// columns are values of the table, and change under Changed.
-	AddedEntries   []archdoc.Entry `json:"added_entries"`
-	RemovedEntries []archdoc.Entry `json:"removed_entries"`
+	AddedEntries   []core.Entry `json:"added_entries"`
+	RemovedEntries []core.Entry `json:"removed_entries"`
 	// Moved are elements that are the same thing under another identity: renamed, or carried
 	// across the system boundary (MEM-05, MEM-06). They are not also listed as removed and added.
 	Moved []Move `json:"moved,omitempty"`
@@ -61,24 +61,24 @@ func (d Diff) Empty() bool { return !d.Structural() && len(d.Changed) == 0 }
 // repository and is now only referred to — the two are matched on what stayed the same (MEM-06),
 // reported once as moved, and everything attached to the element is compared under its new ID, so
 // a rename is one change and not a removal, an addition and a rewiring.
-func Compare(a, b archdoc.Model) Diff {
+func Compare(a, b core.Model) Diff {
 	moves, as := moved(a, b)
 	d := compare(as, b)
 	d.Moved = moves
 	return d
 }
 
-func compare(a, b archdoc.Model) Diff {
+func compare(a, b core.Model) Diff {
 	var d Diff
 	if a.Description != b.Description {
-		d.Changed = append(d.Changed, Change{Element: archdoc.SystemID, Field: "description", Before: a.Description, After: b.Description})
+		d.Changed = append(d.Changed, Change{Element: core.SystemID, Field: "description", Before: a.Description, After: b.Description})
 	}
 
-	before := map[string]archdoc.Node{}
+	before := map[string]core.Node{}
 	for _, n := range a.Nodes {
 		before[n.ID] = n
 	}
-	after := map[string]archdoc.Node{}
+	after := map[string]core.Node{}
 	for _, n := range b.Nodes {
 		after[n.ID] = n
 	}
@@ -102,7 +102,7 @@ func compare(a, b archdoc.Model) Diff {
 			}
 		}
 		// A table's columns: one that appeared, disappeared, or changed what it is.
-		if n.Kind == archdoc.Table {
+		if n.Kind == core.Table {
 			was := map[string]string{}
 			for _, c := range old.Columns {
 				was[c.Name] = columnText(c)
@@ -127,12 +127,12 @@ func compare(a, b archdoc.Model) Diff {
 		}
 	}
 
-	key := func(e archdoc.Edge) string { return e.From + " → " + e.To }
-	beforeE := map[string]archdoc.Edge{}
+	key := func(e core.Edge) string { return e.From + " → " + e.To }
+	beforeE := map[string]core.Edge{}
 	for _, e := range a.Edges {
 		beforeE[key(e)] = e
 	}
-	afterE := map[string]archdoc.Edge{}
+	afterE := map[string]core.Edge{}
 	for _, e := range b.Edges {
 		afterE[key(e)] = e
 	}
@@ -183,7 +183,7 @@ func compare(a, b archdoc.Model) Diff {
 }
 
 // columnText is a column as a reader would say it: its type, and what marks it.
-func columnText(c archdoc.Column) string {
+func columnText(c core.Column) string {
 	out := c.Type
 	if c.Primary {
 		out += " · primary key"
@@ -207,7 +207,7 @@ func columnText(c archdoc.Column) string {
 // for a container its directory, or else its kind, technology and every relationship it has; for
 // a table its columns; for a component its files. A match that is not unique is not made — two
 // changes reported honestly beat one rename guessed.
-func moved(a, b archdoc.Model) ([]Move, archdoc.Model) {
+func moved(a, b core.Model) ([]Move, core.Model) {
 	inA, inB := map[string]bool{}, map[string]bool{}
 	for _, n := range a.Nodes {
 		inA[n.ID] = true
@@ -215,7 +215,7 @@ func moved(a, b archdoc.Model) ([]Move, archdoc.Model) {
 	for _, n := range b.Nodes {
 		inB[n.ID] = true
 	}
-	var gone, come []archdoc.Node
+	var gone, come []core.Node
 	for _, n := range a.Nodes {
 		if !inB[n.ID] {
 			gone = append(gone, n)
@@ -233,13 +233,13 @@ func moved(a, b archdoc.Model) ([]Move, archdoc.Model) {
 	to := map[string]string{} // ID in a → ID in b
 	taken := map[string]bool{}
 	var moves []Move
-	pair := func(class string, sign func(n archdoc.Node, m archdoc.Model) (string, string)) {
+	pair := func(class string, sign func(n core.Node, m core.Model) (string, string)) {
 		type side struct {
-			nodes []archdoc.Node
+			nodes []core.Node
 			why   string
 		}
 		was, is := map[string]*side{}, map[string]*side{}
-		collect := func(nodes []archdoc.Node, m archdoc.Model, into map[string]*side, skip func(string) bool) {
+		collect := func(nodes []core.Node, m core.Model, into map[string]*side, skip func(string) bool) {
 			for _, n := range nodes {
 				if skip(n.ID) {
 					continue
@@ -267,7 +267,7 @@ func moved(a, b archdoc.Model) ([]Move, archdoc.Model) {
 	}
 
 	// Across the boundary: the same name, declared on one side and only referred to on the other.
-	pair(Rebounded, func(n archdoc.Node, _ archdoc.Model) (string, string) {
+	pair(Rebounded, func(n core.Node, _ core.Model) (string, string) {
 		if n.Kind.Part() {
 			return "", ""
 		}
@@ -278,7 +278,7 @@ func moved(a, b archdoc.Model) ([]Move, archdoc.Model) {
 	for _, mv := range moves {
 		before, _ := a.Node(mv.From)
 		after, _ := b.Node(mv.To)
-		if (before.Kind == archdoc.External) != (after.Kind == archdoc.External) {
+		if (before.Kind == core.External) != (after.Kind == core.External) {
 			kept = append(kept, mv)
 		} else {
 			delete(to, mv.From)
@@ -287,9 +287,9 @@ func moved(a, b archdoc.Model) ([]Move, archdoc.Model) {
 	}
 	moves = kept
 
-	pair(Renamed, func(n archdoc.Node, m archdoc.Model) (string, string) {
+	pair(Renamed, func(n core.Node, m core.Model) (string, string) {
 		switch {
-		case n.Kind == archdoc.Table:
+		case n.Kind == core.Table:
 			if len(n.Columns) == 0 {
 				return "", ""
 			}
@@ -368,11 +368,11 @@ func moved(a, b archdoc.Model) ([]Move, archdoc.Model) {
 		return s
 	}
 	out := a
-	out.Nodes = make([]archdoc.Node, len(a.Nodes))
+	out.Nodes = make([]core.Node, len(a.Nodes))
 	for i, n := range a.Nodes {
 		n.ID, n.Parent = id(n.ID), id(n.Parent)
 		if len(n.Columns) > 0 {
-			cols := make([]archdoc.Column, len(n.Columns))
+			cols := make([]core.Column, len(n.Columns))
 			for j, c := range n.Columns {
 				c.References = id(c.References)
 				cols[j] = c
@@ -381,12 +381,12 @@ func moved(a, b archdoc.Model) ([]Move, archdoc.Model) {
 		}
 		out.Nodes[i] = n
 	}
-	out.Edges = make([]archdoc.Edge, len(a.Edges))
+	out.Edges = make([]core.Edge, len(a.Edges))
 	for i, e := range a.Edges {
 		e.From, e.To = id(e.From), id(e.To)
 		out.Edges[i] = e
 	}
-	out.Entries = make([]archdoc.Entry, len(a.Entries))
+	out.Entries = make([]core.Entry, len(a.Entries))
 	for i, e := range a.Entries {
 		e.ID = follow(e.ID)
 		e.Container, e.Component = id(e.Container), id(e.Component)
@@ -418,7 +418,7 @@ type Drift struct {
 // lists them, then by element.
 func (d Diff) Drift() []Drift {
 	var out []Drift
-	edge := func(e archdoc.Edge) string { return e.From + " → " + e.To }
+	edge := func(e core.Edge) string { return e.From + " → " + e.To }
 	for _, n := range d.AddedNodes {
 		out = append(out, Drift{Added, n.ID, string(n.Kind) + " " + n.Name})
 	}

@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/store"
 )
@@ -219,7 +219,7 @@ func seedHistory(root string) (string, func(), error) {
 	if err != nil {
 		return "", nil, err
 	}
-	var m archdoc.Model
+	var m core.Model
 	if err := json.Unmarshal(b, &m); err != nil {
 		return "", nil, fmt.Errorf(".archdoc/model.json: %w", err)
 	}
@@ -229,7 +229,7 @@ func seedHistory(root string) (string, func(), error) {
 	}
 	cleanup := func() { os.RemoveAll(dir) }
 
-	layouts := map[string]archdoc.Layout{}
+	layouts := map[string]core.Layout{}
 	for _, view := range render.Views(m) {
 		l, err := render.Layout(context.Background(), view.Model, view.Group)
 		if err != nil {

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // What a paid run would send, worked out without sending it: so a person can be told what it will
@@ -24,17 +24,17 @@ type Planned struct {
 func (p Planned) Bytes() int { return len(p.System) + len(p.Prompt) }
 
 // LabelPlan is the one request --label makes for this model.
-func LabelPlan(m archdoc.Model) (Planned, error) {
+func LabelPlan(m core.Model) (Planned, error) {
 	prompt, err := describe(m)
 	if err != nil {
 		return Planned{}, err
 	}
-	return Planned{Element: archdoc.SystemID, System: system, Prompt: prompt}, nil
+	return Planned{Element: core.SystemID, System: system, Prompt: prompt}, nil
 }
 
 // ExplainPlan is the requests ExplainSome would make with the same memory, filter and limit: one
 // per component whose facts have no remembered answer and are worth asking about.
-func ExplainPlan(m archdoc.Model, mem Memory, only string, limit int) []Planned {
+func ExplainPlan(m core.Model, mem Memory, only string, limit int) []Planned {
 	var out []Planned
 	for _, id := range askable(m, mem, only) {
 		if limit > 0 && len(out) == limit {
@@ -47,10 +47,10 @@ func ExplainPlan(m archdoc.Model, mem Memory, only string, limit int) []Planned 
 
 // askable is the components a run would ask about, in the order it asks: no remembered answer for
 // their facts, not too small to ask about, and matching only.
-func askable(m archdoc.Model, mem Memory, only string) []string {
+func askable(m core.Model, mem Memory, only string) []string {
 	var ids []string
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind == core.Component {
 			ids = append(ids, n.ID)
 		}
 	}

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 func tree(t *testing.T, files map[string]string) string {
@@ -23,8 +23,8 @@ func tree(t *testing.T, files map[string]string) string {
 }
 
 // imports indexes every import of a source by "file:line spec".
-func imports(src archdoc.Source) map[string]archdoc.Import {
-	out := map[string]archdoc.Import{}
+func imports(src core.Source) map[string]core.Import {
+	out := map[string]core.Import{}
 	for _, f := range src.Files {
 		for _, i := range f.Imports {
 			out[i.Prov.String()+" "+i.Spec] = i
@@ -33,7 +33,7 @@ func imports(src archdoc.Source) map[string]archdoc.Import {
 	return out
 }
 
-func paths(src archdoc.Source) []string {
+func paths(src core.Source) []string {
 	var out []string
 	for _, f := range src.Files {
 		out = append(out, f.Path)
@@ -62,7 +62,7 @@ func TestTypeScriptImports(t *testing.T) {
 		"server/src/types.d.ts":                           "declare module 'x';\n",
 		"server/test/fixtures.ts":                         "import 'src/services/album.service';\n",
 	})
-	src, ok := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
+	src, ok := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
 	if !ok || src.Root != "server/src" {
 		t.Fatalf("read %v, root %q", ok, src.Root)
 	}
@@ -71,14 +71,14 @@ func TestTypeScriptImports(t *testing.T) {
 	if got := paths(src); len(got) != len(want) {
 		t.Fatalf("files %v, want %v (no tests, no declarations, nothing outside src)", got, want)
 	}
-	cases := map[string]archdoc.Import{
-		"server/src/controllers/album.controller.ts:1 @nestjs/common":             {How: archdoc.ByPackage, Package: "@nestjs/common"},
-		"server/src/controllers/album.controller.ts:2 src/services/album.service": {How: archdoc.ByAlias, Target: "server/src/services/album.service.ts"},
-		"server/src/controllers/album.controller.ts:3 ./helpers.js":               {How: archdoc.ByPath, Target: "server/src/controllers/helpers.ts"},
-		"server/src/controllers/album.controller.ts:4 node:fs/promises":           {How: archdoc.ByPackage, Package: "node:fs"},
-		"server/src/controllers/album.controller.ts:5 ./missing":                  {How: archdoc.NoMatch},
-		"server/src/services/album.service.ts:2 ../utils":                         {How: archdoc.ByPath, Target: "server/src/utils/index.ts"},
-		"server/src/services/album.service.ts:3 lodash":                           {How: archdoc.ByPackage, Package: "lodash"},
+	cases := map[string]core.Import{
+		"server/src/controllers/album.controller.ts:1 @nestjs/common":             {How: core.ByPackage, Package: "@nestjs/common"},
+		"server/src/controllers/album.controller.ts:2 src/services/album.service": {How: core.ByAlias, Target: "server/src/services/album.service.ts"},
+		"server/src/controllers/album.controller.ts:3 ./helpers.js":               {How: core.ByPath, Target: "server/src/controllers/helpers.ts"},
+		"server/src/controllers/album.controller.ts:4 node:fs/promises":           {How: core.ByPackage, Package: "node:fs"},
+		"server/src/controllers/album.controller.ts:5 ./missing":                  {How: core.NoMatch},
+		"server/src/services/album.service.ts:2 ../utils":                         {How: core.ByPath, Target: "server/src/utils/index.ts"},
+		"server/src/services/album.service.ts:3 lodash":                           {How: core.ByPackage, Package: "lodash"},
 	}
 	got := imports(src)
 	for key, w := range cases {
@@ -112,17 +112,17 @@ func TestSvelteComponent(t *testing.T) {
 			"  import Thing from '$lib/Thing.svelte';\n" +
 			"</script>\n\n<h1>{s}</h1>\n<Thing />\n",
 	})
-	src, ok := Read(root, archdoc.App{Dir: "web", Language: "TypeScript", Framework: "SvelteKit"}, nil)
+	src, ok := Read(root, core.App{Dir: "web", Language: "TypeScript", Framework: "SvelteKit"}, nil)
 	if !ok {
 		t.Fatal("not read")
 	}
 	got := imports(src)
-	for key, w := range map[string]archdoc.Import{
-		"web/src/routes/+page.svelte:2 $lib/api":          {How: archdoc.ByAlias, Target: "web/src/lib/api.ts"},
-		"web/src/routes/+page.svelte:3 $app/navigation":   {How: archdoc.ByPackage, Package: "@sveltejs/kit"},
-		"web/src/routes/+page.svelte:4 ./$types":          {How: archdoc.ByPackage, Package: "@sveltejs/kit"},
-		"web/src/routes/+page.svelte:5 $lib/state.svelte": {How: archdoc.ByAlias, Target: "web/src/lib/state.svelte.ts"},
-		"web/src/routes/+page.svelte:6 $lib/Thing.svelte": {How: archdoc.ByAlias, Target: "web/src/lib/Thing.svelte"},
+	for key, w := range map[string]core.Import{
+		"web/src/routes/+page.svelte:2 $lib/api":          {How: core.ByAlias, Target: "web/src/lib/api.ts"},
+		"web/src/routes/+page.svelte:3 $app/navigation":   {How: core.ByPackage, Package: "@sveltejs/kit"},
+		"web/src/routes/+page.svelte:4 ./$types":          {How: core.ByPackage, Package: "@sveltejs/kit"},
+		"web/src/routes/+page.svelte:5 $lib/state.svelte": {How: core.ByAlias, Target: "web/src/lib/state.svelte.ts"},
+		"web/src/routes/+page.svelte:6 $lib/Thing.svelte": {How: core.ByAlias, Target: "web/src/lib/Thing.svelte"},
 	} {
 		if g := got[key]; g.How != w.How || g.Target != w.Target || g.Package != w.Package {
 			t.Errorf("%s: %+v, want %+v", key, g, w)
@@ -148,20 +148,20 @@ func TestPythonImports(t *testing.T) {
 		"backend/app/models.py":              "",
 		"backend/tests/test_items.py":        "from app import crud\n",
 	})
-	src, ok := Read(root, archdoc.App{Dir: "backend", Name: "app", Language: "Python"}, nil)
+	src, ok := Read(root, core.App{Dir: "backend", Name: "app", Language: "Python"}, nil)
 	if !ok || src.Root != "backend/app" {
 		t.Fatalf("read %v, root %q", ok, src.Root)
 	}
 	got := imports(src)
-	for key, w := range map[string]archdoc.Import{
-		"backend/app/main.py:1 fastapi":                 {How: archdoc.ByPackage, Package: "fastapi"},
-		"backend/app/main.py:2 app.api.routes.items":    {How: archdoc.ByModule, Target: "backend/app/api/routes/items.py"},
-		"backend/app/main.py:2 app.api.routes.users":    {How: archdoc.ByModule, Target: "backend/app/api/routes/users.py"},
-		"backend/app/main.py:3 app.core.config":         {How: archdoc.ByModule, Target: "backend/app/core/config.py"},
-		"backend/app/api/routes/items.py:1 ...crud":     {How: archdoc.ByPath, Target: "backend/app/crud.py"},
-		"backend/app/api/routes/items.py:2 ..deps":      {How: archdoc.ByPath, Target: "backend/app/api/deps.py"},
-		"backend/app/api/routes/items.py:3 app.models":  {How: archdoc.ByModule, Target: "backend/app/models.py"},
-		"backend/app/api/routes/items.py:4 app.nothing": {How: archdoc.NoMatch},
+	for key, w := range map[string]core.Import{
+		"backend/app/main.py:1 fastapi":                 {How: core.ByPackage, Package: "fastapi"},
+		"backend/app/main.py:2 app.api.routes.items":    {How: core.ByModule, Target: "backend/app/api/routes/items.py"},
+		"backend/app/main.py:2 app.api.routes.users":    {How: core.ByModule, Target: "backend/app/api/routes/users.py"},
+		"backend/app/main.py:3 app.core.config":         {How: core.ByModule, Target: "backend/app/core/config.py"},
+		"backend/app/api/routes/items.py:1 ...crud":     {How: core.ByPath, Target: "backend/app/crud.py"},
+		"backend/app/api/routes/items.py:2 ..deps":      {How: core.ByPath, Target: "backend/app/api/deps.py"},
+		"backend/app/api/routes/items.py:3 app.models":  {How: core.ByModule, Target: "backend/app/models.py"},
+		"backend/app/api/routes/items.py:4 app.nothing": {How: core.NoMatch},
 	} {
 		g, ok := got[key]
 		if !ok {
@@ -186,7 +186,7 @@ func TestNestedApplicationsAreNotRead(t *testing.T) {
 		"mobile/lib/screen.ts":        "",
 		"mobile/packages/ui/index.ts": "",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "mobile", Language: "TypeScript"}, []string{"mobile", "mobile/packages/ui"})
+	src, _ := Read(root, core.App{Dir: "mobile", Language: "TypeScript"}, []string{"mobile", "mobile/packages/ui"})
 	for _, p := range paths(src) {
 		if p == "mobile/packages/ui/index.ts" {
 			t.Error("a nested application was read as part of its host")
@@ -195,7 +195,7 @@ func TestNestedApplicationsAreNotRead(t *testing.T) {
 }
 
 func TestLanguagesNotReadYet(t *testing.T) {
-	if _, ok := Read(t.TempDir(), archdoc.App{Dir: "svc", Language: "Go"}, nil); ok {
+	if _, ok := Read(t.TempDir(), core.App{Dir: "svc", Language: "Go"}, nil); ok {
 		t.Error("Go was read")
 	}
 }
@@ -211,18 +211,18 @@ func TestDartImports(t *testing.T) {
 		"mobile/test/hash_test.dart":      "",
 		"mobile/lib/pages/home_test.dart": "",
 	})
-	src, ok := Read(root, archdoc.App{Dir: "mobile", Name: "phone", Language: "Dart"}, nil)
+	src, ok := Read(root, core.App{Dir: "mobile", Name: "phone", Language: "Dart"}, nil)
 	if !ok || src.Root != "mobile/lib" || len(src.Files) != 3 {
 		t.Fatalf("read %v, root %q, files %v", ok, src.Root, paths(src))
 	}
 	got := imports(src)
-	for key, w := range map[string]archdoc.Import{
-		"mobile/lib/main.dart:1 dart:async":                    {How: archdoc.ByPackage, Package: "dart:async"},
-		"mobile/lib/main.dart:2 package:flutter/material.dart": {How: archdoc.ByPackage, Package: "flutter"},
-		"mobile/lib/main.dart:3 package:phone/utils/hash.dart": {How: archdoc.ByAlias, Target: "mobile/lib/utils/hash.dart"},
-		"mobile/lib/main.dart:4 pages/home.dart":               {How: archdoc.ByPath, Target: "mobile/lib/pages/home.dart"},
-		"mobile/lib/main.dart:6 package:phone/missing.dart":    {How: archdoc.NoMatch},
-		"mobile/lib/pages/home.dart:1 ../utils/hash.dart":      {How: archdoc.ByPath, Target: "mobile/lib/utils/hash.dart"},
+	for key, w := range map[string]core.Import{
+		"mobile/lib/main.dart:1 dart:async":                    {How: core.ByPackage, Package: "dart:async"},
+		"mobile/lib/main.dart:2 package:flutter/material.dart": {How: core.ByPackage, Package: "flutter"},
+		"mobile/lib/main.dart:3 package:phone/utils/hash.dart": {How: core.ByAlias, Target: "mobile/lib/utils/hash.dart"},
+		"mobile/lib/main.dart:4 pages/home.dart":               {How: core.ByPath, Target: "mobile/lib/pages/home.dart"},
+		"mobile/lib/main.dart:6 package:phone/missing.dart":    {How: core.NoMatch},
+		"mobile/lib/pages/home.dart:1 ../utils/hash.dart":      {How: core.ByPath, Target: "mobile/lib/utils/hash.dart"},
 	} {
 		if g, ok := got[key]; !ok || g.How != w.How || g.Target != w.Target || g.Package != w.Package {
 			t.Errorf("%s: %+v, want %+v", key, g, w)
@@ -249,10 +249,10 @@ func TestNestFacts(t *testing.T) {
 			"}\n",
 		"server/src/main.ts": "app.setGlobalPrefix('api', { exclude: [] });\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
-	var ctl archdoc.Class
-	var consts []archdoc.Constant
-	var prefix *archdoc.Literal
+	src, _ := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
+	var ctl core.Class
+	var consts []core.Constant
+	var prefix *core.Literal
 	for _, f := range src.Files {
 		for _, c := range f.Classes {
 			if c.Name == "AssetController" {
@@ -296,9 +296,9 @@ func TestHostsAndCalls(t *testing.T) {
 		"api/app/__init__.py":  "",
 		"api/app/main.py":      "import requests\nrequests.get(\"http://search:9200/_count\")\nrequests.post(url)\nclient = Redis(host=\"cache\")\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
-	hosts := map[string]archdoc.HostRef{}
-	var calls []archdoc.Call
+	src, _ := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
+	hosts := map[string]core.HostRef{}
+	var calls []core.Call
 	for _, f := range src.Files {
 		for _, h := range f.Hosts {
 			hosts[h.Host] = h
@@ -324,8 +324,8 @@ func TestHostsAndCalls(t *testing.T) {
 		t.Errorf("calls %+v", calls)
 	}
 
-	py, _ := Read(root, archdoc.App{Dir: "api", Name: "app", Language: "Python"}, nil)
-	hosts = map[string]archdoc.HostRef{}
+	py, _ := Read(root, core.App{Dir: "api", Name: "app", Language: "Python"}, nil)
+	hosts = map[string]core.HostRef{}
 	calls = nil
 	for _, f := range py.Files {
 		for _, h := range f.Hosts {
@@ -347,8 +347,8 @@ func TestPythonDecorators(t *testing.T) {
 		"api/app/__init__.py": "",
 		"api/app/items.py":    "@router.get(\"/items/{id}\", summary=\"Read an item\")\nasync def read(id: int):\n    pass\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "api", Name: "app", Language: "Python"}, nil)
-	var m archdoc.Method
+	src, _ := Read(root, core.App{Dir: "api", Name: "app", Language: "Python"}, nil)
+	var m core.Method
 	for _, f := range src.Files {
 		for _, c := range f.Classes {
 			if len(c.Methods) > 0 {
@@ -377,7 +377,7 @@ func TestFieldFacts(t *testing.T) {
 			"    owner_id: uuid.UUID = Field(foreign_key=\"user.id\", nullable=False)\n" +
 			"    owner: User | None = Relationship(back_populates=\"items\")\n",
 	})
-	ts, _ := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
+	ts, _ := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
 	c := ts.Files[0].Classes[0]
 	if c.Name != "AlbumTable" || len(c.Extends) != 1 || c.Extends[0] != "Base" || c.Decorators[0].Options["name"] != "album" {
 		t.Errorf("class %+v", c)
@@ -393,8 +393,8 @@ func TestFieldFacts(t *testing.T) {
 		t.Errorf("column field %+v", d)
 	}
 
-	py, _ := Read(root, archdoc.App{Dir: "api", Name: "app", Language: "Python"}, nil)
-	var item archdoc.Class
+	py, _ := Read(root, core.App{Dir: "api", Name: "app", Language: "Python"}, nil)
+	var item core.Class
 	for _, f := range py.Files {
 		for _, cl := range f.Classes {
 			if cl.Name == "Item" {
@@ -405,7 +405,7 @@ func TestFieldFacts(t *testing.T) {
 	if len(item.Extends) != 1 || item.Extends[0] != "ItemBase" || item.Options["table"] != "True" {
 		t.Errorf("class %+v", item)
 	}
-	fields := map[string]archdoc.Field{}
+	fields := map[string]core.Field{}
 	for _, f := range item.Fields {
 		fields[f.Name] = f
 	}
@@ -432,7 +432,7 @@ func TestMethodBodies(t *testing.T) {
 			"  }\n" +
 			"}\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
+	src, _ := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
 	c := src.Files[0].Classes[0]
 	if len(c.Params) != 2 || c.Params[0].Name != "albumRepository" || c.Params[0].Type != "AlbumRepository" {
 		t.Errorf("params %+v", c.Params)
@@ -459,8 +459,8 @@ func TestFastAPIFacts(t *testing.T) {
 		"api/app/routes/items.py":    "router = APIRouter(prefix=\"/items\")\n\n@router.get(\"/{id}\")\ndef read_item(id: int):\n    \"\"\"\n    Get item by ID.\n    \"\"\"\n",
 		"api/app/main.py":            "from app.routes import items\napi_router = APIRouter()\napi_router.include_router(items.router)\nif settings.ENV == \"dev\":\n    api_router.include_router(items.router)\napp = FastAPI()\napp.include_router(api_router, prefix=settings.API_V1_STR)\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "api", Name: "app", Language: "Python"}, nil)
-	files := map[string]archdoc.SourceFile{}
+	src, _ := Read(root, core.App{Dir: "api", Name: "app", Language: "Python"}, nil)
+	files := map[string]core.SourceFile{}
 	for _, f := range src.Files {
 		files[f.Path] = f
 	}
@@ -488,7 +488,7 @@ func TestExpressAndReactRouterFacts(t *testing.T) {
 		"srv/src/index.js": "const app = express();\nconst router = express.Router();\nrouter.get('/users/:id', getUser);\napp.use('/api', router);\nconst r = await axios.get(url);\n",
 		"web/src/App.tsx":  "export const App = () => <Routes><Route path=\"/albums\" element={<Albums />} /></Routes>;\nconst router = createBrowserRouter([{ path: '/people', element: <People /> }]);\n",
 	})
-	srv, _ := Read(root, archdoc.App{Dir: "srv", Language: "JavaScript"}, nil)
+	srv, _ := Read(root, core.App{Dir: "srv", Language: "JavaScript"}, nil)
 	f := srv.Files[0]
 	if len(f.Routers) != 2 || f.Routers[0].Kind != "express" || f.Routers[1].Var != "router" {
 		t.Errorf("routers %+v", f.Routers)
@@ -496,7 +496,7 @@ func TestExpressAndReactRouterFacts(t *testing.T) {
 	if len(f.Includes) != 1 || f.Includes[0].Parent != "app" || f.Includes[0].Child != "router" || f.Includes[0].Prefix != "/api" {
 		t.Errorf("includes %+v", f.Includes)
 	}
-	var route archdoc.Method
+	var route core.Method
 	for _, c := range f.Classes {
 		for _, m := range c.Methods {
 			if len(m.Decorators) > 0 {
@@ -510,7 +510,7 @@ func TestExpressAndReactRouterFacts(t *testing.T) {
 	if len(f.Calls) != 1 || f.Calls[0].Callee != "axios.get" {
 		t.Errorf("an HTTP client call was read as a route: %+v", f.Calls)
 	}
-	web, _ := Read(root, archdoc.App{Dir: "web", Language: "TypeScript"}, nil)
+	web, _ := Read(root, core.App{Dir: "web", Language: "TypeScript"}, nil)
 	var pages []string
 	for _, p := range web.Files[0].Pages {
 		pages = append(pages, p.Value)
@@ -527,7 +527,7 @@ func TestPrismaSchema(t *testing.T) {
 		"api/src/index.ts":         "export {};\n",
 		"api/prisma/schema.prisma": "model User {\n  id    Int    @id\n  posts Post[]\n}\n\nmodel Post {\n  id       Int     @id @default(autoincrement())\n  title    String? // optional\n  authorId Int\n  author   User    @relation(fields: [authorId], references: [id])\n  @@map(\"posts\")\n}\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "api", Language: "TypeScript"}, nil)
+	src, _ := Read(root, core.App{Dir: "api", Language: "TypeScript"}, nil)
 	if len(src.Schemas) != 1 || len(src.Schemas[0].Classes) != 2 {
 		t.Fatalf("schemas %+v", src.Schemas)
 	}
@@ -552,8 +552,8 @@ func TestSQLAlchemyColumns(t *testing.T) {
 		"api/app/__init__.py": "",
 		"api/app/models.py":   "class Item(Base):\n    __tablename__ = \"items\"\n    id = Column(Integer, primary_key=True)\n    owner_id = Column(Integer, ForeignKey(\"users.id\"), nullable=True)\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "api", Name: "app", Language: "Python"}, nil)
-	var item archdoc.Class
+	src, _ := Read(root, core.App{Dir: "api", Name: "app", Language: "Python"}, nil)
+	var item core.Class
 	for _, f := range src.Files {
 		for _, c := range f.Classes {
 			if c.Name == "Item" {
@@ -561,7 +561,7 @@ func TestSQLAlchemyColumns(t *testing.T) {
 			}
 		}
 	}
-	fields := map[string]archdoc.Field{}
+	fields := map[string]core.Field{}
 	for _, f := range item.Fields {
 		fields[f.Name] = f
 	}
@@ -579,8 +579,8 @@ func TestURLKeys(t *testing.T) {
 	root := tree(t, map[string]string{
 		"srv/src/config.ts": "export const c = {\n  versionCheck: { url: isProd ? 'https://version.app.io/v' : 'https://dev.app.io/v' },\n  releaseUrl: `https://code.host.io/tag/${v}`,\n};\nconst note = 'see https://docs.app.io/x';\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "srv", Language: "TypeScript"}, nil)
-	hosts := map[string]archdoc.HostRef{}
+	src, _ := Read(root, core.App{Dir: "srv", Language: "TypeScript"}, nil)
+	hosts := map[string]core.HostRef{}
 	for _, h := range src.Files[0].Hosts {
 		hosts[h.Host] = h
 	}
@@ -612,7 +612,7 @@ func TestEventsAndQueuedJobsAreRead(t *testing.T) {
 			"  }\n" +
 			"}\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "server", Language: "TypeScript"}, nil)
+	src, _ := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
 	m := src.Files[0].Classes[0].Methods[0]
 	if len(m.Invokes) != 3 || len(m.Invokes[0].Args) != 1 || m.Invokes[0].Args[0] != "AssetDelete" ||
 		len(m.Invokes[1].Args) != 2 || m.Invokes[1].Args[1] != "AssetTrashAll" || len(m.Invokes[2].Args) != 0 {
@@ -644,8 +644,8 @@ func TestPythonClassMethods(t *testing.T) {
 			"    mailer.send()\n" +
 			"    session.commit()\n",
 	})
-	src, _ := Read(root, archdoc.App{Name: "api", Dir: "api", Language: "Python"}, nil)
-	var cls, module archdoc.Class
+	src, _ := Read(root, core.App{Name: "api", Dir: "api", Language: "Python"}, nil)
+	var cls, module core.Class
 	for _, f := range src.Files {
 		for _, c := range f.Classes {
 			if c.Name == "UserService" {
@@ -668,7 +668,7 @@ func TestPythonClassMethods(t *testing.T) {
 	if len(module.Methods) != 1 || module.Methods[0].Name != "handler" {
 		t.Fatalf("module functions %+v — a method is not a module's function", module.Methods)
 	}
-	byObject := map[string]archdoc.Invocation{}
+	byObject := map[string]core.Invocation{}
 	for _, i := range module.Methods[0].Invokes {
 		byObject[i.Object] = i
 	}
@@ -709,11 +709,11 @@ func TestSQLMigrations(t *testing.T) {
 			"-- +goose Down\n" +
 			"DROP TABLE teams;\n",
 	})
-	src, ok := Read(root, archdoc.App{Name: "api", Dir: "api", Language: "Go"}, nil)
+	src, ok := Read(root, core.App{Name: "api", Dir: "api", Language: "Go"}, nil)
 	if !ok || len(src.Files) != 0 {
 		t.Fatalf("ok %v, %d code files — want only the schema read", ok, len(src.Files))
 	}
-	tables := map[string]archdoc.Class{}
+	tables := map[string]core.Class{}
 	var order []string
 	for _, f := range src.Schemas {
 		for _, c := range f.Classes {
@@ -724,7 +724,7 @@ func TestSQLMigrations(t *testing.T) {
 	if strings.Join(order, " ") != "users articles teams" {
 		t.Fatalf("tables %v, want users, articles (renamed), teams — not scratch, not drafts", order)
 	}
-	column := func(table, name string) archdoc.Decorator {
+	column := func(table, name string) core.Decorator {
 		for _, f := range tables[table].Fields {
 			if f.Name == name {
 				d := f.Decorators[0]
@@ -733,7 +733,7 @@ func TestSQLMigrations(t *testing.T) {
 			}
 		}
 		t.Errorf("%s has no column %s: %+v", table, name, tables[table].Fields)
-		return archdoc.Decorator{}
+		return core.Decorator{}
 	}
 	if len(tables["users"].Fields) != 3 || tables["users"].Prov.Line != 2 {
 		t.Errorf("users: %d columns at line %d, want id, email, team_id at line 2", len(tables["users"].Fields), tables["users"].Prov.Line)
@@ -764,7 +764,7 @@ func TestSmallProjectsAreRead(t *testing.T) {
 	root := tree(t, map[string]string{
 		"report.py": "import requests\n\nAPI = \"https://api.example.com/latest\"\n\ndef main():\n    return requests.get(API)\n\nif __name__ == \"__main__\":\n    main()\n",
 	})
-	src, ok := Read(root, archdoc.App{Name: "x", Dir: ".", Language: "Python", Loose: true}, nil)
+	src, ok := Read(root, core.App{Name: "x", Dir: ".", Language: "Python", Loose: true}, nil)
 	if !ok || len(src.Files) != 1 {
 		t.Fatalf("script: ok %v, %d files", ok, len(src.Files))
 	}
@@ -780,7 +780,7 @@ func TestSmallProjectsAreRead(t *testing.T) {
 		"index.html": "<!doctype html>\n<html><head>\n<title>My todos</title></head><body>\n<script>\n  fetch('https://inline.example.com/hits')\n</script>\n<script src=\"src/app.js\"></script></body></html>\n",
 		"src/app.js": "const API = 'https://todos.example.com/api'\nconst other = somewhere()\nfetch(API)\nfetch(other)\n",
 	})
-	src, ok = Read(root, archdoc.App{Name: "x", Dir: ".", Language: "JavaScript", Loose: true}, nil)
+	src, ok = Read(root, core.App{Name: "x", Dir: ".", Language: "JavaScript", Loose: true}, nil)
 	if !ok || src.Root != "." || len(src.Files) != 2 {
 		t.Fatalf("page: ok %v, root %q, %d files — with no manifest, src/ is not a convention to assume, and the page is read too", ok, src.Root, len(src.Files))
 	}
@@ -811,8 +811,8 @@ func TestRowsAndCopiedCode(t *testing.T) {
 		"web/src/lib/editor.min.js":   "fetch('https://minified.io/x')\n",
 		"web/src/lib/index.ts":        "fetch('https://own.io/x')\n",
 	})
-	src, _ := Read(root, archdoc.App{Dir: "web", Language: "TypeScript"}, nil)
-	hosts := map[string]archdoc.HostRef{}
+	src, _ := Read(root, core.App{Dir: "web", Language: "TypeScript"}, nil)
+	hosts := map[string]core.HostRef{}
 	for _, f := range src.Files {
 		for _, h := range f.Hosts {
 			hosts[h.Host] = h
@@ -855,7 +855,7 @@ func TestJavaReader(t *testing.T) {
 		"src/main/resources/application.yml":                     "spring:\n  datasource:\n    url: jdbc:mysql://db:3306/shop\neureka:\n  client:\n    serviceUrl:\n      defaultZone: http://discovery:8761/eureka/\n",
 		"src/main/resources/application-docker.properties":       "spring.data.redis.host=cache\n# a comment\nai.endpoint=https://api.example.ai/v1\n",
 	})
-	src, ok := Read(root, archdoc.App{Dir: ".", Name: "shop", Language: "Java"}, nil)
+	src, ok := Read(root, core.App{Dir: ".", Name: "shop", Language: "Java"}, nil)
 	if !ok || src.Root != "src/main/java/com/acme/shop" {
 		t.Fatalf("root %q, want the base package", src.Root)
 	}
@@ -864,14 +864,14 @@ func TestJavaReader(t *testing.T) {
 	if i := imps[owner+":2 com.acme.shop.vet.VetClient"]; i.Target != "src/main/java/com/acme/shop/vet/VetClient.java" {
 		t.Errorf("own import: %+v", i)
 	}
-	if i := imps[owner+":3 org.springframework.web.bind.annotation.*"]; i.How != archdoc.ByPackage || i.Package != "org.springframework.web.bind.annotation" {
+	if i := imps[owner+":3 org.springframework.web.bind.annotation.*"]; i.How != core.ByPackage || i.Package != "org.springframework.web.bind.annotation" {
 		t.Errorf("package import: %+v", i)
 	}
-	if i := imps[owner+":4 com.acme.shop.missing.Gone"]; i.How != archdoc.NoMatch {
+	if i := imps[owner+":4 com.acme.shop.missing.Gone"]; i.How != core.NoMatch {
 		t.Errorf("an import of the module's own package that matches no file: %+v", i)
 	}
-	var res, repo archdoc.Class
-	hosts := map[string]archdoc.HostRef{}
+	var res, repo core.Class
+	hosts := map[string]core.HostRef{}
 	for _, f := range src.Files {
 		for _, c := range f.Classes {
 			switch c.Name {
@@ -905,7 +905,7 @@ func TestJavaReader(t *testing.T) {
 		t.Error("a RestTemplate's literal address is a call")
 	}
 
-	settings := map[string]archdoc.HostRef{}
+	settings := map[string]core.HostRef{}
 	for _, f := range src.Settings {
 		for _, h := range f.Hosts {
 			settings[h.Host] = h
@@ -941,28 +941,28 @@ func TestCSharpReader(t *testing.T) {
 		"src/Api/obj/Debug/Generated.cs":          "public class Generated {}\n",
 		"src/Api/appsettings.Docker.json":         "{\n  \"ConnectionStrings\": {\n    \"Catalog\": \"Server=sqlserver,1433;Database=Catalog;\"\n  },\n  \"Payments\": { \"BaseUrl\": \"http://payments:8080\" }\n}\n",
 	})
-	src, ok := Read(root, archdoc.App{Dir: "src/Api", Name: "Api", Language: "C#"}, nil)
+	src, ok := Read(root, core.App{Dir: "src/Api", Name: "Api", Language: "C#"}, nil)
 	if !ok {
 		t.Fatal("nothing read")
 	}
-	files := map[string]archdoc.SourceFile{}
+	files := map[string]core.SourceFile{}
 	for _, f := range src.Files {
 		files[strings.TrimPrefix(f.Path, "src/Api/")] = f
 	}
 	if _, read := files["obj/Debug/Generated.cs"]; read {
 		t.Error("the build's output was read as code")
 	}
-	targets := map[string]archdoc.Import{}
+	targets := map[string]core.Import{}
 	for _, i := range files["Controllers/OrdersController.cs"].Imports {
 		targets[i.Spec] = i
 	}
-	if i := targets["IOrderService"]; i.How != archdoc.ByName || i.Target != "src/Api/Services/OrderService.cs" {
+	if i := targets["IOrderService"]; i.How != core.ByName || i.Target != "src/Api/Services/OrderService.cs" {
 		t.Errorf("a type the controller names: %+v", i)
 	}
 	if i := targets["Order"]; i.Target != "src/Api/Models/Order.cs" {
 		t.Errorf("a type the controller names: %+v", i)
 	}
-	if i := targets["Microsoft.AspNetCore.Mvc"]; i.How != archdoc.ByPackage {
+	if i := targets["Microsoft.AspNetCore.Mvc"]; i.How != core.ByPackage {
 		t.Errorf("a namespace from outside: %+v", i)
 	}
 	if _, ok := targets["Shop.Api.Services"]; ok {
@@ -987,7 +987,7 @@ func TestCSharpReader(t *testing.T) {
 	if p := files["Pages/Basket/Checkout.cshtml.cs"].Pages; len(p) != 1 || p[0].Value != "/Basket/Checkout" {
 		t.Errorf("razor page %+v", p)
 	}
-	var hosts []archdoc.HostRef
+	var hosts []core.HostRef
 	for _, f := range src.Settings {
 		hosts = append(hosts, f.Hosts...)
 	}

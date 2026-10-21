@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Severity separates two questions that look alike and are not: *is this model wrong*, and *is
@@ -40,7 +40,7 @@ type Finding struct {
 	Severity Severity
 	Element  string
 	Message  string
-	Prov     archdoc.Provenance
+	Prov     core.Provenance
 }
 
 func (f Finding) String() string {
@@ -91,11 +91,11 @@ func (r Result) Error() string {
 // Add records a finding. Exported because validation is not the only thing that finds problems
 // — rule compilation reports unreachable and conflicting rules, and there is no reason for a
 // reader to meet two different vocabularies for "here is what is wrong".
-func (r *Result) Add(rule string, sev Severity, element, msg string, prov archdoc.Provenance) {
+func (r *Result) Add(rule string, sev Severity, element, msg string, prov core.Provenance) {
 	r.Findings = append(r.Findings, Finding{rule, sev, element, msg, prov})
 }
 
-func (r *Result) add(rule string, sev Severity, element, msg string, prov archdoc.Provenance) {
+func (r *Result) add(rule string, sev Severity, element, msg string, prov core.Provenance) {
 	r.Add(rule, sev, element, msg, prov)
 }
 
@@ -118,14 +118,14 @@ func (r *Result) sort() {
 	})
 }
 
-var kinds = map[archdoc.Kind]bool{
-	archdoc.Application: true, archdoc.Datastore: true, archdoc.Queue: true,
-	archdoc.Proxy: true, archdoc.External: true, archdoc.System: true, archdoc.Actor: true,
-	archdoc.Component: true, archdoc.Table: true, archdoc.Module: true,
+var kinds = map[core.Kind]bool{
+	core.Application: true, core.Datastore: true, core.Queue: true,
+	core.Proxy: true, core.External: true, core.System: true, core.Actor: true,
+	core.Component: true, core.Table: true, core.Module: true,
 }
 
 // Model checks a whole model against every rule.
-func Model(m archdoc.Model) Result {
+func Model(m core.Model) Result {
 	var r Result
 
 	seen := make(map[string]bool, len(m.Nodes))
@@ -150,7 +150,7 @@ func Model(m archdoc.Model) Result {
 
 		// VAL-04 — every node sits on exactly one side of the system boundary. In R1.a the
 		// evidence kind *is* that boundary, so an unset one leaves the node nowhere.
-		if n.Evidence != archdoc.Declared && n.Evidence != archdoc.Referenced {
+		if n.Evidence != core.Declared && n.Evidence != core.Referenced {
 			r.add("VAL-04", Error, n.ID, fmt.Sprintf("unknown evidence kind %q", n.Evidence), n.Prov)
 		}
 
@@ -174,7 +174,7 @@ func Model(m archdoc.Model) Result {
 		// Components are exempt: their descriptions are interpretation's work at a level the
 		// semantic layer does not yet reach, and fifty "no description" warnings would bury the
 		// gaps a reader can act on. What was read of the code is reported as coverage instead.
-		if n.Description == "" && n.Kind != archdoc.Actor && !n.Kind.Part() {
+		if n.Description == "" && n.Kind != core.Actor && !n.Kind.Part() {
 			r.add("VAL-06", Warning, n.ID, "no description", n.Prov)
 		}
 		if n.Technology == "" && n.Kind.Container() {
@@ -223,7 +223,7 @@ func Model(m archdoc.Model) Result {
 	}
 	for _, e := range m.Edges {
 		id := e.From + " → " + e.To
-		first := archdoc.Provenance{}
+		first := core.Provenance{}
 		if len(e.Prov) > 0 {
 			first = e.Prov[0]
 		}
@@ -257,7 +257,7 @@ func Model(m archdoc.Model) Result {
 		// the configuration publishes plain port 8000. A label is interpretation; a protocol is
 		// a fact. A model-written label may not name a protocol the relationship's own recorded
 		// technology does not already state. Rules are exempt — a person is accountable for them.
-		if e.LabelProv.Origin == archdoc.Semantic {
+		if e.LabelProv.Origin == core.Semantic {
 			if p := unstatedProtocol(e.Label, e.Technology); p != "" {
 				r.add("SEM-10", Error, id, fmt.Sprintf(
 					"label names %q, a protocol the configuration does not state — "+
@@ -296,12 +296,12 @@ func unstatedProtocol(label, technology string) string {
 
 // hasExtraction reports whether any citation came from reading a file. Rules count: a person
 // wrote them in a file with a line, and is accountable for them. The model does not.
-func hasExtraction(ps []archdoc.Provenance) bool {
+func hasExtraction(ps []core.Provenance) bool {
 	for _, p := range ps {
 		if !p.Known() {
 			continue
 		}
-		if p.Origin == "" || p.Origin == archdoc.Extraction || p.Origin == archdoc.Rules {
+		if p.Origin == "" || p.Origin == core.Extraction || p.Origin == core.Rules {
 			return true
 		}
 	}

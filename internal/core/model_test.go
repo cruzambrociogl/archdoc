@@ -1,4 +1,4 @@
-package archdoc
+package core
 
 import (
 	"reflect"

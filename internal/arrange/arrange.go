@@ -14,12 +14,12 @@ import (
 	"math"
 	"sort"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Arrangement is, per view ("context", "container"), where a person placed each element: the
 // top-left corner of its box, in the layout's own units.
-type Arrangement map[string]map[string]archdoc.Point
+type Arrangement map[string]map[string]core.Point
 
 // Report says how an arrangement met the view it was applied to.
 type Report struct {
@@ -41,7 +41,7 @@ const arrowLength = 8.0
 // around what they contain, and re-routes the relationships whose ends moved. A relationship whose
 // two ends moved together keeps the engine's curve, translated; one whose ends moved apart is
 // drawn straight, clipped to the two boxes.
-func Apply(view string, l archdoc.Layout, a Arrangement) (archdoc.Layout, Report) {
+func Apply(view string, l core.Layout, a Arrangement) (core.Layout, Report) {
 	saved := a[view]
 	rep := Report{Placed: []string{}, New: []string{}, Stale: []string{}}
 
@@ -59,9 +59,9 @@ func Apply(view string, l archdoc.Layout, a Arrangement) (archdoc.Layout, Report
 	}
 
 	out := l
-	out.Boxes = make([]archdoc.Box, len(l.Boxes))
-	before := map[string]archdoc.Rect{}
-	after := map[string]archdoc.Rect{}
+	out.Boxes = make([]core.Box, len(l.Boxes))
+	before := map[string]core.Rect{}
+	after := map[string]core.Rect{}
 	for i, b := range l.Boxes {
 		before[b.ID] = b.Rect
 		r := b.Rect
@@ -72,14 +72,14 @@ func Apply(view string, l archdoc.Layout, a Arrangement) (archdoc.Layout, Report
 			rep.New = append(rep.New, b.ID)
 		}
 		after[b.ID] = r
-		out.Boxes[i] = archdoc.Box{ID: b.ID, Rect: r}
+		out.Boxes[i] = core.Box{ID: b.ID, Rect: r}
 	}
 	sort.Strings(rep.Placed)
 	sort.Strings(rep.New)
 
 	// A boundary contains the boxes that lay inside it as the engine drew it, and keeps the same
 	// margin around them wherever they now are.
-	out.Groups = make([]archdoc.Boundary, len(l.Groups))
+	out.Groups = make([]core.Boundary, len(l.Groups))
 	for i, g := range l.Groups {
 		var members []string
 		for _, b := range l.Boxes {
@@ -92,21 +92,21 @@ func Apply(view string, l archdoc.Layout, a Arrangement) (archdoc.Layout, Report
 			continue
 		}
 		was, now := bounds(members, before), bounds(members, after)
-		r := archdoc.Rect{
+		r := core.Rect{
 			X: now.X - (was.X - g.Rect.X),
 			Y: now.Y - (was.Y - g.Rect.Y),
 			W: now.W + (g.Rect.W - was.W),
 			H: now.H + (g.Rect.H - was.H),
 		}
 		out.Groups[i].Rect = r
-		out.Groups[i].LabelAt = archdoc.Point{X: g.LabelAt.X + r.X - g.Rect.X, Y: g.LabelAt.Y + r.Y - g.Rect.Y}
+		out.Groups[i].LabelAt = core.Point{X: g.LabelAt.X + r.X - g.Rect.X, Y: g.LabelAt.Y + r.Y - g.Rect.Y}
 	}
 
-	out.Paths = make([]archdoc.Path, len(l.Paths))
+	out.Paths = make([]core.Path, len(l.Paths))
 	for i, p := range l.Paths {
 		df, dt := delta(p.From, before, after), delta(p.To, before, after)
 		switch {
-		case df == (archdoc.Point{}) && dt == (archdoc.Point{}):
+		case df == (core.Point{}) && dt == (core.Point{}):
 			out.Paths[i] = p
 		case df == dt:
 			out.Paths[i] = translate(p, df)
@@ -127,11 +127,11 @@ func Apply(view string, l archdoc.Layout, a Arrangement) (archdoc.Layout, Report
 	return out, rep
 }
 
-func inside(r, outer archdoc.Rect) bool {
+func inside(r, outer core.Rect) bool {
 	return r.X >= outer.X && r.Y >= outer.Y && r.X+r.W <= outer.X+outer.W && r.Y+r.H <= outer.Y+outer.H
 }
 
-func anyMoved(ids []string, before, after map[string]archdoc.Rect) bool {
+func anyMoved(ids []string, before, after map[string]core.Rect) bool {
 	for _, id := range ids {
 		if before[id] != after[id] {
 			return true
@@ -140,7 +140,7 @@ func anyMoved(ids []string, before, after map[string]archdoc.Rect) bool {
 	return false
 }
 
-func bounds(ids []string, rects map[string]archdoc.Rect) archdoc.Rect {
+func bounds(ids []string, rects map[string]core.Rect) core.Rect {
 	minX, minY := math.Inf(1), math.Inf(1)
 	maxX, maxY := math.Inf(-1), math.Inf(-1)
 	for _, id := range ids {
@@ -148,26 +148,26 @@ func bounds(ids []string, rects map[string]archdoc.Rect) archdoc.Rect {
 		minX, minY = math.Min(minX, r.X), math.Min(minY, r.Y)
 		maxX, maxY = math.Max(maxX, r.X+r.W), math.Max(maxY, r.Y+r.H)
 	}
-	return archdoc.Rect{X: minX, Y: minY, W: maxX - minX, H: maxY - minY}
+	return core.Rect{X: minX, Y: minY, W: maxX - minX, H: maxY - minY}
 }
 
-func delta(id string, before, after map[string]archdoc.Rect) archdoc.Point {
+func delta(id string, before, after map[string]core.Rect) core.Point {
 	b, a := before[id], after[id]
-	return archdoc.Point{X: a.X - b.X, Y: a.Y - b.Y}
+	return core.Point{X: a.X - b.X, Y: a.Y - b.Y}
 }
 
-func translate(p archdoc.Path, d archdoc.Point) archdoc.Path {
+func translate(p core.Path, d core.Point) core.Path {
 	q := p
-	q.Curve = make([]archdoc.Point, len(p.Curve))
+	q.Curve = make([]core.Point, len(p.Curve))
 	for i, c := range p.Curve {
-		q.Curve[i] = archdoc.Point{X: c.X + d.X, Y: c.Y + d.Y}
+		q.Curve[i] = core.Point{X: c.X + d.X, Y: c.Y + d.Y}
 	}
 	if p.Tip != nil {
-		t := archdoc.Point{X: p.Tip.X + d.X, Y: p.Tip.Y + d.Y}
+		t := core.Point{X: p.Tip.X + d.X, Y: p.Tip.Y + d.Y}
 		q.Tip = &t
 	}
 	if p.LabelAt != nil {
-		at := archdoc.Point{X: p.LabelAt.X + d.X, Y: p.LabelAt.Y + d.Y}
+		at := core.Point{X: p.LabelAt.X + d.X, Y: p.LabelAt.Y + d.Y}
 		q.LabelAt = &at
 	}
 	return q
@@ -175,34 +175,34 @@ func translate(p archdoc.Path, d archdoc.Point) archdoc.Path {
 
 // straight routes a relationship between the centres of its two boxes, from the edge of one to
 // the edge of the other, as a single Bézier segment so every renderer reads it like the engine's.
-func straight(p archdoc.Path, from, to archdoc.Rect) archdoc.Path {
-	c1 := archdoc.Point{X: from.X + from.W/2, Y: from.Y + from.H/2}
-	c2 := archdoc.Point{X: to.X + to.W/2, Y: to.Y + to.H/2}
+func straight(p core.Path, from, to core.Rect) core.Path {
+	c1 := core.Point{X: from.X + from.W/2, Y: from.Y + from.H/2}
+	c2 := core.Point{X: to.X + to.W/2, Y: to.Y + to.H/2}
 	start := clip(c1, c2, from)
 	tip := clip(c2, c1, to)
 	dx, dy := tip.X-start.X, tip.Y-start.Y
 	length := math.Hypot(dx, dy)
 	end := tip
 	if length > arrowLength {
-		end = archdoc.Point{X: tip.X - dx/length*arrowLength, Y: tip.Y - dy/length*arrowLength}
+		end = core.Point{X: tip.X - dx/length*arrowLength, Y: tip.Y - dy/length*arrowLength}
 	}
-	third := func(f float64) archdoc.Point {
-		return archdoc.Point{X: start.X + (end.X-start.X)*f, Y: start.Y + (end.Y-start.Y)*f}
+	third := func(f float64) core.Point {
+		return core.Point{X: start.X + (end.X-start.X)*f, Y: start.Y + (end.Y-start.Y)*f}
 	}
-	q := archdoc.Path{From: p.From, To: p.To, Curve: []archdoc.Point{start, third(1.0 / 3), third(2.0 / 3), end}}
+	q := core.Path{From: p.From, To: p.To, Curve: []core.Point{start, third(1.0 / 3), third(2.0 / 3), end}}
 	if p.Tip != nil {
 		t := tip
 		q.Tip = &t
 	}
 	if p.LabelAt != nil {
-		mid := archdoc.Point{X: (start.X + tip.X) / 2, Y: (start.Y + tip.Y) / 2}
+		mid := core.Point{X: (start.X + tip.X) / 2, Y: (start.Y + tip.Y) / 2}
 		q.LabelAt = &mid
 	}
 	return q
 }
 
 // clip is where the line from c towards toward leaves the rectangle r centred on c.
-func clip(c, toward archdoc.Point, r archdoc.Rect) archdoc.Point {
+func clip(c, toward core.Point, r core.Rect) core.Point {
 	dx, dy := toward.X-c.X, toward.Y-c.Y
 	if dx == 0 && dy == 0 {
 		return c
@@ -215,7 +215,7 @@ func clip(c, toward archdoc.Point, r archdoc.Rect) archdoc.Point {
 		sy = (r.H / 2) / math.Abs(dy)
 	}
 	s := math.Min(sx, sy)
-	return archdoc.Point{X: c.X + dx*s, Y: c.Y + dy*s}
+	return core.Point{X: c.X + dx*s, Y: c.Y + dy*s}
 }
 
 func sortedKeys[V any](m map[string]V) []string {

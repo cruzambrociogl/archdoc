@@ -4,45 +4,45 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
-func at(line int) archdoc.Provenance {
-	return archdoc.Provenance{File: "docker-compose.yml", Line: line}
+func at(line int) core.Provenance {
+	return core.Provenance{File: "docker-compose.yml", Line: line}
 }
 
 // facts is the hand-made FactSet the delivery plan calls for: the contract between the two
 // tracks, written by hand so neither waits on the other. It is small and deliberately awkward —
 // a gateway in front of the app, a datastore, a queue, an external host the repository only
 // references, and one relationship attested twice.
-func facts() *archdoc.FactSet {
-	return &archdoc.FactSet{
+func facts() *core.FactSet {
+	return &core.FactSet{
 		Root:   "/repo",
 		Name:   "example",
 		Source: "docker-compose.yml",
-		Services: []archdoc.Service{
+		Services: []core.Service{
 			{
-				Name: "gateway", Image: "nginx:1.27", Evidence: archdoc.Declared, Prov: at(3),
-				Ports:     []archdoc.Port{{Published: "80", Target: 80, Prov: at(5)}},
-				DependsOn: []archdoc.Dependency{{Service: "api", Prov: at(7)}},
+				Name: "gateway", Image: "nginx:1.27", Evidence: core.Declared, Prov: at(3),
+				Ports:     []core.Port{{Published: "80", Target: 80, Prov: at(5)}},
+				DependsOn: []core.Dependency{{Service: "api", Prov: at(7)}},
 				// The gateway is configured with an upstream, so there is evidence that
 				// traffic flows through it and not merely that it starts second.
-				Endpoints: []archdoc.Endpoint{
+				Endpoints: []core.Endpoint{
 					{Var: "UPSTREAM_URL", Scheme: "http", Host: "api", Port: 8080, Prov: at(8)},
 				},
 			},
 			{
-				Name: "api", Image: "example/api:2.1", Evidence: archdoc.Declared, Prov: at(10),
-				DependsOn: []archdoc.Dependency{{Service: "db", Prov: at(12)}},
-				Endpoints: []archdoc.Endpoint{
+				Name: "api", Image: "example/api:2.1", Evidence: core.Declared, Prov: at(10),
+				DependsOn: []core.Dependency{{Service: "db", Prov: at(12)}},
+				Endpoints: []core.Endpoint{
 					// The same relationship as the depends_on above, said a second way.
 					{Var: "DATABASE_URL", Scheme: "postgres", Host: "db", Port: 5432, Prov: at(15)},
 					{Var: "QUEUE_URL", Scheme: "amqp", Host: "broker", Prov: at(16)},
 					{Var: "S3_ENDPOINT", Scheme: "https", Host: "s3.example.com", Prov: at(17)},
 				},
 			},
-			{Name: "db", Image: "postgres:16-alpine", Evidence: archdoc.Declared, Prov: at(20)},
-			{Name: "broker", Image: "rabbitmq:3.13", Evidence: archdoc.Declared, Prov: at(25)},
+			{Name: "db", Image: "postgres:16-alpine", Evidence: core.Declared, Prov: at(20)},
+			{Name: "broker", Image: "rabbitmq:3.13", Evidence: core.Declared, Prov: at(25)},
 		},
 	}
 }
@@ -51,13 +51,13 @@ func TestKindsAndTechnologyComeFromTheImage(t *testing.T) {
 	m := Derive(facts())
 
 	want := map[string]struct {
-		kind archdoc.Kind
+		kind core.Kind
 		tech string
 	}{
-		"svc:gateway": {archdoc.Proxy, "nginx 1.27"},
-		"svc:api":     {archdoc.Application, ""},
-		"svc:db":      {archdoc.Datastore, "PostgreSQL 16"},
-		"svc:broker":  {archdoc.Queue, "RabbitMQ 3.13"},
+		"svc:gateway": {core.Proxy, "nginx 1.27"},
+		"svc:api":     {core.Application, ""},
+		"svc:db":      {core.Datastore, "PostgreSQL 16"},
+		"svc:broker":  {core.Queue, "RabbitMQ 3.13"},
 	}
 
 	for id, w := range want {
@@ -91,10 +91,10 @@ func TestUndeclaredHostsBecomeReferencedExternals(t *testing.T) {
 	if !ok {
 		t.Fatal("no external node for s3.example.com")
 	}
-	if n.Evidence != archdoc.Referenced {
+	if n.Evidence != core.Referenced {
 		t.Errorf("evidence is %q, want referenced", n.Evidence)
 	}
-	if n.Kind != archdoc.External {
+	if n.Kind != core.External {
 		t.Errorf("kind is %q, want external", n.Kind)
 	}
 
@@ -110,7 +110,7 @@ func TestRepeatedAttestationsMergeIntoOneEdge(t *testing.T) {
 	m := Derive(facts())
 
 	count := 0
-	var edge archdoc.Edge
+	var edge core.Edge
 	for _, e := range m.Edges {
 		if e.From == "svc:api" && e.To == "svc:db" {
 			count++
@@ -215,13 +215,13 @@ func TestDerivationIsDeterministic(t *testing.T) {
 // repository appears to depend on.
 func TestRouteTargetsResolveThroughAliases(t *testing.T) {
 	f := facts()
-	f.Services = append(f.Services, archdoc.Service{
-		Name: "admin", Image: "example/admin:1.0", Evidence: archdoc.Declared, Prov: at(30),
+	f.Services = append(f.Services, core.Service{
+		Name: "admin", Image: "example/admin:1.0", Evidence: core.Declared, Prov: at(30),
 		Aliases: []string{"admin-console.internal"},
 	})
-	f.Routes = []archdoc.Route{{
+	f.Routes = []core.Route{{
 		Gateway: "gateway", Target: "admin-console.internal",
-		Config: "conf/cds.yaml", Prov: archdoc.Provenance{File: "conf/cds.yaml", Line: 22},
+		Config: "conf/cds.yaml", Prov: core.Provenance{File: "conf/cds.yaml", Line: 22},
 	}}
 
 	m := Derive(f)
@@ -243,15 +243,15 @@ func TestRouteTargetsResolveThroughAliases(t *testing.T) {
 // serves — which is what Supabase produced before this was restricted.
 func TestServiceCallingAGatewayDoesNotFanOut(t *testing.T) {
 	f := facts()
-	f.Services = append(f.Services, archdoc.Service{
-		Name: "caller", Image: "example/caller:1.0", Evidence: archdoc.Declared, Prov: at(40),
-		Endpoints: []archdoc.Endpoint{
+	f.Services = append(f.Services, core.Service{
+		Name: "caller", Image: "example/caller:1.0", Evidence: core.Declared, Prov: at(40),
+		Endpoints: []core.Endpoint{
 			{Var: "GATEWAY_URL", Scheme: "http", Host: "gateway", Prov: at(41)},
 		},
 	})
-	f.Routes = []archdoc.Route{{
+	f.Routes = []core.Route{{
 		Gateway: "gateway", Target: "db",
-		Config: "conf/cds.yaml", Prov: archdoc.Provenance{File: "conf/cds.yaml", Line: 11},
+		Config: "conf/cds.yaml", Prov: core.Provenance{File: "conf/cds.yaml", Line: 11},
 	}}
 
 	view := Derive(f).Container()

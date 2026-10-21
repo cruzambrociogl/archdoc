@@ -1,4 +1,4 @@
-package archdoc
+package core
 
 // Operations are how anything other than extraction changes the model.
 //

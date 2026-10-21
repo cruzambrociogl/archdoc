@@ -25,7 +25,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // File is where history lives, relative to the repository being documented.
@@ -39,12 +39,12 @@ type Version struct {
 	Source      string // the configuration file the model came from
 	Tool        string
 	Fingerprint string // content hash of the model, which is what makes a no-op run detectable
-	Model       archdoc.Model
+	Model       core.Model
 
 	// Layouts are the positions computed for this version's views, keyed by view name. Stored
 	// so an unchanged architecture is drawn from the same coordinates every time, rather than
 	// laid out again (VIE-04). Empty for versions recorded before layouts existed.
-	Layouts map[string]archdoc.Layout
+	Layouts map[string]core.Layout
 }
 
 // Store is history for one repository.
@@ -147,7 +147,7 @@ func migrate(db *sql.DB) error {
 // added to the model's schema no longer mints a version for every repository on its next run; and
 // a citation whose line moved, because someone edited around it, is not a change of architecture.
 // A field that does carry architecture must be added here when it is added to the model.
-func Fingerprint(m archdoc.Model) (string, error) {
+func Fingerprint(m core.Model) (string, error) {
 	type node struct {
 		ID, Name, Kind, Description, Technology, Evidence, Parent, Dir string
 		Networks                                                       []string
@@ -222,7 +222,7 @@ func Fingerprint(m archdoc.Model) (string, error) {
 // it — its citations, its layouts, the commit they are true at — so the evidence a reader follows
 // is the current one, and a layout computed by a newer engine is kept (F-51). The version keeps its
 // number and the time it was first recorded.
-func (s *Store) Save(m archdoc.Model, layouts map[string]archdoc.Layout, commit, tool string) (id int64, changed bool, err error) {
+func (s *Store) Save(m core.Model, layouts map[string]core.Layout, commit, tool string) (id int64, changed bool, err error) {
 	encoded, err := json.Marshal(m)
 	if err != nil {
 		return 0, false, err

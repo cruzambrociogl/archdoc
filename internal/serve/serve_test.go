@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
@@ -58,9 +58,9 @@ func repo(t *testing.T) string {
 		t.Fatal(err)
 	}
 	grown := m
-	grown.Nodes = append(append([]archdoc.Node(nil), m.Nodes...), archdoc.Node{
-		ID: "svc:cache", Name: "cache", Kind: archdoc.Datastore, Evidence: archdoc.Declared,
-		Prov: archdoc.Provenance{File: "docker-compose.yml", Line: 99},
+	grown.Nodes = append(append([]core.Node(nil), m.Nodes...), core.Node{
+		ID: "svc:cache", Name: "cache", Kind: core.Datastore, Evidence: core.Declared,
+		Prov: core.Provenance{File: "docker-compose.yml", Line: 99},
 	})
 	if _, _, err := h.Save(grown.Normalise(), nil, "def456", "test"); err != nil {
 		t.Fatal(err)
@@ -148,9 +148,9 @@ func TestSceneCarriesTheLayout(t *testing.T) {
 		t.Fatalf("scene: %d %s", code, b)
 	}
 	var sc struct {
-		View   string         `json:"view"`
-		Model  archdoc.Model  `json:"model"`
-		Layout archdoc.Layout `json:"layout"`
+		View   string      `json:"view"`
+		Model  core.Model  `json:"model"`
+		Layout core.Layout `json:"layout"`
 	}
 	if err := json.Unmarshal(b, &sc); err != nil {
 		t.Fatal(err)

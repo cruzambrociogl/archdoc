@@ -4,34 +4,34 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // fixtureFacts is what extraction would have produced for fixture(): the deployment detail the
 // container view drops on the floor, which §7 is supposed to show.
-func fixtureFacts() archdoc.FactSet {
-	return archdoc.FactSet{
+func fixtureFacts() core.FactSet {
+	return core.FactSet{
 		Root:   "/tmp/example",
 		Name:   "example",
 		Source: "docker-compose.yml",
-		Considered: []archdoc.Candidate{
+		Considered: []core.Candidate{
 			{File: "docker-compose.yml", Reason: "deployable — 4 services with an image or build", Chosen: true},
 			{File: "docker-compose.override.yml", Reason: "development override", Chosen: false},
 		},
-		Services: []archdoc.Service{
-			{Name: "api", Evidence: archdoc.Declared, Prov: at(10),
-				Ports:  []archdoc.Port{{Published: "8080", Target: 3000, Prov: at(11)}},
-				Mounts: []archdoc.Mount{{Source: "./config/api.yml", Target: "/etc/api.yml", Prov: at(14)}},
-				Endpoints: []archdoc.Endpoint{
+		Services: []core.Service{
+			{Name: "api", Evidence: core.Declared, Prov: at(10),
+				Ports:  []core.Port{{Published: "8080", Target: 3000, Prov: at(11)}},
+				Mounts: []core.Mount{{Source: "./config/api.yml", Target: "/etc/api.yml", Prov: at(14)}},
+				Endpoints: []core.Endpoint{
 					{Var: "S3_ENDPOINT", Scheme: "https", Host: "s3.amazonaws.com",
-						Prov: archdoc.Provenance{File: ".env", Line: 3}},
+						Prov: core.Provenance{File: ".env", Line: 3}},
 				}},
-			{Name: "db", Image: "postgres:16", Evidence: archdoc.Declared, Prov: at(20)},
-			{Name: "gateway", Image: "nginx:1.27", Evidence: archdoc.Declared, Prov: at(3),
-				Mounts: []archdoc.Mount{{Source: "./nginx.conf", Target: "/etc/nginx/nginx.conf", Prov: at(5)}}},
+			{Name: "db", Image: "postgres:16", Evidence: core.Declared, Prov: at(20)},
+			{Name: "gateway", Image: "nginx:1.27", Evidence: core.Declared, Prov: at(3),
+				Mounts: []core.Mount{{Source: "./nginx.conf", Target: "/etc/nginx/nginx.conf", Prov: at(5)}}},
 		},
-		Networks: []archdoc.Network{{Name: "backend", Internal: true, Prov: at(40)}},
-		Routes:   []archdoc.Route{{Gateway: "gateway", Target: "api", Path: "/api", Config: "nginx.conf", Prov: at(7)}},
+		Networks: []core.Network{{Name: "backend", Internal: true, Prov: at(40)}},
+		Routes:   []core.Route{{Gateway: "gateway", Target: "api", Path: "/api", Config: "nginx.conf", Prov: at(7)}},
 	}
 }
 
@@ -71,15 +71,15 @@ func TestDeploymentViewSaysSoWhenNothingIsPublished(t *testing.T) {
 // would be a filing cabinet for a postcard, and four of the stubs would ask about structure it
 // does not have.
 func TestSmallProjectGetsASmallDocumentSet(t *testing.T) {
-	m := archdoc.Model{
+	m := core.Model{
 		Name:   "script",
 		Source: "docker-compose.yml",
-		Nodes: []archdoc.Node{
-			{ID: "svc:worker", Name: "worker", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at(2)},
+		Nodes: []core.Node{
+			{ID: "svc:worker", Name: "worker", Kind: core.Application, Evidence: core.Declared, Prov: at(2)},
 		},
 	}.Normalise()
-	facts := archdoc.FactSet{Name: "script", Source: "docker-compose.yml",
-		Services: []archdoc.Service{{Name: "worker", Evidence: archdoc.Declared, Prov: at(2)}}}
+	facts := core.FactSet{Name: "script", Source: "docker-compose.yml",
+		Services: []core.Service{{Name: "worker", Evidence: core.Declared, Prov: at(2)}}}
 
 	plan := PlanFor(m, facts)
 	for _, gone := range []int{2, 7, 8, 10, 11} {

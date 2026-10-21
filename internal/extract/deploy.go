@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Which Compose service runs which application.
@@ -24,11 +24,11 @@ import (
 type build struct {
 	service string
 	dirs    []string // the context, and the directory of the Dockerfile, repository-relative
-	prov    archdoc.Provenance
+	prov    core.Provenance
 }
 
 // builds reads the build: of every service in every candidate Compose file.
-func builds(root string, candidates []archdoc.Candidate) []build {
+func builds(root string, candidates []core.Candidate) []build {
 	var out []build
 	for _, c := range candidates {
 		content, err := os.ReadFile(filepath.Join(root, c.File))
@@ -71,7 +71,7 @@ func builds(root string, candidates []archdoc.Candidate) []build {
 				dirs = append(dirs, path.Dir(path.Clean(path.Join(ctx, dockerfile))))
 			}
 			out = append(out, build{service: name, dirs: dirs,
-				prov: archdoc.Provenance{File: c.File, Line: key.Line, Column: key.Column}})
+				prov: core.Provenance{File: c.File, Line: key.Line, Column: key.Column}})
 		}
 	}
 	return out
@@ -80,7 +80,7 @@ func builds(root string, candidates []archdoc.Candidate) []build {
 // deploy ties each container application to the service in the deployed Compose file that some
 // Compose file builds from its directory. An application two services claim, or a service two
 // applications claim, is left untied: ambiguity is not evidence.
-func deploy(apps []archdoc.App, services []archdoc.Service, bs []build) {
+func deploy(apps []core.App, services []core.Service, bs []build) {
 	deployed := map[string]bool{}
 	for _, s := range services {
 		deployed[s.Name] = true
@@ -110,7 +110,7 @@ func deploy(apps []archdoc.App, services []archdoc.Service, bs []build) {
 		}
 		for name, b := range svcs {
 			if len(claims[name]) == 1 {
-				apps[i].Deployed = &archdoc.Deployment{Service: name, Prov: b.prov}
+				apps[i].Deployed = &core.Deployment{Service: name, Prov: b.prov}
 			}
 		}
 	}
@@ -141,7 +141,7 @@ func deploy(apps []archdoc.App, services []archdoc.Service, bs []build) {
 		}
 		prov := s.Prov
 		prov.Note = "tied by name: the service is named like the application, and no build line ties them"
-		apps[idx[0]].Deployed = &archdoc.Deployment{Service: s.Name, Prov: prov, ByName: true}
+		apps[idx[0]].Deployed = &core.Deployment{Service: s.Name, Prov: prov, ByName: true}
 		tied[s.Name] = true
 	}
 
@@ -157,7 +157,7 @@ func deploy(apps []archdoc.App, services []archdoc.Service, bs []build) {
 		}
 		prov := s.Prov
 		prov.Note = "tied by image: the service runs " + s.Image + ", named exactly like the application, and no build line ties them"
-		apps[idx[0]].Deployed = &archdoc.Deployment{Service: s.Name, Prov: prov, ByName: true}
+		apps[idx[0]].Deployed = &core.Deployment{Service: s.Name, Prov: prov, ByName: true}
 		tied[s.Name] = true
 	}
 }
@@ -219,6 +219,6 @@ func mapValue(m *yaml.Node, key string) *yaml.Node {
 }
 
 // sortedApps keeps applications in manifest order (AC-7).
-func sortedApps(apps []archdoc.App) {
+func sortedApps(apps []core.App) {
 	sort.Slice(apps, func(i, j int) bool { return apps[i].Manifest < apps[j].Manifest })
 }

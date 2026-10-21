@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Positions are the second of the two passes O-8 settled on. compose-go resolves what is true
@@ -17,12 +17,12 @@ import (
 
 // servicePos is where one service and its interesting sub-keys were written.
 type servicePos struct {
-	Decl      archdoc.Provenance
-	DependsOn map[string]archdoc.Provenance
-	Env       map[string]archdoc.Provenance
-	Nets      map[string]archdoc.Provenance
-	Ports     []archdoc.Provenance
-	Vols      []archdoc.Provenance
+	Decl      core.Provenance
+	DependsOn map[string]core.Provenance
+	Env       map[string]core.Provenance
+	Nets      map[string]core.Provenance
+	Ports     []core.Provenance
+	Vols      []core.Provenance
 }
 
 // at returns the position of a named sub-key, falling back to the service declaration.
@@ -32,23 +32,23 @@ type servicePos struct {
 // the right service. It matters because P1 forbids emitting anything whose provenance is
 // unknown — without a fallback, an unlocatable fact would have to be dropped, which loses more
 // than it protects.
-func (s servicePos) at(m map[string]archdoc.Provenance, key string) archdoc.Provenance {
+func (s servicePos) at(m map[string]core.Provenance, key string) core.Provenance {
 	if p, ok := m[key]; ok && p.Known() {
 		return p
 	}
 	return s.Decl
 }
 
-func (s servicePos) dependency(name string) archdoc.Provenance { return s.at(s.DependsOn, name) }
-func (s servicePos) env(name string) archdoc.Provenance        { return s.at(s.Env, name) }
-func (s servicePos) network(name string) archdoc.Provenance    { return s.at(s.Nets, name) }
+func (s servicePos) dependency(name string) core.Provenance { return s.at(s.DependsOn, name) }
+func (s servicePos) env(name string) core.Provenance        { return s.at(s.Env, name) }
+func (s servicePos) network(name string) core.Provenance    { return s.at(s.Nets, name) }
 
-func (s servicePos) port(i int) archdoc.Provenance  { return s.indexed(s.Ports, i) }
-func (s servicePos) mount(i int) archdoc.Provenance { return s.indexed(s.Vols, i) }
+func (s servicePos) port(i int) core.Provenance  { return s.indexed(s.Ports, i) }
+func (s servicePos) mount(i int) core.Provenance { return s.indexed(s.Vols, i) }
 
 // indexed locates an entry in a list that has no name of its own — ports and volumes are both
 // positional. Falls back to the service declaration, for the reason given on at().
-func (s servicePos) indexed(ps []archdoc.Provenance, i int) archdoc.Provenance {
+func (s servicePos) indexed(ps []core.Provenance, i int) core.Provenance {
 	if i < len(ps) && ps[i].Known() {
 		return ps[i]
 	}
@@ -74,9 +74,9 @@ func readPositions(content []byte, rel string) map[string]servicePos {
 
 		pos := servicePos{
 			Decl:      provOf(rel, key),
-			DependsOn: map[string]archdoc.Provenance{},
-			Env:       map[string]archdoc.Provenance{},
-			Nets:      map[string]archdoc.Provenance{},
+			DependsOn: map[string]core.Provenance{},
+			Env:       map[string]core.Provenance{},
+			Nets:      map[string]core.Provenance{},
 		}
 
 		if body.Kind == yaml.MappingNode {
@@ -98,7 +98,7 @@ func readPositions(content []byte, rel string) map[string]servicePos {
 // readNames records the position of every name in a node that is either a mapping (position of
 // the key) or a sequence of scalars (position of the item). A sequence entry may be "K=V", in
 // which case the name is the part before the first "=".
-func readNames(rel string, n *yaml.Node, into map[string]archdoc.Provenance) {
+func readNames(rel string, n *yaml.Node, into map[string]core.Provenance) {
 	if n == nil {
 		return
 	}
@@ -123,18 +123,18 @@ func readNames(rel string, n *yaml.Node, into map[string]archdoc.Provenance) {
 }
 
 // readSequence records positions by index, for lists whose entries have no name of their own.
-func readSequence(rel string, n *yaml.Node) []archdoc.Provenance {
+func readSequence(rel string, n *yaml.Node) []core.Provenance {
 	if n == nil || n.Kind != yaml.SequenceNode {
 		return nil
 	}
 
-	out := make([]archdoc.Provenance, 0, len(n.Content))
+	out := make([]core.Provenance, 0, len(n.Content))
 	for _, item := range n.Content {
 		out = append(out, provOf(rel, item))
 	}
 	return out
 }
 
-func provOf(rel string, n *yaml.Node) archdoc.Provenance {
-	return archdoc.Provenance{File: rel, Line: n.Line, Column: n.Column}
+func provOf(rel string, n *yaml.Node) core.Provenance {
+	return core.Provenance{File: rel, Line: n.Line, Column: n.Column}
 }

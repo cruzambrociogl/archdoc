@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 func tree(t *testing.T, files map[string]string) string {
@@ -21,8 +21,8 @@ func tree(t *testing.T, files map[string]string) string {
 	return root
 }
 
-func byDir(apps []archdoc.App) map[string]archdoc.App {
-	out := map[string]archdoc.App{}
+func byDir(apps []core.App) map[string]core.App {
+	out := map[string]core.App{}
 	for _, a := range apps {
 		out[a.Dir] = a
 	}
@@ -49,9 +49,9 @@ func TestApplicationsAndWhatRunsThem(t *testing.T) {
 	}
 	apps := byDir(fs.Apps)
 
-	want := map[string]archdoc.AppRole{
-		".": archdoc.RoleWorkspace, "server": archdoc.RoleService, "web": archdoc.RoleWeb,
-		"packages/sdk": archdoc.RoleLibrary, "e2e": archdoc.RoleTest,
+	want := map[string]core.AppRole{
+		".": core.RoleWorkspace, "server": core.RoleService, "web": core.RoleWeb,
+		"packages/sdk": core.RoleLibrary, "e2e": core.RoleTest,
 	}
 	for dir, role := range want {
 		if apps[dir].Role != role {
@@ -117,12 +117,12 @@ func TestPythonAndOtherManifests(t *testing.T) {
 	})
 	apps := byDir(Apps(root))
 	cases := map[string]struct {
-		role      archdoc.AppRole
+		role      core.AppRole
 		framework string
 	}{
-		".": {archdoc.RoleWorkspace, ""}, "api": {archdoc.RoleService, "FastAPI"}, "tool": {archdoc.RoleCLI, "Typer"},
-		"mobile": {archdoc.RoleMobile, "Flutter"}, "mobile/packages/ui": {archdoc.RoleLibrary, ""},
-		"emails": {archdoc.RoleTooling, ""},
+		".": {core.RoleWorkspace, ""}, "api": {core.RoleService, "FastAPI"}, "tool": {core.RoleCLI, "Typer"},
+		"mobile": {core.RoleMobile, "Flutter"}, "mobile/packages/ui": {core.RoleLibrary, ""},
+		"emails": {core.RoleTooling, ""},
 	}
 	for dir, c := range cases {
 		a := apps[dir]
@@ -147,9 +147,9 @@ func TestExamplesAndComponentLibraries(t *testing.T) {
 		"examples/auth/flutter/pubspec.yaml": "name: auth\ndependencies:\n  flutter:\n    sdk: flutter\n",
 	})
 	apps := byDir(Apps(root))
-	want := map[string]archdoc.AppRole{
-		"apps/www": archdoc.RoleWeb, "packages/ui": archdoc.RoleLibrary, "packages/widget": archdoc.RoleWeb,
-		"examples/todo/nextjs": archdoc.RoleExample, "examples/auth/flutter": archdoc.RoleExample,
+	want := map[string]core.AppRole{
+		"apps/www": core.RoleWeb, "packages/ui": core.RoleLibrary, "packages/widget": core.RoleWeb,
+		"examples/todo/nextjs": core.RoleExample, "examples/auth/flutter": core.RoleExample,
 	}
 	for dir, role := range want {
 		if apps[dir].Role != role {
@@ -158,7 +158,7 @@ func TestExamplesAndComponentLibraries(t *testing.T) {
 	}
 
 	only := tree(t, map[string]string{"examples/todo/package.json": `{"name": "todo", "dependencies": {"next": "^15"}}`})
-	if a := byDir(Apps(only))["examples/todo"]; a.Role != archdoc.RoleWeb {
+	if a := byDir(Apps(only))["examples/todo"]; a.Role != core.RoleWeb {
 		t.Errorf("a repository of examples alone: %q (%s)", a.Role, a.Why)
 	}
 }

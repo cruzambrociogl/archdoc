@@ -3,7 +3,7 @@ package extract
 import (
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Java modules and .NET projects, judged by their build files: a starter or an SDK makes a service,
@@ -27,10 +27,10 @@ func TestJavaAndDotnetManifests(t *testing.T) {
 		"tests/Unit/Unit.csproj": `<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="xunit" /></ItemGroup></Project>`,
 	})
 	apps := byDir(Apps(root))
-	want := map[string]archdoc.AppRole{
-		".": archdoc.RoleWorkspace, "orders": archdoc.RoleService, "gateway": archdoc.RoleService,
-		"src/Web": archdoc.RoleService, "src/Core": archdoc.RoleLibrary, "src/Admin": archdoc.RoleWeb,
-		"src/Tool": archdoc.RoleCLI, "src/Host": archdoc.RoleTooling, "tests/Unit": archdoc.RoleTest,
+	want := map[string]core.AppRole{
+		".": core.RoleWorkspace, "orders": core.RoleService, "gateway": core.RoleService,
+		"src/Web": core.RoleService, "src/Core": core.RoleLibrary, "src/Admin": core.RoleWeb,
+		"src/Tool": core.RoleCLI, "src/Host": core.RoleTooling, "tests/Unit": core.RoleTest,
 	}
 	for dir, role := range want {
 		if apps[dir].Role != role {

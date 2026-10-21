@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Explanations (F-19, F-30, F-36): a few sentences on what a component does, each one citing the
@@ -38,7 +38,7 @@ const explainVersion = "explain-2"
 type Fact struct {
 	ID   string
 	Text string
-	Prov archdoc.Provenance
+	Prov core.Provenance
 }
 
 // Memory is the remembered answers, by the fingerprint of the facts each was given.
@@ -48,8 +48,8 @@ type Memory map[string]Remembered
 // answer outlive its facts: when they change, the last answer is still shown — marked as written
 // for an earlier version — until --explain asks again.
 type Remembered struct {
-	Element string          `json:"element,omitempty"`
-	Claims  []archdoc.Claim `json:"claims"`
+	Element string       `json:"element,omitempty"`
+	Claims  []core.Claim `json:"claims"`
 }
 
 // UnmarshalJSON also reads the first format of the memory file: a bare list of claims.
@@ -91,13 +91,13 @@ const (
 
 // ComponentFacts lists what is known about a component, in a fixed order. Every fact is a name, a
 // path or a count, except a route's summary: the one line the code states about what the route does.
-func ComponentFacts(m archdoc.Model, id string) []Fact {
+func ComponentFacts(m core.Model, id string) []Fact {
 	n, ok := m.Node(id)
 	if !ok {
 		return nil
 	}
 	var out []Fact
-	add := func(text string, p archdoc.Provenance) {
+	add := func(text string, p core.Provenance) {
 		out = append(out, Fact{ID: fmt.Sprintf("F%d", len(out)+1), Text: text, Prov: p})
 	}
 	name := func(id string) string {
@@ -112,7 +112,7 @@ func ComponentFacts(m archdoc.Model, id string) []Fact {
 			add(fmt.Sprintf("… and %d more files", len(n.Files)-maxFiles), n.Prov)
 			break
 		}
-		add("file "+f, archdoc.Provenance{File: f, Line: 1})
+		add("file "+f, core.Provenance{File: f, Line: 1})
 	}
 	for _, e := range m.Edges {
 		if e.From == id && len(e.Prov) > 0 {
@@ -121,7 +121,7 @@ func ComponentFacts(m archdoc.Model, id string) []Fact {
 	}
 	for _, e := range m.Edges {
 		if e.To == id && len(e.Prov) > 0 {
-			if from, ok := m.Node(e.From); ok && from.Kind == archdoc.Component {
+			if from, ok := m.Node(e.From); ok && from.Kind == core.Component {
 				add(fmt.Sprintf("is used by component %q (%d imports)", from.Name, e.Weight), e.Prov[0])
 			}
 		}
@@ -151,7 +151,7 @@ func ComponentFacts(m archdoc.Model, id string) []Fact {
 		files[f] = true
 	}
 	for _, t := range m.Nodes {
-		if t.Kind != archdoc.Table || !files[t.Dir] {
+		if t.Kind != core.Table || !files[t.Dir] {
 			continue
 		}
 		cols := make([]string, 0, len(t.Columns))
@@ -180,9 +180,9 @@ func trivial(facts []Fact) bool {
 
 // legacyFingerprint is a component's fingerprint under the first fact wording — explain-1, routes
 // without their summaries — so answers remembered then can still be found.
-func legacyFingerprint(m archdoc.Model, id string) string {
+func legacyFingerprint(m core.Model, id string) string {
 	plain := m
-	plain.Entries = append([]archdoc.Entry(nil), m.Entries...)
+	plain.Entries = append([]core.Entry(nil), m.Entries...)
 	for i := range plain.Entries {
 		plain.Entries[i].Summary = ""
 	}
@@ -248,21 +248,21 @@ type sentences struct {
 // Explain gives each component its explanation: remembered when its facts are unchanged, asked for
 // when complete is set, left without one otherwise. It returns the model with Explanations set and
 // what it remembered, for the caller to keep.
-func Explain(ctx context.Context, complete Completer, model string, m archdoc.Model, mem Memory) (archdoc.Model, Memory, ExplainReport, error) {
+func Explain(ctx context.Context, complete Completer, model string, m core.Model, mem Memory) (core.Model, Memory, ExplainReport, error) {
 	return ExplainSome(ctx, complete, model, m, mem, "", 0)
 }
 
 // ExplainSome is Explain asking only about components whose ID contains only, and at most limit
 // of them (zero: no limit) — a way to try a few before paying for all. The rest keep whatever
 // was remembered.
-func ExplainSome(ctx context.Context, complete Completer, model string, m archdoc.Model, mem Memory, only string, limit int) (archdoc.Model, Memory, ExplainReport, error) {
+func ExplainSome(ctx context.Context, complete Completer, model string, m core.Model, mem Memory, only string, limit int) (core.Model, Memory, ExplainReport, error) {
 	rep := ExplainReport{Report: Report{Model: model}}
 	next := Memory{}
-	prov := archdoc.Provenance{Origin: archdoc.Semantic, Note: model}
+	prov := core.Provenance{Origin: core.Semantic, Note: model}
 
 	var ids []string
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind == core.Component {
 			ids = append(ids, n.ID)
 		}
 	}
@@ -281,7 +281,7 @@ func ExplainSome(ctx context.Context, complete Completer, model string, m archdo
 		facts := ComponentFacts(m, id)
 		fp := Fingerprint(facts)
 		stale := false
-		var claims []archdoc.Claim
+		var claims []core.Claim
 		if r, ok := mem[fp]; ok {
 			claims = r.Claims
 			rep.Remembered++
@@ -321,21 +321,21 @@ func ExplainSome(ctx context.Context, complete Completer, model string, m archdo
 			continue
 		}
 		next[fp] = Remembered{Element: id, Claims: claims}
-		m.Explanations = append(m.Explanations, archdoc.Explanation{Element: id, Claims: claims, Fingerprint: fp, Stale: stale, Prov: prov})
+		m.Explanations = append(m.Explanations, core.Explanation{Element: id, Claims: claims, Fingerprint: fp, Stale: stale, Prov: prov})
 	}
 	return m, next, rep, nil
 }
 
 // ask puts one component's facts to the model, and keeps the sentences whose citations resolve.
 // answered is false when the reply was empty or not in the agreed shape.
-func ask(ctx context.Context, complete Completer, model string, facts []Fact, rep *ExplainReport) (claims []archdoc.Claim, answered bool, why string, err error) {
+func ask(ctx context.Context, complete Completer, model string, facts []Fact, rep *ExplainReport) (claims []core.Claim, answered bool, why string, err error) {
 	byID := map[string]Fact{}
 	for _, f := range facts {
 		byID[f.ID] = f
 	}
 	turns := []Turn{{Role: "user", Text: factsPrompt(facts)}}
 
-	var kept []archdoc.Claim
+	var kept []core.Claim
 	for attempt := 1; attempt <= Attempts; attempt++ {
 		rep.Attempts++
 		for _, t := range turns {
@@ -385,8 +385,8 @@ func ask(ctx context.Context, complete Completer, model string, facts []Fact, re
 
 // checkClaims is F-36: a sentence must cite at least one fact, every fact it cites must be one it
 // was given, and it must be a sentence, not an essay.
-func checkClaims(a sentences, byID map[string]Fact) ([]archdoc.Claim, []string) {
-	var kept []archdoc.Claim
+func checkClaims(a sentences, byID map[string]Fact) ([]core.Claim, []string) {
+	var kept []core.Claim
 	var problems []string
 	for i, s := range a.Sentences {
 		text := strings.TrimSpace(s.Text)
@@ -403,7 +403,7 @@ func checkClaims(a sentences, byID map[string]Fact) ([]archdoc.Claim, []string) 
 			problems = append(problems, fmt.Sprintf("sentence %d cites no fact: %q", i+1, text))
 			continue
 		}
-		c := archdoc.Claim{Text: text}
+		c := core.Claim{Text: text}
 		bad := ""
 		seen := map[string]bool{}
 		for _, id := range s.Cites {

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/validate"
@@ -16,7 +16,7 @@ const fixture = "../../testdata/rules"
 // regenerate runs the whole pipeline from disk, exactly as `archdoc generate` does. AC-5 is
 // about surviving *regeneration*, so a test that applied rules to a cached model would prove
 // nothing.
-func regenerate(t *testing.T) archdoc.Model {
+func regenerate(t *testing.T) core.Model {
 	t.Helper()
 
 	facts, err := extract.Scan(fixture)
@@ -71,7 +71,7 @@ func TestTenRulesSurviveRegeneration(t *testing.T) {
 			{"1 rename by name", api.Name, "API"},
 			{"2 description", api.Description, "Serves the public HTTP API"},
 			{"3 technology", api.Technology, "Go 1.27"},
-			{"4 reclassify", string(admin.Kind), string(archdoc.Proxy)},
+			{"4 reclassify", string(admin.Kind), string(core.Proxy)},
 			{"5 match on image", db.Description, "Primary relational store"},
 			{"6 match on kind", db.Parent, "persistence"},
 			{"9 match on glob", admin.Technology, "Node.js"},
@@ -116,7 +116,7 @@ func TestCorrectionsCiteTheirLine(t *testing.T) {
 
 	for _, c := range []struct {
 		what string
-		prov archdoc.Provenance
+		prov core.Provenance
 	}{
 		{"description", api.DescProv},
 		{"technology", api.TechProv},
@@ -124,7 +124,7 @@ func TestCorrectionsCiteTheirLine(t *testing.T) {
 		if !c.prov.Known() {
 			t.Errorf("%s has no provenance", c.what)
 		}
-		if c.prov.Origin != archdoc.Rules {
+		if c.prov.Origin != core.Rules {
 			t.Errorf("%s origin is %q, want rules", c.what, c.prov.Origin)
 		}
 		if c.prov.File != Name || c.prov.Line == 0 {
@@ -145,8 +145,8 @@ rules:
 		t.Fatal(err)
 	}
 
-	ops, res := f.Compile(nil, archdoc.Model{
-		Nodes: []archdoc.Node{{ID: "svc:api", Name: "api"}},
+	ops, res := f.Compile(nil, core.Model{
+		Nodes: []core.Node{{ID: "svc:api", Name: "api"}},
 	})
 
 	if len(ops) != 0 {
@@ -177,8 +177,8 @@ rules:
 		t.Fatal(err)
 	}
 
-	m := archdoc.Model{Nodes: []archdoc.Node{
-		{ID: "svc:api", Name: "api", Kind: archdoc.Application},
+	m := core.Model{Nodes: []core.Node{
+		{ID: "svc:api", Name: "api", Kind: core.Application},
 	}}
 
 	ops, res := f.Compile(nil, m)
@@ -266,19 +266,19 @@ func TestRulesMovedIntoArchdocDir(t *testing.T) {
 // Rules for what the code declares (F-33): a component by the container it is in, a route by its
 // method and path — and a rule written for a service does not reach inside one.
 func TestRulesForComponentsAndRoutes(t *testing.T) {
-	p := archdoc.Provenance{File: "x", Line: 1}
-	m := archdoc.Model{
-		Nodes: []archdoc.Node{
-			{ID: "svc:server", Name: "server", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: p},
-			{ID: "svc:redis", Name: "redis", Kind: archdoc.Datastore, Evidence: archdoc.Declared, Prov: p},
-			{ID: "cmp:server/services", Name: "services", Kind: archdoc.Component, Evidence: archdoc.Declared, Parent: "svc:server", Prov: p},
-			{ID: "cmp:server/redis", Name: "redis", Kind: archdoc.Component, Evidence: archdoc.Declared, Parent: "svc:server", Prov: p},
+	p := core.Provenance{File: "x", Line: 1}
+	m := core.Model{
+		Nodes: []core.Node{
+			{ID: "svc:server", Name: "server", Kind: core.Application, Evidence: core.Declared, Prov: p},
+			{ID: "svc:redis", Name: "redis", Kind: core.Datastore, Evidence: core.Declared, Prov: p},
+			{ID: "cmp:server/services", Name: "services", Kind: core.Component, Evidence: core.Declared, Parent: "svc:server", Prov: p},
+			{ID: "cmp:server/redis", Name: "redis", Kind: core.Component, Evidence: core.Declared, Parent: "svc:server", Prov: p},
 		},
-		Entries: []archdoc.Entry{
+		Entries: []core.Entry{
 			{ID: "route:server GET /api/ping", Method: "GET", Path: "/api/ping", Container: "svc:server", Component: "cmp:server/services", Prov: p},
 			{ID: "route:server GET /api/albums", Method: "GET", Path: "/api/albums", Container: "svc:server", Component: "cmp:server/services", Prov: p},
 		},
-		Flows: []archdoc.Flow{{Entry: "route:server GET /api/ping"}},
+		Flows: []core.Flow{{Entry: "route:server GET /api/ping"}},
 	}
 	root := t.TempDir()
 	os.MkdirAll(filepath.Join(root, ".archdoc"), 0o755)
@@ -304,7 +304,7 @@ func TestRulesForComponentsAndRoutes(t *testing.T) {
 	if !applied.OK() {
 		t.Fatalf("%s", applied.Error())
 	}
-	if n, _ := out.Node("cmp:server/services"); n.Description != "The business logic." || n.DescProv.Origin != archdoc.Rules {
+	if n, _ := out.Node("cmp:server/services"); n.Description != "The business logic." || n.DescProv.Origin != core.Rules {
 		t.Errorf("services %+v", n)
 	}
 	if _, ok := out.Node("svc:redis"); ok {
@@ -313,12 +313,12 @@ func TestRulesForComponentsAndRoutes(t *testing.T) {
 	if _, ok := out.Node("cmp:server/redis"); !ok {
 		t.Error("a rule naming the redis service reached the component of the same name")
 	}
-	if len(out.Entries) != 1 || out.Entries[0].Summary != "Lists the albums." || out.Entries[0].SummaryProv.Origin != archdoc.Rules || len(out.Flows) != 0 {
+	if len(out.Entries) != 1 || out.Entries[0].Summary != "Lists the albums." || out.Entries[0].SummaryProv.Origin != core.Rules || len(out.Flows) != 0 {
 		t.Errorf("entries %+v, flows %d", out.Entries, len(out.Flows))
 	}
 
 	// Excluding a container takes with it everything read from its code.
-	gone, res := validate.Apply(m, []archdoc.Op{{Kind: archdoc.Exclude, Target: "svc:server", Origin: archdoc.Rules, Prov: p}})
+	gone, res := validate.Apply(m, []core.Op{{Kind: core.Exclude, Target: "svc:server", Origin: core.Rules, Prov: p}})
 	if !res.OK() || len(gone.Nodes) != 1 || len(gone.Entries) != 0 || len(gone.Flows) != 0 {
 		t.Errorf("after excluding the container: %d nodes, %d entries, %d flows, %s", len(gone.Nodes), len(gone.Entries), len(gone.Flows), res.Error())
 	}

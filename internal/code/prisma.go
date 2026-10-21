@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // A Prisma schema is where a Prisma application declares its tables: a model per table, a line per
@@ -33,8 +33,8 @@ var (
 )
 
 // prismaSchemas reads every *.prisma file under an application's directory.
-func prismaSchemas(repo, dir string) []archdoc.SourceFile {
-	var out []archdoc.SourceFile
+func prismaSchemas(repo, dir string) []core.SourceFile {
+	var out []core.SourceFile
 	filepath.WalkDir(filepath.Join(repo, filepath.FromSlash(dir)), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -54,15 +54,15 @@ func prismaSchemas(repo, dir string) []archdoc.SourceFile {
 		}
 		rel, _ := filepath.Rel(repo, p)
 		rel = filepath.ToSlash(rel)
-		out = append(out, archdoc.SourceFile{Path: rel, Language: "Prisma", Lines: lines(content), Classes: prismaModels(string(content), rel)})
+		out = append(out, core.SourceFile{Path: rel, Language: "Prisma", Lines: lines(content), Classes: prismaModels(string(content), rel)})
 		return nil
 	})
 	return out
 }
 
-func prismaModels(content, file string) []archdoc.Class {
-	var out []archdoc.Class
-	var cur *archdoc.Class
+func prismaModels(content, file string) []core.Class {
+	var out []core.Class
+	var cur *core.Class
 	foreign := map[string]string{} // field → the model its relation points at
 	models := map[string]bool{}
 	for _, line := range strings.Split(content, "\n") {
@@ -87,12 +87,12 @@ func prismaModels(content, file string) []archdoc.Class {
 		if c := strings.Index(line, "//"); c >= 0 {
 			line = strings.TrimSpace(line[:c])
 		}
-		at := archdoc.Provenance{File: file, Line: i + 1}
+		at := core.Provenance{File: file, Line: i + 1}
 		switch {
 		case line == "":
 		case cur == nil:
 			if m := prismaModel.FindStringSubmatch(line); m != nil {
-				cur = &archdoc.Class{Name: m[1], Prov: at, Decorators: []archdoc.Decorator{{Name: "Table", Prov: at}}}
+				cur = &core.Class{Name: m[1], Prov: at, Decorators: []core.Decorator{{Name: "Table", Prov: at}}}
 			}
 		case line == "}":
 			flush()
@@ -125,8 +125,8 @@ func prismaModels(content, file string) []archdoc.Class {
 			if strings.Contains(rest, "@id") {
 				opts["primary"] = "true"
 			}
-			cur.Fields = append(cur.Fields, archdoc.Field{Name: name, Type: typ, Prov: at,
-				Decorators: []archdoc.Decorator{{Name: "Column", Options: opts, Prov: at}}})
+			cur.Fields = append(cur.Fields, core.Field{Name: name, Type: typ, Prov: at,
+				Decorators: []core.Decorator{{Name: "Column", Options: opts, Prov: at}}})
 		}
 	}
 	flush()

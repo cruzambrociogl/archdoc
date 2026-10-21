@@ -4,44 +4,44 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
-func cite(file string, line int) archdoc.Provenance {
-	return archdoc.Provenance{File: file, Line: line}
+func cite(file string, line int) core.Provenance {
+	return core.Provenance{File: file, Line: line}
 }
 
 // Immich's shape: the server is a Compose service built from server/, its code names the
 // machine-learning service in a URL and redis as a host's default, serves routes under a global
 // prefix, and calls one address it computes.
-func immichLike() *archdoc.FactSet {
+func immichLike() *core.FactSet {
 	ctl := "server/src/controllers/album.controller.ts"
 	svc := "server/src/services/album.service.ts"
-	return &archdoc.FactSet{
+	return &core.FactSet{
 		Name: "x", Source: "docker-compose.yml",
-		Services: []archdoc.Service{
-			{Name: "server", Image: "example/server", Evidence: archdoc.Declared, Prov: cite("docker-compose.yml", 2)},
-			{Name: "ml", Image: "example/ml", Evidence: archdoc.Declared, Prov: cite("docker-compose.yml", 5)},
-			{Name: "redis", Image: "redis:7", Evidence: archdoc.Declared, Prov: cite("docker-compose.yml", 8)},
+		Services: []core.Service{
+			{Name: "server", Image: "example/server", Evidence: core.Declared, Prov: cite("docker-compose.yml", 2)},
+			{Name: "ml", Image: "example/ml", Evidence: core.Declared, Prov: cite("docker-compose.yml", 5)},
+			{Name: "redis", Image: "redis:7", Evidence: core.Declared, Prov: cite("docker-compose.yml", 8)},
 		},
-		Apps: []archdoc.App{{Name: "server", Dir: "server", Manifest: "server/package.json", Role: archdoc.RoleService,
+		Apps: []core.App{{Name: "server", Dir: "server", Manifest: "server/package.json", Role: core.RoleService,
 			Language: "TypeScript", Prov: cite("server/package.json", 1),
-			Deployed: &archdoc.Deployment{Service: "server", Prov: cite("docker-compose.yml", 3)}}},
-		Sources: []archdoc.Source{{App: "server", Root: "server/src", Files: []archdoc.SourceFile{
+			Deployed: &core.Deployment{Service: "server", Prov: cite("docker-compose.yml", 3)}}},
+		Sources: []core.Source{{App: "server", Root: "server/src", Files: []core.SourceFile{
 			{Path: "server/src/main.ts", Language: "TypeScript", Lines: 5,
-				Prefix: &archdoc.Literal{Value: "api", Prov: cite("server/src/main.ts", 3)}},
-			{Path: ctl, Language: "TypeScript", Lines: 20, Classes: []archdoc.Class{{
+				Prefix: &core.Literal{Value: "api", Prov: cite("server/src/main.ts", 3)}},
+			{Path: ctl, Language: "TypeScript", Lines: 20, Classes: []core.Class{{
 				Name: "AlbumController", Prov: cite(ctl, 4),
-				Decorators: []archdoc.Decorator{{Name: "Controller", Arg: "albums", HasArg: true, Prov: cite(ctl, 3)}},
-				Injects:    []archdoc.Literal{{Value: "AlbumService", Prov: cite(ctl, 5)}, {Value: "Missing", Prov: cite(ctl, 5)}},
-				Methods: []archdoc.Method{{Name: "getAll", Prov: cite(ctl, 8), Decorators: []archdoc.Decorator{
+				Decorators: []core.Decorator{{Name: "Controller", Arg: "albums", HasArg: true, Prov: cite(ctl, 3)}},
+				Injects:    []core.Literal{{Value: "AlbumService", Prov: cite(ctl, 5)}, {Value: "Missing", Prov: cite(ctl, 5)}},
+				Methods: []core.Method{{Name: "getAll", Prov: cite(ctl, 8), Decorators: []core.Decorator{
 					{Name: "Get", Prov: cite(ctl, 7)},
 					{Name: "Endpoint", Summary: "List all albums", SummaryProv: cite(ctl, 8), Prov: cite(ctl, 8)},
 				}}},
 			}}},
 			{Path: svc, Language: "TypeScript", Lines: 30,
-				Classes: []archdoc.Class{{Name: "AlbumService", Prov: cite(svc, 2)}},
-				Hosts: []archdoc.HostRef{
+				Classes: []core.Class{{Name: "AlbumService", Prov: cite(svc, 2)}},
+				Hosts: []core.HostRef{
 					{Host: "ml", Port: "3003", Scheme: "http", Value: "http://ml:3003", Prov: cite(svc, 10)},
 					{Host: "redis", Value: "redis", Prov: cite(svc, 11)},
 					{Host: "docs.partner.io", Scheme: "https", Value: "https://docs.partner.io", Prov: cite(svc, 12)},
@@ -49,8 +49,8 @@ func immichLike() *archdoc.FactSet {
 					{Host: "tiles.partner.io", Scheme: "https", Value: "https://tiles.partner.io/style.json", Key: "lightStyle", Prov: cite(svc, 14)},
 					{Host: "links.partner.io", Scheme: "https", Value: "https://links.partner.io/", Key: "releaseUrl", Built: true, Prov: cite(svc, 15)},
 				},
-				Imports: []archdoc.Import{{Spec: "nodemailer", Package: "nodemailer", How: archdoc.ByPackage, Prov: cite(svc, 1)}},
-				Calls:   []archdoc.Call{{Callee: "fetch", Target: "new URL('predict', url)", Prov: cite(svc, 20)}}},
+				Imports: []core.Import{{Spec: "nodemailer", Package: "nodemailer", How: core.ByPackage, Prov: cite(svc, 1)}},
+				Calls:   []core.Call{{Callee: "fetch", Target: "new URL('predict', url)", Prov: cite(svc, 20)}}},
 		}}},
 	}
 }
@@ -72,7 +72,7 @@ func TestRoutesFromControllers(t *testing.T) {
 
 func TestEdgesFromTheCode(t *testing.T) {
 	m := Derive(immichLike())
-	edges := map[string]archdoc.Edge{}
+	edges := map[string]core.Edge{}
 	for _, e := range m.Edges {
 		edges[e.From+">"+e.To] = e
 	}
@@ -88,7 +88,7 @@ func TestEdgesFromTheCode(t *testing.T) {
 	if e, ok := edges["svc:server>ext:api.partner.io"]; !ok || e.Label != "calls" {
 		t.Errorf("a URL the code calls: %+v", e)
 	}
-	if n, ok := m.Node("ext:api.partner.io"); !ok || n.Evidence != archdoc.Referenced {
+	if n, ok := m.Node("ext:api.partner.io"); !ok || n.Evidence != core.Referenced {
 		t.Errorf("external %+v", n)
 	}
 	// A URL a configuration key holds is an endpoint; the same in a template file, or built, is a link.
@@ -99,10 +99,10 @@ func TestEdgesFromTheCode(t *testing.T) {
 		t.Error("a link the code builds became a relationship")
 	}
 	// A client library names a system outside: read at the import, looked up in the catalog.
-	if e, ok := edges["svc:server>ext:email-server-smtp"]; !ok || e.Label != "sends email through" || e.LabelProv.Origin != archdoc.Catalog || e.Prov[0].Line != 1 {
+	if e, ok := edges["svc:server>ext:email-server-smtp"]; !ok || e.Label != "sends email through" || e.LabelProv.Origin != core.Catalog || e.Prov[0].Line != 1 {
 		t.Errorf("an SDK's system: %+v", e)
 	}
-	if n, _ := m.Node("ext:email-server-smtp"); n.NameProv.Origin != archdoc.Catalog || n.Evidence != archdoc.Referenced {
+	if n, _ := m.Node("ext:email-server-smtp"); n.NameProv.Origin != core.Catalog || n.Evidence != core.Referenced {
 		t.Errorf("the SMTP server: %+v", n)
 	}
 	if len(m.Unresolved) != 1 || m.Unresolved[0].What != "fetch(new URL('predict', url))" || m.Unresolved[0].Component != "cmp:server/services" {
@@ -114,20 +114,20 @@ func TestEdgesFromTheCode(t *testing.T) {
 // application; a prefix written as a setting is resolved by name.
 func TestFastAPIRoutes(t *testing.T) {
 	items, main, cfg := "api/app/routes/items.py", "api/app/main.py", "api/app/core/config.py"
-	fs := &archdoc.FactSet{Name: "x",
-		Apps: []archdoc.App{{Name: "api", Dir: "api", Manifest: "api/pyproject.toml", Role: archdoc.RoleService, Language: "Python",
+	fs := &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "api", Dir: "api", Manifest: "api/pyproject.toml", Role: core.RoleService, Language: "Python",
 			Prov: cite("api/pyproject.toml", 1)}},
-		Sources: []archdoc.Source{{App: "api", Root: "api/app", Files: []archdoc.SourceFile{
-			{Path: cfg, Language: "Python", Lines: 5, Classes: []archdoc.Class{{Name: "Settings",
-				Fields: []archdoc.Field{{Name: "API_V1_STR", Type: "str", Value: "/api/v1", Prov: cite(cfg, 3)}}}}},
+		Sources: []core.Source{{App: "api", Root: "api/app", Files: []core.SourceFile{
+			{Path: cfg, Language: "Python", Lines: 5, Classes: []core.Class{{Name: "Settings",
+				Fields: []core.Field{{Name: "API_V1_STR", Type: "str", Value: "/api/v1", Prov: cite(cfg, 3)}}}}},
 			{Path: items, Language: "Python", Lines: 9,
-				Routers: []archdoc.Router{{Var: "router", Kind: "APIRouter", Prefix: "/items", Prov: cite(items, 1)}},
-				Classes: []archdoc.Class{{Methods: []archdoc.Method{{Name: "read_item", Doc: "Get item by ID", DocProv: cite(items, 5), Prov: cite(items, 4),
-					Decorators: []archdoc.Decorator{{Name: "router.get", Arg: "/{id}", HasArg: true, Prov: cite(items, 3)}}}}}}},
+				Routers: []core.Router{{Var: "router", Kind: "APIRouter", Prefix: "/items", Prov: cite(items, 1)}},
+				Classes: []core.Class{{Methods: []core.Method{{Name: "read_item", Doc: "Get item by ID", DocProv: cite(items, 5), Prov: cite(items, 4),
+					Decorators: []core.Decorator{{Name: "router.get", Arg: "/{id}", HasArg: true, Prov: cite(items, 3)}}}}}}},
 			{Path: main, Language: "Python", Lines: 7,
-				Imports: []archdoc.Import{{Spec: "app.routes.items", Target: items, How: archdoc.ByModule}},
-				Routers: []archdoc.Router{{Var: "api_router", Kind: "APIRouter"}, {Var: "app", Kind: "FastAPI"}},
-				Includes: []archdoc.Include{
+				Imports: []core.Import{{Spec: "app.routes.items", Target: items, How: core.ByModule}},
+				Routers: []core.Router{{Var: "api_router", Kind: "APIRouter"}, {Var: "app", Kind: "FastAPI"}},
+				Includes: []core.Include{
 					{Parent: "api_router", Child: "items.router", Prov: cite(main, 3)},
 					{Parent: "app", Child: "api_router", PrefixExpr: "settings.API_V1_STR", Prov: cite(main, 7)},
 				}},
@@ -149,18 +149,18 @@ func TestFastAPIRoutes(t *testing.T) {
 // Pages where their framework declares them: SvelteKit by file, groups dropped; a +server.ts
 // by its exported methods; TanStack Router by createFileRoute, layouts dropped.
 func TestPages(t *testing.T) {
-	fs := &archdoc.FactSet{Name: "x",
-		Apps: []archdoc.App{{Name: "web", Dir: "web", Manifest: "web/package.json", Role: archdoc.RoleWeb, Prov: cite("web/package.json", 1)}},
-		Sources: []archdoc.Source{{App: "web", Root: "web/src", Files: []archdoc.SourceFile{
+	fs := &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "web", Dir: "web", Manifest: "web/package.json", Role: core.RoleWeb, Prov: cite("web/package.json", 1)}},
+		Sources: []core.Source{{App: "web", Root: "web/src", Files: []core.SourceFile{
 			{Path: "web/src/routes/+page.svelte", Language: "Svelte", Lines: 3},
 			{Path: "web/src/routes/(user)/albums/[albumId=id]/+page.svelte", Language: "Svelte", Lines: 3},
 			{Path: "web/src/routes/api/health/+server.ts", Language: "TypeScript", Lines: 3,
-				Exports: []archdoc.Literal{{Value: "GET", Prov: cite("web/src/routes/api/health/+server.ts", 2)}, {Value: "helper"}}},
+				Exports: []core.Literal{{Value: "GET", Prov: cite("web/src/routes/api/health/+server.ts", 2)}, {Value: "helper"}}},
 			{Path: "web/src/lib/items.tsx", Language: "TSX", Lines: 3,
-				Pages: []archdoc.Literal{{Value: "/_layout/items", Prov: cite("web/src/lib/items.tsx", 4)}}},
+				Pages: []core.Literal{{Value: "/_layout/items", Prov: cite("web/src/lib/items.tsx", 4)}}},
 		}}},
 	}
-	ids := map[string]archdoc.Entry{}
+	ids := map[string]core.Entry{}
 	for _, e := range Derive(fs).Entries {
 		ids[e.ID] = e
 	}
@@ -180,18 +180,18 @@ func TestPages(t *testing.T) {
 // Express declares routes as FastAPI does — a verb on a router, the router included under a prefix.
 func TestExpressRoutes(t *testing.T) {
 	api, main := "srv/src/api.js", "srv/src/index.js"
-	route := func(file, dec, arg, handler string, line int) archdoc.Method {
-		return archdoc.Method{Name: handler, Prov: cite(file, line), Decorators: []archdoc.Decorator{{Name: dec, Arg: arg, HasArg: true, Prov: cite(file, line)}}}
+	route := func(file, dec, arg, handler string, line int) core.Method {
+		return core.Method{Name: handler, Prov: cite(file, line), Decorators: []core.Decorator{{Name: dec, Arg: arg, HasArg: true, Prov: cite(file, line)}}}
 	}
-	fs := &archdoc.FactSet{Name: "x",
-		Apps: []archdoc.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: archdoc.RoleService, Prov: cite("srv/package.json", 1)}},
-		Sources: []archdoc.Source{{App: "srv", Root: "srv/src", Files: []archdoc.SourceFile{
-			{Path: api, Language: "JavaScript", Lines: 9, Routers: []archdoc.Router{{Var: "router", Kind: "Router"}},
-				Classes: []archdoc.Class{{Methods: []archdoc.Method{route(api, "router.get", "/users/:id", "getUser", 4), route(api, "cache.get", "/not-a-route", "x", 6)}}}},
-			{Path: main, Language: "JavaScript", Lines: 9, Routers: []archdoc.Router{{Var: "app", Kind: "express"}},
-				Imports:  []archdoc.Import{{Spec: "./api", Target: api, How: archdoc.ByPath}},
-				Includes: []archdoc.Include{{Parent: "app", Child: "router", Prefix: "/api", Prov: cite(main, 5)}},
-				Classes:  []archdoc.Class{{Methods: []archdoc.Method{route(main, "app.get", "/health", "handler", 7)}}}},
+	fs := &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: core.RoleService, Prov: cite("srv/package.json", 1)}},
+		Sources: []core.Source{{App: "srv", Root: "srv/src", Files: []core.SourceFile{
+			{Path: api, Language: "JavaScript", Lines: 9, Routers: []core.Router{{Var: "router", Kind: "Router"}},
+				Classes: []core.Class{{Methods: []core.Method{route(api, "router.get", "/users/:id", "getUser", 4), route(api, "cache.get", "/not-a-route", "x", 6)}}}},
+			{Path: main, Language: "JavaScript", Lines: 9, Routers: []core.Router{{Var: "app", Kind: "express"}},
+				Imports:  []core.Import{{Spec: "./api", Target: api, How: core.ByPath}},
+				Includes: []core.Include{{Parent: "app", Child: "router", Prefix: "/api", Prov: cite(main, 5)}},
+				Classes:  []core.Class{{Methods: []core.Method{route(main, "app.get", "/health", "handler", 7)}}}},
 		}}},
 	}
 	ids := map[string]bool{}
@@ -205,15 +205,15 @@ func TestExpressRoutes(t *testing.T) {
 
 // Next.js pages: app/ by page and route files, pages/ by file; React Router by the paths it is given.
 func TestNextAndReactRouterPages(t *testing.T) {
-	fs := &archdoc.FactSet{Name: "x",
-		Apps: []archdoc.App{{Name: "web", Dir: "web", Manifest: "web/package.json", Role: archdoc.RoleWeb, Prov: cite("web/package.json", 1)}},
-		Sources: []archdoc.Source{{App: "web", Root: "web/src", Framework: "Next.js", Files: []archdoc.SourceFile{
+	fs := &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "web", Dir: "web", Manifest: "web/package.json", Role: core.RoleWeb, Prov: cite("web/package.json", 1)}},
+		Sources: []core.Source{{App: "web", Root: "web/src", Framework: "Next.js", Files: []core.SourceFile{
 			{Path: "web/src/app/(shop)/items/[id]/page.tsx", Language: "TSX", Lines: 3},
-			{Path: "web/src/app/api/items/route.ts", Language: "TypeScript", Lines: 3, Exports: []archdoc.Literal{{Value: "POST", Prov: cite("web/src/app/api/items/route.ts", 2)}}},
+			{Path: "web/src/app/api/items/route.ts", Language: "TypeScript", Lines: 3, Exports: []core.Literal{{Value: "POST", Prov: cite("web/src/app/api/items/route.ts", 2)}}},
 			{Path: "web/src/pages/about.tsx", Language: "TSX", Lines: 3},
 			{Path: "web/src/pages/_app.tsx", Language: "TSX", Lines: 3},
 			{Path: "web/src/pages/api/ping.ts", Language: "TypeScript", Lines: 3},
-			{Path: "web/src/router.tsx", Language: "TSX", Lines: 3, Pages: []archdoc.Literal{{Value: "/albums/:id", Prov: cite("web/src/router.tsx", 5)}}},
+			{Path: "web/src/router.tsx", Language: "TSX", Lines: 3, Pages: []core.Literal{{Value: "/albums/:id", Prov: cite("web/src/router.tsx", 5)}}},
 		}}},
 	}
 	ids := map[string]bool{}
@@ -233,21 +233,21 @@ func TestNextAndReactRouterPages(t *testing.T) {
 // The other ways in: a command a class or a builder declares, a job on a queue named by an enum.
 func TestCommandsAndJobs(t *testing.T) {
 	cmd, svc, cli := "srv/src/commands/reset.ts", "srv/src/services/asset.service.ts", "srv/src/cli.ts"
-	fs := &archdoc.FactSet{Name: "x",
-		Apps: []archdoc.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: archdoc.RoleService, Prov: cite("srv/package.json", 1)}},
-		Sources: []archdoc.Source{{App: "srv", Root: "srv/src", Files: []archdoc.SourceFile{
-			{Path: cmd, Language: "TypeScript", Lines: 9, Classes: []archdoc.Class{{Name: "ResetCommand", Prov: cite(cmd, 5),
-				Decorators: []archdoc.Decorator{{Name: "Command", Options: map[string]string{"name": "reset-password", "description": "Reset the admin password"}, Prov: cite(cmd, 4)}}}}},
+	fs := &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: core.RoleService, Prov: cite("srv/package.json", 1)}},
+		Sources: []core.Source{{App: "srv", Root: "srv/src", Files: []core.SourceFile{
+			{Path: cmd, Language: "TypeScript", Lines: 9, Classes: []core.Class{{Name: "ResetCommand", Prov: cite(cmd, 5),
+				Decorators: []core.Decorator{{Name: "Command", Options: map[string]string{"name": "reset-password", "description": "Reset the admin password"}, Prov: cite(cmd, 4)}}}}},
 			{Path: svc, Language: "TypeScript", Lines: 9,
-				Constants: []archdoc.Constant{{Name: "JobName.AssetDelete", Value: "AssetDelete", Prov: cite(svc, 1)}},
-				Classes: []archdoc.Class{{Name: "AssetService", Methods: []archdoc.Method{{Name: "handleDelete", Prov: cite(svc, 6), EndLine: 8,
-					Decorators: []archdoc.Decorator{{Name: "OnJob", Exprs: map[string]string{"name": "JobName.AssetDelete"}, Prov: cite(svc, 5)}},
-					Queries:    []archdoc.Query{{Table: "asset", Op: "deletes", Prov: cite(svc, 7)}}}}}}},
-			{Path: cli, Language: "TypeScript", Lines: 9, Commands: []archdoc.Command{{Name: "upload", Summary: "Upload assets", Prov: cite(cli, 3)}}},
+				Constants: []core.Constant{{Name: "JobName.AssetDelete", Value: "AssetDelete", Prov: cite(svc, 1)}},
+				Classes: []core.Class{{Name: "AssetService", Methods: []core.Method{{Name: "handleDelete", Prov: cite(svc, 6), EndLine: 8,
+					Decorators: []core.Decorator{{Name: "OnJob", Exprs: map[string]string{"name": "JobName.AssetDelete"}, Prov: cite(svc, 5)}},
+					Queries:    []core.Query{{Table: "asset", Op: "deletes", Prov: cite(svc, 7)}}}}}}},
+			{Path: cli, Language: "TypeScript", Lines: 9, Commands: []core.Command{{Name: "upload", Summary: "Upload assets", Prov: cite(cli, 3)}}},
 		}}},
 	}
 	m := Derive(fs)
-	got := map[string]archdoc.Entry{}
+	got := map[string]core.Entry{}
 	for _, e := range m.Entries {
 		got[e.ID] = e
 	}
@@ -268,8 +268,8 @@ func TestCommandsAndJobs(t *testing.T) {
 // A field of a record among many is not a setting, and the top-level domains reserved for examples
 // name no real system.
 func TestRowsAndReservedNamesAreNotEndpoints(t *testing.T) {
-	f := archdoc.SourceFile{Path: "src/config.ts", Language: "TypeScript"}
-	setting := archdoc.HostRef{Host: "api.io", Scheme: "https", Key: "url"}
+	f := core.SourceFile{Path: "src/config.ts", Language: "TypeScript"}
+	setting := core.HostRef{Host: "api.io", Scheme: "https", Key: "url"}
 	if !configured(setting, f) {
 		t.Error("a URL a url key holds is configured")
 	}

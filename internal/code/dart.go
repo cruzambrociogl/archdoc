@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Dart is read for its files and imports — what components and their uses are made of. A Dart
@@ -49,32 +49,32 @@ type dartResolver struct {
 	known map[string]bool
 }
 
-func (r *dartResolver) resolve(file string, imp rawImport) []archdoc.Import {
-	out := archdoc.Import{Spec: imp.spec}
+func (r *dartResolver) resolve(file string, imp rawImport) []core.Import {
+	out := core.Import{Spec: imp.spec}
 	switch {
 	case strings.HasPrefix(imp.spec, "dart:"):
-		out.How, out.Package = archdoc.ByPackage, imp.spec
+		out.How, out.Package = core.ByPackage, imp.spec
 	case strings.HasPrefix(imp.spec, "package:"):
 		pkg, rest, _ := strings.Cut(strings.TrimPrefix(imp.spec, "package:"), "/")
 		if pkg != r.name {
-			out.How, out.Package = archdoc.ByPackage, pkg
+			out.How, out.Package = core.ByPackage, pkg
 			break
 		}
-		out.How = archdoc.NoMatch
+		out.How = core.NoMatch
 		if t := path.Join(r.lib, rest); r.known[t] {
-			out.Target, out.How = t, archdoc.ByAlias
+			out.Target, out.How = t, core.ByAlias
 		} else if generated(rest) {
 			return nil // a generated file: the build's, not read
 		}
 	default:
-		out.How = archdoc.NoMatch
+		out.How = core.NoMatch
 		if t := path.Clean(path.Join(path.Dir(file), imp.spec)); r.known[t] {
-			out.Target, out.How = t, archdoc.ByPath
+			out.Target, out.How = t, core.ByPath
 		} else if generated(imp.spec) {
 			return nil
 		}
 	}
-	return []archdoc.Import{out}
+	return []core.Import{out}
 }
 
 func generated(spec string) bool {

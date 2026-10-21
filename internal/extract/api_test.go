@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 const openapiDoc = `{
@@ -42,7 +42,7 @@ func TestAPIDocumentsAndTheirClients(t *testing.T) {
 	if op := apis[0].Operations[0]; op.Method != "GET" || op.Path != "/albums" {
 		t.Errorf("first operation %+v — they are sorted by path, then method", op)
 	}
-	clients := map[string]archdoc.APIClient{}
+	clients := map[string]core.APIClient{}
 	for _, c := range apis[0].Clients {
 		clients[c.App] = c
 	}
@@ -66,10 +66,10 @@ func TestAToolOthersDependOnIsALibrary(t *testing.T) {
 		"e2e/package.json":          `{"name": "e2e", "devDependencies": {"@x/cli": "workspace:*", "vitest": "^3"}}`,
 	})
 	apps := byDir(Apps(root))
-	if a := apps["packages/cli"]; a.Role != archdoc.RoleCLI {
+	if a := apps["packages/cli"]; a.Role != core.RoleCLI {
 		t.Errorf("the cli is %s — a test suite depending on it does not make it a library", a.Role)
 	}
-	if a := apps["packages/kit"]; a.Role != archdoc.RoleLibrary || !strings.Contains(a.Why, "server/package.json") {
+	if a := apps["packages/kit"]; a.Role != core.RoleLibrary || !strings.Contains(a.Why, "server/package.json") {
 		t.Errorf("the kit is %s: %s", a.Role, a.Why)
 	}
 }
@@ -78,12 +78,12 @@ func TestAToolOthersDependOnIsALibrary(t *testing.T) {
 // loads. One with a manifest that describes something running is left to that manifest.
 func TestAProjectWithNoManifest(t *testing.T) {
 	script := Apps(tree(t, map[string]string{"report.py": "print(1)\n", "helpers/io.py": "x = 1\n", "tests/test_report.py": "import report\n"}))
-	if len(script) != 1 || !script[0].Loose || script[0].Role != archdoc.RoleCLI || script[0].Language != "Python" ||
+	if len(script) != 1 || !script[0].Loose || script[0].Role != core.RoleCLI || script[0].Language != "Python" ||
 		script[0].Manifest != "report.py" || script[0].Prov.Line != 1 || !strings.Contains(script[0].Why, "2 Python file") {
 		t.Errorf("a folder of scripts: %+v", script)
 	}
 	page := Apps(tree(t, map[string]string{"index.html": "<html></html>\n", "about.html": "<html></html>\n", "js/app.js": "fetch('/x')\n"}))
-	if len(page) != 1 || !page[0].Loose || page[0].Role != archdoc.RoleWeb || page[0].Manifest != "index.html" {
+	if len(page) != 1 || !page[0].Loose || page[0].Role != core.RoleWeb || page[0].Manifest != "index.html" {
 		t.Errorf("a page and its script: %+v", page)
 	}
 	if got := Apps(tree(t, map[string]string{"package.json": `{"name": "x", "dependencies": {"react": "^19"}}`, "tool.py": "print(1)\n"})); len(got) != 1 || got[0].Loose {

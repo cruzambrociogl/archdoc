@@ -31,8 +31,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/arrange"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
@@ -217,9 +217,9 @@ func (s *Server) summary(w http.ResponseWriter, r *http.Request) {
 		case n.Kind.Container():
 			counts["containers"]++
 			kinds = append(kinds, string(n.Kind))
-		case n.Kind == archdoc.Component:
+		case n.Kind == core.Component:
 			counts["components"]++
-		case n.Kind == archdoc.Table:
+		case n.Kind == core.Table:
 			counts["tables"]++
 		}
 	}
@@ -308,17 +308,17 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 		"version": v.ID, "view": name, "model": view, "layout": l,
 		// The containers that have a component view, so a container can say it opens and the
 		// component level can offer the others.
-		"components": opens(v.Model, archdoc.Component, v.Model.Components()),
+		"components": opens(v.Model, core.Component, v.Model.Components()),
 		// The containers whose code declares tables: they open onto a data view.
-		"data": opens(v.Model, archdoc.Table, v.Model.Datas()),
+		"data": opens(v.Model, core.Table, v.Model.Datas()),
 		// A project of one small application has no containers level worth a tab of its own.
 		"tiny": render.Tiny(v.Model),
 		// The system's containers by stage, from who puts data in to where it is kept.
 		"dataflow": render.HasDataFlow(v.Model),
 		// The containers with more components than a diagram shows, which open on their main ones.
-		"main": opens(v.Model, archdoc.Component, render.Mains(v.Model)),
+		"main": opens(v.Model, core.Component, render.Mains(v.Model)),
 		// The containers whose components are features, and so have a by-folder view as well.
-		"structure": opens(v.Model, archdoc.Module, v.Model.Structures()),
+		"structure": opens(v.Model, core.Module, v.Model.Structures()),
 		// How many containers the system box opens onto, in the context view.
 		"containers": containers(v.Model),
 		// What the code does that could not be tied to an element, for the boxes it leaves from.
@@ -346,9 +346,9 @@ func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
 // laidOut resolves the requested version and view at the layout it is drawn at: the stored one
 // when it is current, computed only when missing or from an older engine — then arranged as a
 // person placed it in layout.yaml.
-func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model, archdoc.Layout, arrange.Report, string, error) {
-	none := func(err error) (*store.Version, string, archdoc.Model, archdoc.Layout, arrange.Report, string, error) {
-		return nil, "", archdoc.Model{}, archdoc.Layout{}, arrange.Report{}, "", err
+func (s *Server) laidOut(r *http.Request) (*store.Version, string, core.Model, core.Layout, arrange.Report, string, error) {
+	none := func(err error) (*store.Version, string, core.Model, core.Layout, arrange.Report, string, error) {
+		return nil, "", core.Model{}, core.Layout{}, arrange.Report{}, "", err
 	}
 	v, err := s.version(r, "version")
 	if err != nil {
@@ -375,16 +375,16 @@ func (s *Server) laidOut(r *http.Request) (*store.Version, string, archdoc.Model
 var errNoView = errors.New("no such view")
 
 // engineLayout is a version's view at the engine's own layout: the stored one when current.
-func engineLayout(ctx context.Context, v *store.Version, name string) (archdoc.Model, archdoc.Layout, error) {
+func engineLayout(ctx context.Context, v *store.Version, name string) (core.Model, core.Layout, error) {
 	view, ok := render.ViewOf(v.Model, name)
 	if !ok {
-		return archdoc.Model{}, archdoc.Layout{}, fmt.Errorf("%w: %q in version %d", errNoView, name, v.ID)
+		return core.Model{}, core.Layout{}, fmt.Errorf("%w: %q in version %d", errNoView, name, v.ID)
 	}
 	l, ok := v.Layouts[name]
 	if !ok || l.Version != render.LayoutVersion || !render.Places(l, view.Model) {
 		var err error
 		if l, err = render.Layout(ctx, view.Model, view.Group); err != nil {
-			return archdoc.Model{}, archdoc.Layout{}, err
+			return core.Model{}, core.Layout{}, err
 		}
 	}
 	return view.Model, l, nil
@@ -397,7 +397,7 @@ type opening struct {
 	Components int    `json:"components"`
 }
 
-func opens(m archdoc.Model, kind archdoc.Kind, containers []string) []opening {
+func opens(m core.Model, kind core.Kind, containers []string) []opening {
 	count := map[string]int{}
 	for _, n := range m.Nodes {
 		if n.Kind == kind {
@@ -412,7 +412,7 @@ func opens(m archdoc.Model, kind archdoc.Kind, containers []string) []opening {
 	return out
 }
 
-func containers(m archdoc.Model) int {
+func containers(m core.Model) int {
 	n := 0
 	for _, x := range m.Nodes {
 		if x.Kind.Container() {
@@ -422,9 +422,9 @@ func containers(m archdoc.Model) int {
 	return n
 }
 
-func unresolvedOrEmpty(m archdoc.Model) []archdoc.Unresolved {
+func unresolvedOrEmpty(m core.Model) []core.Unresolved {
 	if m.Unresolved == nil {
-		return []archdoc.Unresolved{}
+		return []core.Unresolved{}
 	}
 	return m.Unresolved
 }

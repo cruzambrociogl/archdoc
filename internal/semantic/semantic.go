@@ -23,7 +23,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
 
@@ -82,7 +82,7 @@ type Report struct {
 	BytesSent int // every byte of every prompt, so egress is accounted for rather than assumed
 	Ops       int
 	// Accepted are the operations the validator let through — what the run is remembered by.
-	Accepted []archdoc.Op
+	Accepted []core.Op
 
 	// Tokens across every attempt, including the ones the validator sent back. A retry is
 	// billed like any other request, so it is counted like one.
@@ -95,7 +95,7 @@ type Report struct {
 //
 // On success every changed value carries Origin: Semantic, which is what PRV-05 renders as
 // interpretation. On failure the original model comes back untouched — never a partial one.
-func Label(ctx context.Context, complete Completer, model string, m archdoc.Model) (archdoc.Model, Report, error) {
+func Label(ctx context.Context, complete Completer, model string, m core.Model) (core.Model, Report, error) {
 	rep := Report{Model: model}
 
 	prompt, err := describe(m)
@@ -197,10 +197,10 @@ type relationship struct {
 	Technology string `json:"technology,omitempty"`
 }
 
-func describe(m archdoc.Model) (string, error) {
+func describe(m core.Model) (string, error) {
 	p := payload{System: m.Name}
 	// The system itself, so it can be given the one line its box carries in the context view.
-	p.Elements = append(p.Elements, element{ID: archdoc.SystemID, Name: m.Name, Kind: string(archdoc.System), Description: m.Description})
+	p.Elements = append(p.Elements, element{ID: core.SystemID, Name: m.Name, Kind: string(core.System), Description: m.Description})
 
 	// Components are not sent: the semantic layer works at the container level, and describing a
 	// component needs its code in the prompt (F-19), not a directory's name.
@@ -243,8 +243,8 @@ func describe(m archdoc.Model) (string, error) {
 
 // allowed is the whole vocabulary the model may use. The schema enumerates it, so a structural
 // operation cannot even be expressed — and AllowedFrom would reject it if it somehow were.
-var allowed = []archdoc.OpKind{
-	archdoc.SetName, archdoc.SetDescription, archdoc.SetTechnology, archdoc.SetEdgeLabel,
+var allowed = []core.OpKind{
+	core.SetName, core.SetDescription, core.SetTechnology, core.SetEdgeLabel,
 }
 
 // Schema is the strict JSON schema the answer must match.
@@ -286,7 +286,7 @@ type answer struct {
 	} `json:"operations"`
 }
 
-func decode(text, model string) ([]archdoc.Op, error) {
+func decode(text, model string) ([]core.Op, error) {
 	var a answer
 	if err := json.Unmarshal([]byte(strings.TrimSpace(text)), &a); err != nil {
 		return nil, err
@@ -295,13 +295,13 @@ func decode(text, model string) ([]archdoc.Op, error) {
 	// Every value the model supplies cites the model. The note names which one, so a reader
 	// knows what produced it; it deliberately omits a per-request id, which would make every
 	// labelled run a new version in history even when nothing about the architecture moved.
-	prov := archdoc.Provenance{Origin: archdoc.Semantic, Note: model}
+	prov := core.Provenance{Origin: core.Semantic, Note: model}
 
-	ops := make([]archdoc.Op, 0, len(a.Operations))
+	ops := make([]core.Op, 0, len(a.Operations))
 	for _, o := range a.Operations {
-		ops = append(ops, archdoc.Op{
-			Kind: archdoc.OpKind(o.Kind), Target: o.Target, To: o.To, Value: o.Value,
-			Origin: archdoc.Semantic, Prov: prov,
+		ops = append(ops, core.Op{
+			Kind: core.OpKind(o.Kind), Target: o.Target, To: o.To, Value: o.Value,
+			Origin: core.Semantic, Prov: prov,
 		})
 	}
 	return ops, nil

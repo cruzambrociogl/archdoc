@@ -3,7 +3,7 @@ package render
 import (
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // A document set proportionate to the repository it describes.
@@ -27,7 +27,7 @@ import (
 // direction.
 
 // PlanFor returns the sections to emit for this model, in arc42 order.
-func PlanFor(m archdoc.Model, facts archdoc.FactSet) []Section {
+func PlanFor(m core.Model, facts core.FactSet) []Section {
 	if Tiny(m) {
 		return nil // one page says all of it: see onePage
 	}
@@ -37,7 +37,7 @@ func PlanFor(m archdoc.Model, facts archdoc.FactSet) []Section {
 	// web front end has that arrow, and it says nothing about how much there is to document.
 	related := false
 	for _, e := range view.Edges {
-		if from, ok := view.Node(e.From); ok && from.Kind != archdoc.Actor {
+		if from, ok := view.Node(e.From); ok && from.Kind != core.Actor {
 			related = true
 		}
 	}
@@ -69,7 +69,7 @@ const tinyFiles = 30
 // service some Compose file runs — nothing deployed beside it, and a few files of code. It gets one
 // page; the chapters appear when it grows into them. Decided from the model alone, so the app
 // asks the same question of a stored version.
-func Tiny(m archdoc.Model) bool {
+func Tiny(m core.Model) bool {
 	containers, files := 0, 0
 	for _, n := range m.Nodes {
 		switch {
@@ -78,7 +78,7 @@ func Tiny(m archdoc.Model) bool {
 			if !strings.HasPrefix(n.ID, "app:") {
 				return false
 			}
-		case n.Kind == archdoc.Component:
+		case n.Kind == core.Component:
 			files += len(n.Files)
 		}
 	}
@@ -95,7 +95,7 @@ func Planned(plan []Section, number int) bool {
 	return false
 }
 
-func published(facts archdoc.FactSet) bool {
+func published(facts core.FactSet) bool {
 	for _, s := range facts.Services {
 		if len(s.Ports) > 0 {
 			return true

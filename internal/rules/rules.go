@@ -20,7 +20,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
 
@@ -170,9 +170,9 @@ func Parse(content []byte, rel string) (*File, error) {
 // It needs the FactSet as well as the model because a rule may match on image, and the image is
 // a fact about a container rather than a property of the C4 element derived from it. Passing
 // both keeps `Node` free of a field that exists only for matching.
-func (f *File) Compile(facts *archdoc.FactSet, m archdoc.Model) ([]archdoc.Op, validate.Result) {
+func (f *File) Compile(facts *core.FactSet, m core.Model) ([]core.Op, validate.Result) {
 	var (
-		ops []archdoc.Op
+		ops []core.Op
 		res validate.Result
 	)
 
@@ -190,7 +190,7 @@ func (f *File) Compile(facts *archdoc.FactSet, m archdoc.Model) ([]archdoc.Op, v
 
 	for _, r := range f.Rules {
 		id := fmt.Sprintf("%s:%d", f.Path, r.Line)
-		prov := archdoc.Provenance{Origin: archdoc.Rules, File: f.Path, Line: r.Line}
+		prov := core.Provenance{Origin: core.Rules, File: f.Path, Line: r.Line}
 
 		if r.Edge != nil {
 			ops = append(ops, f.edgeOps(r, prov)...)
@@ -205,7 +205,7 @@ func (f *File) Compile(facts *archdoc.FactSet, m archdoc.Model) ([]archdoc.Op, v
 				}
 				matched++
 				if r.Exclude {
-					ops = append(ops, archdoc.Op{Kind: archdoc.ExcludeEntry, Target: e.ID, Origin: archdoc.Rules, Prov: prov})
+					ops = append(ops, core.Op{Kind: core.ExcludeEntry, Target: e.ID, Origin: core.Rules, Prov: prov})
 					continue
 				}
 				for _, field := range sortedKeys(r.Set) {
@@ -213,7 +213,7 @@ func (f *File) Compile(facts *archdoc.FactSet, m archdoc.Model) ([]archdoc.Op, v
 						res.Add("RUL-01", validate.Error, id, fmt.Sprintf("a route takes only a summary, not %q", field), prov)
 						continue
 					}
-					ops = append(ops, archdoc.Op{Kind: archdoc.SetSummary, Target: e.ID, Value: r.Set[field], Origin: archdoc.Rules, Prov: prov})
+					ops = append(ops, core.Op{Kind: core.SetSummary, Target: e.ID, Value: r.Set[field], Origin: core.Rules, Prov: prov})
 				}
 			}
 			if matched == 0 {
@@ -238,9 +238,9 @@ func (f *File) Compile(facts *archdoc.FactSet, m archdoc.Model) ([]archdoc.Op, v
 
 		for _, target := range targets {
 			if r.Exclude {
-				ops = append(ops, archdoc.Op{
-					Kind: archdoc.Exclude, Target: target,
-					Origin: archdoc.Rules, Prov: prov,
+				ops = append(ops, core.Op{
+					Kind: core.Exclude, Target: target,
+					Origin: core.Rules, Prov: prov,
 				})
 			}
 
@@ -260,9 +260,9 @@ func (f *File) Compile(facts *archdoc.FactSet, m archdoc.Model) ([]archdoc.Op, v
 				}
 				claimed[key] = claim{id, r.Set[field]}
 
-				ops = append(ops, archdoc.Op{
+				ops = append(ops, core.Op{
 					Kind: kind, Target: target, Value: r.Set[field],
-					Origin: archdoc.Rules, Prov: prov,
+					Origin: core.Rules, Prov: prov,
 				})
 			}
 		}
@@ -272,11 +272,11 @@ func (f *File) Compile(facts *archdoc.FactSet, m archdoc.Model) ([]archdoc.Op, v
 	return ops, res
 }
 
-func (f *File) edgeOps(r Rule, prov archdoc.Provenance) []archdoc.Op {
+func (f *File) edgeOps(r Rule, prov core.Provenance) []core.Op {
 	if r.Remove {
-		return []archdoc.Op{{
-			Kind: archdoc.RemoveEdge, Target: "svc:" + r.Edge.From, To: "svc:" + r.Edge.To,
-			Origin: archdoc.Rules, Prov: prov,
+		return []core.Op{{
+			Kind: core.RemoveEdge, Target: "svc:" + r.Edge.From, To: "svc:" + r.Edge.To,
+			Origin: core.Rules, Prov: prov,
 		}}
 	}
 
@@ -288,14 +288,14 @@ func (f *File) edgeOps(r Rule, prov archdoc.Provenance) []archdoc.Op {
 	// An edge a person asserts is an addition, not a relabelling: rules are the answer to
 	// "extraction cannot see this relationship", which O-4 and the Immich result both showed
 	// is the common case.
-	return []archdoc.Op{{
-		Kind: archdoc.AddEdge, Target: "svc:" + r.Edge.From, To: "svc:" + r.Edge.To,
-		Value: label, Origin: archdoc.Rules, Prov: prov,
+	return []core.Op{{
+		Kind: core.AddEdge, Target: "svc:" + r.Edge.From, To: "svc:" + r.Edge.To,
+		Value: label, Origin: core.Rules, Prov: prov,
 	}}
 }
 
 // match returns the node IDs a matcher selects, in model order so the result is deterministic.
-func (f *File) match(m Match, model archdoc.Model, images map[string]string) []string {
+func (f *File) match(m Match, model core.Model, images map[string]string) []string {
 	var out []string
 
 	names := map[string]string{}
@@ -341,18 +341,18 @@ func glob(pattern, value string) bool {
 
 // opFor maps a rules.yaml field onto the operation vocabulary. Rules and the semantic layer
 // speak the same language; only their permissions differ.
-func opFor(field string) (archdoc.OpKind, bool) {
+func opFor(field string) (core.OpKind, bool) {
 	switch field {
 	case "name":
-		return archdoc.SetName, true
+		return core.SetName, true
 	case "description":
-		return archdoc.SetDescription, true
+		return core.SetDescription, true
 	case "technology":
-		return archdoc.SetTechnology, true
+		return core.SetTechnology, true
 	case "kind":
-		return archdoc.SetKind, true
+		return core.SetKind, true
 	case "group":
-		return archdoc.Group, true
+		return core.Group, true
 	default:
 		return "", false
 	}

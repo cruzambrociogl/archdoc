@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Who calls whose API (F-08), where a repository says so in a file: an OpenAPI document.
@@ -25,17 +25,17 @@ func samePath(p string) string {
 	return strings.TrimSuffix(pathParam.ReplaceAllString(p, "{}"), "/")
 }
 
-func apiCalls(m *archdoc.Model, f *archdoc.FactSet) {
+func apiCalls(m *core.Model, f *core.FactSet) {
 	if len(f.APIs) == 0 {
 		return
 	}
 	containerOf := map[string]string{} // application directory → its container
 	for _, n := range m.Nodes {
-		if n.Dir != "" && n.Kind == archdoc.Application {
+		if n.Dir != "" && n.Kind == core.Application {
 			containerOf[n.Dir] = n.ID
 		}
 	}
-	appAt := map[string]archdoc.App{}
+	appAt := map[string]core.App{}
 	for _, a := range f.Apps {
 		appAt[a.Dir] = a
 	}
@@ -57,7 +57,7 @@ func apiCalls(m *archdoc.Model, f *archdoc.FactSet) {
 		imports[src.App] = map[string]bool{}
 		for _, file := range src.Files {
 			for _, i := range file.Imports {
-				if i.How == archdoc.ByPackage {
+				if i.How == core.ByPackage {
 					imports[src.App][i.Spec] = true
 					if scope, rest, ok := strings.Cut(i.Spec, "/"); ok && strings.HasPrefix(scope, "@") {
 						pkg, _, _ := strings.Cut(rest, "/")
@@ -108,12 +108,12 @@ func apiCalls(m *archdoc.Model, f *archdoc.FactSet) {
 			}
 			type caller struct {
 				id   string
-				prov []archdoc.Provenance
+				prov []core.Provenance
 				via  string
 			}
 			var callers []caller
 			if id, isContainer := containerOf[holder.Dir]; isContainer {
-				callers = append(callers, caller{id, []archdoc.Provenance{c.Prov}, c.How})
+				callers = append(callers, caller{id, []core.Provenance{c.Prov}, c.How})
 			} else {
 				// A package of its own: whoever depends on it, to run, calls through it.
 				for _, a := range f.Apps {
@@ -125,7 +125,7 @@ func apiCalls(m *archdoc.Model, f *archdoc.FactSet) {
 						// A development dependency counts only where the code imports it: a tool
 						// that is bundled lists what it ships with under devDependencies.
 						if r.Name == holder.Name && (!r.Dev || imports[a.Dir][holder.Name]) {
-							callers = append(callers, caller{id, []archdoc.Provenance{r.Prov, c.Prov},
+							callers = append(callers, caller{id, []core.Provenance{r.Prov, c.Prov},
 								"through " + holder.Name + ", which it depends on — " + c.How})
 						}
 					}
@@ -139,7 +139,7 @@ func apiCalls(m *archdoc.Model, f *archdoc.FactSet) {
 				drawn[from.id+"\x00"+provider] = true
 				prov := append(from.prov, api.Prov)
 				prov[0].Note = from.via + "; " + describes
-				m.Edges = append(m.Edges, archdoc.Edge{From: from.id, To: provider, Label: "calls the API of",
+				m.Edges = append(m.Edges, core.Edge{From: from.id, To: provider, Label: "calls the API of",
 					Technology: "http", Traffic: true, Prov: prov})
 			}
 		}
@@ -147,22 +147,22 @@ func apiCalls(m *archdoc.Model, f *archdoc.FactSet) {
 }
 
 // firstPage is where a container's code first declares a page, in entry order.
-func firstPage(m *archdoc.Model, container string) (archdoc.Provenance, bool) {
+func firstPage(m *core.Model, container string) (core.Provenance, bool) {
 	for _, e := range m.Entries {
 		if e.Container == container && e.Kind == "page" {
 			return e.Prov, true
 		}
 	}
-	return archdoc.Provenance{}, false
+	return core.Provenance{}, false
 }
 
 // people ties the person to the applications a person runs (F-08): a web front end, a mobile app,
 // a command-line tool. What makes an application one of those is a line in its manifest — the
 // framework it depends on, the command it declares — and that line is what the arrow cites.
-func people(m *archdoc.Model, f *archdoc.FactSet) {
+func people(m *core.Model, f *core.FactSet) {
 	containerOf := map[string]string{}
 	for _, n := range m.Nodes {
-		if n.Dir != "" && n.Kind == archdoc.Application {
+		if n.Dir != "" && n.Kind == core.Application {
 			containerOf[n.Dir] = n.ID
 		}
 	}
@@ -183,11 +183,11 @@ func people(m *archdoc.Model, f *archdoc.FactSet) {
 		}
 		var label, why string
 		switch a.Role {
-		case archdoc.RoleWeb:
+		case core.RoleWeb:
 			label, why = "uses", "a web front end is what a person opens"
-		case archdoc.RoleMobile:
+		case core.RoleMobile:
 			label, why = "uses", "a mobile app is what a person opens"
-		case archdoc.RoleCLI:
+		case core.RoleCLI:
 			label, why = "runs", "a command-line tool is what a person runs"
 		default:
 			// A service that serves pages — Razor Pages, an MVC view — is a site: what a person opens.
@@ -195,10 +195,10 @@ func people(m *archdoc.Model, f *archdoc.FactSet) {
 				p.Note = "it serves pages, and a page is what a person opens — " + a.Why
 				if !hasActor {
 					hasActor = true
-					m.Nodes = append(m.Nodes, archdoc.Node{ID: actorID, Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: p})
+					m.Nodes = append(m.Nodes, core.Node{ID: actorID, Name: "User", Kind: core.Actor, Evidence: core.Declared, Prov: p})
 				}
 				reached[id] = true
-				m.Edges = append(m.Edges, archdoc.Edge{From: actorID, To: id, Label: "uses", Traffic: true, Prov: []archdoc.Provenance{p}})
+				m.Edges = append(m.Edges, core.Edge{From: actorID, To: id, Label: "uses", Traffic: true, Prov: []core.Provenance{p}})
 			}
 			continue
 		}
@@ -209,9 +209,9 @@ func people(m *archdoc.Model, f *archdoc.FactSet) {
 		prov.Note = why + " — " + a.Why
 		if !hasActor {
 			hasActor = true
-			m.Nodes = append(m.Nodes, archdoc.Node{ID: actorID, Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: prov})
+			m.Nodes = append(m.Nodes, core.Node{ID: actorID, Name: "User", Kind: core.Actor, Evidence: core.Declared, Prov: prov})
 		}
 		reached[id] = true
-		m.Edges = append(m.Edges, archdoc.Edge{From: actorID, To: id, Label: label, Traffic: true, Prov: []archdoc.Provenance{prov}})
+		m.Edges = append(m.Edges, core.Edge{From: actorID, To: id, Label: label, Traffic: true, Prov: []core.Provenance{prov}})
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // SQL migrations are where an application that declares no tables in its code — no ORM classes, no
@@ -51,13 +51,13 @@ type sqlColumn struct {
 	name, typ         string
 	nullable, primary bool
 	references        string // the table it points at, as written
-	at                archdoc.Provenance
+	at                core.Provenance
 }
 
 type sqlTable struct {
 	name    string
 	columns []*sqlColumn
-	at      archdoc.Provenance
+	at      core.Provenance
 	lines   int // of the file that creates it
 }
 
@@ -72,7 +72,7 @@ func (t *sqlTable) column(name string) *sqlColumn {
 
 // sqlSchemas folds every *.sql file under an application's directory, in path order — which is
 // the order migration tools apply them in — into the tables they leave.
-func sqlSchemas(repo, dir string) []archdoc.SourceFile {
+func sqlSchemas(repo, dir string) []core.SourceFile {
 	var tables []*sqlTable // in the order created
 	find := func(name string) (int, *sqlTable) {
 		for i, t := range tables {
@@ -106,11 +106,11 @@ func sqlSchemas(repo, dir string) []archdoc.SourceFile {
 			text = text[:loc[0]]
 		}
 		for _, st := range sqlStatements(text) {
-			at := func(offset int) archdoc.Provenance {
+			at := func(offset int) core.Provenance {
 				for offset < len(st.text) && strings.ContainsRune(" \t\r\n", rune(st.text[offset])) {
 					offset++ // an item starts at its first word, not at the comma before it
 				}
-				return archdoc.Provenance{File: rel, Line: st.line + strings.Count(st.text[:offset], "\n")}
+				return core.Provenance{File: rel, Line: st.line + strings.Count(st.text[:offset], "\n")}
 			}
 			switch {
 			case sqlCreate.MatchString(st.text):
@@ -153,11 +153,11 @@ func sqlSchemas(repo, dir string) []archdoc.SourceFile {
 	})
 
 	// One file per file that creates a table still standing, in the order first met.
-	var out []archdoc.SourceFile
+	var out []core.SourceFile
 	index := map[string]int{}
 	for _, t := range tables {
-		c := archdoc.Class{Name: t.name, Prov: t.at,
-			Decorators: []archdoc.Decorator{{Name: "Table", Arg: t.name, HasArg: true, Prov: t.at}}}
+		c := core.Class{Name: t.name, Prov: t.at,
+			Decorators: []core.Decorator{{Name: "Table", Arg: t.name, HasArg: true, Prov: t.at}}}
 		for _, col := range t.columns {
 			opts := map[string]string{"type": col.typ}
 			if col.nullable {
@@ -166,17 +166,17 @@ func sqlSchemas(repo, dir string) []archdoc.SourceFile {
 			if col.primary {
 				opts["primary"] = "true"
 			}
-			d := archdoc.Decorator{Name: "Column", Options: opts, Prov: col.at}
+			d := core.Decorator{Name: "Column", Options: opts, Prov: col.at}
 			if _, to := find(col.references); to != nil {
 				d.Target = to.name
 			}
-			c.Fields = append(c.Fields, archdoc.Field{Name: col.name, Prov: col.at, Decorators: []archdoc.Decorator{d}})
+			c.Fields = append(c.Fields, core.Field{Name: col.name, Prov: col.at, Decorators: []core.Decorator{d}})
 		}
 		i, seen := index[t.at.File]
 		if !seen {
 			i = len(out)
 			index[t.at.File] = i
-			out = append(out, archdoc.SourceFile{Path: t.at.File, Language: "SQL", Lines: t.lines})
+			out = append(out, core.SourceFile{Path: t.at.File, Language: "SQL", Lines: t.lines})
 		}
 		out[i].Classes = append(out[i].Classes, c)
 	}
@@ -184,7 +184,7 @@ func sqlSchemas(repo, dir string) []archdoc.SourceFile {
 }
 
 // sqlDefine reads one item of a CREATE TABLE's list: a column, or a constraint on columns.
-func sqlDefine(t *sqlTable, item string, at archdoc.Provenance) {
+func sqlDefine(t *sqlTable, item string, at core.Provenance) {
 	item = strings.Join(strings.Fields(item), " ")
 	item = sqlConstraint.ReplaceAllString(item, "")
 	switch {
@@ -232,7 +232,7 @@ func sqlDefine(t *sqlTable, item string, at archdoc.Provenance) {
 }
 
 // sqlChange applies one action of an ALTER TABLE.
-func sqlChange(t *sqlTable, action string, at archdoc.Provenance) {
+func sqlChange(t *sqlTable, action string, at core.Provenance) {
 	action = strings.TrimSpace(action)
 	upper := strings.ToUpper(action)
 	switch {

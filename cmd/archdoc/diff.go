@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/rules"
@@ -37,7 +37,7 @@ func diff(e env, args []string) error {
 		return err
 	}
 	to := "the working tree"
-	var after archdoc.Model
+	var after core.Model
 	if len(positional) == 3 {
 		to = positional[2]
 		after, err = modelAt(root, to)
@@ -112,7 +112,7 @@ type changeRow struct {
 // changeSummary says what changed the way a reader would, and the way the app's Overview says it:
 // the system's own elements one by one, by name; the parts inside a container counted under it;
 // uses between parts and ways in counted; rewording kept apart and marked as such.
-func changeSummary(d model.Diff, before, after archdoc.Model) []changeRow {
+func changeSummary(d model.Diff, before, after core.Model) []changeRow {
 	name := func(id string) string {
 		if n, ok := after.Node(id); ok {
 			return n.Name
@@ -139,7 +139,7 @@ func changeSummary(d model.Diff, before, after archdoc.Model) []changeRow {
 			rows = append(rows, changeRow{"→", m.Is + " crossed the system boundary", false})
 		}
 	}
-	counted := func(nodes []archdoc.Node, verb, mark string) {
+	counted := func(nodes []core.Node, verb, mark string) {
 		byParent := map[string][]string{}
 		var parents []string
 		for _, n := range nodes {
@@ -224,10 +224,10 @@ func plural(n int, one, many string) string {
 }
 
 // modelAt is the model of a repository as it was at a revision.
-func modelAt(root, rev string) (archdoc.Model, error) {
+func modelAt(root, rev string) (core.Model, error) {
 	dir, remove, err := store.Tree(root, rev)
 	if err != nil {
-		return archdoc.Model{}, err
+		return core.Model{}, err
 	}
 	defer remove()
 	m, err := modelOf(dir)
@@ -239,20 +239,20 @@ func modelAt(root, rev string) (archdoc.Model, error) {
 
 // modelOf is the model generate would write for a directory: extracted, corrected by its rules,
 // validated. No model is asked, and nothing is written.
-func modelOf(root string) (archdoc.Model, error) {
+func modelOf(root string) (core.Model, error) {
 	facts, err := extract.Scan(root)
 	if err != nil {
-		return archdoc.Model{}, err
+		return core.Model{}, err
 	}
 	if facts.Source == "" && !hasContainerApp(facts.Apps) {
-		return archdoc.Model{}, fmt.Errorf("nothing to document: no Compose file, no application manifest, and no Python, JavaScript or HTML files")
+		return core.Model{}, fmt.Errorf("nothing to document: no Compose file, no application manifest, and no Python, JavaScript or HTML files")
 	}
 	return corrected(facts)
 }
 
 // corrected is the model of what extraction found, with the repository's rules applied and
 // validated: what generate would write before any model is asked.
-func corrected(facts *archdoc.FactSet) (archdoc.Model, error) {
+func corrected(facts *core.FactSet) (core.Model, error) {
 	m := model.Derive(facts)
 	rf, err := rules.Load(facts.Root)
 	if err != nil {

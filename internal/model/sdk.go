@@ -3,7 +3,7 @@ package model
 import (
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // What a well-known client library says about the world outside (F-08): code that imports
@@ -187,12 +187,12 @@ var starterCatalog = map[string]sdk{
 }
 
 // starters adds the external systems a Java module's starters name.
-func starters(m *archdoc.Model, f *archdoc.FactSet) {
+func starters(m *core.Model, f *core.FactSet) {
 	containerOf := map[string]string{}
 	has := map[string]bool{}
 	for _, n := range m.Nodes {
 		has[n.ID] = true
-		if n.Dir != "" && n.Kind == archdoc.Application {
+		if n.Dir != "" && n.Kind == core.Application {
 			containerOf[n.Dir] = n.ID
 		}
 	}
@@ -208,26 +208,26 @@ func starters(m *archdoc.Model, f *archdoc.FactSet) {
 				continue
 			}
 			id := externalID(strings.ToLower(strings.NewReplacer(" ", "-", "(", "", ")", "").Replace(s.system)))
-			lookup := archdoc.Provenance{Origin: archdoc.Catalog, Note: "starter: " + artifact}
+			lookup := core.Provenance{Origin: core.Catalog, Note: "starter: " + artifact}
 			if !has[id] {
 				has[id] = true
-				m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: s.system, NameProv: lookup, Kind: archdoc.External,
-					Evidence: archdoc.Referenced, Prov: r.Prov})
+				m.Nodes = append(m.Nodes, core.Node{ID: id, Name: s.system, NameProv: lookup, Kind: core.External,
+					Evidence: core.Referenced, Prov: r.Prov})
 			}
-			m.Edges = append(m.Edges, archdoc.Edge{From: container, To: id, Label: s.label, LabelProv: lookup,
-				Traffic: true, Prov: []archdoc.Provenance{r.Prov}})
+			m.Edges = append(m.Edges, core.Edge{From: container, To: id, Label: s.label, LabelProv: lookup,
+				Traffic: true, Prov: []core.Provenance{r.Prov}})
 		}
 	}
 }
 
 // sdks adds the external systems a container's imports name, and its relationship to each.
-func sdks(m *archdoc.Model, src archdoc.Source, container string, has map[string]bool) {
-	cited := map[string][]archdoc.Provenance{} // system → the imports that name it
+func sdks(m *core.Model, src core.Source, container string, has map[string]bool) {
+	cited := map[string][]core.Provenance{} // system → the imports that name it
 	labels := map[string]sdk{}
 	from := map[string]string{} // system → the package that named it first
 	for _, f := range src.Files {
 		for _, imp := range f.Imports {
-			if imp.How != archdoc.ByPackage {
+			if imp.How != core.ByPackage {
 				continue
 			}
 			s, ok := lookupSDK(imp.Package)
@@ -244,13 +244,13 @@ func sdks(m *archdoc.Model, src archdoc.Source, container string, has map[string
 	}
 	for _, system := range sortedKeys(cited) {
 		id := externalID(strings.ToLower(strings.NewReplacer(" ", "-", "(", "", ")", "").Replace(system)))
-		lookup := archdoc.Provenance{Origin: archdoc.Catalog, Note: "library: " + from[system]}
+		lookup := core.Provenance{Origin: core.Catalog, Note: "library: " + from[system]}
 		if !has[id] {
 			has[id] = true
-			m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: system, NameProv: lookup, Kind: archdoc.External,
-				Evidence: archdoc.Referenced, Prov: cited[system][0]})
+			m.Nodes = append(m.Nodes, core.Node{ID: id, Name: system, NameProv: lookup, Kind: core.External,
+				Evidence: core.Referenced, Prov: cited[system][0]})
 		}
-		m.Edges = append(m.Edges, archdoc.Edge{From: container, To: id, Label: labels[system].label, LabelProv: lookup,
+		m.Edges = append(m.Edges, core.Edge{From: container, To: id, Label: labels[system].label, LabelProv: lookup,
 			Traffic: true, Prov: cited[system]})
 	}
 }

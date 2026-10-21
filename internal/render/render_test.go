@@ -4,28 +4,28 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
-func at(line int) archdoc.Provenance {
-	return archdoc.Provenance{File: "docker-compose.yml", Line: line}
+func at(line int) core.Provenance {
+	return core.Provenance{File: "docker-compose.yml", Line: line}
 }
 
-func fixture() archdoc.Model {
-	return archdoc.Model{
+func fixture() core.Model {
+	return core.Model{
 		Name:   "example",
 		Source: "docker-compose.yml",
-		Nodes: []archdoc.Node{
-			{ID: "actor:user", Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: at(5)},
-			{ID: "svc:api", Name: "api", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at(10)},
-			{ID: "svc:db", Name: "db", Kind: archdoc.Datastore, Technology: "PostgreSQL 16", Evidence: archdoc.Declared, Prov: at(20)},
-			{ID: "svc:gateway", Name: "gateway", Kind: archdoc.Proxy, Technology: "nginx 1.27", Evidence: archdoc.Declared, Prov: at(3)},
-			{ID: "ext:s3.amazonaws.com", Name: "s3.amazonaws.com", Kind: archdoc.External, Evidence: archdoc.Referenced, Prov: at(15)},
+		Nodes: []core.Node{
+			{ID: "actor:user", Name: "User", Kind: core.Actor, Evidence: core.Declared, Prov: at(5)},
+			{ID: "svc:api", Name: "api", Kind: core.Application, Evidence: core.Declared, Prov: at(10)},
+			{ID: "svc:db", Name: "db", Kind: core.Datastore, Technology: "PostgreSQL 16", Evidence: core.Declared, Prov: at(20)},
+			{ID: "svc:gateway", Name: "gateway", Kind: core.Proxy, Technology: "nginx 1.27", Evidence: core.Declared, Prov: at(3)},
+			{ID: "ext:s3.amazonaws.com", Name: "s3.amazonaws.com", Kind: core.External, Evidence: core.Referenced, Prov: at(15)},
 		},
-		Edges: []archdoc.Edge{
-			{From: "actor:user", To: "svc:api", Label: "reaches", Traffic: true, Prov: []archdoc.Provenance{at(5)}},
-			{From: "svc:api", To: "svc:db", Label: "connects to", Technology: "postgres", Traffic: true, Prov: []archdoc.Provenance{at(12), at(13)}},
-			{From: "svc:api", To: "ext:s3.amazonaws.com", Label: "connects to", Technology: "https", Traffic: true, Prov: []archdoc.Provenance{at(15)}},
+		Edges: []core.Edge{
+			{From: "actor:user", To: "svc:api", Label: "reaches", Traffic: true, Prov: []core.Provenance{at(5)}},
+			{From: "svc:api", To: "svc:db", Label: "connects to", Technology: "postgres", Traffic: true, Prov: []core.Provenance{at(12), at(13)}},
+			{From: "svc:api", To: "ext:s3.amazonaws.com", Label: "connects to", Technology: "https", Traffic: true, Prov: []core.Provenance{at(15)}},
 		},
 	}.Normalise()
 }

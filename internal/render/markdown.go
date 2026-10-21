@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Document is the primary human deliverable: the diagrams, and the evidence for every element
@@ -12,7 +12,7 @@ import (
 //
 // Both views go in one file. They are the same model at two distances, and a reader comparing
 // them should not have to open two tabs.
-func Document(m archdoc.Model) string {
+func Document(m core.Model) string {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "# %s — architecture\n\n", m.Name)
@@ -60,7 +60,7 @@ func figure(meta Meta, title, svg, mermaid string) string {
 
 // folded says, under a context or container figure the overview cut, what it left out and where
 // every element is: the element table below, or the section given.
-func folded(view archdoc.Model, in *Section) string {
+func folded(view core.Model, in *Section) string {
 	if view.Folded == 0 {
 		return ""
 	}
@@ -73,7 +73,7 @@ func folded(view archdoc.Model, in *Section) string {
 }
 
 // elementTable is the answer to "how do you know?" for every box on the diagram.
-func elementTable(m archdoc.Model) string {
+func elementTable(m core.Model) string {
 	var b strings.Builder
 
 	b.WriteString("### Elements\n\n")
@@ -96,7 +96,7 @@ func elementTable(m archdoc.Model) string {
 // relationshipTable does the same for every arrow. An edge may cite more than one line: the
 // same relationship declared twice, or an edge bridged through infrastructure the container
 // view excludes.
-func relationshipTable(m archdoc.Model) string {
+func relationshipTable(m core.Model) string {
 	var b strings.Builder
 
 	b.WriteString("### Relationships\n\n")
@@ -131,7 +131,7 @@ func relationshipTable(m archdoc.Model) string {
 // A network is the one reachability claim configuration makes outright: two containers sharing
 // no network cannot reach each other. Compose's own `internal: true` goes further and says the
 // network has no route out at all. Both are declared, so both can be cited.
-func networkTable(full, view archdoc.Model) string {
+func networkTable(full, view core.Model) string {
 	if len(full.Networks) == 0 {
 		return ""
 	}
@@ -168,13 +168,13 @@ func networkTable(full, view archdoc.Model) string {
 // A diagram that silently drops elements is not traceable in the direction that matters most: a
 // reader who knows the system will look for the gateway and needs to be told it was a decision
 // rather than a miss.
-func excluded(full, view archdoc.Model) string {
+func excluded(full, view core.Model) string {
 	shown := map[string]bool{}
 	for _, n := range view.Nodes {
 		shown[n.ID] = true
 	}
 
-	var missing []archdoc.Node
+	var missing []core.Node
 	for _, n := range full.Nodes {
 		// A component or a table is inside a container, not left out of the view beside it.
 		if !shown[n.ID] && !n.Kind.Part() {
@@ -205,25 +205,25 @@ func excluded(full, view archdoc.Model) string {
 	return b.String()
 }
 
-func typeName(k archdoc.Kind) string {
+func typeName(k core.Kind) string {
 	switch k {
-	case archdoc.Actor:
+	case core.Actor:
 		return "Person"
-	case archdoc.External:
+	case core.External:
 		return "External system"
-	case archdoc.System:
+	case core.System:
 		return "Software system"
-	case archdoc.Datastore:
+	case core.Datastore:
 		return "Container (data store)"
-	case archdoc.Queue:
+	case core.Queue:
 		return "Container (queue)"
-	case archdoc.Proxy:
+	case core.Proxy:
 		return "Infrastructure"
-	case archdoc.Component:
+	case core.Component:
 		return "Component"
-	case archdoc.Table:
+	case core.Table:
 		return "Table"
-	case archdoc.Module:
+	case core.Module:
 		return "Folder"
 	default:
 		return "Container"
@@ -236,7 +236,7 @@ func typeName(k archdoc.Kind) string {
 // catalog, and what it is *for* can only have come from a person or the model. Showing one
 // provenance for all three would credit a file with things it never said — and PRV-05 needs the
 // reader to be able to tell interpretation from reading at a glance.
-func cited(value string, prov archdoc.Provenance) string {
+func cited(value string, prov core.Provenance) string {
 	if value == "" {
 		return "—"
 	}

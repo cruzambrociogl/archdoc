@@ -8,7 +8,7 @@
 //
 // These types propagate into model.json, which is a committed deliverable, so their shape is
 // close to permanent. See docs/decisions.md, 2026-08-26.
-package archdoc
+package core
 
 import "runtime/debug"
 

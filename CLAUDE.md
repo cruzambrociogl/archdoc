@@ -108,7 +108,7 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 
 | Package | Seam |
 |---|---|
-| `internal/archdoc` | Core types, and the view projections over them |
+| `internal/core` | Core types, and the view projections over them. Named `internal/archdoc` until 21 Oct; the public root package is `archdoc` |
 | `internal/extract` | Discovery, and every file archdoc reads |
 | `internal/code` | Source code: parsing (tree-sitter, seven grammars) and imports, called by extract; SQL migrations, Prisma schemas and Java/.NET settings files, read by line |
 | `internal/model` | Facts → graph |

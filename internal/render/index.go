@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Index is the landing page: both diagrams, and a link to every section with its state.
@@ -29,7 +29,7 @@ type State map[string]bool // file name → existed before this run
 
 // Index lists the sections in plan — the ones this repository has evidence for (see plan.go) —
 // and the coverage report. Pass Sections() to list all twelve.
-func Index(m archdoc.Model, plan []Section, meta Meta) string {
+func Index(m core.Model, plan []Section, meta Meta) string {
 	if len(plan) == 0 {
 		return onePage(m, meta)
 	}
@@ -146,20 +146,20 @@ func omittedSections(plan []Section) []string {
 // onePage is the whole documentation of a small project (vision D-13): what it is, what it does,
 // what it reaches and what it is made of, each line cited — and nothing to fill in. It is what a
 // person who did not write the code reads first, so it is written top down and in plain words.
-func onePage(m archdoc.Model, meta Meta) string {
+func onePage(m core.Model, meta Meta) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# %s\n\n", m.Name)
 	b.WriteString(meta.stamp())
 
-	var app archdoc.Node
-	var parts, outside []archdoc.Node
+	var app core.Node
+	var parts, outside []core.Node
 	for _, n := range m.Nodes {
 		switch {
 		case n.Kind.Container():
 			app = n
-		case n.Kind == archdoc.Component:
+		case n.Kind == core.Component:
 			parts = append(parts, n)
-		case n.Kind == archdoc.External:
+		case n.Kind == core.External:
 			outside = append(outside, n)
 		}
 	}
@@ -214,7 +214,7 @@ func onePage(m archdoc.Model, meta Meta) string {
 	reached := 0
 	for _, e := range m.Edges {
 		to, ok := m.Node(e.To)
-		if !ok || to.Kind != archdoc.External || len(e.Prov) == 0 {
+		if !ok || to.Kind != core.External || len(e.Prov) == 0 {
 			continue
 		}
 		reached++
@@ -240,7 +240,7 @@ func onePage(m archdoc.Model, meta Meta) string {
 
 	if len(parts) > 0 {
 		b.WriteString("\n## What it is made of\n\n")
-		said := map[string]archdoc.Explanation{}
+		said := map[string]core.Explanation{}
 		for _, x := range m.Explanations {
 			if !x.Stale && len(x.Claims) > 0 {
 				said[x.Element] = x

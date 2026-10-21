@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Java and C#: what their frameworks declare, read from the annotations and attributes the readers
@@ -30,7 +30,7 @@ var requestMethod = regexp.MustCompile(`RequestMethod\.([A-Z]+)`)
 var aspnetVerbs = map[string]string{"HttpGet": "GET", "HttpPost": "POST", "HttpPut": "PUT", "HttpDelete": "DELETE",
 	"HttpPatch": "PATCH", "HttpHead": "HEAD", "HttpOptions": "OPTIONS"}
 
-func has(c archdoc.Class, names ...string) (archdoc.Decorator, bool) {
+func has(c core.Class, names ...string) (core.Decorator, bool) {
 	for _, d := range c.Decorators {
 		for _, n := range names {
 			if d.Name == n {
@@ -38,11 +38,11 @@ func has(c archdoc.Class, names ...string) (archdoc.Decorator, bool) {
 			}
 		}
 	}
-	return archdoc.Decorator{}, false
+	return core.Decorator{}, false
 }
 
 // mappingPath is the path a Spring mapping annotation states: its value, or path.
-func mappingPath(d archdoc.Decorator) string {
+func mappingPath(d core.Decorator) string {
 	if d.HasArg {
 		return d.Arg
 	}
@@ -53,8 +53,8 @@ func mappingPath(d archdoc.Decorator) string {
 }
 
 // controllerRoutes reads the routes of Spring and ASP.NET controllers.
-func controllerRoutes(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
-	declaredAt := map[string]archdoc.Provenance{}
+func controllerRoutes(src core.Source, container string, componentOf map[string]string) []core.Entry {
+	declaredAt := map[string]core.Provenance{}
 	twice := map[string]bool{}
 	for _, f := range src.Files {
 		for _, c := range f.Classes {
@@ -68,7 +68,7 @@ func controllerRoutes(src archdoc.Source, container string, componentOf map[stri
 		}
 	}
 	_, local, _ := strings.Cut(container, ":")
-	var out []archdoc.Entry
+	var out []core.Entry
 	seen := map[string]bool{}
 	for _, f := range src.Files {
 		java, csharp := f.Language == "Java", f.Language == "C#"
@@ -94,9 +94,9 @@ func controllerRoutes(src archdoc.Source, container string, componentOf map[stri
 			if !ok {
 				continue
 			}
-			var uses []archdoc.Symbol
+			var uses []core.Symbol
 			for _, in := range c.Injects {
-				s := archdoc.Symbol{Name: in.Value, How: "unresolved", Prov: in.Prov}
+				s := core.Symbol{Name: in.Value, How: "unresolved", Prov: in.Prov}
 				if at, ok := declaredAt[in.Value]; ok && !twice[in.Value] {
 					s.How, s.Prov, s.Component = "name", at, componentOf[at.File]
 				}
@@ -123,7 +123,7 @@ func controllerRoutes(src archdoc.Source, container string, componentOf map[stri
 					if csharp {
 						p = strings.ReplaceAll(p, "[action]", strings.TrimSuffix(meth.Name, "Async"))
 					}
-					e := archdoc.Entry{Kind: "http", Method: r.verb, Path: p, Handler: c.Name + "." + meth.Name, Container: container,
+					e := core.Entry{Kind: "http", Method: r.verb, Path: p, Handler: c.Name + "." + meth.Name, Container: container,
 						Component: componentOf[f.Path], Uses: uses, Prov: r.prov}
 					e.Summary, e.SummaryProv = summaryOf(meth)
 					e.ID = "route:" + local + " " + e.Method + " " + e.Path
@@ -146,11 +146,11 @@ func controllerRoutes(src archdoc.Source, container string, componentOf map[stri
 type methodRoute struct {
 	verb, path string
 	absolute   bool
-	prov       archdoc.Provenance
+	prov       core.Provenance
 }
 
 // methodRoutes are the routes one controller method declares.
-func methodRoutes(m archdoc.Method, java bool) []methodRoute {
+func methodRoutes(m core.Method, java bool) []methodRoute {
 	var out []methodRoute
 	if java {
 		for _, d := range m.Decorators {
@@ -194,7 +194,7 @@ func methodRoutes(m archdoc.Method, java bool) []methodRoute {
 
 // summaryOf is the description a route's own annotation gives it: OpenAPI's @Operation(summary = …),
 // Swashbuckle's [SwaggerOperation(Summary = …)], or [EndpointSummary("…")].
-func summaryOf(m archdoc.Method) (string, archdoc.Provenance) {
+func summaryOf(m core.Method) (string, core.Provenance) {
 	for _, d := range m.Decorators {
 		switch {
 		case d.Name == "Operation" && d.Options["summary"] != "":
@@ -207,10 +207,10 @@ func summaryOf(m archdoc.Method) (string, archdoc.Provenance) {
 			return d.Arg, d.Prov
 		}
 	}
-	return "", archdoc.Provenance{}
+	return "", core.Provenance{}
 }
 
-func decoratedMethod(m archdoc.Method, names ...string) (archdoc.Decorator, bool) {
+func decoratedMethod(m core.Method, names ...string) (core.Decorator, bool) {
 	for _, d := range m.Decorators {
 		for _, n := range names {
 			if d.Name == n {
@@ -218,7 +218,7 @@ func decoratedMethod(m archdoc.Method, names ...string) (archdoc.Decorator, bool
 			}
 		}
 	}
-	return archdoc.Decorator{}, false
+	return core.Decorator{}, false
 }
 
 func containsAny(list []string, names ...string) bool {
@@ -234,11 +234,11 @@ func containsAny(list []string, names ...string) bool {
 
 // inherited is a class's fields with its superclasses' first; a redeclared field replaces the one it
 // hides.
-func inherited(c archdoc.Class, classes map[string]archdoc.Class) []archdoc.Field {
-	var fields []archdoc.Field
+func inherited(c core.Class, classes map[string]core.Class) []core.Field {
+	var fields []core.Field
 	at := map[string]int{}
-	var collect func(c archdoc.Class, depth int)
-	collect = func(c archdoc.Class, depth int) {
+	var collect func(c core.Class, depth int)
+	collect = func(c core.Class, depth int) {
 		if depth > 8 {
 			return
 		}
@@ -260,7 +260,7 @@ func inherited(c archdoc.Class, classes map[string]archdoc.Class) []archdoc.Fiel
 	return fields
 }
 
-func decorated(f archdoc.Field, names ...string) (archdoc.Decorator, bool) {
+func decorated(f core.Field, names ...string) (core.Decorator, bool) {
 	for _, d := range f.Decorators {
 		for _, n := range names {
 			if d.Name == n {
@@ -268,7 +268,7 @@ func decorated(f archdoc.Field, names ...string) (archdoc.Decorator, bool) {
 			}
 		}
 	}
-	return archdoc.Decorator{}, false
+	return core.Decorator{}, false
 }
 
 // Java's primitive types: a column of one is never null.
@@ -278,13 +278,13 @@ var javaPrimitives = map[string]bool{"int": true, "long": true, "boolean": true,
 // javaColumns are a JPA entity's columns: every field but a transient one and the inverse side of a
 // relation. A relation it owns — @ManyToOne, @OneToOne without mappedBy — is a foreign key column,
 // named by its @JoinColumn or after the field.
-func javaColumns(c archdoc.Class, classes map[string]archdoc.Class, byClass map[string]string) []archdoc.Column {
-	var out []archdoc.Column
+func javaColumns(c core.Class, classes map[string]core.Class, byClass map[string]string) []core.Column {
+	var out []core.Column
 	for _, f := range inherited(c, classes) {
 		if _, skip := decorated(f, "Transient", "OneToMany", "ManyToMany", "ElementCollection"); skip {
 			continue
 		}
-		col := archdoc.Column{Name: f.Name, Type: f.Type, Prov: f.Prov}
+		col := core.Column{Name: f.Name, Type: f.Type, Prov: f.Prov}
 		if d, ok := decorated(f, "ManyToOne", "OneToOne"); ok {
 			if d.Options["mappedBy"] != "" {
 				continue // the other side owns the key
@@ -314,7 +314,7 @@ var csCollections = map[string]bool{"List": true, "IList": true, "ICollection": 
 // csColumns are an EF Core entity's columns: its properties and its base classes', by EF's
 // conventions — Id or <Class>Id is the key, a property of another entity's type is a navigation
 // whose key is the property named after it with Id, a collection is the other side of a key.
-func csColumns(c archdoc.Class, classes map[string]archdoc.Class, byClass map[string]string) []archdoc.Column {
+func csColumns(c core.Class, classes map[string]core.Class, byClass map[string]string) []core.Column {
 	fields := inherited(c, classes)
 	navs := map[string]string{} // navigation name → the table it leads to
 	for _, f := range fields {
@@ -322,7 +322,7 @@ func csColumns(c archdoc.Class, classes map[string]archdoc.Class, byClass map[st
 			navs[f.Name] = to
 		}
 	}
-	var out []archdoc.Column
+	var out []core.Column
 	for _, f := range fields {
 		typ := strings.TrimSuffix(f.Type, "?")
 		generic, _, _ := strings.Cut(typ, "<")
@@ -332,7 +332,7 @@ func csColumns(c archdoc.Class, classes map[string]archdoc.Class, byClass map[st
 		if _, skip := decorated(f, "NotMapped"); skip {
 			continue
 		}
-		col := archdoc.Column{Name: f.Name, Type: typ, Prov: f.Prov, Nullable: strings.HasSuffix(f.Type, "?")}
+		col := core.Column{Name: f.Name, Type: typ, Prov: f.Prov, Nullable: strings.HasSuffix(f.Type, "?")}
 		if d, ok := decorated(f, "Column"); ok && d.HasArg {
 			col.Name = d.Arg
 		}
@@ -352,8 +352,8 @@ func csColumns(c archdoc.Class, classes map[string]archdoc.Class, byClass map[st
 
 // efTables are the classes a DbContext holds a DbSet of, each with the property that holds it: EF
 // Core names the table after that property.
-func efTables(files []archdoc.SourceFile) map[string]archdoc.Field {
-	out := map[string]archdoc.Field{}
+func efTables(files []core.SourceFile) map[string]core.Field {
+	out := map[string]core.Field{}
 	for _, f := range files {
 		if f.Language != "C#" {
 			continue
@@ -392,9 +392,9 @@ var springOps = []struct{ prefix, op string }{
 // springData records, on every method that calls a Spring Data repository through a field, the table
 // that call queries: owners.findById(id) reads owners. Done before flows and access are read, so both
 // see it like any other query.
-func springData(sources []archdoc.Source) {
+func springData(sources []core.Source) {
 	for _, src := range sources {
-		classes := map[string]archdoc.Class{}
+		classes := map[string]core.Class{}
 		for _, f := range src.Files {
 			if f.Language != "Java" {
 				continue
@@ -437,7 +437,7 @@ func springData(sources []archdoc.Source) {
 						}
 						for _, o := range springOps {
 							if strings.HasPrefix(inv.Method, o.prefix) {
-								m.Queries = append(m.Queries, archdoc.Query{Table: table, Op: o.op, Prov: inv.Prov})
+								m.Queries = append(m.Queries, core.Query{Table: table, Op: o.op, Prov: inv.Prov})
 								break
 							}
 						}

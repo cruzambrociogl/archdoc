@@ -7,23 +7,23 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // A small laid-out view: a boundary around a and b, c outside it, a→b and a→c.
-func layout() archdoc.Layout {
-	tip := func(x, y float64) *archdoc.Point { return &archdoc.Point{X: x, Y: y} }
-	return archdoc.Layout{
+func layout() core.Layout {
+	tip := func(x, y float64) *core.Point { return &core.Point{X: x, Y: y} }
+	return core.Layout{
 		Width: 400, Height: 300,
-		Boxes: []archdoc.Box{
-			{ID: "a", Rect: archdoc.Rect{X: 20, Y: 20, W: 100, H: 50}},
-			{ID: "b", Rect: archdoc.Rect{X: 20, Y: 120, W: 100, H: 50}},
-			{ID: "c", Rect: archdoc.Rect{X: 250, Y: 120, W: 100, H: 50}},
+		Boxes: []core.Box{
+			{ID: "a", Rect: core.Rect{X: 20, Y: 20, W: 100, H: 50}},
+			{ID: "b", Rect: core.Rect{X: 20, Y: 120, W: 100, H: 50}},
+			{ID: "c", Rect: core.Rect{X: 250, Y: 120, W: 100, H: 50}},
 		},
-		Groups: []archdoc.Boundary{{Name: "sys", Rect: archdoc.Rect{X: 10, Y: 10, W: 120, H: 170}, LabelAt: archdoc.Point{X: 14, Y: 14}}},
-		Paths: []archdoc.Path{
-			{From: "a", To: "b", Curve: []archdoc.Point{{X: 70, Y: 70}, {X: 70, Y: 90}, {X: 70, Y: 100}, {X: 70, Y: 110}}, Tip: tip(70, 120), LabelAt: tip(80, 95)},
-			{From: "a", To: "c", Curve: []archdoc.Point{{X: 120, Y: 45}, {X: 180, Y: 60}, {X: 250, Y: 100}, {X: 290, Y: 110}}, Tip: tip(300, 120)},
+		Groups: []core.Boundary{{Name: "sys", Rect: core.Rect{X: 10, Y: 10, W: 120, H: 170}, LabelAt: core.Point{X: 14, Y: 14}}},
+		Paths: []core.Path{
+			{From: "a", To: "b", Curve: []core.Point{{X: 70, Y: 70}, {X: 70, Y: 90}, {X: 70, Y: 100}, {X: 70, Y: 110}}, Tip: tip(70, 120), LabelAt: tip(80, 95)},
+			{From: "a", To: "c", Curve: []core.Point{{X: 120, Y: 45}, {X: 180, Y: 60}, {X: 250, Y: 100}, {X: 290, Y: 110}}, Tip: tip(300, 120)},
 		},
 	}
 }
@@ -111,7 +111,7 @@ func TestLayoutFileIsDeterministicAndRoundTrips(t *testing.T) {
 	if err != nil || h2 != hash {
 		t.Fatalf("load: %v %s %s", err, h2, hash)
 	}
-	if back["container"]["svc:web"] != (archdoc.Point{X: 850, Y: 258}) {
+	if back["container"]["svc:web"] != (core.Point{X: 850, Y: 258}) {
 		t.Errorf("round trip: %+v", back)
 	}
 }

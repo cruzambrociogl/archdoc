@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 func init() {
@@ -35,7 +35,7 @@ var composeTags = [][]byte{[]byte("!override"), []byte("!reset")}
 // correctly but discards source positions; a raw yaml.v3 parse recovers them, addressable by
 // key path. Neither pass alone is sufficient: the first knows what is true, the second knows
 // where it was written.
-func Scan(root string) (*archdoc.FactSet, error) {
+func Scan(root string) (*core.FactSet, error) {
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func Scan(root string) (*archdoc.FactSet, error) {
 		return nil, fmt.Errorf("discovery: %w", err)
 	}
 
-	fs := &archdoc.FactSet{Root: abs, Name: filepath.Base(abs), Considered: candidates}
+	fs := &core.FactSet{Root: abs, Name: filepath.Base(abs), Considered: candidates}
 
 	chosen := ""
 	for _, c := range candidates {
@@ -79,7 +79,7 @@ func Scan(root string) (*archdoc.FactSet, error) {
 	fs.Services = services
 	fs.Networks = nets
 	if name, sample := envSource(filepath.Dir(filepath.Join(abs, chosen))); name != "" {
-		fs.Interpolation = &archdoc.EnvSource{File: filepath.ToSlash(filepath.Join(filepath.Dir(chosen), name)), Sample: sample}
+		fs.Interpolation = &core.EnvSource{File: filepath.ToSlash(filepath.Join(filepath.Dir(chosen), name)), Sample: sample}
 	}
 
 	// Which deployed service runs which application: only where some Compose file builds it
@@ -100,7 +100,7 @@ func Scan(root string) (*archdoc.FactSet, error) {
 
 // extractServices runs both passes over one Compose file and reconciles them. It also returns
 // the project name the file declares, if any, and the networks it declares.
-func extractServices(root, rel string) ([]archdoc.Service, string, []archdoc.Network, error) {
+func extractServices(root, rel string) ([]core.Service, string, []core.Network, error) {
 	path := filepath.Join(root, rel)
 
 	content, err := os.ReadFile(path)
@@ -118,17 +118,17 @@ func extractServices(root, rel string) ([]archdoc.Service, string, []archdoc.Net
 	positions := readPositions(content, rel)
 
 	raw, _ := model["services"].(map[string]any)
-	services := make([]archdoc.Service, 0, len(raw))
+	services := make([]core.Service, 0, len(raw))
 
 	for name, v := range raw {
 		svc, _ := v.(map[string]any)
 		image, _ := svc["image"].(string)
 		pos := positions[name]
 
-		services = append(services, archdoc.Service{
+		services = append(services, core.Service{
 			Name:      name,
 			Image:     image,
-			Evidence:  archdoc.Declared,
+			Evidence:  core.Declared,
 			Prov:      pos.Decl,
 			DependsOn: dependencies(svc["depends_on"], pos),
 			Ports:     ports(svc["ports"], pos),
@@ -153,13 +153,13 @@ func extractServices(root, rel string) ([]archdoc.Service, string, []archdoc.Net
 // Compose's own `internal: true` is the one trust boundary a configuration file states outright
 // rather than implies — a network with no outbound external connectivity. MDL-11 records
 // declared boundaries only, and this is what "declared" looks like.
-func declaredNetworks(v any, content []byte, rel string) []archdoc.Network {
+func declaredNetworks(v any, content []byte, rel string) []core.Network {
 	nets, ok := v.(map[string]any)
 	if !ok {
 		return nil
 	}
 
-	positions := map[string]archdoc.Provenance{}
+	positions := map[string]core.Provenance{}
 	var doc yaml.Node
 	if err := yaml.Unmarshal(stripComposeTags(content), &doc); err == nil {
 		readNames(rel, lookup(&doc, "networks"), positions)
@@ -171,9 +171,9 @@ func declaredNetworks(v any, content []byte, rel string) []archdoc.Network {
 	}
 	sort.Strings(names)
 
-	out := make([]archdoc.Network, 0, len(names))
+	out := make([]core.Network, 0, len(names))
 	for _, n := range names {
-		net := archdoc.Network{Name: n, Prov: positions[n]}
+		net := core.Network{Name: n, Prov: positions[n]}
 		if cfg, ok := nets[n].(map[string]any); ok {
 			net.Internal, _ = cfg["internal"].(bool)
 		}

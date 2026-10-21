@@ -6,23 +6,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/validate"
 )
 
-func explainModel() archdoc.Model {
-	p := func(f string, l int) archdoc.Provenance { return archdoc.Provenance{File: f, Line: l} }
-	return archdoc.Model{Name: "x",
-		Nodes: []archdoc.Node{
-			{ID: "svc:server", Name: "server", Kind: archdoc.Application, Prov: p("compose.yml", 2)},
-			{ID: "cmp:server/controllers", Name: "controllers", Kind: archdoc.Component, Parent: "svc:server", Dir: "server/src/controllers",
+func explainModel() core.Model {
+	p := func(f string, l int) core.Provenance { return core.Provenance{File: f, Line: l} }
+	return core.Model{Name: "x",
+		Nodes: []core.Node{
+			{ID: "svc:server", Name: "server", Kind: core.Application, Prov: p("compose.yml", 2)},
+			{ID: "cmp:server/controllers", Name: "controllers", Kind: core.Component, Parent: "svc:server", Dir: "server/src/controllers",
 				Files: []string{"server/src/controllers/album.controller.ts"}, Lines: 40, Prov: p("server/src/controllers/album.controller.ts", 1)},
-			{ID: "cmp:server/services", Name: "services", Kind: archdoc.Component, Parent: "svc:server", Dir: "server/src/services",
+			{ID: "cmp:server/services", Name: "services", Kind: core.Component, Parent: "svc:server", Dir: "server/src/services",
 				Files: []string{"server/src/services/album.service.ts", "server/src/services/base.service.ts"}, Lines: 90, Prov: p("server/src/services/album.service.ts", 1)},
 		},
-		Edges: []archdoc.Edge{{From: "cmp:server/controllers", To: "cmp:server/services", Label: "uses", Weight: 3,
-			Prov: []archdoc.Provenance{p("server/src/controllers/album.controller.ts", 2)}}},
-		Entries: []archdoc.Entry{{ID: "route:server GET /api/albums", Kind: "http", Method: "GET", Path: "/api/albums",
+		Edges: []core.Edge{{From: "cmp:server/controllers", To: "cmp:server/services", Label: "uses", Weight: 3,
+			Prov: []core.Provenance{p("server/src/controllers/album.controller.ts", 2)}}},
+		Entries: []core.Entry{{ID: "route:server GET /api/albums", Kind: "http", Method: "GET", Path: "/api/albums",
 			Handler: "AlbumController.getAll", Summary: "List all albums", Container: "svc:server", Component: "cmp:server/controllers",
 			Prov: p("server/src/controllers/album.controller.ts", 7)}},
 	}
@@ -58,7 +58,7 @@ func TestExplanationsCiteTheirFacts(t *testing.T) {
 		t.Fatalf("asked %d, explanations %+v", rep.Asked, m.Explanations)
 	}
 	x := m.Explanations[0]
-	if x.Element != "cmp:server/controllers" || x.Prov.Origin != archdoc.Semantic || len(x.Claims) != 2 {
+	if x.Element != "cmp:server/controllers" || x.Prov.Origin != core.Semantic || len(x.Claims) != 2 {
 		t.Fatalf("explanation %+v", x)
 	}
 	if c := x.Claims[0]; c.Cites[0].Line != 7 || !strings.Contains(c.Facts[0], "GET /api/albums") {
@@ -97,7 +97,7 @@ func TestUncitedSentencesAreRefused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var x archdoc.Explanation
+	var x core.Explanation
 	for _, e := range m.Explanations {
 		if e.Element == "cmp:server/services" {
 			x = e
@@ -186,8 +186,8 @@ func TestABadAnswerDoesNotLoseTheOthers(t *testing.T) {
 // there is to say.
 func TestTrivialComponentsAreNotAskedAbout(t *testing.T) {
 	m := explainModel()
-	m.Nodes = append(m.Nodes, archdoc.Node{ID: "cmp:server/crypto", Name: "crypto", Kind: archdoc.Component, Parent: "svc:server",
-		Files: []string{"server/src/repositories/crypto.repository.ts"}, Lines: 40, Prov: archdoc.Provenance{File: "server/src/repositories/crypto.repository.ts", Line: 1}})
+	m.Nodes = append(m.Nodes, core.Node{ID: "cmp:server/crypto", Name: "crypto", Kind: core.Component, Parent: "svc:server",
+		Files: []string{"server/src/repositories/crypto.repository.ts"}, Lines: 40, Prov: core.Provenance{File: "server/src/repositories/crypto.repository.ts", Line: 1}})
 	var prompts []string
 	_, _, rep, err := Explain(context.Background(), fake(nil, &prompts), "test-model", m, nil)
 	if err != nil || rep.Skipped != 1 || rep.Asked != 2 {
@@ -232,16 +232,16 @@ func TestAnEmptyAnswerIsAskedAgain(t *testing.T) {
 // Labels are remembered against what they were written about: applied again while that is
 // unchanged, left out once it is not, and replaced — not duplicated — by a newer label.
 func TestLabelsAreRememberedAgainstTheirBasis(t *testing.T) {
-	at := archdoc.Provenance{File: "compose.yml", Line: 2}
-	m := archdoc.Model{Nodes: []archdoc.Node{
-		{ID: "svc:api", Name: "api", Kind: archdoc.Application, Technology: "NestJS", Prov: at},
-		{ID: "svc:db", Name: "db", Kind: archdoc.Datastore, Technology: "PostgreSQL 16", Prov: at},
-	}, Edges: []archdoc.Edge{{From: "svc:api", To: "svc:db", Label: "connects to", Technology: "postgres", Prov: []archdoc.Provenance{at}}}}
-	by := archdoc.Provenance{Origin: archdoc.Semantic, Note: "a model"}
-	ops := []archdoc.Op{
-		{Kind: archdoc.SetDescription, Target: "svc:api", Value: "Serves the API.", Origin: archdoc.Semantic, Prov: by},
-		{Kind: archdoc.SetEdgeLabel, Target: "svc:api", To: "svc:db", Value: "reads and writes orders in", Origin: archdoc.Semantic, Prov: by},
-		{Kind: archdoc.SetDescription, Target: "svc:gone", Value: "Not in the model.", Origin: archdoc.Semantic, Prov: by},
+	at := core.Provenance{File: "compose.yml", Line: 2}
+	m := core.Model{Nodes: []core.Node{
+		{ID: "svc:api", Name: "api", Kind: core.Application, Technology: "NestJS", Prov: at},
+		{ID: "svc:db", Name: "db", Kind: core.Datastore, Technology: "PostgreSQL 16", Prov: at},
+	}, Edges: []core.Edge{{From: "svc:api", To: "svc:db", Label: "connects to", Technology: "postgres", Prov: []core.Provenance{at}}}}
+	by := core.Provenance{Origin: core.Semantic, Note: "a model"}
+	ops := []core.Op{
+		{Kind: core.SetDescription, Target: "svc:api", Value: "Serves the API.", Origin: core.Semantic, Prov: by},
+		{Kind: core.SetEdgeLabel, Target: "svc:api", To: "svc:db", Value: "reads and writes orders in", Origin: core.Semantic, Prov: by},
+		{Kind: core.SetDescription, Target: "svc:gone", Value: "Not in the model.", Origin: core.Semantic, Prov: by},
 	}
 	kept := Remember(nil, m, ops)
 	if len(kept) != 2 {
@@ -252,14 +252,14 @@ func TestLabelsAreRememberedAgainstTheirBasis(t *testing.T) {
 	}
 
 	changed := m
-	changed.Nodes = append([]archdoc.Node(nil), m.Nodes...)
+	changed.Nodes = append([]core.Node(nil), m.Nodes...)
 	changed.Nodes[0].Technology = "Express"
-	changed.Edges = []archdoc.Edge{{From: "svc:api", To: "svc:db", Label: "connects to", Technology: "mysql", Prov: []archdoc.Provenance{at}}}
+	changed.Edges = []core.Edge{{From: "svc:api", To: "svc:db", Label: "connects to", Technology: "mysql", Prov: []core.Provenance{at}}}
 	if got := Recall(kept, changed); len(got) != 0 {
 		t.Errorf("recalled %+v for an element and a relationship that are no longer what was described", got)
 	}
 
-	again := Remember(kept, m, []archdoc.Op{{Kind: archdoc.SetDescription, Target: "svc:api", Value: "Serves the public API.", Origin: archdoc.Semantic, Prov: by}})
+	again := Remember(kept, m, []core.Op{{Kind: core.SetDescription, Target: "svc:api", Value: "Serves the public API.", Origin: core.Semantic, Prov: by}})
 	if len(again) != 2 || Recall(again, m)[0].Value != "Serves the public API." {
 		t.Errorf("a newer label did not replace the older: %+v", again)
 	}
@@ -268,31 +268,31 @@ func TestLabelsAreRememberedAgainstTheirBasis(t *testing.T) {
 // The system as a whole can be described: the operation passes the validator, lands on the box of
 // the context view, and is remembered until what the system contains changes.
 func TestTheSystemItselfIsDescribed(t *testing.T) {
-	at := archdoc.Provenance{File: "compose.yml", Line: 2}
-	m := archdoc.Model{Name: "shop", Nodes: []archdoc.Node{
-		{ID: "svc:api", Name: "api", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
+	at := core.Provenance{File: "compose.yml", Line: 2}
+	m := core.Model{Name: "shop", Nodes: []core.Node{
+		{ID: "svc:api", Name: "api", Kind: core.Application, Evidence: core.Declared, Prov: at},
 	}}
-	op := archdoc.Op{Kind: archdoc.SetDescription, Target: archdoc.SystemID, Value: "Sells things.", Origin: archdoc.Semantic,
-		Prov: archdoc.Provenance{Origin: archdoc.Semantic, Note: "a model"}}
-	out, res := validate.Apply(m, []archdoc.Op{op})
+	op := core.Op{Kind: core.SetDescription, Target: core.SystemID, Value: "Sells things.", Origin: core.Semantic,
+		Prov: core.Provenance{Origin: core.Semantic, Note: "a model"}}
+	out, res := validate.Apply(m, []core.Op{op})
 	if !res.OK() {
 		t.Fatalf("refused: %s", res.Error())
 	}
-	var box archdoc.Node
+	var box core.Node
 	for _, n := range out.Context().Nodes {
-		if n.ID == archdoc.SystemID {
+		if n.ID == core.SystemID {
 			box = n
 		}
 	}
 	if box.Description != "Sells things." || !box.DescProv.Origin.Interpretation() {
 		t.Errorf("the system box says %q, by %q", box.Description, box.DescProv.Origin)
 	}
-	kept := Remember(nil, m, []archdoc.Op{op})
+	kept := Remember(nil, m, []core.Op{op})
 	if len(Recall(kept, m)) != 1 {
 		t.Error("not recalled for the same system")
 	}
 	grown := m
-	grown.Nodes = append(append([]archdoc.Node(nil), m.Nodes...), archdoc.Node{ID: "svc:worker", Name: "worker", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at})
+	grown.Nodes = append(append([]core.Node(nil), m.Nodes...), core.Node{ID: "svc:worker", Name: "worker", Kind: core.Application, Evidence: core.Declared, Prov: at})
 	if len(Recall(kept, grown)) != 0 {
 		t.Error("recalled for a system that has gained a container")
 	}

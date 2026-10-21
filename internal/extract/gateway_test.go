@@ -3,12 +3,12 @@ package extract
 import (
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 const gwFixture = "../../testdata/gateway"
 
-func scanGateway(t *testing.T) *archdoc.FactSet {
+func scanGateway(t *testing.T) *core.FactSet {
 	t.Helper()
 
 	fs, err := Scan(gwFixture)

@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // skipDirs are never read: installed dependencies, build output, caches, and tests — a test
@@ -55,10 +55,10 @@ func Reads(language string) bool {
 // nested lists other applications' directories: a package inside this one is its own code, not
 // part of this application's. ok is false when nothing was read: no file in a language archdoc
 // reads, and no schema file beside it.
-func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok bool) {
+func Read(repo string, app core.App, nested []string) (src core.Source, ok bool) {
 	if !Reads(app.Language) {
 		// Its code is not read, but what it says its tables are still is.
-		src = archdoc.Source{App: app.Dir, Root: app.Dir, Schemas: schemas(repo, app.Dir)}
+		src = core.Source{App: app.Dir, Root: app.Dir, Schemas: schemas(repo, app.Dir)}
 		return src, len(src.Schemas) > 0
 	}
 	python := app.Language == "Python"
@@ -85,7 +85,7 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 	if app.Loose {
 		root = app.Dir // no manifest, so no src/ convention: every file is the application's
 	}
-	src = archdoc.Source{App: app.Dir, Root: root, Loose: app.Loose, Framework: app.Framework}
+	src = core.Source{App: app.Dir, Root: root, Loose: app.Loose, Framework: app.Framework}
 
 	skipNested := map[string]bool{}
 	for _, n := range nested {
@@ -147,13 +147,13 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 	// Every file is read before any import is resolved: a C# file's uses are the types it names, and
 	// which file declares a type is only known once all of them have been read.
 	got := make(map[string]facts, len(paths))
-	files := make([]archdoc.SourceFile, 0, len(paths))
+	files := make([]core.SourceFile, 0, len(paths))
 	for _, p := range paths {
 		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(p)))
 		if err != nil {
 			continue
 		}
-		f := archdoc.SourceFile{Path: p, Language: languageOf(p, python), Lines: lines(content)}
+		f := core.SourceFile{Path: p, Language: languageOf(p, python), Lines: lines(content)}
 		switch {
 		case dart:
 			f.Language = "Dart"
@@ -216,7 +216,7 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 		}
 		for _, imp := range imports {
 			for _, res := range r.resolve(f.Path, imp) {
-				res.Prov = archdoc.Provenance{File: f.Path, Line: imp.line, Column: imp.column}
+				res.Prov = core.Provenance{File: f.Path, Line: imp.line, Column: imp.column}
 				f.Imports = append(f.Imports, res)
 			}
 		}
@@ -230,8 +230,8 @@ func Read(repo string, app archdoc.App, nested []string) (src archdoc.Source, ok
 
 // documents are the HTML pages of an application with no manifest, each at its <title> or its
 // first line: what a person opens.
-func documents(repo, dir string) []archdoc.Literal {
-	var out []archdoc.Literal
+func documents(repo, dir string) []core.Literal {
+	var out []core.Literal
 	filepath.WalkDir(filepath.Join(repo, filepath.FromSlash(dir)), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -259,7 +259,7 @@ func documents(repo, dir string) []archdoc.Literal {
 				line = 1 + strings.Count(lower[:i], "\n")
 			}
 		}
-		out = append(out, archdoc.Literal{Value: title, Prov: archdoc.Provenance{File: rel, Line: line}})
+		out = append(out, core.Literal{Value: title, Prov: core.Provenance{File: rel, Line: line}})
 		return nil
 	})
 	return out
@@ -267,7 +267,7 @@ func documents(repo, dir string) []archdoc.Literal {
 
 // schemas are the schema files beside an application's code: Prisma's, and the SQL its
 // migrations are written in.
-func schemas(repo, dir string) []archdoc.SourceFile {
+func schemas(repo, dir string) []core.SourceFile {
 	return append(prismaSchemas(repo, dir), sqlSchemas(repo, dir)...)
 }
 
@@ -279,14 +279,14 @@ type rawImport struct {
 }
 
 type resolver interface {
-	resolve(file string, imp rawImport) []archdoc.Import
+	resolve(file string, imp rawImport) []core.Import
 }
 
 // sourceRoot is where an application's code starts. JavaScript and TypeScript keep it in src/ by
 // near-universal convention; a Python application is its package — the directory holding an
 // __init__.py, at the top or under src/: the only one, or the one named like the project
 // (immich-ml's immich_ml). Anything else: the application's directory itself.
-func sourceRoot(repo string, app archdoc.App, python bool) string {
+func sourceRoot(repo string, app core.App, python bool) string {
 	dir := app.Dir
 	join := func(parts ...string) string { return path.Clean(path.Join(parts...)) }
 	isDir := func(rel string) bool {

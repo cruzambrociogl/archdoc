@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
-func model(name string) archdoc.Model {
-	return archdoc.Model{
+func model(name string) core.Model {
+	return core.Model{
 		Name:   name,
 		Source: "docker-compose.yml",
-		Nodes: []archdoc.Node{{
-			ID: "svc:api", Name: "api", Kind: archdoc.Application,
-			Evidence: archdoc.Declared,
-			Prov:     archdoc.Provenance{File: "docker-compose.yml", Line: 3},
+		Nodes: []core.Node{{
+			ID: "svc:api", Name: "api", Kind: core.Application,
+			Evidence: core.Declared,
+			Prov:     core.Provenance{File: "docker-compose.yml", Line: 3},
 		}},
 	}
 }
@@ -102,9 +102,9 @@ func TestAChangedModelCreatesANewVersion(t *testing.T) {
 	}
 
 	grown := model("example")
-	grown.Nodes = append(grown.Nodes, archdoc.Node{
-		ID: "svc:db", Name: "db", Kind: archdoc.Datastore, Evidence: archdoc.Declared,
-		Prov: archdoc.Provenance{File: "docker-compose.yml", Line: 9},
+	grown.Nodes = append(grown.Nodes, core.Node{
+		ID: "svc:db", Name: "db", Kind: core.Datastore, Evidence: core.Declared,
+		Prov: core.Provenance{File: "docker-compose.yml", Line: 9},
 	})
 
 	if _, changed, err := s.Save(grown, nil, "def456", "test"); err != nil || !changed {
@@ -182,14 +182,14 @@ func TestHistorySurvivesReopening(t *testing.T) {
 func TestSameArchitectureRefreshesItsEvidence(t *testing.T) {
 	s := history(t)
 	first := model("example")
-	id, _, err := s.Save(first, map[string]archdoc.Layout{"container": {Version: 1}}, "abc123", "test")
+	id, _, err := s.Save(first, map[string]core.Layout{"container": {Version: 1}}, "abc123", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	moved := model("example")
 	moved.Nodes[0].Prov.Line = 9
-	again, changed, err := s.Save(moved, map[string]archdoc.Layout{"container": {Version: 2}}, "def456", "test")
+	again, changed, err := s.Save(moved, map[string]core.Layout{"container": {Version: 2}}, "def456", "test")
 	if err != nil || changed || again != id {
 		t.Fatalf("a moved citation recorded a version: changed=%v id=%d err=%v", changed, again, err)
 	}
@@ -218,7 +218,7 @@ func TestSameArchitectureRefreshesItsEvidence(t *testing.T) {
 func TestFingerprintIsTheArchitecture(t *testing.T) {
 	a, _ := Fingerprint(model("example"))
 	cited := model("example")
-	cited.Nodes[0].Prov = archdoc.Provenance{File: "elsewhere.yml", Line: 40}
+	cited.Nodes[0].Prov = core.Provenance{File: "elsewhere.yml", Line: 40}
 	b, _ := Fingerprint(cited)
 	if a != b {
 		t.Error("moving a citation changed the fingerprint")
@@ -249,9 +249,9 @@ func TestAnUpgradeDoesNotMintAVersion(t *testing.T) {
 // A model fingerprints the same fresh and after being stored: an empty list of networks and no
 // list are one architecture.
 func TestFingerprintSurvivesStorage(t *testing.T) {
-	m := archdoc.Model{Name: "x", Nodes: []archdoc.Node{{ID: "svc:a", Name: "a", Kind: archdoc.Application, Networks: []string{}}}}
+	m := core.Model{Name: "x", Nodes: []core.Node{{ID: "svc:a", Name: "a", Kind: core.Application, Networks: []string{}}}}
 	b, _ := json.Marshal(m)
-	var back archdoc.Model
+	var back core.Model
 	if err := json.Unmarshal(b, &back); err != nil {
 		t.Fatal(err)
 	}

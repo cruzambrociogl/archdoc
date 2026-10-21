@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 const factsFixture = "../../testdata/endpoints"
 
-func scanFixture(t *testing.T) map[string]archdoc.Service {
+func scanFixture(t *testing.T) map[string]core.Service {
 	t.Helper()
 
 	fs, err := Scan(factsFixture)
@@ -18,7 +18,7 @@ func scanFixture(t *testing.T) map[string]archdoc.Service {
 		t.Fatalf("Scan: %v", err)
 	}
 
-	out := map[string]archdoc.Service{}
+	out := map[string]core.Service{}
 	for _, s := range fs.Services {
 		out[s.Name] = s
 	}
@@ -69,7 +69,7 @@ func TestOnlyPublishedPortsAreFacts(t *testing.T) {
 func TestEndpointsFromURLsAndHostVariables(t *testing.T) {
 	api := scanFixture(t)["api"]
 
-	want := []archdoc.Endpoint{
+	want := []core.Endpoint{
 		{Var: "CACHE_HOST", Host: "cache", Port: 6379},
 		{Var: "DATABASE_URL", Scheme: "postgres", Host: "db", Port: 5432},
 		{Var: "S3_ENDPOINT", Scheme: "https", Host: "s3.example.com"},

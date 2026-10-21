@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Access (F-16): which tables each component's code queries, and how, read from every method and
@@ -15,16 +15,16 @@ import (
 // accessCites is how many queries an access cites; Count says how many there are.
 const accessCites = 10
 
-func access(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]string) {
+func access(m *core.Model, sources []core.Source, componentOf map[string]string) {
 	tableOf := map[string]string{}
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Table {
+		if n.Kind == core.Table {
 			tableOf[n.Parent+"\x00"+n.Name] = n.ID
 		}
 	}
 	containerOf := map[string]string{}
 	for _, n := range m.Nodes {
-		if n.Dir != "" && n.Kind == archdoc.Application {
+		if n.Dir != "" && n.Kind == core.Application {
 			containerOf[n.Dir] = n.ID
 		}
 	}
@@ -42,7 +42,7 @@ func access(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]s
 						if strings.HasSuffix(f.Path, ".py") {
 							name = strings.ToLower(name) // SQLModel names a table after its class
 						}
-						a := archdoc.Access{Container: container, Component: componentOf[f.Path], Table: name, Op: q.Op}
+						a := core.Access{Container: container, Component: componentOf[f.Path], Table: name, Op: q.Op}
 						key := a.Container + "\x00" + a.Component + "\x00" + a.Table + "\x00" + a.Op
 						i, seen := index[key]
 						if !seen {

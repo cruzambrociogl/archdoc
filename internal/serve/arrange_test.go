@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/arrange"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // live is a server, the root it serves, and its page's token.
@@ -43,7 +43,7 @@ func post(t *testing.T, ts *httptest.Server, path, token string, body any) (int,
 }
 
 type sceneJSON struct {
-	Layout      archdoc.Layout `json:"layout"`
+	Layout      core.Layout `json:"layout"`
 	Arrangement struct {
 		Hash   string   `json:"hash"`
 		Placed []string `json:"placed"`
@@ -61,13 +61,13 @@ func scene(t *testing.T, ts *httptest.Server) sceneJSON {
 	return sc
 }
 
-func boxOf(l archdoc.Layout, id string) archdoc.Rect {
+func boxOf(l core.Layout, id string) core.Rect {
 	for _, b := range l.Boxes {
 		if b.ID == id {
 			return b.Rect
 		}
 	}
-	return archdoc.Rect{}
+	return core.Rect{}
 }
 
 // Dragging a box and saving writes layout.yaml, and every later scene — the app, the SVG — draws

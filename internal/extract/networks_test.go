@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 const netFixture = "../../testdata/networks"
 
-func scanNetworks(t *testing.T) *archdoc.FactSet {
+func scanNetworks(t *testing.T) *core.FactSet {
 	t.Helper()
 
 	fs, err := Scan(netFixture)

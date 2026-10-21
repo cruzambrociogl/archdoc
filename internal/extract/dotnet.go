@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // .NET projects, by their .csproj. The project's SDK says most of what it is — Microsoft.NET.Sdk.Web
@@ -19,7 +19,7 @@ import (
 // dotnetTests are the packages a test project references.
 var dotnetTests = []string{"Microsoft.NET.Test.Sdk", "xunit", "xunit.v3", "NUnit", "MSTest.TestFramework", "MSTest"}
 
-func csproj(root, rel string) *archdoc.App {
+func csproj(root, rel string) *core.App {
 	content, err := os.ReadFile(filepath.Join(root, rel))
 	if err != nil {
 		return nil
@@ -51,8 +51,8 @@ func csproj(root, rel string) *archdoc.App {
 	}
 	dir := dirOf(rel)
 	name := strings.TrimSuffix(path.Base(rel), ".csproj")
-	app := &archdoc.App{Name: name, Dir: dir, Manifest: rel, Language: "C#",
-		Prov: archdoc.Provenance{File: rel, Line: lineOf(content, "<Project")}}
+	app := &core.App{Name: name, Dir: dir, Manifest: rel, Language: "C#",
+		Prov: core.Provenance{File: rel, Line: lineOf(content, "<Project")}}
 	prop := func(get func(i int) string) string {
 		for i := range proj.Props {
 			if v := strings.TrimSpace(get(i)); v != "" {
@@ -68,52 +68,52 @@ func csproj(root, rel string) *archdoc.App {
 	for _, it := range proj.Items {
 		for _, p := range it.Packages {
 			has[p.Include] = true
-			app.Requires = append(app.Requires, archdoc.Requirement{Name: p.Include, Version: p.Version,
-				Prov: archdoc.Provenance{File: rel, Line: lineOf(content, `"`+p.Include+`"`)}})
+			app.Requires = append(app.Requires, core.Requirement{Name: p.Include, Version: p.Version,
+				Prov: core.Provenance{File: rel, Line: lineOf(content, `"`+p.Include+`"`)}})
 		}
 		for _, p := range it.Projects {
 			// Another project of this repository, by the name its file gives it: what makes a class
 			// library a library is that a project here references it.
 			other := strings.TrimSuffix(path.Base(strings.ReplaceAll(p.Include, `\`, "/")), ".csproj")
-			app.Requires = append(app.Requires, archdoc.Requirement{Name: other,
-				Prov: archdoc.Provenance{File: rel, Line: lineOf(content, p.Include)}})
+			app.Requires = append(app.Requires, core.Requirement{Name: other,
+				Prov: core.Provenance{File: rel, Line: lineOf(content, p.Include)}})
 		}
 	}
 	sdk := proj.Sdk
 	for _, s := range proj.Sdks {
 		sdk += ";" + s.Name
 	}
-	sdkProv := archdoc.Provenance{File: rel, Line: lineOf(content, "Sdk")}
+	sdkProv := core.Provenance{File: rel, Line: lineOf(content, "Sdk")}
 
 	for _, t := range dotnetTests {
 		if has[t] {
-			app.Role, app.Why, app.FrameworkProv = archdoc.RoleTest, "a test project ("+t+")", archdoc.Provenance{File: rel, Line: lineOf(content, `"`+t+`"`)}
+			app.Role, app.Why, app.FrameworkProv = core.RoleTest, "a test project ("+t+")", core.Provenance{File: rel, Line: lineOf(content, `"`+t+`"`)}
 			return app
 		}
 	}
 	switch {
 	case inTestDir(dir) || strings.EqualFold(prop(func(i int) string { return proj.Props[i].IsTestProject }), "true"):
-		app.Role, app.Why = archdoc.RoleTest, "a test project"
+		app.Role, app.Why = core.RoleTest, "a test project"
 	case strings.Contains(sdk, "Aspire.AppHost") || has["Aspire.Hosting.AppHost"] ||
 		strings.EqualFold(prop(func(i int) string { return proj.Props[i].IsAspireHost }), "true"):
-		app.Role, app.Why = archdoc.RoleTooling, "an Aspire host: it starts the other projects in development, and is not deployed"
+		app.Role, app.Why = core.RoleTooling, "an Aspire host: it starts the other projects in development, and is not deployed"
 	case strings.Contains(sdk, "Microsoft.NET.Sdk.BlazorWebAssembly"):
-		app.Framework, app.FrameworkProv, app.Role = "Blazor WebAssembly", sdkProv, archdoc.RoleWeb
-		app.Why = whyRole(archdoc.RoleWeb, "Blazor WebAssembly")
+		app.Framework, app.FrameworkProv, app.Role = "Blazor WebAssembly", sdkProv, core.RoleWeb
+		app.Why = whyRole(core.RoleWeb, "Blazor WebAssembly")
 	case strings.Contains(sdk, "Microsoft.NET.Sdk.Web"):
-		app.Framework, app.FrameworkProv, app.Role = "ASP.NET Core", sdkProv, archdoc.RoleService
+		app.Framework, app.FrameworkProv, app.Role = "ASP.NET Core", sdkProv, core.RoleService
 		app.Why = "a service: its SDK is Microsoft.NET.Sdk.Web"
 	case strings.Contains(sdk, "Microsoft.NET.Sdk.Worker"):
-		app.Framework, app.FrameworkProv, app.Role = ".NET Worker", sdkProv, archdoc.RoleService
+		app.Framework, app.FrameworkProv, app.Role = ".NET Worker", sdkProv, core.RoleService
 		app.Why = "a background service: its SDK is Microsoft.NET.Sdk.Worker"
 	case strings.EqualFold(prop(func(i int) string { return proj.Props[i].UseMaui }), "true"):
-		app.Framework, app.FrameworkProv, app.Role = ".NET MAUI", archdoc.Provenance{File: rel, Line: lineOf(content, "<UseMaui>")}, archdoc.RoleMobile
+		app.Framework, app.FrameworkProv, app.Role = ".NET MAUI", core.Provenance{File: rel, Line: lineOf(content, "<UseMaui>")}, core.RoleMobile
 		app.Why = "an app: it is built with .NET MAUI"
 	case strings.EqualFold(prop(func(i int) string { return proj.Props[i].OutputType }), "Exe"):
-		app.Role, app.FrameworkProv = archdoc.RoleCLI, archdoc.Provenance{File: rel, Line: lineOf(content, "<OutputType>")}
+		app.Role, app.FrameworkProv = core.RoleCLI, core.Provenance{File: rel, Line: lineOf(content, "<OutputType>")}
 		app.Why = "a program a person runs: its OutputType is Exe"
 	default:
-		app.Role, app.Why = archdoc.RoleLibrary, "a class library: it builds code for other projects and runs inside them"
+		app.Role, app.Why = core.RoleLibrary, "a class library: it builds code for other projects and runs inside them"
 	}
 	return app
 }

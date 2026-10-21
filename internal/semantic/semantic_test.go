@@ -6,29 +6,29 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // These tests never touch the network. The model is replaced by a function returning canned
 // answers, which is enough: everything worth testing here is what archdoc does with an answer,
 // not what the model says.
 
-func at(line int) archdoc.Provenance {
-	return archdoc.Provenance{File: "docker-compose.yml", Line: line}
+func at(line int) core.Provenance {
+	return core.Provenance{File: "docker-compose.yml", Line: line}
 }
 
-func fixture() archdoc.Model {
-	return archdoc.Model{
+func fixture() core.Model {
+	return core.Model{
 		Name:   "example",
 		Source: "docker-compose.yml",
-		Nodes: []archdoc.Node{
-			{ID: "actor:user", Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: at(5)},
-			{ID: "svc:api", Name: "api", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at(10)},
-			{ID: "svc:db", Name: "db", Kind: archdoc.Datastore, Evidence: archdoc.Declared, Prov: at(20)},
+		Nodes: []core.Node{
+			{ID: "actor:user", Name: "User", Kind: core.Actor, Evidence: core.Declared, Prov: at(5)},
+			{ID: "svc:api", Name: "api", Kind: core.Application, Evidence: core.Declared, Prov: at(10)},
+			{ID: "svc:db", Name: "db", Kind: core.Datastore, Evidence: core.Declared, Prov: at(20)},
 		},
-		Edges: []archdoc.Edge{
-			{From: "actor:user", To: "svc:api", Label: "reaches", Traffic: true, Prov: []archdoc.Provenance{at(6)}},
-			{From: "svc:api", To: "svc:db", Label: "connects to", Traffic: true, Prov: []archdoc.Provenance{at(11)}},
+		Edges: []core.Edge{
+			{From: "actor:user", To: "svc:api", Label: "reaches", Traffic: true, Prov: []core.Provenance{at(6)}},
+			{From: "svc:api", To: "svc:db", Label: "connects to", Traffic: true, Prov: []core.Provenance{at(11)}},
 		},
 	}.Normalise()
 }
@@ -103,7 +103,7 @@ func TestModelValuesAreMarkedAsInterpretation(t *testing.T) {
 	}
 
 	api, _ := out.Node("svc:api")
-	for what, p := range map[string]archdoc.Provenance{"description": api.DescProv, "technology": api.TechProv} {
+	for what, p := range map[string]core.Provenance{"description": api.DescProv, "technology": api.TechProv} {
 		if !p.Origin.Interpretation() {
 			t.Errorf("%s is not marked as interpretation: %+v", what, p)
 		}

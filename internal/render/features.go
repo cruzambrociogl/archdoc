@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // FeaturesFile lists what the system does, from its code. Generated, hence the suffix (hard rule 2).
@@ -14,7 +14,7 @@ const FeaturesFile = "features.generated.md"
 // Features renders the routes the code declares, grouped by container and by the class that
 // handles them — the app's Features screen, committed beside the other documents. Empty when the
 // code declares none, and then not written.
-func Features(m archdoc.Model, meta Meta) string {
+func Features(m core.Model, meta Meta) string {
 	if len(m.Entries) == 0 {
 		return ""
 	}
@@ -25,14 +25,14 @@ func Features(m archdoc.Model, meta Meta) string {
 		return id
 	}
 	described := 0
-	groups := map[string]map[string][]archdoc.Entry{} // container → handler class → routes
+	groups := map[string]map[string][]core.Entry{} // container → handler class → routes
 	for _, e := range m.Entries {
 		if e.Summary != "" {
 			described++
 		}
 		cls := e.Group()
 		if groups[e.Container] == nil {
-			groups[e.Container] = map[string][]archdoc.Entry{}
+			groups[e.Container] = map[string][]core.Entry{}
 		}
 		groups[e.Container][cls] = append(groups[e.Container][cls], e)
 	}

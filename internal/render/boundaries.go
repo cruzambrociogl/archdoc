@@ -3,7 +3,7 @@ package render
 import (
 	"sort"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // A group is one network boundary and what sits directly inside it. Groups nest, because
@@ -12,8 +12,8 @@ import (
 type group struct {
 	Name     string
 	Internal bool
-	Prov     archdoc.Provenance
-	Nodes    []archdoc.Node
+	Prov     core.Provenance
+	Nodes    []core.Node
 	Children []*group
 }
 
@@ -25,7 +25,7 @@ type group struct {
 //
 // Returns nil when the networks cannot be nested — see overlapping below. The caller then draws
 // a flat boundary, which is the honest fallback: a wrong grouping claims more than no grouping.
-func boundaries(m archdoc.Model, inside []archdoc.Node) []*group {
+func boundaries(m core.Model, inside []core.Node) []*group {
 	members := map[string]map[string]bool{}
 	for _, n := range inside {
 		for _, net := range n.Networks {
@@ -56,7 +56,7 @@ func boundaries(m archdoc.Model, inside []archdoc.Node) []*group {
 		}
 	}
 
-	declared := map[string]archdoc.Network{}
+	declared := map[string]core.Network{}
 	for _, n := range m.Networks {
 		declared[n.Name] = n
 	}
@@ -98,8 +98,8 @@ func boundaries(m archdoc.Model, inside []archdoc.Node) []*group {
 
 // ungrouped returns the nodes that belong to no network at all. They sit directly in the system
 // boundary — a file may declare networks and still leave a service off all of them.
-func ungrouped(inside []archdoc.Node) []archdoc.Node {
-	var out []archdoc.Node
+func ungrouped(inside []core.Node) []core.Node {
+	var out []core.Node
 	for _, n := range inside {
 		if len(n.Networks) == 0 {
 			out = append(out, n)

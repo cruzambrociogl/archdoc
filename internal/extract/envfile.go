@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // envEntry is one environment value and the line that set it. A service's environment is
@@ -13,7 +13,7 @@ import (
 // derived from where the service was declared.
 type envEntry struct {
 	Value any
-	Prov  archdoc.Provenance
+	Prov  core.Provenance
 }
 
 // serviceEnv assembles a service's environment from the Compose file and from the env_file
@@ -101,7 +101,7 @@ func parseEnvFile(content []byte, rel string) map[string]envEntry {
 
 		out[k] = envEntry{
 			Value: strings.Trim(strings.TrimSpace(v), `"'`),
-			Prov:  archdoc.Provenance{File: rel, Line: i + 1},
+			Prov:  core.Provenance{File: rel, Line: i + 1},
 		}
 	}
 

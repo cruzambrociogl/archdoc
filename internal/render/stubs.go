@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Stubs are the seven sections archdoc cannot fill, written once and never touched again.
@@ -23,7 +23,7 @@ import (
 // are returned separately from Arc42's output rather than alongside it.
 // plan says which sections this repository has something to put in — see plan.go; pass Sections()
 // for all of them.
-func Stubs(m archdoc.Model, plan []Section, meta Meta) map[string]string {
+func Stubs(m core.Model, plan []Section, meta Meta) map[string]string {
 	view := m.Container()
 
 	out := map[string]string{}
@@ -47,18 +47,18 @@ func Stubs(m archdoc.Model, plan []Section, meta Meta) map[string]string {
 // Questions are the questions a human-owned section raises for this model — the body of its stub,
 // regenerated. The app shows them for a section nobody has started, which means it never has to
 // open the file a person owns (OUT-03): the questions come from the model, not from the stub.
-func Questions(section int, m archdoc.Model) string {
+func Questions(section int, m core.Model) string {
 	return questions(section, m, m.Container())
 }
 
-func questions(section int, m archdoc.Model, view archdoc.Model) string {
+func questions(section int, m core.Model, view core.Model) string {
 	var b strings.Builder
 
 	switch section {
 	case 1: // Introduction and Goals
 		b.WriteString("archdoc found what this system is *made of*. It cannot find what it is *for*.\n\n")
 		fmt.Fprintf(&b, "- What does **%s** do, in two sentences, for someone who has never seen it?\n", m.Name)
-		if actors := kindOf(view, archdoc.Actor); len(actors) > 0 {
+		if actors := kindOf(view, core.Actor); len(actors) > 0 {
 			b.WriteString("- Configuration shows something outside reaching in, but not who. Who are the\n")
 			b.WriteString("  users, and what are they trying to do?\n")
 		}
@@ -77,11 +77,11 @@ func questions(section int, m archdoc.Model, view archdoc.Model) string {
 		fmt.Fprintf(&b, "The system is split into %d container(s). That split is a decision, and the\n", countContainers(view))
 		b.WriteString("configuration records only its outcome.\n\n")
 		b.WriteString("- Why this decomposition rather than fewer, larger pieces?\n")
-		if stores := kindOf(view, archdoc.Datastore); len(stores) > 1 {
+		if stores := kindOf(view, core.Datastore); len(stores) > 1 {
 			fmt.Fprintf(&b, "- There are %d data stores (%s). Why more than one?\n",
 				len(stores), strings.Join(stores, ", "))
 		}
-		if ext := kindOf(view, archdoc.External); len(ext) > 0 {
+		if ext := kindOf(view, core.External); len(ext) > 0 {
 			fmt.Fprintf(&b, "- %s is depended on rather than built. What was the buy-versus-build reasoning?\n",
 				strings.Join(ext, ", "))
 		}
@@ -92,7 +92,7 @@ func questions(section int, m archdoc.Model, view archdoc.Model) string {
 		b.WriteString("  does it travel between containers?\n")
 		b.WriteString("- **Logging, metrics, tracing** — is there a shared approach?\n")
 		b.WriteString("- **Configuration and secrets** — how do they reach a running container?\n")
-		if stores := kindOf(view, archdoc.Datastore); len(stores) > 0 {
+		if stores := kindOf(view, core.Datastore); len(stores) > 0 {
 			fmt.Fprintf(&b, "- **Persistence** — %s hold state. What is the backup and migration story?\n",
 				strings.Join(stores, ", "))
 		}
@@ -116,7 +116,7 @@ func questions(section int, m archdoc.Model, view archdoc.Model) string {
 				strings.Join(entry, ", "))
 			b.WriteString("  and latency targets?\n")
 		}
-		if stores := kindOf(view, archdoc.Datastore); len(stores) > 0 {
+		if stores := kindOf(view, core.Datastore); len(stores) > 0 {
 			b.WriteString("- What is the acceptable data loss window if a data store fails?\n")
 		}
 
@@ -126,7 +126,7 @@ func questions(section int, m archdoc.Model, view archdoc.Model) string {
 			fmt.Fprintf(&b, "- **%s** has more inbound relationships than anything else in the model.\n", busy)
 			b.WriteString("  What happens when it is unavailable?\n")
 		}
-		if ext := kindOf(view, archdoc.External); len(ext) > 0 {
+		if ext := kindOf(view, core.External); len(ext) > 0 {
 			fmt.Fprintf(&b, "- %s is outside the system and outside your control. What is the\n",
 				strings.Join(ext, ", "))
 			b.WriteString("  fallback?\n")
@@ -142,7 +142,7 @@ func questions(section int, m archdoc.Model, view archdoc.Model) string {
 	return b.String()
 }
 
-func kindOf(m archdoc.Model, k archdoc.Kind) []string {
+func kindOf(m core.Model, k core.Kind) []string {
 	var out []string
 	for _, n := range m.Nodes {
 		if n.Kind == k {
@@ -152,7 +152,7 @@ func kindOf(m archdoc.Model, k archdoc.Kind) []string {
 	return out
 }
 
-func countContainers(m archdoc.Model) int {
+func countContainers(m core.Model) int {
 	n := 0
 	for _, node := range m.Nodes {
 		if node.Kind.Container() {
@@ -162,7 +162,7 @@ func countContainers(m archdoc.Model) int {
 	return n
 }
 
-func technologies(m archdoc.Model) []string {
+func technologies(m core.Model) []string {
 	seen := map[string]bool{}
 	for _, n := range m.Nodes {
 		if n.Technology != "" {
@@ -177,7 +177,7 @@ func technologies(m archdoc.Model) []string {
 	return out
 }
 
-func excludedNames(full, view archdoc.Model) []string {
+func excludedNames(full, view core.Model) []string {
 	shown := map[string]bool{}
 	for _, n := range view.Nodes {
 		shown[n.ID] = true
@@ -193,11 +193,11 @@ func excludedNames(full, view archdoc.Model) []string {
 }
 
 // entryPoints are the containers something outside the system reaches directly.
-func entryPoints(m archdoc.Model) []string {
+func entryPoints(m core.Model) []string {
 	var out []string
 	for _, e := range m.Edges {
 		from, ok := m.Node(e.From)
-		if !ok || from.Kind != archdoc.Actor {
+		if !ok || from.Kind != core.Actor {
 			continue
 		}
 		if to, ok := m.Node(e.To); ok {
@@ -209,10 +209,10 @@ func entryPoints(m archdoc.Model) []string {
 
 // mostDependedOn is the crudest possible single-point-of-failure hint, and it is still worth
 // asking about: the thing everything talks to is the thing whose failure is worst.
-func mostDependedOn(m archdoc.Model) string {
+func mostDependedOn(m core.Model) string {
 	inbound := map[string]int{}
 	for _, e := range m.Edges {
-		if from, ok := m.Node(e.From); ok && from.Kind == archdoc.Actor {
+		if from, ok := m.Node(e.From); ok && from.Kind == core.Actor {
 			continue // reaching in from outside is not a dependency between containers
 		}
 		inbound[e.To]++
@@ -230,7 +230,7 @@ func mostDependedOn(m archdoc.Model) string {
 // unconnected names elements in the model that nothing reaches and that reach nothing. Immich's
 // machine-learning service is the standing example — every service calls it over a URL built at
 // runtime, so configuration never declares the link.
-func unconnected(m archdoc.Model) []string {
+func unconnected(m core.Model) []string {
 	touched := map[string]bool{}
 	for _, e := range m.Edges {
 		touched[e.From], touched[e.To] = true, true

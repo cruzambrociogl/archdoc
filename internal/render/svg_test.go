@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
-func laid(t *testing.T, view archdoc.Model, group bool) archdoc.Layout {
+func laid(t *testing.T, view core.Model, group bool) core.Layout {
 	t.Helper()
 	l, err := Layout(context.Background(), view, group)
 	if err != nil {
@@ -58,7 +58,7 @@ func TestLayoutIsDeterministic(t *testing.T) {
 // The container view draws the system boundary; the context view, which is already one box,
 // does not.
 func TestLayoutDrawsTheSystemBoundary(t *testing.T) {
-	system := func(l archdoc.Layout) bool {
+	system := func(l core.Layout) bool {
 		for _, g := range l.Groups {
 			if g.System {
 				return true
@@ -79,11 +79,11 @@ func TestLayoutDrawsTheSystemBoundary(t *testing.T) {
 func TestNetworksNestInThePicture(t *testing.T) {
 	l := laid(t, netFixture().Container(), true)
 
-	rects := map[string]archdoc.Rect{}
+	rects := map[string]core.Rect{}
 	for _, g := range l.Groups {
 		rects[g.Name] = g.Rect
 	}
-	inside := func(a, b archdoc.Rect) bool {
+	inside := func(a, b core.Rect) bool {
 		return a.X >= b.X && a.Y >= b.Y && a.X+a.W <= b.X+b.W && a.Y+a.H <= b.Y+b.H
 	}
 	back, okB := rects["backend"]
@@ -122,7 +122,7 @@ func TestSVGMarksModelTextAsInterpretation(t *testing.T) {
 	for i := range m.Nodes {
 		if m.Nodes[i].ID == "svc:api" {
 			m.Nodes[i].Description = "Serves the public API"
-			m.Nodes[i].DescProv = archdoc.Provenance{Origin: archdoc.Semantic, Note: "claude-opus-5"}
+			m.Nodes[i].DescProv = core.Provenance{Origin: core.Semantic, Note: "claude-opus-5"}
 		}
 	}
 	view := m.Container()
@@ -181,13 +181,13 @@ func TestDocumentsEmbedThePictureWhenThereIsOne(t *testing.T) {
 // wide and a third as tall, unreadable once a markdown preview scaled it to the column. A wide
 // fan-out must come back in a readable shape.
 func TestWideFanOutStaysReadable(t *testing.T) {
-	at := func(line int) archdoc.Provenance { return archdoc.Provenance{File: "compose.yml", Line: line} }
-	m := archdoc.Model{Name: "wide"}
-	m.Nodes = append(m.Nodes, archdoc.Node{ID: "actor:user", Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: at(1)})
+	at := func(line int) core.Provenance { return core.Provenance{File: "compose.yml", Line: line} }
+	m := core.Model{Name: "wide"}
+	m.Nodes = append(m.Nodes, core.Node{ID: "actor:user", Name: "User", Kind: core.Actor, Evidence: core.Declared, Prov: at(1)})
 	for i := 0; i < 10; i++ {
 		id := fmt.Sprintf("svc:s%02d", i)
-		m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: id[4:], Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at(10 + i)})
-		m.Edges = append(m.Edges, archdoc.Edge{From: "actor:user", To: id, Label: "reaches", Traffic: true, Prov: []archdoc.Provenance{at(2)}})
+		m.Nodes = append(m.Nodes, core.Node{ID: id, Name: id[4:], Kind: core.Application, Evidence: core.Declared, Prov: at(10 + i)})
+		m.Edges = append(m.Edges, core.Edge{From: "actor:user", To: id, Label: "reaches", Traffic: true, Prov: []core.Provenance{at(2)}})
 	}
 	view := m.Normalise().Container()
 

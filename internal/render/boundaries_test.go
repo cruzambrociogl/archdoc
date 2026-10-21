@@ -4,31 +4,31 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // netFixture is Mastodon's shape: every container on `backend`, only the externally reachable
 // ones also on `frontend`, so the memberships nest. `orphan` is on neither.
-func netFixture() archdoc.Model {
-	n := func(id, name string, kind archdoc.Kind, nets ...string) archdoc.Node {
-		return archdoc.Node{
-			ID: id, Name: name, Kind: kind, Evidence: archdoc.Declared,
+func netFixture() core.Model {
+	n := func(id, name string, kind core.Kind, nets ...string) core.Node {
+		return core.Node{
+			ID: id, Name: name, Kind: kind, Evidence: core.Declared,
 			Networks: nets, Prov: at(10),
 		}
 	}
 
-	return archdoc.Model{
+	return core.Model{
 		Name:   "example",
 		Source: "docker-compose.yml",
-		Networks: []archdoc.Network{
+		Networks: []core.Network{
 			{Name: "backend", Internal: true, Prov: at(40)},
 			{Name: "frontend", Prov: at(41)},
 		},
-		Nodes: []archdoc.Node{
-			n("svc:web", "web", archdoc.Application, "backend", "frontend"),
-			n("svc:worker", "worker", archdoc.Application, "backend", "frontend"),
-			n("svc:db", "db", archdoc.Datastore, "backend"),
-			n("svc:orphan", "orphan", archdoc.Application),
+		Nodes: []core.Node{
+			n("svc:web", "web", core.Application, "backend", "frontend"),
+			n("svc:worker", "worker", core.Application, "backend", "frontend"),
+			n("svc:db", "db", core.Datastore, "backend"),
+			n("svc:orphan", "orphan", core.Application),
 		},
 	}.Normalise()
 }

@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Settings: where a Java or .NET application keeps the addresses it connects to. Spring reads them
@@ -22,7 +22,7 @@ import (
 var springSettings = regexp.MustCompile(`^(application|bootstrap)([-.][\w-]+)?\.(properties|ya?ml)$`)
 var dotnetSettings = regexp.MustCompile(`^appsettings(\.[\w-]+)?\.json$`)
 
-func settings(repo, dir string, java bool) []archdoc.SourceFile {
+func settings(repo, dir string, java bool) []core.SourceFile {
 	base := dir
 	if java {
 		base = path.Join(dir, "src", "main", "resources")
@@ -38,14 +38,14 @@ func settings(repo, dir string, java bool) []archdoc.SourceFile {
 		}
 	}
 	sort.Strings(names)
-	var out []archdoc.SourceFile
+	var out []core.SourceFile
 	for _, name := range names {
 		rel := path.Join(base, name)
 		content, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(rel)))
 		if err != nil {
 			continue
 		}
-		f := archdoc.SourceFile{Path: rel, Lines: lines(content)}
+		f := core.SourceFile{Path: rel, Lines: lines(content)}
 		switch path.Ext(name) {
 		case ".properties":
 			f.Language, f.Hosts = "Properties", propertiesHosts(string(content), rel)
@@ -59,8 +59,8 @@ func settings(repo, dir string, java bool) []archdoc.SourceFile {
 	return out
 }
 
-func propertiesHosts(content, file string) []archdoc.HostRef {
-	var out []archdoc.HostRef
+func propertiesHosts(content, file string) []core.HostRef {
+	var out []core.HostRef
 	for i, line := range strings.Split(content, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || line[0] == '#' || line[0] == '!' {
@@ -70,20 +70,20 @@ func propertiesHosts(content, file string) []archdoc.HostRef {
 		if k < 0 {
 			continue
 		}
-		out = append(out, settingHosts(strings.TrimSpace(line[:k]), strings.TrimSpace(line[k+1:]), archdoc.Provenance{File: file, Line: i + 1})...)
+		out = append(out, settingHosts(strings.TrimSpace(line[:k]), strings.TrimSpace(line[k+1:]), core.Provenance{File: file, Line: i + 1})...)
 	}
 	return out
 }
 
 var yamlLine = regexp.MustCompile(`^(\s*)(?:-\s+)?([\w.\-/\[\]]+)\s*:\s*(.*)$`)
 
-func yamlHosts(content, file string) []archdoc.HostRef {
+func yamlHosts(content, file string) []core.HostRef {
 	type level struct {
 		indent int
 		key    string
 	}
 	var stack []level
-	var out []archdoc.HostRef
+	var out []core.HostRef
 	for i, line := range strings.Split(content, "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), "#") || strings.TrimSpace(line) == "---" {
 			if strings.TrimSpace(line) == "---" {
@@ -112,18 +112,18 @@ func yamlHosts(content, file string) []archdoc.HostRef {
 			parts = append(parts, s.key)
 		}
 		key := strings.Join(append(parts, m[2]), ".")
-		out = append(out, settingHosts(key, strings.Trim(value, `"'`), archdoc.Provenance{File: file, Line: i + 1})...)
+		out = append(out, settingHosts(key, strings.Trim(value, `"'`), core.Provenance{File: file, Line: i + 1})...)
 	}
 	return out
 }
 
 var jsonPair = regexp.MustCompile(`"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"`)
 
-func jsonHosts(content, file string) []archdoc.HostRef {
-	var out []archdoc.HostRef
+func jsonHosts(content, file string) []core.HostRef {
+	var out []core.HostRef
 	for i, line := range strings.Split(content, "\n") {
 		for _, m := range jsonPair.FindAllStringSubmatch(line, -1) {
-			out = append(out, settingHosts(m[1], strings.ReplaceAll(m[2], `\\`, `\`), archdoc.Provenance{File: file, Line: i + 1})...)
+			out = append(out, settingHosts(m[1], strings.ReplaceAll(m[2], `\\`, `\`), core.Provenance{File: file, Line: i + 1})...)
 		}
 	}
 	return out
@@ -135,16 +135,16 @@ var placeholderValue = regexp.MustCompile(`\$\{[^:}]+:([^}]*)\}`)
 
 // settingHosts are the hosts one setting names: a URL — jdbc: and all — a connection string's
 // server, or a host property's value.
-func settingHosts(key, value string, prov archdoc.Provenance) []archdoc.HostRef {
+func settingHosts(key, value string, prov core.Provenance) []core.HostRef {
 	value = placeholderValue.ReplaceAllString(value, "$1")
 	value = strings.TrimPrefix(value, "jdbc:")
 	short := key[strings.LastIndex(key, ".")+1:]
 	if h, ok := hostOf(value); ok {
 		h.Key, h.Prov = key, prov
-		return []archdoc.HostRef{h}
+		return []core.HostRef{h}
 	}
 	// A list of URLs: eureka's defaultZone, a gateway's routes.
-	var out []archdoc.HostRef
+	var out []core.HostRef
 	for _, part := range strings.Split(value, ",") {
 		if h, ok := hostOf(strings.TrimSpace(part)); ok {
 			h.Key, h.Prov = key, prov
@@ -155,10 +155,10 @@ func settingHosts(key, value string, prov archdoc.Provenance) []archdoc.HostRef 
 		return out
 	}
 	if server, scheme, ok := connectionServer(value); ok {
-		return []archdoc.HostRef{{Host: server, Scheme: scheme, Value: value, Key: key, Prov: prov}}
+		return []core.HostRef{{Host: server, Scheme: scheme, Value: value, Key: key, Prov: prov}}
 	}
 	if hostKey.MatchString(short) && hostName.MatchString(value) && strings.ContainsAny(value, "abcdefghijklmnopqrstuvwxyz") {
-		return []archdoc.HostRef{{Host: value, Value: value, Key: key, Prov: prov}}
+		return []core.HostRef{{Host: value, Value: value, Key: key, Prov: prov}}
 	}
 	return nil
 }
@@ -200,8 +200,8 @@ func connectionServer(value string) (server, scheme string, ok bool) {
 // application, so its tables are the application's. Only the files that say what a table is are kept:
 // a JPA entity and the classes it extends, or an EF Core DbContext, the classes it holds a DbSet of,
 // and theirs. They are schemas, not code: no component, no flow is made of them.
-func LibrarySchemas(repo string, libs []archdoc.App) []archdoc.SourceFile {
-	var all []archdoc.SourceFile
+func LibrarySchemas(repo string, libs []core.App) []core.SourceFile {
+	var all []core.SourceFile
 	for _, lib := range libs {
 		src, ok := Read(repo, lib, nil)
 		if ok {
@@ -258,7 +258,7 @@ func LibrarySchemas(repo string, libs []archdoc.App) []archdoc.SourceFile {
 			}
 		}
 	}
-	var out []archdoc.SourceFile
+	var out []core.SourceFile
 	for i, f := range all {
 		if keep[i] {
 			f.Imports, f.Hosts, f.Calls = nil, nil, nil

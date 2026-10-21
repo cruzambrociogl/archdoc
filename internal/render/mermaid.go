@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Mermaid renders a view as a flowchart.
@@ -22,8 +22,8 @@ import (
 //
 // group is the system boundary: true for a container view, where the declared containers sit
 // inside a box, and false for a context view, where the system is already one node.
-func Mermaid(m archdoc.Model, group bool) string {
-	if len(m.Nodes) > 0 && m.Nodes[0].Kind == archdoc.Table {
+func Mermaid(m core.Model, group bool) string {
+	if len(m.Nodes) > 0 && m.Nodes[0].Kind == core.Table {
 		return mermaidER(m)
 	}
 	var b strings.Builder
@@ -127,9 +127,9 @@ func writeGroup(b *strings.Builder, g *group, ids map[string]string, depth int) 
 
 // partition splits nodes into those inside the system boundary and those outside it. Actors and
 // external systems are always outside — that is what the evidence kind already decided.
-func partition(nodes []archdoc.Node, group bool) (inside, outside []archdoc.Node) {
+func partition(nodes []core.Node, group bool) (inside, outside []core.Node) {
 	for _, n := range nodes {
-		if group && n.Kind != archdoc.Actor && n.Kind != archdoc.External {
+		if group && n.Kind != core.Actor && n.Kind != core.External {
 			inside = append(inside, n)
 			continue
 		}
@@ -139,7 +139,7 @@ func partition(nodes []archdoc.Node, group bool) (inside, outside []archdoc.Node
 }
 
 // node renders one element with its C4 label: name, then what it is and what it runs.
-func node(id string, n archdoc.Node) string {
+func node(id string, n core.Node) string {
 	label := fmt.Sprintf("<b>%s</b><br/>%s", escape(n.Name), typeLabel(n))
 	if n.Description != "" {
 		// The line a C4 container is supposed to carry and configuration never states.
@@ -147,11 +147,11 @@ func node(id string, n archdoc.Node) string {
 	}
 
 	switch n.Kind {
-	case archdoc.Datastore:
+	case core.Datastore:
 		return fmt.Sprintf("%s[(%q)]", id, label)
-	case archdoc.Actor:
+	case core.Actor:
 		return fmt.Sprintf("%s([%q])", id, label)
-	case archdoc.Queue:
+	case core.Queue:
 		return fmt.Sprintf("%s[/%q/]", id, label)
 	default:
 		return fmt.Sprintf("%s[%q]", id, label)
@@ -161,18 +161,18 @@ func node(id string, n archdoc.Node) string {
 // typeLabel is the bracketed line under an element's name, in C4's own vocabulary. The
 // technology appears only when the catalog knew it — an empty one says "not known from
 // configuration", and writing "[Container: ]" would say nothing at greater length.
-func typeLabel(n archdoc.Node) string {
+func typeLabel(n core.Node) string {
 	kind := "Container"
 	switch n.Kind {
-	case archdoc.Actor:
+	case core.Actor:
 		kind = "Person"
-	case archdoc.External:
+	case core.External:
 		kind = "External System"
-	case archdoc.System:
+	case core.System:
 		kind = "Software System"
-	case archdoc.Component:
+	case core.Component:
 		kind = "Component"
-	case archdoc.Module:
+	case core.Module:
 		kind = "Folder"
 	}
 
@@ -184,7 +184,7 @@ func typeLabel(n archdoc.Node) string {
 
 // mermaidER renders a data view as Mermaid's entity-relationship diagram: each table with its
 // columns, keys marked, and a line per foreign key — "many rows here reference one there".
-func mermaidER(m archdoc.Model) string {
+func mermaidER(m core.Model) string {
 	var b strings.Builder
 	b.WriteString("erDiagram\n")
 	word := func(s string) string {
@@ -239,7 +239,7 @@ func mermaidER(m archdoc.Model) string {
 	return b.String()
 }
 
-func edgeLabel(e archdoc.Edge) string {
+func edgeLabel(e core.Edge) string {
 	switch {
 	case e.Label != "" && e.Technology != "":
 		return e.Label + "<br/>[" + escape(e.Technology) + "]"
@@ -255,15 +255,15 @@ func edgeLabel(e archdoc.Edge) string {
 // styles colour the two things a reader must not confuse: what the repository declares, and
 // what it only references. Referenced elements are drawn hollow and dashed — the diagram itself
 // says "we know this is talked to, and nothing more".
-func styles(m archdoc.Model, ids map[string]string) string {
+func styles(m core.Model, ids map[string]string) string {
 	var declared, referenced, actors []string
 
 	for _, n := range m.Nodes {
 		id := ids[n.ID]
 		switch {
-		case n.Kind == archdoc.Actor:
+		case n.Kind == core.Actor:
 			actors = append(actors, id)
-		case n.Evidence == archdoc.Referenced:
+		case n.Evidence == core.Referenced:
 			referenced = append(referenced, id)
 		default:
 			declared = append(declared, id)
@@ -298,7 +298,7 @@ func styles(m archdoc.Model, ids map[string]string) string {
 // identifiers maps model IDs to Mermaid-safe ones. Model IDs carry punctuation Mermaid cannot
 // take — "ext:s3.amazonaws.com" — and two different IDs must never flatten onto the same
 // identifier, so a suffix is added when they would.
-func identifiers(m archdoc.Model) map[string]string {
+func identifiers(m core.Model) map[string]string {
 	out := make(map[string]string, len(m.Nodes))
 	taken := map[string]bool{}
 

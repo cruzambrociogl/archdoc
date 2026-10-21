@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // What the code says about the system beyond its own structure (F-04, F-08, F-13, F-32): the
@@ -19,7 +19,7 @@ var endpointKey = regexp.MustCompile(`(?i)(url|uri|endpoint|host|hostname|server
 // configured reports a URL a configuration key holds, whole, in code that is not a template: an
 // endpoint the application is set up to reach. A link an email or a page shows is not one, and
 // nor is a field of one record among many — the url of each company a page lists.
-func configured(h archdoc.HostRef, f archdoc.SourceFile) bool {
+func configured(h core.HostRef, f core.SourceFile) bool {
 	if h.Built || h.Row || h.Scheme == "" || !endpointKey.MatchString(h.Key) {
 		return false
 	}
@@ -47,10 +47,10 @@ var nestMethods = map[string]string{
 	"All": "ALL", "Head": "HEAD", "Options": "OPTIONS",
 }
 
-func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string]string, declared map[string]string) {
+func fromCode(m *core.Model, sources []core.Source, componentOf map[string]string, declared map[string]string) {
 	containerOf := map[string]string{}
 	for _, n := range m.Nodes {
-		if n.Dir != "" && n.Kind == archdoc.Application {
+		if n.Dir != "" && n.Kind == core.Application {
 			containerOf[n.Dir] = n.ID
 		}
 	}
@@ -77,7 +77,7 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 		for _, f := range src.Settings {
 			setting[f.Path] = true
 		}
-		for _, f := range append(append([]archdoc.SourceFile(nil), src.Files...), src.Settings...) {
+		for _, f := range append(append([]core.SourceFile(nil), src.Files...), src.Settings...) {
 			for _, h := range f.Hosts {
 				to := ""
 				if name, ok := declared[h.Host]; ok {
@@ -89,8 +89,8 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 					to = externalID(h.Host)
 					if !has[to] {
 						has[to] = true
-						m.Nodes = append(m.Nodes, archdoc.Node{ID: to, Name: h.Host, Kind: archdoc.External,
-							Evidence: archdoc.Referenced, Prov: h.Prov})
+						m.Nodes = append(m.Nodes, core.Node{ID: to, Name: h.Host, Kind: core.External,
+							Evidence: core.Referenced, Prov: h.Prov})
 					}
 				}
 				if to == "" || to == container {
@@ -99,15 +99,15 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 				label := "connects to"
 				switch {
 				case !h.Called && strings.HasPrefix(to, "ext:"):
-					label = archdoc.Configured // a default the code holds, not a call it was seen to make
+					label = core.Configured // a default the code holds, not a call it was seen to make
 				case h.Scheme == "http" || h.Scheme == "https" || h.Scheme == "ws" || h.Scheme == "wss":
 					label = "calls"
 				}
-				m.Edges = append(m.Edges, archdoc.Edge{From: container, To: to, Label: label,
-					Technology: h.Scheme, Traffic: true, Prov: []archdoc.Provenance{h.Prov}})
+				m.Edges = append(m.Edges, core.Edge{From: container, To: to, Label: label,
+					Technology: h.Scheme, Traffic: true, Prov: []core.Provenance{h.Prov}})
 			}
 			for _, c := range f.Calls {
-				m.Unresolved = append(m.Unresolved, archdoc.Unresolved{
+				m.Unresolved = append(m.Unresolved, core.Unresolved{
 					Container: container, Component: componentOf[f.Path],
 					What: c.Callee + "(" + c.Target + ")",
 					Note: "an HTTP call whose address is computed at run time; nothing in the code names its target",
@@ -128,13 +128,13 @@ func fromCode(m *archdoc.Model, sources []archdoc.Source, componentOf map[string
 
 // routes reads a NestJS application's routes: each @Controller class's decorated methods, under
 // the controller's path and the global prefix, with the services its constructor is given.
-func routes(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
+func routes(src core.Source, container string, componentOf map[string]string) []core.Entry {
 	// Where each class is declared, for resolving an injected type by its name. A name declared
 	// twice is ambiguous, and stays unresolved rather than picking one.
-	declaredAt := map[string]archdoc.Provenance{}
+	declaredAt := map[string]core.Provenance{}
 	twice := map[string]bool{}
-	constants := map[string]archdoc.Constant{}
-	var prefix *archdoc.Literal
+	constants := map[string]core.Constant{}
+	var prefix *core.Literal
 	for _, f := range src.Files {
 		for _, c := range f.Constants {
 			constants[c.Name] = c
@@ -154,7 +154,7 @@ func routes(src archdoc.Source, container string, componentOf map[string]string)
 	}
 
 	_, local, _ := strings.Cut(container, ":")
-	var out []archdoc.Entry
+	var out []core.Entry
 	seen := map[string]bool{}
 	for _, f := range src.Files {
 		for _, c := range f.Classes {
@@ -177,16 +177,16 @@ func routes(src archdoc.Source, container string, componentOf map[string]string)
 			if !controller {
 				continue
 			}
-			var uses []archdoc.Symbol
+			var uses []core.Symbol
 			for _, in := range c.Injects {
-				s := archdoc.Symbol{Name: in.Value, How: "unresolved", Prov: in.Prov}
+				s := core.Symbol{Name: in.Value, How: "unresolved", Prov: in.Prov}
 				if at, ok := declaredAt[in.Value]; ok && !twice[in.Value] {
 					s.How, s.Prov, s.Component = "name", at, componentOf[at.File]
 				}
 				uses = append(uses, s)
 			}
 			for _, meth := range c.Methods {
-				e := archdoc.Entry{Kind: "http", Handler: c.Name + "." + meth.Name, Container: container,
+				e := core.Entry{Kind: "http", Handler: c.Name + "." + meth.Name, Container: container,
 					Component: componentOf[f.Path], Uses: uses, PathNote: note}
 				for _, d := range meth.Decorators {
 					if method, ok := nestMethods[d.Name]; ok && e.Method == "" {
@@ -233,10 +233,10 @@ type routerKey struct{ file, name string }
 // router = APIRouter(prefix="/items"), api_router.include_router(items.router),
 // app.include_router(api_router, prefix=settings.API_V1_STR). A prefix written as a setting is
 // resolved by name to the class field that declares it; an include inside an if says so.
-func fastapiRoutes(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
-	routers := map[routerKey]archdoc.Router{}
-	values := map[string]archdoc.Field{} // a class field's literal, by name: API_V1_STR = "/api/v1"
-	files := map[string]archdoc.SourceFile{}
+func fastapiRoutes(src core.Source, container string, componentOf map[string]string) []core.Entry {
+	routers := map[routerKey]core.Router{}
+	values := map[string]core.Field{} // a class field's literal, by name: API_V1_STR = "/api/v1"
+	files := map[string]core.SourceFile{}
 	for _, f := range src.Files {
 		files[f.Path] = f
 		for _, r := range f.Routers {
@@ -261,7 +261,7 @@ func fastapiRoutes(src archdoc.Source, container string, componentOf map[string]
 		prefix string
 		notes  []string
 		cond   string
-		prov   archdoc.Provenance
+		prov   core.Provenance
 	}
 	included := map[routerKey]link{}
 	for _, f := range src.Files {
@@ -320,7 +320,7 @@ func fastapiRoutes(src archdoc.Source, container string, componentOf map[string]
 	}
 
 	_, local, _ := strings.Cut(container, ":")
-	var out []archdoc.Entry
+	var out []core.Entry
 	seen := map[string]bool{}
 	for _, f := range src.Files {
 		stem := path.Base(f.Path)
@@ -340,7 +340,7 @@ func fastapiRoutes(src archdoc.Source, container string, componentOf map[string]
 						continue
 					}
 					prefix, notes, _ := prefixOf(key)
-					e := archdoc.Entry{Kind: "http", Method: verb, Path: path.Join(prefix, d.Arg), Handler: stem + "." + meth.Name,
+					e := core.Entry{Kind: "http", Method: verb, Path: path.Join(prefix, d.Arg), Handler: stem + "." + meth.Name,
 						Container: container, Component: componentOf[f.Path], PathNote: strings.Join(notes, "; "), Prov: d.Prov}
 					if strings.HasSuffix(d.Arg, "/") && e.Path != "/" {
 						e.Path += "/" // FastAPI tells /items from /items/; so does the route
@@ -366,7 +366,7 @@ func fastapiRoutes(src archdoc.Source, container string, componentOf map[string]
 
 // childRouter resolves what an include names: items.router — the router in the module the file
 // imports as items — or a router the file itself declares.
-func childRouter(f archdoc.SourceFile, expr string, routers map[routerKey]archdoc.Router) (routerKey, bool) {
+func childRouter(f core.SourceFile, expr string, routers map[routerKey]core.Router) (routerKey, bool) {
 	if mod, name, ok := strings.Cut(expr, "."); ok {
 		for _, imp := range f.Imports {
 			if imp.Target == "" {
@@ -403,7 +403,7 @@ var kitMethods = map[string]bool{"GET": true, "POST": true, "PUT": true, "PATCH"
 // by file — a +page.svelte under src/routes is a page at its directory's path, a +server.ts an
 // endpoint for each method it exports — and TanStack Router by call, createFileRoute("/items").
 // A SvelteKit route group, (user), is not part of the path; a TanStack layout, _layout, is not either.
-func pages(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
+func pages(src core.Source, container string, componentOf map[string]string) []core.Entry {
 	_, local, _ := strings.Cut(container, ":")
 	routesDir := src.Root + "/routes/"
 	// Next.js keeps pages in app/ (a page.tsx per route, a route.ts per endpoint) or in pages/
@@ -421,9 +421,9 @@ func pages(src archdoc.Source, container string, componentOf map[string]string) 
 	if !next {
 		nextApp, nextPages = "\x00", "\x00"
 	}
-	var out []archdoc.Entry
+	var out []core.Entry
 	seen := map[string]bool{}
-	add := func(e archdoc.Entry) {
+	add := func(e core.Entry) {
 		prefix := "page:"
 		if e.Kind == "http" {
 			prefix = "route:"
@@ -442,11 +442,11 @@ func pages(src archdoc.Source, container string, componentOf map[string]string) 
 			at := kitPath(dir)
 			switch {
 			case base == "+page.svelte":
-				add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: at, Handler: rel, Prov: archdoc.Provenance{File: f.Path, Line: 1}})
+				add(core.Entry{Kind: "page", Method: "PAGE", Path: at, Handler: rel, Prov: core.Provenance{File: f.Path, Line: 1}})
 			case strings.HasPrefix(base, "+server."):
 				for _, x := range f.Exports {
 					if kitMethods[x.Value] {
-						add(archdoc.Entry{Kind: "http", Method: x.Value, Path: at, Handler: rel + " " + x.Value, Prov: x.Prov})
+						add(core.Entry{Kind: "http", Method: x.Value, Path: at, Handler: rel + " " + x.Value, Prov: x.Prov})
 					}
 				}
 			}
@@ -456,11 +456,11 @@ func pages(src archdoc.Source, container string, componentOf map[string]string) 
 			name := base[:len(base)-len(path.Ext(base))]
 			switch name {
 			case "page":
-				add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: kitPath(dir), Handler: "app/" + rel, Prov: archdoc.Provenance{File: f.Path, Line: 1}})
+				add(core.Entry{Kind: "page", Method: "PAGE", Path: kitPath(dir), Handler: "app/" + rel, Prov: core.Provenance{File: f.Path, Line: 1}})
 			case "route":
 				for _, x := range f.Exports {
 					if kitMethods[x.Value] {
-						add(archdoc.Entry{Kind: "http", Method: x.Value, Path: kitPath(dir), Handler: "app/" + rel + " " + x.Value, Prov: x.Prov})
+						add(core.Entry{Kind: "http", Method: x.Value, Path: kitPath(dir), Handler: "app/" + rel + " " + x.Value, Prov: x.Prov})
 					}
 				}
 			}
@@ -472,18 +472,18 @@ func pages(src archdoc.Source, container string, componentOf map[string]string) 
 			case strings.HasPrefix(base, "_"):
 				// _app, _document: the frame around every page, not a page.
 			case strings.HasPrefix(rel, "api/"):
-				add(archdoc.Entry{Kind: "http", Method: "ANY", Path: at, Handler: "pages/" + rel, Prov: archdoc.Provenance{File: f.Path, Line: 1}})
+				add(core.Entry{Kind: "http", Method: "ANY", Path: at, Handler: "pages/" + rel, Prov: core.Provenance{File: f.Path, Line: 1}})
 			default:
-				add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: at, Handler: "pages/" + rel, Prov: archdoc.Provenance{File: f.Path, Line: 1}})
+				add(core.Entry{Kind: "page", Method: "PAGE", Path: at, Handler: "pages/" + rel, Prov: core.Provenance{File: f.Path, Line: 1}})
 			}
 		}
 		for _, p := range f.Pages {
-			add(archdoc.Entry{Kind: "page", Method: "PAGE", Path: tanstackPath(p.Value), Handler: strings.TrimPrefix(f.Path, src.Root+"/"), Prov: p.Prov})
+			add(core.Entry{Kind: "page", Method: "PAGE", Path: tanstackPath(p.Value), Handler: strings.TrimPrefix(f.Path, src.Root+"/"), Prov: p.Prov})
 		}
 	}
 	// With no manifest and no router, a page is an HTML file: what a person opens.
 	for _, d := range src.Documents {
-		e := archdoc.Entry{Kind: "page", Method: "PAGE", Path: "/" + strings.TrimPrefix(strings.TrimPrefix(d.Prov.File, src.Root+"/"), "./"),
+		e := core.Entry{Kind: "page", Method: "PAGE", Path: "/" + strings.TrimPrefix(strings.TrimPrefix(d.Prov.File, src.Root+"/"), "./"),
 			Handler: d.Prov.File, Prov: d.Prov}
 		if d.Value != "" {
 			e.Summary, e.SummaryProv = d.Value, d.Prov
@@ -521,17 +521,17 @@ func tanstackPath(p string) string {
 // command line — nest-commander's @Command classes, commander's program.command(…), Typer's and
 // Click's @app.command() — and the work it does without being asked: @OnJob handlers on a queue,
 // @Cron and @Interval schedules. A job named by an enum member is resolved by name.
-func commandsAndJobs(src archdoc.Source, container string, componentOf map[string]string) []archdoc.Entry {
+func commandsAndJobs(src core.Source, container string, componentOf map[string]string) []core.Entry {
 	_, local, _ := strings.Cut(container, ":")
-	constants := map[string]archdoc.Constant{}
+	constants := map[string]core.Constant{}
 	for _, f := range src.Files {
 		for _, c := range f.Constants {
 			constants[c.Name] = c
 		}
 	}
-	var out []archdoc.Entry
+	var out []core.Entry
 	seen := map[string]bool{}
-	add := func(e archdoc.Entry) {
+	add := func(e core.Entry) {
 		e.ID = e.Kind + ":" + local + " " + e.Path
 		if seen[e.ID] {
 			e.ID += " " + e.Handler
@@ -546,12 +546,12 @@ func commandsAndJobs(src archdoc.Source, container string, componentOf map[strin
 	for _, f := range src.Files {
 		rel := strings.TrimPrefix(f.Path, src.Root+"/")
 		for _, c := range f.Commands {
-			add(archdoc.Entry{Kind: "command", Method: "CMD", Path: c.Name, Handler: rel, Summary: c.Summary, SummaryProv: c.SummaryProv, Prov: c.Prov})
+			add(core.Entry{Kind: "command", Method: "CMD", Path: c.Name, Handler: rel, Summary: c.Summary, SummaryProv: c.SummaryProv, Prov: c.Prov})
 		}
 		for _, c := range f.Classes {
 			for _, d := range c.Decorators {
 				if d.Name == "Command" && d.Options["name"] != "" {
-					e := archdoc.Entry{Kind: "command", Method: "CMD", Path: d.Options["name"], Handler: c.Name + ".run", Prov: d.Prov}
+					e := core.Entry{Kind: "command", Method: "CMD", Path: d.Options["name"], Handler: c.Name + ".run", Prov: d.Prov}
 					if s := d.Options["description"]; s != "" {
 						e.Summary, e.SummaryProv = s, d.Prov
 					}
@@ -574,16 +574,16 @@ func commandsAndJobs(src archdoc.Source, container string, componentOf map[strin
 								name, note = "{"+expr+"}", expr+" could not be resolved"
 							}
 						}
-						add(archdoc.Entry{Kind: "job", Method: "JOB", Path: name, Handler: handler, PathNote: note, Prov: d.Prov})
+						add(core.Entry{Kind: "job", Method: "JOB", Path: name, Handler: handler, PathNote: note, Prov: d.Prov})
 					case d.Name == "Cron" || d.Name == "Interval":
 						when := d.Arg
 						if when == "" {
 							when = d.ArgExpr
 						}
-						add(archdoc.Entry{Kind: "job", Method: strings.ToUpper(d.Name), Path: meth.Name, Handler: handler,
+						add(core.Entry{Kind: "job", Method: strings.ToUpper(d.Name), Path: meth.Name, Handler: handler,
 							PathNote: "scheduled: " + when, Prov: d.Prov})
 					case strings.HasSuffix(d.Name, ".command") && strings.HasSuffix(f.Path, ".py"):
-						e := archdoc.Entry{Kind: "command", Method: "CMD", Path: strings.ReplaceAll(meth.Name, "_", "-"), Handler: handler, Prov: d.Prov}
+						e := core.Entry{Kind: "command", Method: "CMD", Path: strings.ReplaceAll(meth.Name, "_", "-"), Handler: handler, Prov: d.Prov}
 						if d.Arg != "" {
 							e.Path = d.Arg
 						}
@@ -602,7 +602,7 @@ func commandsAndJobs(src archdoc.Source, container string, componentOf map[strin
 		for _, f := range src.Files {
 			rel := strings.TrimPrefix(strings.TrimPrefix(f.Path, src.Root+"/"), "./")
 			if f.Main != nil {
-				add(archdoc.Entry{Kind: "command", Method: "CMD", Path: "python " + rel, Handler: rel, Prov: *f.Main})
+				add(core.Entry{Kind: "command", Method: "CMD", Path: "python " + rel, Handler: rel, Prov: *f.Main})
 			}
 		}
 	}

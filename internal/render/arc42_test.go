@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 func meta() Meta {
@@ -167,13 +167,13 @@ func TestArc42IsDeterministic(t *testing.T) {
 // the section noise. The hint fires only when something is genuinely central.
 func TestRisksStubNamesTheMostDependedOnContainer(t *testing.T) {
 	m := fixture()
-	m.Nodes = append(m.Nodes, archdoc.Node{
-		ID: "svc:worker", Name: "worker", Kind: archdoc.Application,
-		Evidence: archdoc.Declared, Prov: at(30),
+	m.Nodes = append(m.Nodes, core.Node{
+		ID: "svc:worker", Name: "worker", Kind: core.Application,
+		Evidence: core.Declared, Prov: at(30),
 	})
-	m.Edges = append(m.Edges, archdoc.Edge{
+	m.Edges = append(m.Edges, core.Edge{
 		From: "svc:worker", To: "svc:db", Label: "connects to",
-		Traffic: true, Prov: []archdoc.Provenance{at(31)},
+		Traffic: true, Prov: []core.Provenance{at(31)},
 	})
 
 	if out := Stubs(m.Normalise(), Sections(), meta())["11-risks-and-technical-debt.md"]; !strings.Contains(out, "**db**") {
@@ -190,9 +190,9 @@ func TestRisksStubNamesTheMostDependedOnContainer(t *testing.T) {
 // relationships, because every caller builds its URL at runtime.
 func TestRisksStubNoticesAnUnconnectedContainer(t *testing.T) {
 	m := fixture()
-	m.Nodes = append(m.Nodes, archdoc.Node{
-		ID: "svc:worker", Name: "worker", Kind: archdoc.Application,
-		Evidence: archdoc.Declared, Prov: at(40),
+	m.Nodes = append(m.Nodes, core.Node{
+		ID: "svc:worker", Name: "worker", Kind: core.Application,
+		Evidence: core.Declared, Prov: at(40),
 	})
 
 	out := Stubs(m.Normalise(), Sections(), meta())["11-risks-and-technical-debt.md"]
@@ -205,10 +205,10 @@ func TestRisksStubNoticesAnUnconnectedContainer(t *testing.T) {
 // chosen by that rule — as sequence diagrams.
 func TestRuntimeViewDrawsFlowsFromTheCode(t *testing.T) {
 	m := fixture()
-	m.Entries = []archdoc.Entry{{ID: "route:api GET /a", Method: "GET", Path: "/a", Handler: "A.get", Prov: archdoc.Provenance{File: "a.ts", Line: 3}}}
-	m.Flows = []archdoc.Flow{{Entry: "route:api GET /a",
-		Participants: []archdoc.Participant{{ID: "A", Name: "A", Kind: "class"}, {ID: "table:t", Name: "t", Kind: "table"}},
-		Steps:        []archdoc.Step{{From: "A", To: "table:t", Call: "reads", Prov: archdoc.Provenance{File: "a.ts", Line: 4}}}}}
+	m.Entries = []core.Entry{{ID: "route:api GET /a", Method: "GET", Path: "/a", Handler: "A.get", Prov: core.Provenance{File: "a.ts", Line: 3}}}
+	m.Flows = []core.Flow{{Entry: "route:api GET /a",
+		Participants: []core.Participant{{ID: "A", Name: "A", Kind: "class"}, {ID: "table:t", Name: "t", Kind: "table"}},
+		Steps:        []core.Step{{From: "A", To: "table:t", Call: "reads", Prov: core.Provenance{File: "a.ts", Line: 4}}}}}
 	out := Arc42(m, fixtureFacts(), Sections(), meta())["06-runtime-view.generated.md"]
 	if !strings.Contains(out, "sequenceDiagram") || !strings.Contains(out, "p0->>p1: reads") || !strings.Contains(out, "### GET /a") {
 		t.Errorf("the runtime view does not draw the flow:\n%s", out)
@@ -222,8 +222,8 @@ func TestRuntimeViewDrawsFlowsFromTheCode(t *testing.T) {
 func TestPartsAreNotListedAsNotShown(t *testing.T) {
 	m := fixture()
 	parent := m.Container().Nodes[0].ID
-	m.Nodes = append(m.Nodes, archdoc.Node{ID: "cmp:x/services", Name: "services-part", Kind: archdoc.Component, Parent: parent,
-		Evidence: archdoc.Declared, Prov: archdoc.Provenance{File: "a.ts", Line: 1}})
+	m.Nodes = append(m.Nodes, core.Node{ID: "cmp:x/services", Name: "services-part", Kind: core.Component, Parent: parent,
+		Evidence: core.Declared, Prov: core.Provenance{File: "a.ts", Line: 1}})
 	out := Arc42(m, fixtureFacts(), Sections(), meta())["05-building-block-view.generated.md"]
 	if i := strings.Index(out, "### Not shown"); i >= 0 && strings.Contains(out[i:], "services-part") {
 		t.Error("a component was listed as infrastructure not shown")
@@ -235,15 +235,15 @@ func TestPartsAreNotListedAsNotShown(t *testing.T) {
 
 // A component most others use is marked shared; the layout draws no arrow into it.
 func TestSharedComponentsAreSaidNotDrawn(t *testing.T) {
-	m := archdoc.Model{Nodes: []archdoc.Node{{ID: "svc:x", Name: "x", Kind: archdoc.Application}}}
+	m := core.Model{Nodes: []core.Node{{ID: "svc:x", Name: "x", Kind: core.Application}}}
 	names := []string{"a", "b", "c", "d", "e", "utils"}
 	for _, n := range names {
-		m.Nodes = append(m.Nodes, archdoc.Node{ID: "cmp:x/" + n, Name: n, Kind: archdoc.Component, Parent: "svc:x"})
+		m.Nodes = append(m.Nodes, core.Node{ID: "cmp:x/" + n, Name: n, Kind: core.Component, Parent: "svc:x"})
 	}
 	for _, n := range names[:5] {
-		m.Edges = append(m.Edges, archdoc.Edge{From: "cmp:x/" + n, To: "cmp:x/utils", Label: "uses", Weight: 2})
+		m.Edges = append(m.Edges, core.Edge{From: "cmp:x/" + n, To: "cmp:x/utils", Label: "uses", Weight: 2})
 	}
-	m.Edges = append(m.Edges, archdoc.Edge{From: "cmp:x/a", To: "cmp:x/b", Label: "uses", Weight: 1})
+	m.Edges = append(m.Edges, core.Edge{From: "cmp:x/a", To: "cmp:x/b", Label: "uses", Weight: 1})
 	v, _ := ViewOf(m, ComponentPrefix+"svc:x")
 	utils, _ := v.Model.Node("cmp:x/utils")
 	if utils.UsedBy != 5 || utils.Among != 5 {

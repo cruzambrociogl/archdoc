@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // The coverage report: what archdoc read, what it could not resolve, and what the evidence it had
@@ -49,7 +49,7 @@ type CoverageReport struct {
 	Code []CodeRead `json:"code"`
 	// Unresolved is what the code does that could not be tied to an element: calls whose
 	// address is computed at run time.
-	Unresolved []archdoc.Unresolved `json:"unresolved"`
+	Unresolved []core.Unresolved `json:"unresolved"`
 	// Routes and Pages count the entries the code declares.
 	Routes   int `json:"routes"`
 	Pages    int `json:"pages"`
@@ -82,9 +82,9 @@ type CodeRead struct {
 	// appsettings.json.
 	Settings []string `json:"settings,omitempty"`
 	// Imports counts every import by how it was resolved: path, alias, module, package, unresolved.
-	Imports map[archdoc.Resolution]int `json:"imports"`
+	Imports map[core.Resolution]int `json:"imports"`
 	// Unresolved are the imports that look like the application's own code and match no file.
-	Unresolved []archdoc.Import `json:"unresolved"`
+	Unresolved []core.Import `json:"unresolved"`
 	// Partial are files the parser recovered in; what it read of them is still used.
 	Partial []string `json:"partial"`
 }
@@ -118,7 +118,7 @@ type Limit struct {
 const CoverageJSONFile = "coverage.json"
 
 // BuildCoverage computes the report.
-func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageReport {
+func BuildCoverage(m core.Model, facts core.FactSet, gaps []Gap) CoverageReport {
 	r := CoverageReport{Source: facts.Source, Read: sourcesRead(facts), Known: knownCounts(m, gaps)}
 
 	byRule := map[string][]Gap{}
@@ -166,7 +166,7 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 		}
 	}
 	r.Code = codeRead(m, facts)
-	r.Unresolved = append([]archdoc.Unresolved{}, m.Unresolved...)
+	r.Unresolved = append([]core.Unresolved{}, m.Unresolved...)
 	for _, e := range m.Entries {
 		switch e.Kind {
 		case "page":
@@ -182,7 +182,7 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 	r.TablesIn = append([]string{}, m.Datas()...)
 	r.Dependencies = len(m.Dependencies)
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Table {
+		if n.Kind == core.Table {
 			r.Tables++
 		}
 	}
@@ -205,7 +205,7 @@ func BuildCoverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap) CoverageR
 }
 
 // Coverage renders the report.
-func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) string {
+func Coverage(m core.Model, facts core.FactSet, gaps []Gap, meta Meta) string {
 	r := BuildCoverage(m, facts, gaps)
 	var b strings.Builder
 
@@ -259,9 +259,9 @@ func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) str
 				fmt.Fprintf(&b, "| `%s` | %s | not read — archdoc has no reader for %s yet | | | | | |\n", c.App, c.Language, c.Language)
 				continue
 			}
-			own := c.Imports[archdoc.ByPath] + c.Imports[archdoc.ByAlias] + c.Imports[archdoc.ByModule] + c.Imports[archdoc.ByName]
+			own := c.Imports[core.ByPath] + c.Imports[core.ByAlias] + c.Imports[core.ByModule] + c.Imports[core.ByName]
 			fmt.Fprintf(&b, "| `%s` | %s | %d | %d | %d | %d own, %d packages | %d | %d |\n", c.Root, c.Language,
-				c.Files, c.Lines, c.Components, own, c.Imports[archdoc.ByPackage], len(c.Unresolved), len(c.Partial))
+				c.Files, c.Lines, c.Components, own, c.Imports[core.ByPackage], len(c.Unresolved), len(c.Partial))
 		}
 		for _, c := range r.Code {
 			if len(c.Schemas) > 0 {
@@ -304,7 +304,7 @@ func Coverage(m archdoc.Model, facts archdoc.FactSet, gaps []Gap, meta Meta) str
 
 // sourcesRead lists every file discovery looked at — including the ones it skipped, and why. A
 // reader can then tell "archdoc did not look" from "archdoc looked and found nothing".
-func sourcesRead(facts archdoc.FactSet) []ReadFile {
+func sourcesRead(facts core.FactSet) []ReadFile {
 	out := []ReadFile{}
 	seen := map[string]bool{}
 	for _, c := range sortedCandidates(facts.Considered) {
@@ -353,9 +353,9 @@ func sourcesRead(facts archdoc.FactSet) []ReadFile {
 // systems, components, tables, and every arrow between any of them — how many rest on something a
 // file states at a line, or on a catalog entry that is named. What a person's rule or a model
 // supplied is not counted as traced, whatever it cites.
-func Traced(m archdoc.Model) (traced, of int) {
-	proven := func(p archdoc.Provenance) bool {
-		return p.Known() && (p.Origin == "" || p.Origin == archdoc.Extraction || p.Origin == archdoc.Catalog)
+func Traced(m core.Model) (traced, of int) {
+	proven := func(p core.Provenance) bool {
+		return p.Known() && (p.Origin == "" || p.Origin == core.Extraction || p.Origin == core.Catalog)
 	}
 	for _, n := range m.Nodes {
 		of++
@@ -384,22 +384,22 @@ func percent(n, of int) string {
 }
 
 // knownCounts is the one place the documents say how much of themselves is backed by what.
-func knownCounts(m archdoc.Model, gaps []Gap) []Count {
+func knownCounts(m core.Model, gaps []Gap) []Count {
 	component := components(m)
 	declared, referenced, parts, tables, uses, elements := 0, 0, 0, 0, 0, 0
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Table {
+		if n.Kind == core.Table {
 			tables++
 			continue
 		}
 		if component[n.ID] {
-			if n.Kind == archdoc.Component {
+			if n.Kind == core.Component {
 				parts++
 			}
 			continue
 		}
 		elements++
-		if n.Evidence == archdoc.Referenced {
+		if n.Evidence == core.Referenced {
 			referenced++
 			continue
 		}
@@ -409,7 +409,7 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 	withProtocol, relationships := 0, 0
 	isComponent := map[string]bool{}
 	for _, n := range m.Nodes {
-		isComponent[n.ID] = n.Kind == archdoc.Component
+		isComponent[n.ID] = n.Kind == core.Component
 	}
 	for _, e := range m.Edges {
 		if component[e.From] || component[e.To] {
@@ -466,7 +466,7 @@ func knownCounts(m archdoc.Model, gaps []Gap) []Count {
 	return counts
 }
 
-func components(m archdoc.Model) map[string]bool {
+func components(m core.Model) map[string]bool {
 	out := map[string]bool{}
 	for _, n := range m.Nodes {
 		if n.Kind.Part() {
@@ -478,17 +478,17 @@ func components(m archdoc.Model) map[string]bool {
 
 // codeRead reports each running application's code: read, with how its imports resolved, or not
 // read, because archdoc has no reader for its language yet.
-func codeRead(m archdoc.Model, facts archdoc.FactSet) []CodeRead {
+func codeRead(m core.Model, facts core.FactSet) []CodeRead {
 	containerOf := map[string]string{}
 	count := map[string]int{}
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind == core.Component {
 			count[n.Parent]++
 		} else if n.Dir != "" && !n.Kind.Part() {
 			containerOf[n.Dir] = n.ID
 		}
 	}
-	sources := map[string]archdoc.Source{}
+	sources := map[string]core.Source{}
 	for _, s := range facts.Sources {
 		sources[s.App] = s
 	}
@@ -498,7 +498,7 @@ func codeRead(m archdoc.Model, facts archdoc.FactSet) []CodeRead {
 			continue
 		}
 		c := CodeRead{App: a.Dir, Container: containerOf[a.Dir], Language: a.Language,
-			Imports: map[archdoc.Resolution]int{}, Unresolved: []archdoc.Import{}, Partial: []string{}}
+			Imports: map[core.Resolution]int{}, Unresolved: []core.Import{}, Partial: []string{}}
 		if s, ok := sources[a.Dir]; ok {
 			for _, f := range s.Schemas {
 				c.Schemas = append(c.Schemas, f.Path)
@@ -515,7 +515,7 @@ func codeRead(m archdoc.Model, facts archdoc.FactSet) []CodeRead {
 				}
 				for _, i := range f.Imports {
 					c.Imports[i.How]++
-					if i.How == archdoc.NoMatch {
+					if i.How == core.NoMatch {
 						c.Unresolved = append(c.Unresolved, i)
 					}
 				}
@@ -540,14 +540,14 @@ var limits = []Limit{
 	{"Why any of it is this way", "A person — sections 1, 4 and 9"},
 }
 
-func sortedCandidates(in []archdoc.Candidate) []archdoc.Candidate {
-	out := append([]archdoc.Candidate(nil), in...)
+func sortedCandidates(in []core.Candidate) []core.Candidate {
+	out := append([]core.Candidate(nil), in...)
 	sort.Slice(out, func(i, j int) bool { return out[i].File < out[j].File })
 	return out
 }
 
 // configFiles are the gateway configurations routes were read from, deduplicated.
-func configFiles(facts archdoc.FactSet) []string {
+func configFiles(facts core.FactSet) []string {
 	return uniqueSorted(func(add func(string)) {
 		for _, r := range facts.Routes {
 			add(r.Config)
@@ -557,7 +557,7 @@ func configFiles(facts archdoc.FactSet) []string {
 
 // envFiles are files other than the compose file that endpoints were cited in — the dotenv files
 // compose names, which are read for interpolation.
-func envFiles(facts archdoc.FactSet) []string {
+func envFiles(facts core.FactSet) []string {
 	return uniqueSorted(func(add func(string)) {
 		for _, s := range facts.Services {
 			for _, e := range s.Endpoints {

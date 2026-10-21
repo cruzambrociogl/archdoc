@@ -6,23 +6,23 @@ import (
 
 	ts "github.com/odvcencio/gotreesitter"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // facts is everything one file says, before its imports are resolved.
 type facts struct {
 	imports []rawImport
-	classes []archdoc.Class
-	hosts   []archdoc.HostRef
-	calls   []archdoc.Call
-	prefix  *archdoc.Literal
-	consts  []archdoc.Constant
-	routers []archdoc.Router
-	incs    []archdoc.Include
-	exports []archdoc.Literal
-	pages   []archdoc.Literal
-	cmds    []archdoc.Command
-	main    *archdoc.Provenance // where a Python file says it is run directly
+	classes []core.Class
+	hosts   []core.HostRef
+	calls   []core.Call
+	prefix  *core.Literal
+	consts  []core.Constant
+	routers []core.Router
+	incs    []core.Include
+	exports []core.Literal
+	pages   []core.Literal
+	cmds    []core.Command
+	main    *core.Provenance // where a Python file says it is run directly
 	// C#: the types a file names, the types it declares, and the namespaces it declares them in.
 	refs       []rawImport
 	declares   []string
@@ -64,18 +64,18 @@ var httpCallee = regexp.MustCompile(`^(fetch|got|ky|axios|(axios|got|ky|http|htt
 // decorators, the hosts its literals name, and the HTTP calls it makes. offset places a script
 // embedded in a Svelte component at its line in the file.
 func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial bool) {
-	at := func(n *ts.Node) archdoc.Provenance {
+	at := func(n *ts.Node) core.Provenance {
 		p := n.StartPoint()
-		return archdoc.Provenance{File: file, Line: int(p.Row) + 1 + offset, Column: int(p.Column) + 1}
+		return core.Provenance{File: file, Line: int(p.Row) + 1 + offset, Column: int(p.Column) + 1}
 	}
-	called := map[archdoc.Provenance]bool{}
+	called := map[core.Provenance]bool{}
 	// A call to a name that holds a URL — const API = 'https://…'; fetch(API) — is a call to that
 	// URL: resolved within the file, by the name, once everything has been read.
-	held := map[string]archdoc.Provenance{} // a name → the literal it is given
+	held := map[string]core.Provenance{} // a name → the literal it is given
 	var byName []namedCall
 
 	// A module's own functions gather under a class with no name, as a Python module's do.
-	module := archdoc.Class{Prov: archdoc.Provenance{File: file, Line: 1 + offset}}
+	module := core.Class{Prov: core.Provenance{File: file, Line: 1 + offset}}
 	defer func() {
 		if len(module.Methods) > 0 {
 			out.classes = append(out.classes, module)
@@ -94,12 +94,12 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 						out.imports = append(out.imports, rawImport{spec: unquote(text(c)), line: p.Line, column: p.Column})
 					case "function_declaration", "generator_function_declaration":
 						if c.NamedChildCount() > 0 {
-							out.exports = append(out.exports, archdoc.Literal{Value: text(c.NamedChild(0)), Prov: at(c)})
+							out.exports = append(out.exports, core.Literal{Value: text(c.NamedChild(0)), Prov: at(c)})
 						}
 					case "lexical_declaration", "variable_declaration":
 						for j := 0; j < c.NamedChildCount(); j++ {
 							if v := c.NamedChild(j); v.Type(l) == "variable_declarator" && v.NamedChildCount() > 0 {
-								out.exports = append(out.exports, archdoc.Literal{Value: text(v.NamedChild(0)), Prov: at(v)})
+								out.exports = append(out.exports, core.Literal{Value: text(v.NamedChild(0)), Prov: at(v)})
 							}
 						}
 					}
@@ -124,7 +124,7 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 								continue
 							}
 							if v, ok := literal(a.NamedChild(1), l, src); ok {
-								out.consts = append(out.consts, archdoc.Constant{Name: name + "." + text(a.NamedChild(0)), Value: v, Prov: at(a)})
+								out.consts = append(out.consts, core.Constant{Name: name + "." + text(a.NamedChild(0)), Value: v, Prov: at(a)})
 							}
 						}
 					}
@@ -150,16 +150,16 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					}
 				case callee == "createFileRoute":
 					if first != nil && first.Type(l) == "string" {
-						out.pages = append(out.pages, archdoc.Literal{Value: unquote(text(first)), Prov: at(first)})
+						out.pages = append(out.pages, core.Literal{Value: unquote(text(first)), Prov: at(first)})
 					}
 				case strings.HasSuffix(callee, "setGlobalPrefix"):
 					if first != nil && first.Type(l) == "string" {
-						out.prefix = &archdoc.Literal{Value: unquote(text(first)), Prov: at(first)}
+						out.prefix = &core.Literal{Value: unquote(text(first)), Prov: at(first)}
 					}
 				case fn.Type(l) == "member_expression" && fn.NamedChildCount() == 2 && text(fn.NamedChild(1)) == "command" && first != nil && first.Type(l) == "string":
 					// commander: program.command('upload <paths...>').description('Upload assets').
 					name, _, _ := strings.Cut(unquote(text(first)), " ")
-					cmd := archdoc.Command{Name: name, Prov: at(first)}
+					cmd := core.Command{Name: name, Prov: at(first)}
 					for p, hops := n, 0; hops < 8; hops++ {
 						member := p.Parent()
 						if member == nil || member.Type(l) != "member_expression" || member.Parent() == nil || member.Parent().Type(l) != "call_expression" {
@@ -179,7 +179,7 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					walk(args, func(p *ts.Node) {
 						if p.Type(l) == "pair" && p.NamedChildCount() == 2 && unquote(text(p.NamedChild(0))) == "path" {
 							if v, ok := literal(p.NamedChild(1), l, src); ok {
-								out.pages = append(out.pages, archdoc.Literal{Value: v, Prov: at(p)})
+								out.pages = append(out.pages, core.Literal{Value: v, Prov: at(p)})
 							}
 						}
 					})
@@ -191,7 +191,7 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					if first.Type(l) == "identifier" {
 						byName = append(byName, namedCall{text(first), len(out.calls)})
 					}
-					out.calls = append(out.calls, archdoc.Call{Callee: callee, Target: shorten(text(first)), Prov: at(n)})
+					out.calls = append(out.calls, core.Call{Callee: callee, Target: shorten(text(first)), Prov: at(n)})
 				case fn.Type(l) == "member_expression" && fn.NamedChildCount() == 2 && fn.NamedChild(0).Type(l) == "identifier" && first != nil:
 					// Express: app.get("/path", handler), app.use("/prefix", router). Kept as the
 					// module's routes and includes; whether app is an Express application is decided
@@ -201,7 +201,7 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					last := args.NamedChild(args.NamedChildCount() - 1)
 					switch {
 					case verb == "use":
-						inc := archdoc.Include{Parent: owner, Child: text(last), Prov: at(n)}
+						inc := core.Include{Parent: owner, Child: text(last), Prov: at(n)}
 						if isPath && args.NamedChildCount() > 1 {
 							inc.Prefix = v
 						}
@@ -213,8 +213,8 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 						if last.Type(l) == "identifier" || last.Type(l) == "member_expression" {
 							name = text(last)
 						}
-						module.Methods = append(module.Methods, archdoc.Method{Name: name, Prov: at(n),
-							Decorators: []archdoc.Decorator{{Name: owner + "." + verb, Arg: v, HasArg: true, Prov: at(n)}}})
+						module.Methods = append(module.Methods, core.Method{Name: name, Prov: at(n),
+							Decorators: []core.Decorator{{Name: owner + "." + verb, Arg: v, HasArg: true, Prov: at(n)}}})
 					}
 				}
 			case "jsx_self_closing_element", "jsx_opening_element":
@@ -226,7 +226,7 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					a := n.NamedChild(i)
 					if a.Type(l) == "jsx_attribute" && a.NamedChildCount() == 2 && text(a.NamedChild(0)) == "path" {
 						if v, ok := literal(a.NamedChild(1), l, src); ok {
-							out.pages = append(out.pages, archdoc.Literal{Value: v, Prov: at(a)})
+							out.pages = append(out.pages, core.Literal{Value: v, Prov: at(a)})
 						}
 					}
 				}
@@ -266,9 +266,9 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 				if v := n.NamedChild(n.NamedChildCount() - 1); n.Type(l) == "variable_declarator" && v.Type(l) == "call_expression" && v.ChildCount() > 0 {
 					switch text(v.Child(0)) {
 					case "express":
-						out.routers = append(out.routers, archdoc.Router{Var: text(n.NamedChild(0)), Kind: "express", Prov: at(n)})
+						out.routers = append(out.routers, core.Router{Var: text(n.NamedChild(0)), Kind: "express", Prov: at(n)})
 					case "express.Router", "Router":
-						out.routers = append(out.routers, archdoc.Router{Var: text(n.NamedChild(0)), Kind: "Router", Prov: at(n)})
+						out.routers = append(out.routers, core.Router{Var: text(n.NamedChild(0)), Kind: "Router", Prov: at(n)})
 					}
 				}
 				// const mapAsset = (…) => { … } at the top of a module is a function of the module.
@@ -288,7 +288,7 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					}
 				}
 				if v, ok := literal(value, l, src); ok && hostName.MatchString(v) {
-					out.hosts = append(out.hosts, archdoc.HostRef{Host: v, Value: v, Prov: at(value)})
+					out.hosts = append(out.hosts, core.HostRef{Host: v, Value: v, Prov: at(value)})
 				}
 			}
 		})
@@ -308,8 +308,8 @@ type namedCall struct {
 
 // resolveNamed turns a call to a name that holds a URL literal into a call to that URL: the
 // literal is marked called, and the call is no longer one whose target is unknown.
-func resolveNamed(calls []archdoc.Call, byName []namedCall, held map[string]archdoc.Provenance, hosts []archdoc.HostRef, called map[archdoc.Provenance]bool) []archdoc.Call {
-	isHost := map[archdoc.Provenance]bool{}
+func resolveNamed(calls []core.Call, byName []namedCall, held map[string]core.Provenance, hosts []core.HostRef, called map[core.Provenance]bool) []core.Call {
+	isHost := map[core.Provenance]bool{}
 	for _, h := range hosts {
 		isHost[h.Prov] = true
 	}
@@ -323,7 +323,7 @@ func resolveNamed(calls []archdoc.Call, byName []namedCall, held map[string]arch
 	if len(resolved) == 0 {
 		return calls
 	}
-	var kept []archdoc.Call
+	var kept []core.Call
 	for i, c := range calls {
 		if !resolved[i] {
 			kept = append(kept, c)
@@ -334,9 +334,9 @@ func resolveNamed(calls []archdoc.Call, byName []namedCall, held map[string]arch
 
 // classOf reads a class: its decorators — written before it, inside an export statement, or on
 // the declaration itself — what its constructor takes, and its decorated methods.
-func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Class {
-	c := archdoc.Class{Prov: at(n)}
-	var decorators []archdoc.Decorator
+func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Class {
+	c := core.Class{Prov: at(n)}
+	var decorators []core.Decorator
 	if parent := n.Parent(); parent != nil && parent.Type(l) == "export_statement" {
 		for i := 0; i < parent.ChildCount(); i++ {
 			if d := parent.Child(i); d.Type(l) == "decorator" {
@@ -360,7 +360,7 @@ func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 				}
 			})
 		case "class_body":
-			var pending []archdoc.Decorator
+			var pending []core.Decorator
 			for j := 0; j < ch.ChildCount(); j++ {
 				m := ch.Child(j)
 				switch m.Type(l) {
@@ -378,13 +378,13 @@ func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 						c.Injects = injected(m, l, src, at)
 						c.Params = params(m, l, src, at)
 					} else {
-						meth := archdoc.Method{Name: name, Decorators: pending, Prov: at(m), EndLine: at(m).Line + int(m.EndPoint().Row-m.StartPoint().Row)}
+						meth := core.Method{Name: name, Decorators: pending, Prov: at(m), EndLine: at(m).Line + int(m.EndPoint().Row-m.StartPoint().Row)}
 						meth.Invokes, meth.Queries, meth.Named = body(m, l, src, at)
 						c.Methods = append(c.Methods, meth)
 					}
 					pending = nil
 				case "public_field_definition":
-					f := archdoc.Field{Prov: at(m), Decorators: pending}
+					f := core.Field{Prov: at(m), Decorators: pending}
 					for k := 0; k < m.ChildCount(); k++ {
 						part := m.Child(k)
 						switch part.Type(l) {
@@ -414,8 +414,8 @@ func classOf(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 }
 
 // injected lists the types a constructor takes: constructor(private service: AlbumService).
-func injected(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Literal {
-	var out []archdoc.Literal
+func injected(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) []core.Literal {
+	var out []core.Literal
 	for i := 0; i < ctor.ChildCount(); i++ {
 		params := ctor.Child(i)
 		if params.Type(l) != "formal_parameters" {
@@ -434,7 +434,7 @@ func injected(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 					if ty.Type(l) == "generic_type" && ty.NamedChildCount() > 0 {
 						name = ty.NamedChild(0).Text(src)
 					}
-					out = append(out, archdoc.Literal{Value: name, Prov: at(ty)})
+					out = append(out, core.Literal{Value: name, Prov: at(ty)})
 					break
 				}
 			}
@@ -453,15 +453,15 @@ func topLevel(n *ts.Node, l *ts.Language) bool {
 }
 
 // functionOf reads a module-level function as a method is read: what it calls, the tables it names.
-func functionOf(name string, n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Method {
-	m := archdoc.Method{Name: name, Prov: at(n), EndLine: at(n).Line + int(n.EndPoint().Row-n.StartPoint().Row)}
+func functionOf(name string, n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Method {
+	m := core.Method{Name: name, Prov: at(n), EndLine: at(n).Line + int(n.EndPoint().Row-n.StartPoint().Row)}
 	m.Invokes, m.Queries, m.Named = body(n, l, src, at)
 	return m
 }
 
 // params lists a constructor's parameters by name and type: (private service: AlbumService).
-func params(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Param {
-	var out []archdoc.Param
+func params(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) []core.Param {
+	var out []core.Param
 	for i := 0; i < ctor.ChildCount(); i++ {
 		ps := ctor.Child(i)
 		if ps.Type(l) != "formal_parameters" {
@@ -485,7 +485,7 @@ func params(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 				}
 			}
 			if name != "" && typ != "" {
-				out = append(out, archdoc.Param{Name: name, Type: typ, Prov: at(p)})
+				out = append(out, core.Param{Name: name, Type: typ, Prov: at(p)})
 			}
 		}
 	}
@@ -496,7 +496,7 @@ func params(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 var queryOps = map[string]string{"selectFrom": "reads", "insertInto": "writes", "updateTable": "updates", "deleteFrom": "deletes", "mergeInto": "writes"}
 
 // body reads what a method does to its own object, and which tables its queries name.
-func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (invokes []archdoc.Invocation, queries []archdoc.Query, named []archdoc.Mention) {
+func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) (invokes []core.Invocation, queries []core.Query, named []core.Mention) {
 	// arg is what a call's first argument can be, where that is written out: a string literal, or
 	// a choice between two.
 	arg := func(call *ts.Node) []string {
@@ -529,9 +529,9 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Prov
 			}
 			value := n.NamedChild(1)
 			if v, ok := literal(value, l, src); ok {
-				named = append(named, archdoc.Mention{Value: v, Prov: at(n)})
+				named = append(named, core.Mention{Value: v, Prov: at(n)})
 			} else if value.Type(l) == "member_expression" {
-				named = append(named, archdoc.Mention{Expr: value.Text(src), Prov: at(n)})
+				named = append(named, core.Mention{Expr: value.Text(src), Prov: at(n)})
 			}
 			return
 		}
@@ -541,9 +541,9 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Prov
 				prop, obj := fn.NamedChild(1).Text(src), fn.NamedChild(0)
 				switch {
 				case obj.Type(l) == "this":
-					invokes = append(invokes, archdoc.Invocation{Method: prop, Prov: at(n)})
+					invokes = append(invokes, core.Invocation{Method: prop, Prov: at(n)})
 				case obj.Type(l) == "member_expression" && obj.NamedChildCount() == 2 && obj.NamedChild(0).Type(l) == "this":
-					invokes = append(invokes, archdoc.Invocation{Object: obj.NamedChild(1).Text(src), Method: prop, Prov: at(n)})
+					invokes = append(invokes, core.Invocation{Object: obj.NamedChild(1).Text(src), Method: prop, Prov: at(n)})
 				}
 			}
 			return
@@ -555,7 +555,7 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Prov
 		if fn.Type(l) == "identifier" {
 			// A plain function call: followed only if the name turns out to be a function of this
 			// code, so a library's — fetch, require, a framework helper — costs nothing to record.
-			invokes = append(invokes, archdoc.Invocation{Method: fn.Text(src), Free: true, Prov: at(n)})
+			invokes = append(invokes, core.Invocation{Method: fn.Text(src), Free: true, Prov: at(n)})
 			return
 		}
 		if fn.Type(l) != "member_expression" || fn.NamedChildCount() < 2 {
@@ -566,7 +566,7 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Prov
 			if args := n.Child(1); args.NamedChildCount() > 0 {
 				if t, ok := literal(args.NamedChild(0), l, src); ok {
 					t, _, _ = strings.Cut(t, " as ") // 'album_user as au': the alias is the query's, not the table's
-					queries = append(queries, archdoc.Query{Table: strings.TrimSpace(t), Op: op, Prov: at(n)})
+					queries = append(queries, core.Query{Table: strings.TrimSpace(t), Op: op, Prov: at(n)})
 				}
 			}
 			return
@@ -574,9 +574,9 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Prov
 		obj := fn.NamedChild(0)
 		switch {
 		case obj.Type(l) == "this":
-			invokes = append(invokes, archdoc.Invocation{Method: prop, Args: arg(n), Prov: at(n)})
+			invokes = append(invokes, core.Invocation{Method: prop, Args: arg(n), Prov: at(n)})
 		case obj.Type(l) == "member_expression" && obj.NamedChildCount() == 2 && obj.NamedChild(0).Type(l) == "this":
-			invokes = append(invokes, archdoc.Invocation{Object: obj.NamedChild(1).Text(src), Method: prop, Args: arg(n), Prov: at(n)})
+			invokes = append(invokes, core.Invocation{Object: obj.NamedChild(1).Text(src), Method: prop, Args: arg(n), Prov: at(n)})
 		}
 	})
 	return invokes, queries, named
@@ -605,8 +605,8 @@ func misreadGenericCall(n *ts.Node, l *ts.Language) *ts.Node {
 }
 
 // decoratorOf reads @Name, @Name('arg'), @Name({ path: 'arg', summary: '…' }).
-func decoratorOf(d *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Decorator {
-	out := archdoc.Decorator{Prov: at(d)}
+func decoratorOf(d *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Decorator {
+	out := core.Decorator{Prov: at(d)}
 	if d.NamedChildCount() == 0 {
 		return out
 	}
@@ -738,12 +738,12 @@ func row(pair *ts.Node, l *ts.Language) bool {
 	return objects >= rowsMin
 }
 
-func hostOf(v string) (archdoc.HostRef, bool) {
+func hostOf(v string) (core.HostRef, bool) {
 	m := urlLiteral.FindStringSubmatch(v)
 	if m == nil {
-		return archdoc.HostRef{}, false
+		return core.HostRef{}, false
 	}
-	return archdoc.HostRef{Scheme: m[1], Host: m[2], Port: m[3], Value: v}, true
+	return core.HostRef{Scheme: m[1], Host: m[2], Port: m[3], Value: v}, true
 }
 
 func unquote(s string) string {

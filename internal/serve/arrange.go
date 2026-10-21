@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/arrange"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/store"
 )
@@ -28,9 +28,9 @@ func (s *Server) views(w http.ResponseWriter, r *http.Request) {
 }
 
 type layoutRequest struct {
-	View      string                   `json:"view"`
-	Positions map[string]archdoc.Point `json:"positions"`
-	Base      string                   `json:"base"`
+	View      string                `json:"view"`
+	Positions map[string]core.Point `json:"positions"`
+	Base      string                `json:"base"`
 }
 
 // saveLayout keeps a view as a person arranged it. The first save of a view records every box as it
@@ -61,9 +61,9 @@ func (s *Server) saveLayout(w http.ResponseWriter, r *http.Request) {
 	}
 	current, _ := arrange.Apply(req.View, engine, a)
 
-	known := map[string]archdoc.Point{}
+	known := map[string]core.Point{}
 	for _, b := range current.Boxes {
-		known[b.ID] = archdoc.Point{X: b.Rect.X, Y: b.Rect.Y}
+		known[b.ID] = core.Point{X: b.Rect.X, Y: b.Rect.Y}
 	}
 	for id := range req.Positions {
 		if _, ok := known[id]; !ok {

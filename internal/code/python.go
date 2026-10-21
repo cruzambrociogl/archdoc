@@ -6,7 +6,7 @@ import (
 
 	ts "github.com/odvcencio/gotreesitter"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 var pyHTTPCallee = regexp.MustCompile(`^(requests|httpx|aiohttp)\.(get|post|put|patch|delete|head|request)$`)
@@ -15,17 +15,17 @@ var pyHTTPCallee = regexp.MustCompile(`^(requests|httpx|aiohttp)\.(get|post|put|
 // names, since `from app.api.routes import items, users` imports two modules — decorated functions
 // and classes, the hosts its literals name, and the HTTP calls it makes.
 func pythonFacts(src []byte, file string) (out facts, partial bool) {
-	at := func(n *ts.Node) archdoc.Provenance {
+	at := func(n *ts.Node) core.Provenance {
 		p := n.StartPoint()
-		return archdoc.Provenance{File: file, Line: int(p.Row) + 1, Column: int(p.Column) + 1}
+		return core.Provenance{File: file, Line: int(p.Row) + 1, Column: int(p.Column) + 1}
 	}
-	called := map[archdoc.Provenance]bool{}
-	held := map[string]archdoc.Provenance{} // a name → the literal it is given: API = "https://…"
+	called := map[core.Provenance]bool{}
+	held := map[string]core.Provenance{} // a name → the literal it is given: API = "https://…"
 	var byName []namedCall
 	partial = parse("Python", src, func(root *ts.Node, l *ts.Language) {
 		text := func(n *ts.Node) string { return n.Text(src) }
 		// Module-level decorated functions — FastAPI's @router.get — gather under a class with no name.
-		module := archdoc.Class{Prov: archdoc.Provenance{File: file, Line: 1}}
+		module := core.Class{Prov: core.Provenance{File: file, Line: 1}}
 		walk(root, func(n *ts.Node) {
 			switch n.Type(l) {
 			case "import_statement":
@@ -60,7 +60,7 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 				// A module's functions — decorated or not — are its methods: what a route's handler
 				// calls is usually a plain function in another module.
 				owner := n.Parent()
-				var decorators []archdoc.Decorator
+				var decorators []core.Decorator
 				if owner != nil && owner.Type(l) == "decorated_definition" {
 					for i := 0; i < owner.NamedChildCount(); i++ {
 						if d := owner.NamedChild(i); d.Type(l) == "decorator" {
@@ -89,7 +89,7 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 				}
 				fn, args := n.Child(0), n.Child(1)
 				if strings.HasSuffix(text(fn), ".include_router") && args.Type(l) == "argument_list" && args.NamedChildCount() > 0 {
-					m := archdoc.Include{Parent: strings.TrimSuffix(text(fn), ".include_router"), Child: text(args.NamedChild(0)), Prov: at(n)}
+					m := core.Include{Parent: strings.TrimSuffix(text(fn), ".include_router"), Child: text(args.NamedChild(0)), Prov: at(n)}
 					for i := 1; i < args.NamedChildCount(); i++ {
 						a := args.NamedChild(i)
 						if a.Type(l) == "keyword_argument" && a.NamedChildCount() >= 2 && text(a.NamedChild(0)) == "prefix" {
@@ -120,7 +120,7 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 				if first.Type(l) == "identifier" {
 					byName = append(byName, namedCall{text(first), len(out.calls)})
 				}
-				out.calls = append(out.calls, archdoc.Call{Callee: text(fn), Target: shorten(text(first)), Prov: at(n)})
+				out.calls = append(out.calls, core.Call{Callee: text(fn), Target: shorten(text(first)), Prov: at(n)})
 			case "string":
 				if v, ok := pyString(n, l, src); ok {
 					if h, ok := hostOf(v); ok {
@@ -139,7 +139,7 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 				if n.Type(l) == "assignment" && value.Type(l) == "call" && value.ChildCount() > 1 {
 					// router = APIRouter(prefix="/items"), app = FastAPI(…)
 					if callee := text(value.Child(0)); callee == "APIRouter" || callee == "FastAPI" || strings.HasSuffix(callee, ".APIRouter") || strings.HasSuffix(callee, ".FastAPI") {
-						r := archdoc.Router{Var: text(key), Kind: callee[strings.LastIndex(callee, ".")+1:], Prov: at(n)}
+						r := core.Router{Var: text(key), Kind: callee[strings.LastIndex(callee, ".")+1:], Prov: at(n)}
 						args := value.Child(1)
 						for i := 0; i < args.NamedChildCount(); i++ {
 							a := args.NamedChild(i)
@@ -155,7 +155,7 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 					return
 				}
 				if v, ok := pyString(value, l, src); ok && hostName.MatchString(v) {
-					out.hosts = append(out.hosts, archdoc.HostRef{Host: v, Value: v, Prov: at(value)})
+					out.hosts = append(out.hosts, core.HostRef{Host: v, Value: v, Prov: at(value)})
 				}
 			}
 		})
@@ -172,8 +172,8 @@ func pythonFacts(src []byte, file string) (out facts, partial bool) {
 
 // pyClass reads a class: its bases and keyword arguments — class User(UserBase, table=True) — its
 // decorators, and the fields its body declares.
-func pyClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Class {
-	c := archdoc.Class{Prov: at(n)}
+func pyClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Class {
+	c := core.Class{Prov: at(n)}
 	if p := n.Parent(); p != nil && p.Type(l) == "decorated_definition" {
 		for i := 0; i < p.NamedChildCount(); i++ {
 			if d := p.NamedChild(i); d.Type(l) == "decorator" {
@@ -220,7 +220,7 @@ func pyClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 				if st.Type(l) != "assignment" || st.NamedChildCount() < 2 {
 					continue
 				}
-				f := archdoc.Field{Name: st.NamedChild(0).Text(src), Prov: at(st)}
+				f := core.Field{Name: st.NamedChild(0).Text(src), Prov: at(st)}
 				value := st.NamedChild(st.NamedChildCount() - 1)
 				for k := 1; k < st.NamedChildCount(); k++ {
 					if t := st.NamedChild(k); t.Type(l) == "type" {
@@ -229,7 +229,7 @@ func pyClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 				}
 				switch value.Type(l) {
 				case "call":
-					f.Decorators = []archdoc.Decorator{pyCall(value, l, src, at)}
+					f.Decorators = []core.Decorator{pyCall(value, l, src, at)}
 				case "string":
 					f.Value, _ = pyString(value, l, src)
 				}
@@ -244,7 +244,7 @@ func pyClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 }
 
 // pyDef is the function a statement of a class body defines, with its decorators, or nil.
-func pyDef(st *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (*ts.Node, []archdoc.Decorator) {
+func pyDef(st *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) (*ts.Node, []core.Decorator) {
 	if st.Type(l) == "function_definition" {
 		return st, nil
 	}
@@ -252,7 +252,7 @@ func pyDef(st *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Pr
 		return nil, nil
 	}
 	var def *ts.Node
-	var decorators []archdoc.Decorator
+	var decorators []core.Decorator
 	for i := 0; i < st.NamedChildCount(); i++ {
 		switch ch := st.NamedChild(i); ch.Type(l) {
 		case "decorator":
@@ -265,12 +265,12 @@ func pyDef(st *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Pr
 }
 
 // pyMethod reads a function — a module's, or a class's method — as a method is read.
-func pyMethod(n *ts.Node, decorators []archdoc.Decorator, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Method {
+func pyMethod(n *ts.Node, decorators []core.Decorator, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Method {
 	name := ""
 	if n.NamedChildCount() > 0 {
 		name = n.NamedChild(0).Text(src)
 	}
-	meth := archdoc.Method{Name: name, Decorators: decorators, Prov: at(n),
+	meth := core.Method{Name: name, Decorators: decorators, Prov: at(n),
 		EndLine: at(n).Line + int(n.EndPoint().Row-n.StartPoint().Row)}
 	meth.Doc, meth.DocProv = docstring(n, l, src, at)
 	meth.Invokes, meth.Queries = pyBody(n, l, src, at)
@@ -302,9 +302,9 @@ func pyTyped(def *ts.Node, l *ts.Language, src []byte) map[string]string {
 
 // pyFields are the fields __init__ gives an object whose class the code states: self.repo = repo,
 // where repo is a typed parameter, and self.cache = ModelCache(…).
-func pyFields(init *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Param {
+func pyFields(init *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) []core.Param {
 	typed := pyTyped(init, l, src)
-	var out []archdoc.Param
+	var out []core.Param
 	walk(init, func(n *ts.Node) {
 		if n.Type(l) != "assignment" || n.NamedChildCount() < 2 {
 			return
@@ -327,15 +327,15 @@ func pyFields(init *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 			typ = right.Child(0).Text(src)
 		}
 		if typ != "" {
-			out = append(out, archdoc.Param{Name: left.NamedChild(1).Text(src), Type: typ, Prov: at(n)})
+			out = append(out, core.Param{Name: left.NamedChild(1).Text(src), Type: typ, Prov: at(n)})
 		}
 	})
 	return out
 }
 
 // pyCall reads a call the way a decorator is read: Field(foreign_key="user.id", nullable=False).
-func pyCall(e *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Decorator {
-	out := archdoc.Decorator{Name: e.Child(0).Text(src), Prov: at(e)}
+func pyCall(e *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Decorator {
+	out := core.Decorator{Name: e.Child(0).Text(src), Prov: at(e)}
 	if e.ChildCount() < 2 {
 		return out
 	}
@@ -388,7 +388,7 @@ var pyBuiltins = map[string]bool{"print": true, "len": true, "str": true, "int":
 // (crud.create_user), a method of its own object (self.save(), self.repo.get()), or a method of a
 // local whose class the code states — and the tables its queries name: select(Item),
 // session.get(User, id).
-func pyBody(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (invokes []archdoc.Invocation, queries []archdoc.Query) {
+func pyBody(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) (invokes []core.Invocation, queries []core.Query) {
 	// What the code says a local is: a parameter's annotation, or the class it was built from.
 	locals := pyTyped(def, l, src)
 	walk(def, func(n *ts.Node) {
@@ -415,11 +415,11 @@ func pyBody(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.
 		case "identifier":
 			name := fn.Text(src)
 			if name == "select" && first != nil && first.Type(l) == "identifier" {
-				queries = append(queries, archdoc.Query{Table: first.Text(src), Op: "reads", Prov: at(n)})
+				queries = append(queries, core.Query{Table: first.Text(src), Op: "reads", Prov: at(n)})
 				return
 			}
 			if !pyBuiltins[name] {
-				invokes = append(invokes, archdoc.Invocation{Method: name, Prov: at(n)})
+				invokes = append(invokes, core.Invocation{Method: name, Prov: at(n)})
 			}
 		case "attribute":
 			if fn.NamedChildCount() != 2 {
@@ -427,7 +427,7 @@ func pyBody(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.
 			}
 			on, method := fn.NamedChild(0), fn.NamedChild(1).Text(src)
 			if on.Type(l) == "attribute" && on.NamedChildCount() == 2 && on.NamedChild(0).Text(src) == "self" {
-				invokes = append(invokes, archdoc.Invocation{Self: true, Object: on.NamedChild(1).Text(src), Method: method, Prov: at(n)})
+				invokes = append(invokes, core.Invocation{Self: true, Object: on.NamedChild(1).Text(src), Method: method, Prov: at(n)})
 				return
 			}
 			if on.Type(l) != "identifier" {
@@ -435,21 +435,21 @@ func pyBody(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.
 			}
 			obj := on.Text(src)
 			if method == "get" && first != nil && first.Type(l) == "identifier" && strings.ToUpper(first.Text(src)[:1]) == first.Text(src)[:1] {
-				queries = append(queries, archdoc.Query{Table: first.Text(src), Op: "reads", Prov: at(n)})
+				queries = append(queries, core.Query{Table: first.Text(src), Op: "reads", Prov: at(n)})
 				return
 			}
 			if obj == "self" || obj == "cls" {
-				invokes = append(invokes, archdoc.Invocation{Self: true, Method: method, Prov: at(n)})
+				invokes = append(invokes, core.Invocation{Self: true, Method: method, Prov: at(n)})
 				return
 			}
-			invokes = append(invokes, archdoc.Invocation{Object: obj, Method: method, Type: locals[obj], Prov: at(n)})
+			invokes = append(invokes, core.Invocation{Object: obj, Method: method, Type: locals[obj], Prov: at(n)})
 		}
 	})
 	return invokes, queries
 }
 
 // docstring is the first line of a function's docstring, and where it is.
-func docstring(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) (string, archdoc.Provenance) {
+func docstring(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) (string, core.Provenance) {
 	for i := 0; i < def.NamedChildCount(); i++ {
 		b := def.NamedChild(i)
 		if b.Type(l) != "block" || b.NamedChildCount() == 0 {
@@ -460,7 +460,7 @@ func docstring(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 			first = first.NamedChild(0)
 		}
 		if first.Type(l) != "string" {
-			return "", archdoc.Provenance{}
+			return "", core.Provenance{}
 		}
 		v, _ := pyString(first, l, src)
 		for _, line := range strings.Split(v, "\n") {
@@ -469,12 +469,12 @@ func docstring(def *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 			}
 		}
 	}
-	return "", archdoc.Provenance{}
+	return "", core.Provenance{}
 }
 
 // pyDecorator reads @name, @router.get("/items/{id}", summary="…").
-func pyDecorator(d *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Decorator {
-	out := archdoc.Decorator{Prov: at(d)}
+func pyDecorator(d *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Decorator {
+	out := core.Decorator{Prov: at(d)}
 	if d.NamedChildCount() == 0 {
 		return out
 	}

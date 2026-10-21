@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Line is one sentence of a story, and the line of code it rests on.
 type Line struct {
-	Text string             `json:"text"`
-	Prov archdoc.Provenance `json:"provenance,omitzero"`
+	Text string          `json:"text"`
+	Prov core.Provenance `json:"provenance,omitzero"`
 	// Interpreted is set on the one sentence a model wrote: what the project is for.
 	Interpreted bool `json:"interpreted,omitempty"`
 }
@@ -23,16 +23,16 @@ const storyEntries = 6
 // a vibe coder starts from a story, not from a reference). Every sentence is assembled from a
 // fact and cites it; the only words a model may have written are the first line, marked. It is the
 // same story on the page and in the app.
-func Story(m archdoc.Model) []Line {
-	var app archdoc.Node
-	var parts, tables []archdoc.Node
+func Story(m core.Model) []Line {
+	var app core.Node
+	var parts, tables []core.Node
 	for _, n := range m.Nodes {
 		switch {
 		case n.Kind.Container():
 			app = n
-		case n.Kind == archdoc.Component:
+		case n.Kind == core.Component:
 			parts = append(parts, n)
-		case n.Kind == archdoc.Table:
+		case n.Kind == core.Table:
 			tables = append(tables, n)
 		}
 	}
@@ -51,7 +51,7 @@ func Story(m archdoc.Model) []Line {
 		if e.To != app.ID {
 			continue
 		}
-		if from, ok := m.Node(e.From); ok && from.Kind == archdoc.Actor {
+		if from, ok := m.Node(e.From); ok && from.Kind == core.Actor {
 			switch e.Label {
 			case "runs":
 				kind = "a tool you run"
@@ -96,7 +96,7 @@ func Story(m archdoc.Model) []Line {
 	reaches := 0
 	for _, e := range m.Edges {
 		to, ok := m.Node(e.To)
-		if !ok || to.Kind != archdoc.External || len(e.Prov) == 0 {
+		if !ok || to.Kind != core.External || len(e.Prov) == 0 {
 			continue
 		}
 		reaches++
@@ -136,7 +136,7 @@ func Story(m archdoc.Model) []Line {
 	}
 
 	var deps []string
-	var first archdoc.Provenance
+	var first core.Provenance
 	for _, d := range m.Dependencies {
 		if !d.Dev && d.Container == app.ID {
 			if len(deps) == 0 {

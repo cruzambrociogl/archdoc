@@ -3,31 +3,31 @@ package model
 import (
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
-func tableFacts(lang string, files map[string][]archdoc.Class) *archdoc.FactSet {
-	src := archdoc.Source{App: "api", Root: "api/src"}
+func tableFacts(lang string, files map[string][]core.Class) *core.FactSet {
+	src := core.Source{App: "api", Root: "api/src"}
 	for _, path := range []string{"api/src/a", "api/src/b"} {
 		for p, cs := range files {
 			if p[:len(path)] == path {
-				src.Files = append(src.Files, archdoc.SourceFile{Path: p, Language: lang, Lines: 10, Classes: cs})
+				src.Files = append(src.Files, core.SourceFile{Path: p, Language: lang, Lines: 10, Classes: cs})
 			}
 		}
 	}
-	return &archdoc.FactSet{Name: "x",
-		Apps: []archdoc.App{{Name: "api", Dir: "api", Manifest: "api/package.json", Role: archdoc.RoleService,
+	return &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "api", Dir: "api", Manifest: "api/package.json", Role: core.RoleService,
 			Prov: cite("api/package.json", 1)}},
-		Sources: []archdoc.Source{src}}
+		Sources: []core.Source{src}}
 }
 
-func columns(t *testing.T, m archdoc.Model, id string) map[string]archdoc.Column {
+func columns(t *testing.T, m core.Model, id string) map[string]core.Column {
 	t.Helper()
 	n, ok := m.Node(id)
-	if !ok || n.Kind != archdoc.Table {
+	if !ok || n.Kind != core.Table {
 		t.Fatalf("no table %s", id)
 	}
-	out := map[string]archdoc.Column{}
+	out := map[string]core.Column{}
 	for _, c := range n.Columns {
 		out[c.Name] = c
 	}
@@ -39,17 +39,17 @@ func columns(t *testing.T, m archdoc.Model, id string) map[string]archdoc.Column
 func TestTablesFromDecoratedClasses(t *testing.T) {
 	f := "api/src/a/album.table.ts"
 	g := "api/src/b/asset.table.ts"
-	m := Derive(tableFacts("TypeScript", map[string][]archdoc.Class{
+	m := Derive(tableFacts("TypeScript", map[string][]core.Class{
 		f: {{Name: "AlbumTable", Prov: cite(f, 3),
-			Decorators: []archdoc.Decorator{{Name: "Table", Options: map[string]string{"name": "album"}}},
-			Fields: []archdoc.Field{
-				{Name: "id", Type: "Generated<string>", Prov: cite(f, 5), Decorators: []archdoc.Decorator{{Name: "PrimaryGeneratedColumn"}}},
-				{Name: "thumbnailId", Type: "string | null", Prov: cite(f, 7), Decorators: []archdoc.Decorator{{Name: "ForeignKeyColumn", Target: "AssetTable"}}},
-				{Name: "description", Type: "string | null", Prov: cite(f, 9), Decorators: []archdoc.Decorator{{Name: "Column", Options: map[string]string{"type": "text", "nullable": "true"}}}},
+			Decorators: []core.Decorator{{Name: "Table", Options: map[string]string{"name": "album"}}},
+			Fields: []core.Field{
+				{Name: "id", Type: "Generated<string>", Prov: cite(f, 5), Decorators: []core.Decorator{{Name: "PrimaryGeneratedColumn"}}},
+				{Name: "thumbnailId", Type: "string | null", Prov: cite(f, 7), Decorators: []core.Decorator{{Name: "ForeignKeyColumn", Target: "AssetTable"}}},
+				{Name: "description", Type: "string | null", Prov: cite(f, 9), Decorators: []core.Decorator{{Name: "Column", Options: map[string]string{"type": "text", "nullable": "true"}}}},
 				{Name: "helper", Type: "string"},
 			}}},
-		g: {{Name: "AssetTable", Prov: cite(g, 2), Decorators: []archdoc.Decorator{{Name: "Entity", Arg: "asset", HasArg: true}},
-			Fields: []archdoc.Field{{Name: "id", Type: "string", Prov: cite(g, 4), Decorators: []archdoc.Decorator{{Name: "PrimaryColumn"}}}}}},
+		g: {{Name: "AssetTable", Prov: cite(g, 2), Decorators: []core.Decorator{{Name: "Entity", Arg: "asset", HasArg: true}},
+			Fields: []core.Field{{Name: "id", Type: "string", Prov: cite(g, 4), Decorators: []core.Decorator{{Name: "PrimaryColumn"}}}}}},
 	}))
 	cols := columns(t, m, "tbl:api/album")
 	if c := cols["id"]; !c.Primary || c.Type != "string" {
@@ -76,20 +76,20 @@ func TestTablesFromDecoratedClasses(t *testing.T) {
 // SQLModel: table=True, columns inherited from the model it extends, a foreign key by table name.
 func TestSQLModelTables(t *testing.T) {
 	f := "api/src/a/models.py"
-	field := func(name, typ string, line int, opts map[string]string, call string) archdoc.Field {
-		fl := archdoc.Field{Name: name, Type: typ, Prov: cite(f, line)}
+	field := func(name, typ string, line int, opts map[string]string, call string) core.Field {
+		fl := core.Field{Name: name, Type: typ, Prov: cite(f, line)}
 		if call != "" {
-			fl.Decorators = []archdoc.Decorator{{Name: call, Options: opts}}
+			fl.Decorators = []core.Decorator{{Name: call, Options: opts}}
 		}
 		return fl
 	}
-	m := Derive(tableFacts("Python", map[string][]archdoc.Class{f: {
-		{Name: "UserBase", Extends: []string{"SQLModel"}, Fields: []archdoc.Field{field("email", "EmailStr", 2, map[string]string{"unique": "True"}, "Field")}},
-		{Name: "User", Extends: []string{"UserBase"}, Options: map[string]string{"table": "True"}, Prov: cite(f, 5), Fields: []archdoc.Field{
+	m := Derive(tableFacts("Python", map[string][]core.Class{f: {
+		{Name: "UserBase", Extends: []string{"SQLModel"}, Fields: []core.Field{field("email", "EmailStr", 2, map[string]string{"unique": "True"}, "Field")}},
+		{Name: "User", Extends: []string{"UserBase"}, Options: map[string]string{"table": "True"}, Prov: cite(f, 5), Fields: []core.Field{
 			field("id", "uuid.UUID", 6, map[string]string{"primary_key": "True"}, "Field"),
 			field("items", `list["Item"]`, 7, nil, "Relationship"),
 		}},
-		{Name: "Item", Options: map[string]string{"table": "True"}, Prov: cite(f, 10), Fields: []archdoc.Field{
+		{Name: "Item", Options: map[string]string{"table": "True"}, Prov: cite(f, 10), Fields: []core.Field{
 			field("owner_id", "uuid.UUID | None", 11, map[string]string{"foreign_key": "user.id"}, "Field"),
 		}},
 	}}))
@@ -111,13 +111,13 @@ func TestSQLModelTables(t *testing.T) {
 // A Prisma schema's models, read beside the code, are tables like any other.
 func TestPrismaTables(t *testing.T) {
 	f := "api/prisma/schema.prisma"
-	fs := tableFacts("TypeScript", map[string][]archdoc.Class{"api/src/a/index.ts": nil})
-	col := func(name string, line int, opts map[string]string, target string) archdoc.Field {
-		return archdoc.Field{Name: name, Type: opts["type"], Prov: cite(f, line), Decorators: []archdoc.Decorator{{Name: "Column", Options: opts, Target: target}}}
+	fs := tableFacts("TypeScript", map[string][]core.Class{"api/src/a/index.ts": nil})
+	col := func(name string, line int, opts map[string]string, target string) core.Field {
+		return core.Field{Name: name, Type: opts["type"], Prov: cite(f, line), Decorators: []core.Decorator{{Name: "Column", Options: opts, Target: target}}}
 	}
-	fs.Sources[0].Schemas = []archdoc.SourceFile{{Path: f, Language: "Prisma", Classes: []archdoc.Class{
-		{Name: "User", Prov: cite(f, 1), Decorators: []archdoc.Decorator{{Name: "Table"}}, Fields: []archdoc.Field{col("id", 2, map[string]string{"type": "Int", "primary": "true"}, "")}},
-		{Name: "Post", Prov: cite(f, 6), Decorators: []archdoc.Decorator{{Name: "Table", Arg: "posts", HasArg: true}}, Fields: []archdoc.Field{col("authorId", 9, map[string]string{"type": "Int"}, "User")}},
+	fs.Sources[0].Schemas = []core.SourceFile{{Path: f, Language: "Prisma", Classes: []core.Class{
+		{Name: "User", Prov: cite(f, 1), Decorators: []core.Decorator{{Name: "Table"}}, Fields: []core.Field{col("id", 2, map[string]string{"type": "Int", "primary": "true"}, "")}},
+		{Name: "Post", Prov: cite(f, 6), Decorators: []core.Decorator{{Name: "Table", Arg: "posts", HasArg: true}}, Fields: []core.Field{col("authorId", 9, map[string]string{"type": "Int"}, "User")}},
 	}}}
 	m := Derive(fs)
 	if c := columns(t, m, "tbl:api/posts")["authorId"]; c.References != "tbl:api/User" || c.Type != "Int" {

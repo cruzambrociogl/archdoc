@@ -1,4 +1,4 @@
-package archdoc
+package core
 
 // A Layout is where things sit in one view: computed once by the layout engine, stored with the
 // version, and drawn from — never recomputed by whatever displays it. That is what lets the

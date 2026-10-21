@@ -6,24 +6,24 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // AC-1, counted: an element a file states at a line, or one a named catalog entry supplies, is
 // traced; one only a rule or a model vouches for is not, and neither is a relationship none of
 // whose citations is a reading.
 func TestTracedCountsWhatAFileOrTheCatalogStates(t *testing.T) {
-	at := archdoc.Provenance{File: "compose.yml", Line: 3}
-	m := archdoc.Model{
-		Nodes: []archdoc.Node{
+	at := core.Provenance{File: "compose.yml", Line: 3}
+	m := core.Model{
+		Nodes: []core.Node{
 			{ID: "svc:api", Prov: at},
-			{ID: "ext:stripe", Prov: archdoc.Provenance{Origin: archdoc.Catalog, Note: "the stripe package"}},
-			{ID: "svc:added-by-rule", Prov: archdoc.Provenance{Origin: archdoc.Rules, File: ".archdoc/rules.yaml", Line: 2}},
+			{ID: "ext:stripe", Prov: core.Provenance{Origin: core.Catalog, Note: "the stripe package"}},
+			{ID: "svc:added-by-rule", Prov: core.Provenance{Origin: core.Rules, File: ".archdoc/rules.yaml", Line: 2}},
 			{ID: "svc:nowhere"},
 		},
-		Edges: []archdoc.Edge{
-			{From: "svc:api", To: "ext:stripe", Prov: []archdoc.Provenance{{Origin: archdoc.Semantic, Note: "a model"}, at}},
-			{From: "svc:api", To: "svc:nowhere", Prov: []archdoc.Provenance{{Origin: archdoc.Semantic, Note: "a model"}}},
+		Edges: []core.Edge{
+			{From: "svc:api", To: "ext:stripe", Prov: []core.Provenance{{Origin: core.Semantic, Note: "a model"}, at}},
+			{From: "svc:api", To: "svc:nowhere", Prov: []core.Provenance{{Origin: core.Semantic, Note: "a model"}}},
 		},
 	}
 	if traced, of := Traced(m); traced != 3 || of != 6 {
@@ -37,22 +37,22 @@ func TestTracedCountsWhatAFileOrTheCatalogStates(t *testing.T) {
 // A container with more components than a diagram shows has a main view: the ones that handle the
 // most entries, then the largest, with only the uses among them — and a small container has none.
 func TestMainViewKeepsTheComponentsThatHandleTheMost(t *testing.T) {
-	at := archdoc.Provenance{File: "compose.yml", Line: 1}
-	m := archdoc.Model{Name: "x", Nodes: []archdoc.Node{
-		{ID: "svc:api", Name: "api", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
-		{ID: "svc:small", Name: "small", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
-		{ID: "cmp:small/only", Name: "only", Kind: archdoc.Component, Parent: "svc:small", Files: []string{"a.ts"}, Prov: at},
+	at := core.Provenance{File: "compose.yml", Line: 1}
+	m := core.Model{Name: "x", Nodes: []core.Node{
+		{ID: "svc:api", Name: "api", Kind: core.Application, Evidence: core.Declared, Prov: at},
+		{ID: "svc:small", Name: "small", Kind: core.Application, Evidence: core.Declared, Prov: at},
+		{ID: "cmp:small/only", Name: "only", Kind: core.Component, Parent: "svc:small", Files: []string{"a.ts"}, Prov: at},
 	}}
 	const parts = 26 // a to z: more than half again what a main view holds
 	for i := 0; i < parts; i++ {
 		id := "cmp:api/c" + string(rune('a'+i))
-		m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: id[8:], Kind: archdoc.Component, Parent: "svc:api", Lines: 100 - i, Files: []string{id + ".ts"}, Prov: at})
+		m.Nodes = append(m.Nodes, core.Node{ID: id, Name: id[8:], Kind: core.Component, Parent: "svc:api", Lines: 100 - i, Files: []string{id + ".ts"}, Prov: at})
 	}
 	last := "cmp:api/c" + string(rune('a'+parts-1)) // the smallest, and the only one that handles a route
-	m.Entries = []archdoc.Entry{{ID: "route:api GET /x", Kind: "http", Method: "GET", Path: "/x", Container: "svc:api", Component: last, Prov: at}}
-	m.Edges = []archdoc.Edge{
-		{From: last, To: "cmp:api/ca", Label: "uses", Weight: 2, Prov: []archdoc.Provenance{at}},
-		{From: "cmp:api/ca", To: "cmp:api/c" + string(rune('a'+parts-2)), Label: "uses", Weight: 1, Prov: []archdoc.Provenance{at}},
+	m.Entries = []core.Entry{{ID: "route:api GET /x", Kind: "http", Method: "GET", Path: "/x", Container: "svc:api", Component: last, Prov: at}}
+	m.Edges = []core.Edge{
+		{From: last, To: "cmp:api/ca", Label: "uses", Weight: 2, Prov: []core.Provenance{at}},
+		{From: "cmp:api/ca", To: "cmp:api/c" + string(rune('a'+parts-2)), Label: "uses", Weight: 1, Prov: []core.Provenance{at}},
 	}
 	if got := Mains(m); len(got) != 1 || got[0] != "svc:api" {
 		t.Fatalf("mains %v, want only the large container", got)
@@ -70,9 +70,9 @@ func TestMainViewKeepsTheComponentsThatHandleTheMost(t *testing.T) {
 	// A component that uses many of the others is drawn with its strongest uses, and no box says
 	// its arrows are left out.
 	busy := m
-	busy.Edges = append([]archdoc.Edge(nil), m.Edges...)
+	busy.Edges = append([]core.Edge(nil), m.Edges...)
 	for i, to := range []string{"cmp:api/cb", "cmp:api/cc", "cmp:api/cd", "cmp:api/ce"} {
-		busy.Edges = append(busy.Edges, archdoc.Edge{From: "cmp:api/ca", To: to, Label: "uses", Weight: 10 - i, Prov: []archdoc.Provenance{at}})
+		busy.Edges = append(busy.Edges, core.Edge{From: "cmp:api/ca", To: to, Label: "uses", Weight: 10 - i, Prov: []core.Provenance{at}})
 	}
 	bv, _ := ViewOf(busy, MainPrefix+"svc:api")
 	var from []string
@@ -102,15 +102,15 @@ func TestMainViewKeepsTheComponentsThatHandleTheMost(t *testing.T) {
 // A component's box says what it does in the model's first sentence about it — marked as the
 // model's — unless that sentence is about an earlier version of the code.
 func TestComponentBoxesCarryTheirCurrentExplanation(t *testing.T) {
-	at := archdoc.Provenance{File: "compose.yml", Line: 1}
-	by := archdoc.Provenance{Origin: archdoc.Semantic, Note: "a model"}
-	m := archdoc.Model{Name: "x", Nodes: []archdoc.Node{
-		{ID: "svc:api", Name: "api", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
-		{ID: "cmp:api/orders", Name: "orders", Kind: archdoc.Component, Parent: "svc:api", Files: []string{"o.ts"}, Prov: at},
-		{ID: "cmp:api/users", Name: "users", Kind: archdoc.Component, Parent: "svc:api", Files: []string{"u.ts"}, Prov: at},
-	}, Explanations: []archdoc.Explanation{
-		{Element: "cmp:api/orders", Prov: by, Claims: []archdoc.Claim{{Text: "It takes orders."}, {Text: "It stores them."}}},
-		{Element: "cmp:api/users", Prov: by, Stale: true, Claims: []archdoc.Claim{{Text: "It was about something else."}}},
+	at := core.Provenance{File: "compose.yml", Line: 1}
+	by := core.Provenance{Origin: core.Semantic, Note: "a model"}
+	m := core.Model{Name: "x", Nodes: []core.Node{
+		{ID: "svc:api", Name: "api", Kind: core.Application, Evidence: core.Declared, Prov: at},
+		{ID: "cmp:api/orders", Name: "orders", Kind: core.Component, Parent: "svc:api", Files: []string{"o.ts"}, Prov: at},
+		{ID: "cmp:api/users", Name: "users", Kind: core.Component, Parent: "svc:api", Files: []string{"u.ts"}, Prov: at},
+	}, Explanations: []core.Explanation{
+		{Element: "cmp:api/orders", Prov: by, Claims: []core.Claim{{Text: "It takes orders."}, {Text: "It stores them."}}},
+		{Element: "cmp:api/users", Prov: by, Stale: true, Claims: []core.Claim{{Text: "It was about something else."}}},
 	}}
 	v, _ := ViewOf(m, ComponentPrefix+"svc:api")
 	orders, _ := v.Model.Node("cmp:api/orders")
@@ -130,17 +130,17 @@ func TestComponentBoxesCarryTheirCurrentExplanation(t *testing.T) {
 // what the project does, reaches and is made of. One with a Compose file, or a second container,
 // is not that.
 func TestATinyProjectIsOnePage(t *testing.T) {
-	at := archdoc.Provenance{File: "report.py", Line: 1}
-	m := archdoc.Model{Name: "tool", Nodes: []archdoc.Node{
-		{ID: "actor:user", Name: "User", Kind: archdoc.Actor, Evidence: archdoc.Declared, Prov: at},
-		{ID: "app:tool", Name: "tool", Kind: archdoc.Application, Technology: "Python", Evidence: archdoc.Declared, Prov: at},
-		{ID: "cmp:tool/report", Name: "report", Kind: archdoc.Component, Parent: "app:tool", Dir: "report.py", Files: []string{"report.py"}, Lines: 21, Prov: at},
-		{ID: "ext:api.example.com", Name: "api.example.com", Kind: archdoc.External, Evidence: archdoc.Referenced, Prov: at},
-	}, Edges: []archdoc.Edge{
-		{From: "actor:user", To: "app:tool", Label: "runs", Prov: []archdoc.Provenance{at}},
-		{From: "app:tool", To: "ext:api.example.com", Label: "calls", Technology: "https", Prov: []archdoc.Provenance{{File: "report.py", Line: 5}}},
-	}, Entries: []archdoc.Entry{{ID: "command:tool python report.py", Kind: "command", Method: "CMD", Path: "python report.py", Prov: archdoc.Provenance{File: "report.py", Line: 20}}}}
-	facts := archdoc.FactSet{Sources: []archdoc.Source{{App: ".", Root: ".", Files: []archdoc.SourceFile{{Path: "report.py"}}}}}
+	at := core.Provenance{File: "report.py", Line: 1}
+	m := core.Model{Name: "tool", Nodes: []core.Node{
+		{ID: "actor:user", Name: "User", Kind: core.Actor, Evidence: core.Declared, Prov: at},
+		{ID: "app:tool", Name: "tool", Kind: core.Application, Technology: "Python", Evidence: core.Declared, Prov: at},
+		{ID: "cmp:tool/report", Name: "report", Kind: core.Component, Parent: "app:tool", Dir: "report.py", Files: []string{"report.py"}, Lines: 21, Prov: at},
+		{ID: "ext:api.example.com", Name: "api.example.com", Kind: core.External, Evidence: core.Referenced, Prov: at},
+	}, Edges: []core.Edge{
+		{From: "actor:user", To: "app:tool", Label: "runs", Prov: []core.Provenance{at}},
+		{From: "app:tool", To: "ext:api.example.com", Label: "calls", Technology: "https", Prov: []core.Provenance{{File: "report.py", Line: 5}}},
+	}, Entries: []core.Entry{{ID: "command:tool python report.py", Kind: "command", Method: "CMD", Path: "python report.py", Prov: core.Provenance{File: "report.py", Line: 20}}}}
+	facts := core.FactSet{Sources: []core.Source{{App: ".", Root: ".", Files: []core.SourceFile{{Path: "report.py"}}}}}
 	if !Tiny(m) || len(PlanFor(m, facts)) != 0 {
 		t.Fatalf("tiny %v, %d sections planned", Tiny(m), len(PlanFor(m, facts)))
 	}
@@ -158,7 +158,7 @@ func TestATinyProjectIsOnePage(t *testing.T) {
 		t.Error("a tiny project was given sections to fill in")
 	}
 	deployed := m
-	deployed.Nodes = append([]archdoc.Node(nil), m.Nodes...)
+	deployed.Nodes = append([]core.Node(nil), m.Nodes...)
 	deployed.Nodes[1].ID = "svc:tool"
 	if Tiny(deployed) {
 		t.Error("a service a Compose file runs is not a tiny project")
@@ -177,19 +177,19 @@ func TestATinyProjectIsOnePage(t *testing.T) {
 // most containers reach, then those seen used over those only configured; the rest are counted,
 // and the whole view is still there by name.
 func TestOverviewDrawsTheExternalsTheMostContainersReach(t *testing.T) {
-	at := archdoc.Provenance{File: "compose.yml", Line: 1}
-	m := archdoc.Model{Name: "x", Nodes: []archdoc.Node{
-		{ID: "svc:a", Name: "a", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
-		{ID: "svc:b", Name: "b", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at},
+	at := core.Provenance{File: "compose.yml", Line: 1}
+	m := core.Model{Name: "x", Nodes: []core.Node{
+		{ID: "svc:a", Name: "a", Kind: core.Application, Evidence: core.Declared, Prov: at},
+		{ID: "svc:b", Name: "b", Kind: core.Application, Evidence: core.Declared, Prov: at},
 	}}
 	const many = externalsOver + 2
 	for i := 0; i < many; i++ {
 		id := fmt.Sprintf("ext:e%02d", i)
-		m.Nodes = append(m.Nodes, archdoc.Node{ID: id, Name: id[4:], Kind: archdoc.External, Evidence: archdoc.Referenced, Prov: at})
-		m.Edges = append(m.Edges, archdoc.Edge{From: "svc:a", To: id, Label: archdoc.Configured, Traffic: true, Prov: []archdoc.Provenance{at, at}})
+		m.Nodes = append(m.Nodes, core.Node{ID: id, Name: id[4:], Kind: core.External, Evidence: core.Referenced, Prov: at})
+		m.Edges = append(m.Edges, core.Edge{From: "svc:a", To: id, Label: core.Configured, Traffic: true, Prov: []core.Provenance{at, at}})
 	}
 	last := fmt.Sprintf("ext:e%02d", many-1)
-	m.Edges = append(m.Edges, archdoc.Edge{From: "svc:b", To: last, Label: "calls", Traffic: true, Prov: []archdoc.Provenance{at}})
+	m.Edges = append(m.Edges, core.Edge{From: "svc:b", To: last, Label: "calls", Traffic: true, Prov: []core.Provenance{at}})
 	called := fmt.Sprintf("ext:e%02d", many-2)
 	m.Edges[many-2].Label = "calls"
 
@@ -197,7 +197,7 @@ func TestOverviewDrawsTheExternalsTheMostContainersReach(t *testing.T) {
 		v, _ := ViewOf(m, name)
 		var drawn []string
 		for _, n := range v.Model.Nodes {
-			if n.Kind == archdoc.External {
+			if n.Kind == core.External {
 				drawn = append(drawn, n.ID)
 			}
 		}
@@ -220,8 +220,8 @@ func TestOverviewDrawsTheExternalsTheMostContainersReach(t *testing.T) {
 // A stored layout is drawn from only when it places every element of the view and nothing else: one
 // from before the view changed would draw an arrow to a box that is not there.
 func TestPlacesEveryElementOrIsNotReused(t *testing.T) {
-	view := archdoc.Model{Nodes: []archdoc.Node{{ID: "svc:a"}, {ID: "ext:b"}}}
-	l := archdoc.Layout{Boxes: []archdoc.Box{{ID: "svc:a"}, {ID: "ext:b"}}}
+	view := core.Model{Nodes: []core.Node{{ID: "svc:a"}, {ID: "ext:b"}}}
+	l := core.Layout{Boxes: []core.Box{{ID: "svc:a"}, {ID: "ext:b"}}}
 	if !Places(l, view) {
 		t.Error("a layout of exactly the view's elements was refused")
 	}

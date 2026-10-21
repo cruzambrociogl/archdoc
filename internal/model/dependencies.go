@@ -4,21 +4,21 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // dependencies lists what each container's manifest depends on, with where its code imports it
 // (F-14): the manifest line declares, the imports show use. A Python distribution is matched to
 // what is imported by its name with dashes as underscores — python-dotenv is not found as dotenv,
 // and then simply shows no imports rather than a guess.
-func dependencies(m *archdoc.Model, f *archdoc.FactSet, componentOf map[string]string) {
+func dependencies(m *core.Model, f *core.FactSet, componentOf map[string]string) {
 	containerOf := map[string]string{}
 	for _, n := range m.Nodes {
-		if n.Dir != "" && n.Kind == archdoc.Application {
+		if n.Dir != "" && n.Kind == core.Application {
 			containerOf[n.Dir] = n.ID
 		}
 	}
-	sources := map[string]archdoc.Source{}
+	sources := map[string]core.Source{}
 	for _, s := range f.Sources {
 		sources[s.App] = s
 	}
@@ -31,7 +31,7 @@ func dependencies(m *archdoc.Model, f *archdoc.FactSet, componentOf map[string]s
 		users := map[string]map[string]bool{}
 		for _, file := range sources[a.Dir].Files {
 			for _, imp := range file.Imports {
-				if imp.How != archdoc.ByPackage {
+				if imp.How != core.ByPackage {
 					continue
 				}
 				key := normal(imp.Package)
@@ -49,7 +49,7 @@ func dependencies(m *archdoc.Model, f *archdoc.FactSet, componentOf map[string]s
 			if r.Dev && imports[key] == 0 {
 				continue // a tool of the build, never imported: not part of what runs
 			}
-			m.Dependencies = append(m.Dependencies, archdoc.Package{Container: container, Name: r.Name, Version: r.Version,
+			m.Dependencies = append(m.Dependencies, core.Package{Container: container, Name: r.Name, Version: r.Version,
 				Dev: r.Dev, Imports: imports[key], Components: sortedKeys(users[key]), Prov: r.Prov})
 		}
 	}

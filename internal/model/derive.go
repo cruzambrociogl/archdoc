@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // The actor is a single node rather than one per entry point. A published port proves that
@@ -19,8 +19,8 @@ const actorID = "actor:user"
 
 // Derive builds the model from a FactSet. One model — the C4 levels are projections over it,
 // not separate derivations.
-func Derive(f *archdoc.FactSet) archdoc.Model {
-	m := archdoc.Model{Name: f.Name, Source: f.Source, Networks: f.Networks}
+func Derive(f *core.FactSet) core.Model {
+	m := core.Model{Name: f.Name, Source: f.Source, Networks: f.Networks}
 	if m.Source == "" {
 		// No Compose file: the model is built from the applications' manifests alone.
 		var manifests []string
@@ -55,13 +55,13 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 			nets = append(nets, n.Name)
 		}
 
-		m.Nodes = append(m.Nodes, archdoc.Node{
+		m.Nodes = append(m.Nodes, core.Node{
 			ID:         serviceID(s.Name),
 			Name:       s.Name,
 			Kind:       kind,
 			Technology: tech,
 			TechProv:   techProv,
-			Evidence:   archdoc.Declared,
+			Evidence:   core.Declared,
 			Networks:   nets,
 			Prov:       s.Prov,
 		})
@@ -98,13 +98,13 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 				continue
 			}
 		}
-		m.Nodes = append(m.Nodes, archdoc.Node{
+		m.Nodes = append(m.Nodes, core.Node{
 			ID:         appID(a),
 			Name:       a.Name,
-			Kind:       archdoc.Application,
+			Kind:       core.Application,
 			Technology: tech,
 			TechProv:   techProv,
-			Evidence:   archdoc.Declared,
+			Evidence:   core.Declared,
 			Dir:        a.Dir,
 			DirProv:    a.Prov,
 			Prov:       a.Prov,
@@ -115,8 +115,8 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 	tables(&m, f.Sources)
 	springData(f.Sources)
 
-	external := map[string]archdoc.Node{}
-	var actor *archdoc.Node
+	external := map[string]core.Node{}
+	var actor *core.Node
 
 	for _, s := range f.Services {
 		from := serviceID(s.Name)
@@ -128,24 +128,24 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 			if _, ok := declared[d.Service]; !ok {
 				continue // a dependency on something not in this file is not ours to draw
 			}
-			m.Edges = append(m.Edges, archdoc.Edge{
+			m.Edges = append(m.Edges, core.Edge{
 				From:  from,
 				To:    serviceID(d.Service),
 				Label: "depends on",
-				Prov:  []archdoc.Provenance{d.Prov},
+				Prov:  []core.Provenance{d.Prov},
 			})
 		}
 
 		for _, e := range s.Endpoints {
 			to := target(e.Host, declared, external, e.Prov)
 
-			m.Edges = append(m.Edges, archdoc.Edge{
+			m.Edges = append(m.Edges, core.Edge{
 				From:       from,
 				To:         to,
 				Label:      "connects to",
 				Technology: e.Scheme,
 				Traffic:    true,
-				Prov:       []archdoc.Provenance{e.Prov},
+				Prov:       []core.Provenance{e.Prov},
 			})
 		}
 
@@ -153,20 +153,20 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 		// in. It is the only actor evidence configuration offers.
 		for _, p := range s.Ports {
 			if actor == nil {
-				actor = &archdoc.Node{
+				actor = &core.Node{
 					ID:       actorID,
 					Name:     "User",
-					Kind:     archdoc.Actor,
-					Evidence: archdoc.Declared,
+					Kind:     core.Actor,
+					Evidence: core.Declared,
 					Prov:     p.Prov,
 				}
 			}
-			m.Edges = append(m.Edges, archdoc.Edge{
+			m.Edges = append(m.Edges, core.Edge{
 				From:    actorID,
 				To:      from,
 				Label:   "reaches",
 				Traffic: true,
-				Prov:    []archdoc.Provenance{p.Prov},
+				Prov:    []core.Provenance{p.Prov},
 			})
 		}
 	}
@@ -178,12 +178,12 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 		if !ok {
 			continue
 		}
-		m.Edges = append(m.Edges, archdoc.Edge{
+		m.Edges = append(m.Edges, core.Edge{
 			From:    serviceID(from),
 			To:      target(r.Target, declared, external, r.Prov),
 			Label:   "routes to",
 			Traffic: true,
-			Prov:    []archdoc.Provenance{r.Prov},
+			Prov:    []core.Provenance{r.Prov},
 		})
 	}
 
@@ -208,18 +208,18 @@ func Derive(f *archdoc.FactSet) archdoc.Model {
 // target resolves a hostname to the node it names, creating an external node when the
 // repository never declared it. That is the evidence rule doing double duty: referenced is also
 // where C4 draws the system boundary.
-func target(host string, declared map[string]string, external map[string]archdoc.Node, prov archdoc.Provenance) string {
+func target(host string, declared map[string]string, external map[string]core.Node, prov core.Provenance) string {
 	if name, ok := declared[host]; ok {
 		return serviceID(name)
 	}
 
 	id := externalID(host)
 	if _, seen := external[id]; !seen {
-		external[id] = archdoc.Node{
+		external[id] = core.Node{
 			ID:       id,
 			Name:     host,
-			Kind:     archdoc.External,
-			Evidence: archdoc.Referenced,
+			Kind:     core.External,
+			Evidence: core.Referenced,
 			Prov:     prov,
 		}
 	}
@@ -230,7 +230,7 @@ func serviceID(name string) string { return "svc:" + name }
 
 // appID is an application's identity: where it is, or — at the root, where "." says nothing and
 // reads badly in every ID and file name built on it — what it is called.
-func appID(a archdoc.App) string {
+func appID(a core.App) string {
 	if a.Dir != "." {
 		return "app:" + a.Dir
 	}

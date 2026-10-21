@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Where the files live, inside archdoc's own directory — part of the closed write set.
@@ -95,9 +95,9 @@ func LoadLayout(root string) (Arrangement, string, error) {
 	}
 	a := Arrangement{}
 	for view, boxes := range raw {
-		a[view] = map[string]archdoc.Point{}
+		a[view] = map[string]core.Point{}
 		for id, p := range boxes {
-			a[view][id] = archdoc.Point{X: p.X, Y: p.Y}
+			a[view][id] = core.Point{X: p.X, Y: p.Y}
 		}
 	}
 	return a, hash, nil

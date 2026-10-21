@@ -87,13 +87,13 @@ raised, not quietly promoted over it.
   stop after phase 2 for a review. Recommended: class, with Simple mode folding; all three phases.
 - [ ] Long external names overflow their box in every SVG ("Telemetry collector (OpenTelemetry)",
   seen on the data-flow view): the name is not wrapped or clipped as descriptions are.
-- [ ] Rename `internal/archdoc` → `internal/core` in the plan's step 1: the public root package is
-  also `archdoc`, and every file of the API would need an import alias — 2026-10-20
 
 ## Recently resolved
 
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
+
+- [x] `internal/archdoc` renamed `internal/core` — the public root package is `archdoc` — 2026-10-21
 
 - [→ ../archdoc-platform/docs/platform-plan.md step 2; ../archdoc-platform/docs/decisions.md] The two
   repository questions after the design: the app ships every page; `platform-plan.md` and

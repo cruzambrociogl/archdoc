@@ -10,7 +10,7 @@ import (
 
 	ts "github.com/odvcencio/gotreesitter"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Java is read the way TypeScript is: its imports; its classes with their annotations — which is how
@@ -31,11 +31,11 @@ var javaClient = regexp.MustCompile(`(?i)(template|webclient|restclient|httpclie
 var javaRelations = map[string]bool{"ManyToOne": true, "OneToOne": true, "OneToMany": true, "ManyToMany": true, "ElementCollection": true}
 
 func javaFacts(src []byte, file string) (out facts, partial bool) {
-	at := func(n *ts.Node) archdoc.Provenance {
+	at := func(n *ts.Node) core.Provenance {
 		p := n.StartPoint()
-		return archdoc.Provenance{File: file, Line: int(p.Row) + 1, Column: int(p.Column) + 1}
+		return core.Provenance{File: file, Line: int(p.Row) + 1, Column: int(p.Column) + 1}
 	}
-	called := map[archdoc.Provenance]bool{}
+	called := map[core.Provenance]bool{}
 	partial = parse("Java", src, func(root *ts.Node, l *ts.Language) {
 		text := func(n *ts.Node) string { return n.Text(src) }
 		walk(root, func(n *ts.Node) {
@@ -80,7 +80,7 @@ func javaFacts(src []byte, file string) (out facts, partial bool) {
 					}
 				}
 				if obj != nil && javaClient.MatchString(text(obj)) {
-					out.calls = append(out.calls, archdoc.Call{Callee: shorten(text(obj)) + "." + text(name), Target: shorten(text(first)), Prov: at(n)})
+					out.calls = append(out.calls, core.Call{Callee: shorten(text(obj)) + "." + text(name), Target: shorten(text(first)), Prov: at(n)})
 				}
 			case "string_literal":
 				v, ok := javaString(n, l, src)
@@ -174,9 +174,9 @@ func javaKey(n *ts.Node, l *ts.Language, src []byte) string {
 	return ""
 }
 
-func javaClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Class {
+func javaClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Class {
 	text := func(n *ts.Node) string { return n.Text(src) }
-	c := archdoc.Class{Prov: at(n), Interface: n.Type(l) == "interface_declaration"}
+	c := core.Class{Prov: at(n), Interface: n.Type(l) == "interface_declaration"}
 	if name := n.ChildByFieldName("name", l); name != nil {
 		c.Name = text(name)
 	}
@@ -212,7 +212,7 @@ func javaClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 		case "formal_parameters": // a record's components are its fields
 			for _, p := range javaParams(ch, l, src, at) {
 				c.Params = append(c.Params, p)
-				c.Fields = append(c.Fields, archdoc.Field{Name: p.Name, Type: p.Type, Prov: p.Prov})
+				c.Fields = append(c.Fields, core.Field{Name: p.Name, Type: p.Type, Prov: p.Prov})
 			}
 		}
 	}
@@ -234,7 +234,7 @@ func javaClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 	for _, m := range members {
 		switch m.Type(l) {
 		case "field_declaration":
-			var decs []archdoc.Decorator
+			var decs []core.Decorator
 			static := false
 			for i := 0; i < m.NamedChildCount(); i++ {
 				if mods := m.NamedChild(i); mods.Type(l) == "modifiers" {
@@ -255,7 +255,7 @@ func javaClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 				if name == nil {
 					continue
 				}
-				f := archdoc.Field{Name: text(name), Type: text(typ), Prov: at(d)}
+				f := core.Field{Name: text(name), Type: text(typ), Prov: at(d)}
 				for _, dec := range decs {
 					if javaRelations[dec.Name] {
 						dec.Target = javaElement(typ, l, src)
@@ -266,17 +266,17 @@ func javaClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 					f.Value = v
 				}
 				c.Fields = append(c.Fields, f)
-				c.Params = append(c.Params, archdoc.Param{Name: f.Name, Type: javaTypeName(typ, l, src), Prov: f.Prov})
+				c.Params = append(c.Params, core.Param{Name: f.Name, Type: javaTypeName(typ, l, src), Prov: f.Prov})
 			}
 		case "constructor_declaration":
 			if ps := m.ChildByFieldName("parameters", l); ps != nil {
 				for _, p := range javaParams(ps, l, src, at) {
 					c.Params = append(c.Params, p)
-					c.Injects = append(c.Injects, archdoc.Literal{Value: p.Type, Prov: p.Prov})
+					c.Injects = append(c.Injects, core.Literal{Value: p.Type, Prov: p.Prov})
 				}
 			}
 		case "method_declaration":
-			meth := archdoc.Method{Prov: at(m), EndLine: int(m.EndPoint().Row) + 1}
+			meth := core.Method{Prov: at(m), EndLine: int(m.EndPoint().Row) + 1}
 			if name := m.ChildByFieldName("name", l); name != nil {
 				meth.Name = text(name)
 			}
@@ -294,7 +294,7 @@ func javaClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 					if name == nil {
 						return
 					}
-					inv := archdoc.Invocation{Method: text(name), Prov: at(x)}
+					inv := core.Invocation{Method: text(name), Prov: at(x)}
 					switch obj := x.ChildByFieldName("object", l); {
 					case obj == nil:
 					case obj.Type(l) == "identifier":
@@ -322,8 +322,8 @@ func hasWord(s, w string) bool {
 	return false
 }
 
-func javaParams(ps *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Param {
-	var out []archdoc.Param
+func javaParams(ps *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) []core.Param {
+	var out []core.Param
 	for i := 0; i < ps.NamedChildCount(); i++ {
 		p := ps.NamedChild(i)
 		if p.Type(l) != "formal_parameter" {
@@ -331,7 +331,7 @@ func javaParams(ps *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archd
 		}
 		typ, name := p.ChildByFieldName("type", l), p.ChildByFieldName("name", l)
 		if typ != nil && name != nil {
-			out = append(out, archdoc.Param{Name: name.Text(src), Type: javaTypeName(typ, l, src), Prov: at(p)})
+			out = append(out, core.Param{Name: name.Text(src), Type: javaTypeName(typ, l, src), Prov: at(p)})
 		}
 	}
 	return out
@@ -376,14 +376,14 @@ func javaElement(n *ts.Node, l *ts.Language, src []byte) string {
 }
 
 // javaAnnotations are the annotations a modifiers node holds, as decorators.
-func javaAnnotations(mods *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Decorator {
-	var out []archdoc.Decorator
+func javaAnnotations(mods *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) []core.Decorator {
+	var out []core.Decorator
 	for i := 0; i < mods.NamedChildCount(); i++ {
 		a := mods.NamedChild(i)
 		if a.Type(l) != "annotation" && a.Type(l) != "marker_annotation" {
 			continue
 		}
-		d := archdoc.Decorator{Prov: at(a)}
+		d := core.Decorator{Prov: at(a)}
 		if name := a.ChildByFieldName("name", l); name != nil {
 			t := name.Text(src)
 			d.Name = t[strings.LastIndex(t, ".")+1:]
@@ -506,14 +506,14 @@ func newJavaResolver(root, base string, known map[string]bool) *javaResolver {
 	return r
 }
 
-func (r *javaResolver) resolve(file string, imp rawImport) []archdoc.Import {
+func (r *javaResolver) resolve(file string, imp rawImport) []core.Import {
 	spec, wildcard := strings.CutSuffix(imp.spec, ".*")
 	parts := strings.Split(spec, ".")
 	if wildcard {
 		if files := r.dirs[path.Join(r.root, strings.Join(parts, "/"))]; len(files) > 0 {
-			out := make([]archdoc.Import, 0, len(files))
+			out := make([]core.Import, 0, len(files))
 			for _, f := range files {
-				out = append(out, archdoc.Import{Spec: imp.spec, Target: f, How: archdoc.ByModule})
+				out = append(out, core.Import{Spec: imp.spec, Target: f, How: core.ByModule})
 			}
 			return out
 		}
@@ -521,11 +521,11 @@ func (r *javaResolver) resolve(file string, imp rawImport) []archdoc.Import {
 	// com.acme.Outer.Inner is in com/acme/Outer.java: drop names from the end until a file is found.
 	for k := len(parts); k > 0; k-- {
 		if f := path.Join(r.root, strings.Join(parts[:k], "/")) + ".java"; r.known[f] {
-			return []archdoc.Import{{Spec: imp.spec, Target: f, How: archdoc.ByModule}}
+			return []core.Import{{Spec: imp.spec, Target: f, How: core.ByModule}}
 		}
 	}
 	if r.own != "" && (spec == r.own || strings.HasPrefix(spec, r.own+".")) {
-		return []archdoc.Import{{Spec: imp.spec, How: archdoc.NoMatch}}
+		return []core.Import{{Spec: imp.spec, How: core.NoMatch}}
 	}
 	// The package is the import's lowercase head: org.springframework.web.bind.annotation.GetMapping
 	// is in org.springframework.web.bind.annotation.
@@ -539,5 +539,5 @@ func (r *javaResolver) resolve(file string, imp rawImport) []archdoc.Import {
 	if len(pkg) == 0 {
 		pkg = parts
 	}
-	return []archdoc.Import{{Spec: imp.spec, How: archdoc.ByPackage, Package: strings.Join(pkg, ".")}}
+	return []core.Import{{Spec: imp.spec, How: core.ByPackage, Package: strings.Join(pkg, ".")}}
 }

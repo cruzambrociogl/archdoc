@@ -11,7 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // skipDirs are never walked. Not correctness — the survey measured ~17k tracked files on
@@ -29,8 +29,8 @@ var skipDirs = map[string]bool{
 // enough either: docker/hwaccel.ml.yml has a top-level services: key and parses cleanly, yet
 // defines hardware-acceleration fragments named cpu, armnn and rknn that are not deployable
 // services. Recall comes from sniffing; precision comes from rejecting fragments.
-func Discover(root string) ([]archdoc.Candidate, error) {
-	var found []archdoc.Candidate
+func Discover(root string) ([]core.Candidate, error) {
+	var found []core.Candidate
 
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -58,7 +58,7 @@ func Discover(root string) ([]archdoc.Candidate, error) {
 			return nil
 		}
 
-		found = append(found, archdoc.Candidate{File: rel, Reason: reason})
+		found = append(found, core.Candidate{File: rel, Reason: reason})
 		return nil
 	})
 	if err != nil {
@@ -129,7 +129,7 @@ func classify(path string) (kind, string) {
 // is a standards-based resolution rather than a guess, so it is tried first. Immich offers no
 // such signal, so convention decides: an unsuffixed name beats a suffixed one, and a shallower
 // path beats a deeper one.
-func selectCanonical(root string, candidates []archdoc.Candidate) int {
+func selectCanonical(root string, candidates []core.Candidate) int {
 	deployables := []int{}
 	for i, c := range candidates {
 		if strings.HasPrefix(c.Reason, "deployable") {
@@ -164,7 +164,7 @@ func selectCanonical(root string, candidates []archdoc.Candidate) int {
 
 // composeFileVar looks for COMPOSE_FILE in a .env sitting beside a candidate, and returns the
 // index of the base file it names.
-func composeFileVar(root string, candidates []archdoc.Candidate, deployables []int) int {
+func composeFileVar(root string, candidates []core.Candidate, deployables []int) int {
 	seen := map[string]bool{}
 
 	for _, i := range deployables {

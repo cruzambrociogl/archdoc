@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
 	"github.com/cruzambrociogl/archdoc/internal/arrange"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 	"github.com/cruzambrociogl/archdoc/internal/extract"
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
@@ -238,7 +238,7 @@ func document(e env, root string, o options) error {
 	}
 
 	meta := render.Meta{
-		Tool:   archdoc.Build().String(),
+		Tool:   core.Build().String(),
 		Commit: render.Commit(facts.Root),
 		Source: facts.Source,
 		Rules:  citations(rf),
@@ -247,7 +247,7 @@ func document(e env, root string, o options) error {
 	// VIE-03/04 — positions are computed once per architecture and stored with its version. A
 	// run that finds the architecture unchanged draws from the stored coordinates, so the
 	// picture cannot shift between identical runs. --stdout writes nothing, so it draws nothing.
-	var layouts map[string]archdoc.Layout
+	var layouts map[string]core.Layout
 	if !o.stdout {
 		layouts = layoutViews(facts.Root, m, out)
 		meta.Pictures = layouts != nil
@@ -439,7 +439,7 @@ func document(e env, root string, o options) error {
 // A failure here is reported and does not stop the run: the documentation is the deliverable and
 // history is an index over it. Refusing to write a correct diagram because a cache could not be
 // updated would be the wrong trade.
-func record(root string, m archdoc.Model, layouts map[string]archdoc.Layout, meta render.Meta, out io.Writer) error {
+func record(root string, m core.Model, layouts map[string]core.Layout, meta render.Meta, out io.Writer) error {
 	// archdoc's own cache should not land in someone's commit. model.json beside it is
 	// committed on purpose — that is the durable record — but a binary index conflicts on
 	// every parallel run and diffs as noise, and it can be rebuilt by regenerating.
@@ -530,7 +530,7 @@ func logRun(root, mode string, rec *semantic.Recorder, rep semantic.Report, star
 // A layout failure is reported and does not stop the run. The documentation falls back to the
 // Mermaid diagrams, which need no layout — a missing picture is a gap, and a run that refused to
 // write correct documentation because a drawing failed would be the wrong trade.
-func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc.Layout {
+func layoutViews(root string, m core.Model, out io.Writer) map[string]core.Layout {
 	if h, err := store.Open(root); err == nil {
 		defer h.Close()
 		if latest, err := h.Latest(); err == nil && latest != nil {
@@ -550,7 +550,7 @@ func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc
 	}
 
 	ctx := context.Background()
-	layouts := map[string]archdoc.Layout{}
+	layouts := map[string]core.Layout{}
 	for _, v := range render.Views(m) {
 		l, err := render.Layout(ctx, v.Model, v.Group)
 		if err != nil {
@@ -570,7 +570,7 @@ func layoutViews(root string, m archdoc.Model, out io.Writer) map[string]archdoc
 // of the validator's types.
 // hasContainerApp reports whether any manifest describes a running part of the system — enough to
 // document a repository that has no Compose file.
-func hasContainerApp(apps []archdoc.App) bool {
+func hasContainerApp(apps []core.App) bool {
 	for _, a := range apps {
 		if a.Role.Container() {
 			return true
@@ -631,7 +631,7 @@ func write(root, rel, content string) error {
 	return os.WriteFile(path, []byte(content), 0o644)
 }
 
-func encode(m archdoc.Model) string {
+func encode(m core.Model) string {
 	b, err := m.JSON()
 	if err != nil {
 		return "{}"

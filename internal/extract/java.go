@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Java applications, by their build files: Maven's pom.xml, Gradle's build.gradle or
@@ -47,7 +47,7 @@ var javaFrameworks = []struct {
 var javaTestScopes = map[string]bool{"test": true, "testImplementation": true, "testRuntimeOnly": true,
 	"testCompileOnly": true, "annotationProcessor": true, "developmentOnly": true}
 
-func pomXML(root, rel string) *archdoc.App {
+func pomXML(root, rel string) *core.App {
 	content, err := os.ReadFile(filepath.Join(root, rel))
 	if err != nil {
 		return nil
@@ -67,19 +67,19 @@ func pomXML(root, rel string) *archdoc.App {
 		return nil
 	}
 	dir := dirOf(rel)
-	app := &archdoc.App{Name: pom.ArtifactID, Dir: dir, Manifest: rel, Language: javaLanguage(root, dir),
-		Prov: archdoc.Provenance{File: rel, Line: lineOf(content, "<artifactId>"+pom.ArtifactID+"</artifactId>")}}
+	app := &core.App{Name: pom.ArtifactID, Dir: dir, Manifest: rel, Language: javaLanguage(root, dir),
+		Prov: core.Provenance{File: rel, Line: lineOf(content, "<artifactId>"+pom.ArtifactID+"</artifactId>")}}
 	if app.Name == "" {
 		app.Name = path.Base(dir)
 	}
 	for _, d := range pom.Deps {
-		app.Requires = append(app.Requires, archdoc.Requirement{Name: d.GroupID + ":" + d.ArtifactID, Version: d.Version,
-			Dev: javaTestScopes[d.Scope], Prov: archdoc.Provenance{File: rel, Line: lineOf(content, "<artifactId>"+d.ArtifactID+"</artifactId>")}})
+		app.Requires = append(app.Requires, core.Requirement{Name: d.GroupID + ":" + d.ArtifactID, Version: d.Version,
+			Dev: javaTestScopes[d.Scope], Prov: core.Provenance{File: rel, Line: lineOf(content, "<artifactId>"+d.ArtifactID+"</artifactId>")}})
 	}
 	if pom.Packaging == "pom" {
-		app.Role, app.Why = archdoc.RoleWorkspace, "a Maven parent: it gathers the other modules"
+		app.Role, app.Why = core.RoleWorkspace, "a Maven parent: it gathers the other modules"
 		if len(pom.Modules) > 0 {
-			app.Prov = archdoc.Provenance{File: rel, Line: lineOf(content, "<modules>")}
+			app.Prov = core.Provenance{File: rel, Line: lineOf(content, "<modules>")}
 		}
 		return app
 	}
@@ -93,14 +93,14 @@ var gradleDep = regexp.MustCompile(`(?m)^\s*(\w+)\s*\(?\s*['"]([^:'"\s]+):([^:'"
 // gradlePlugin names a plugin applied by ID: id("org.springframework.boot"), id 'org.springframework.boot'.
 var gradlePlugin = regexp.MustCompile(`(?m)^\s*id\s*\(?\s*['"]([^'"]+)['"]`)
 
-func gradleBuild(root, rel string) *archdoc.App {
+func gradleBuild(root, rel string) *core.App {
 	content, err := os.ReadFile(filepath.Join(root, rel))
 	if err != nil {
 		return nil
 	}
 	dir := dirOf(rel)
-	app := &archdoc.App{Name: path.Base(dir), Dir: dir, Manifest: rel, Language: javaLanguage(root, dir),
-		Prov: archdoc.Provenance{File: rel, Line: 1}}
+	app := &core.App{Name: path.Base(dir), Dir: dir, Manifest: rel, Language: javaLanguage(root, dir),
+		Prov: core.Provenance{File: rel, Line: 1}}
 	if dir == "." {
 		abs, _ := filepath.Abs(root)
 		app.Name = filepath.Base(abs)
@@ -116,39 +116,39 @@ func gradleBuild(root, rel string) *archdoc.App {
 		if m[8] >= 0 {
 			version = string(content[m[8]:m[9]])
 		}
-		app.Requires = append(app.Requires, archdoc.Requirement{Name: group + ":" + artifact, Version: version,
-			Dev: javaTestScopes[conf], Prov: archdoc.Provenance{File: rel, Line: 1 + strings.Count(string(content[:m[0]]), "\n") + leadingNewlines(content[m[0]:m[1]])}})
+		app.Requires = append(app.Requires, core.Requirement{Name: group + ":" + artifact, Version: version,
+			Dev: javaTestScopes[conf], Prov: core.Provenance{File: rel, Line: 1 + strings.Count(string(content[:m[0]]), "\n") + leadingNewlines(content[m[0]:m[1]])}})
 	}
 	if gradleWorkspace(root, dir, app) {
 		return app
 	}
 	// The dependencies decide first, as in a pom — a gateway is a gateway — and the Spring Boot
 	// plugin, which makes the module an application whatever it depends on, after them.
-	var boot *archdoc.Provenance
+	var boot *core.Provenance
 	for _, m := range gradlePlugin.FindAllSubmatchIndex(content, -1) {
 		if string(content[m[2]:m[3]]) == "org.springframework.boot" {
-			boot = &archdoc.Provenance{File: rel, Line: 1 + strings.Count(string(content[:m[2]]), "\n")}
+			boot = &core.Provenance{File: rel, Line: 1 + strings.Count(string(content[:m[2]]), "\n")}
 		}
 	}
-	if javaRole(app); app.Role != archdoc.RoleLibrary || boot == nil {
+	if javaRole(app); app.Role != core.RoleLibrary || boot == nil {
 		return app
 	}
-	app.Framework, app.FrameworkProv, app.Role = "Spring Boot", *boot, archdoc.RoleService
-	app.Why = whyRole(archdoc.RoleService, "Spring Boot")
+	app.Framework, app.FrameworkProv, app.Role = "Spring Boot", *boot, core.RoleService
+	app.Why = whyRole(core.RoleService, "Spring Boot")
 	if inTestDir(app.Dir) {
-		app.Role, app.Why = archdoc.RoleTest, "lives in a test directory"
+		app.Role, app.Why = core.RoleTest, "lives in a test directory"
 	}
 	return app
 }
 
-func gradleWorkspace(root, dir string, app *archdoc.App) bool {
+func gradleWorkspace(root, dir string, app *core.App) bool {
 	if dir != "." {
 		return false
 	}
 	for _, f := range []string{"settings.gradle", "settings.gradle.kts"} {
 		if s, err := os.ReadFile(filepath.Join(root, f)); err == nil && regexp.MustCompile(`(?m)^\s*include\b`).Match(s) {
-			app.Role, app.Why = archdoc.RoleWorkspace, "a Gradle build whose "+f+" includes the other projects"
-			app.Prov = archdoc.Provenance{File: f, Line: 1}
+			app.Role, app.Why = core.RoleWorkspace, "a Gradle build whose "+f+" includes the other projects"
+			app.Prov = core.Provenance{File: f, Line: 1}
 			return true
 		}
 	}
@@ -161,25 +161,25 @@ func leadingNewlines(b []byte) int {
 
 // javaRole judges a Java module by its dependencies: a framework makes it a service; nothing makes
 // it a library — Java code that is not an application runs inside one.
-func javaRole(app *archdoc.App) *archdoc.App {
+func javaRole(app *core.App) *core.App {
 	for _, f := range javaFrameworks {
 		for _, r := range app.Requires {
 			_, artifact, _ := strings.Cut(r.Name, ":")
 			if r.Dev || !(artifact == f.artifact || strings.HasSuffix(f.artifact, "-") && strings.HasPrefix(artifact, f.artifact)) {
 				continue
 			}
-			app.Framework, app.FrameworkProv, app.Role = f.name, r.Prov, archdoc.RoleService
-			app.Why = whyRole(archdoc.RoleService, f.name)
+			app.Framework, app.FrameworkProv, app.Role = f.name, r.Prov, core.RoleService
+			app.Why = whyRole(core.RoleService, f.name)
 			return testOrNot(app)
 		}
 	}
-	app.Role, app.Why = archdoc.RoleLibrary, "a library: it declares no application framework, and runs inside what uses it"
+	app.Role, app.Why = core.RoleLibrary, "a library: it declares no application framework, and runs inside what uses it"
 	return testOrNot(app)
 }
 
-func testOrNot(app *archdoc.App) *archdoc.App {
+func testOrNot(app *core.App) *core.App {
 	if inTestDir(app.Dir) {
-		app.Role, app.Why = archdoc.RoleTest, "lives in a test directory"
+		app.Role, app.Why = core.RoleTest, "lives in a test directory"
 	}
 	return app
 }
@@ -196,7 +196,7 @@ func javaLanguage(root, dir string) string {
 
 // oneBuildPerDir keeps one Java build file where a directory has both — Spring's own petclinic ships
 // a pom.xml and a build.gradle for the same code. The pom is kept: it is data, not a program.
-func oneBuildPerDir(apps []archdoc.App) []archdoc.App {
+func oneBuildPerDir(apps []core.App) []core.App {
 	pom := map[string]bool{}
 	for _, a := range apps {
 		if path.Base(a.Manifest) == "pom.xml" {

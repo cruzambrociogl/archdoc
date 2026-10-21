@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // tally is what a model holds, counted: what generate reports at its end, scan previews, and
@@ -26,15 +26,15 @@ type tally struct {
 	Unresolved    int `json:"unresolved"`
 }
 
-func countModel(m archdoc.Model) tally {
+func countModel(m core.Model) tally {
 	t := tally{WithCode: len(m.Components()), WithTables: len(m.Datas()), Flows: len(m.Flows), Unresolved: len(m.Unresolved)}
-	kind := map[string]archdoc.Kind{}
+	kind := map[string]core.Kind{}
 	for _, n := range m.Nodes {
 		kind[n.ID] = n.Kind
 		switch {
-		case n.Kind == archdoc.Component:
+		case n.Kind == core.Component:
 			t.Components++
-		case n.Kind == archdoc.Table:
+		case n.Kind == core.Table:
 			t.Tables++
 		case !n.Kind.Part():
 			t.Elements++
@@ -42,9 +42,9 @@ func countModel(m archdoc.Model) tally {
 	}
 	for _, e := range m.Edges {
 		switch k := kind[e.From]; {
-		case k == archdoc.Component:
+		case k == core.Component:
 			t.Uses++
-		case k == archdoc.Table:
+		case k == core.Table:
 			t.ForeignKeys++
 		case k.Part():
 			// the same code by folder: counted as components, not twice

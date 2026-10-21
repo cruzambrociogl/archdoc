@@ -3,7 +3,7 @@ package model
 import (
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 func TestIdenticalModelsHaveNoDiff(t *testing.T) {
@@ -17,8 +17,8 @@ func TestIdenticalModelsHaveNoDiff(t *testing.T) {
 func TestAddedAndRemovedElementsAreStructural(t *testing.T) {
 	a := Derive(facts())
 	b := Derive(facts())
-	b.Nodes = append(b.Nodes, archdoc.Node{ID: "svc:cache", Name: "cache", Kind: archdoc.Datastore,
-		Evidence: archdoc.Declared, Prov: at(40)})
+	b.Nodes = append(b.Nodes, core.Node{ID: "svc:cache", Name: "cache", Kind: core.Datastore,
+		Evidence: core.Declared, Prov: at(40)})
 	b = b.Normalise()
 
 	d := Compare(a, b)
@@ -93,13 +93,13 @@ func TestDiffIsDeterministic(t *testing.T) {
 
 // What the code declares changes too: a route that appears, a column that changes.
 func TestCompareSeesRoutesAndColumns(t *testing.T) {
-	table := func(cols ...archdoc.Column) archdoc.Node {
-		return archdoc.Node{ID: "tbl:x/album", Name: "album", Kind: archdoc.Table, Columns: cols}
+	table := func(cols ...core.Column) core.Node {
+		return core.Node{ID: "tbl:x/album", Name: "album", Kind: core.Table, Columns: cols}
 	}
-	a := archdoc.Model{Nodes: []archdoc.Node{table(archdoc.Column{Name: "id", Type: "string", Primary: true}, archdoc.Column{Name: "old", Type: "text"})},
-		Entries: []archdoc.Entry{{ID: "route:x GET /a"}, {ID: "route:x GET /gone"}}}
-	b := archdoc.Model{Nodes: []archdoc.Node{table(archdoc.Column{Name: "id", Type: "uuid", Primary: true}, archdoc.Column{Name: "new", Type: "text", Nullable: true})},
-		Entries: []archdoc.Entry{{ID: "route:x GET /a"}, {ID: "route:x POST /a"}}}
+	a := core.Model{Nodes: []core.Node{table(core.Column{Name: "id", Type: "string", Primary: true}, core.Column{Name: "old", Type: "text"})},
+		Entries: []core.Entry{{ID: "route:x GET /a"}, {ID: "route:x GET /gone"}}}
+	b := core.Model{Nodes: []core.Node{table(core.Column{Name: "id", Type: "uuid", Primary: true}, core.Column{Name: "new", Type: "text", Nullable: true})},
+		Entries: []core.Entry{{ID: "route:x GET /a"}, {ID: "route:x POST /a"}}}
 	d := Compare(a, b)
 	if len(d.AddedEntries) != 1 || d.AddedEntries[0].ID != "route:x POST /a" || len(d.RemovedEntries) != 1 || !d.Structural() {
 		t.Errorf("entries +%v −%v", d.AddedEntries, d.RemovedEntries)

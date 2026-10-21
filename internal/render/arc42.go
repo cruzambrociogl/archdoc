@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // arc42 is twelve sections in a fixed order. Roughly five can be filled from facts and seven
@@ -96,7 +96,7 @@ func (m Meta) stamp() string {
 // Arc42 renders every section archdoc can fill from facts. The map is keyed on file name,
 // relative to the documentation directory. plan says which sections this repository has evidence
 // for — see plan.go; pass Sections() for all of them.
-func Arc42(m archdoc.Model, facts archdoc.FactSet, plan []Section, meta Meta) map[string]string {
+func Arc42(m core.Model, facts core.FactSet, plan []Section, meta Meta) map[string]string {
 	out := map[string]string{}
 
 	for _, s := range plan {
@@ -127,7 +127,7 @@ func Arc42(m archdoc.Model, facts archdoc.FactSet, plan []Section, meta Meta) ma
 	return out
 }
 
-func contextSection(m archdoc.Model, meta Meta) string {
+func contextSection(m core.Model, meta Meta) string {
 	view := m.Context()
 
 	var b strings.Builder
@@ -141,7 +141,7 @@ func contextSection(m archdoc.Model, meta Meta) string {
 
 	outside := 0
 	for _, n := range view.Nodes {
-		if n.Kind == archdoc.External {
+		if n.Kind == core.External {
 			outside++
 		}
 	}
@@ -154,7 +154,7 @@ func contextSection(m archdoc.Model, meta Meta) string {
 	return b.String()
 }
 
-func buildingBlockSection(m archdoc.Model, meta Meta) string {
+func buildingBlockSection(m core.Model, meta Meta) string {
 	view := m.Container()
 
 	var b strings.Builder
@@ -183,7 +183,7 @@ func buildingBlockSection(m archdoc.Model, meta Meta) string {
 // structure, never behaviour, so there is nothing here to read. Saying so — and naming the
 // evidence that would be needed — is more useful than an invented sequence diagram, and it is
 // what OUT-01 means by stubbing with an explicit note.
-func runtimeSection(m archdoc.Model) string {
+func runtimeSection(m core.Model) string {
 	if len(m.Flows) > 0 {
 		return runtimeFromCode(m)
 	}
@@ -217,7 +217,7 @@ func runtimeSection(m archdoc.Model) string {
 // This section is also where Compose *belongs*. A compose file is a deployment descriptor, and the
 // container view (§5) is the awkward projection of it; everything below was already extracted and
 // then dropped on the floor because §5 must not show deployment concepts.
-func deploymentSection(m archdoc.Model, facts archdoc.FactSet) string {
+func deploymentSection(m core.Model, facts core.FactSet) string {
 	var b strings.Builder
 
 	b.WriteString("Compose describes one host running containers, so this view is one level deep.\n")
@@ -231,7 +231,7 @@ func deploymentSection(m archdoc.Model, facts archdoc.FactSet) string {
 
 	reachable := map[string]bool{}
 	for _, e := range view.Edges {
-		if from, ok := view.Node(e.From); ok && from.Kind == archdoc.Actor {
+		if from, ok := view.Node(e.From); ok && from.Kind == core.Actor {
 			reachable[e.To] = true
 		}
 	}
@@ -257,7 +257,7 @@ func deploymentSection(m archdoc.Model, facts archdoc.FactSet) string {
 // runs is the image a container runs, or the fact that the repository builds it. A built image is
 // as much a deployment fact as a pulled one, and "built here" is what tells a reader the source is
 // in front of them.
-func runs(s archdoc.Service, n archdoc.Node) string {
+func runs(s core.Service, n core.Node) string {
 	if s.Image != "" {
 		return "`" + s.Image + "`"
 	}
@@ -269,7 +269,7 @@ func runs(s archdoc.Service, n archdoc.Node) string {
 
 // portTable is the host's side of the boundary: every published port, which is the only thing
 // Compose says outright about what the outside world can touch.
-func portTable(facts archdoc.FactSet) string {
+func portTable(facts core.FactSet) string {
 	type row struct{ service, published, target, protocol, prov string }
 	var rows []row
 
@@ -305,7 +305,7 @@ func portTable(facts archdoc.FactSet) string {
 // mountTable is what the repository hands to a container. It matters twice: it is how a gateway's
 // routing table arrives, and it is the one place configuration says which of its own files a
 // running container depends on.
-func mountTable(facts archdoc.FactSet) string {
+func mountTable(facts core.FactSet) string {
 	type row struct{ service, source, target, prov string }
 	var rows []row
 
@@ -334,22 +334,22 @@ func mountTable(facts archdoc.FactSet) string {
 	return b.String()
 }
 
-func byName(facts archdoc.FactSet) map[string]archdoc.Service {
-	out := make(map[string]archdoc.Service, len(facts.Services))
+func byName(facts core.FactSet) map[string]core.Service {
+	out := make(map[string]core.Service, len(facts.Services))
 	for _, s := range facts.Services {
 		out[s.Name] = s
 	}
 	return out
 }
 
-func glossarySection(m archdoc.Model) string {
+func glossarySection(m core.Model) string {
 	var b strings.Builder
 
 	b.WriteString("Every element the model contains, with what it is and where it is declared.\n")
 	b.WriteString("Terms only a person can define belong in section 8.\n\n")
 	b.WriteString("| Term | Meaning | Declared at |\n|---|---|---|\n")
 
-	nodes := append([]archdoc.Node(nil), m.Nodes...)
+	nodes := append([]core.Node(nil), m.Nodes...)
 	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Name < nodes[j].Name })
 
 	for _, n := range nodes {
@@ -379,7 +379,7 @@ const shownFlows = 8
 // runtimeFromCode is the runtime view once the code was read: the flows that reach the most
 // participants, each as a sequence diagram — chosen by that rule alone, stated, so the choice is
 // not a judgement — and where to find the rest.
-func runtimeFromCode(m archdoc.Model) string {
+func runtimeFromCode(m core.Model) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Read from the code: %d routes followed from their handler into the classes they are given,\n", len(m.Flows))
 	b.WriteString("down to the tables their queries name and the calls that leave the container — each step at\n")
@@ -390,14 +390,14 @@ func runtimeFromCode(m archdoc.Model) string {
 	b.WriteString("handler has a flow of its own. What a flow cannot see — failure handling, a call whose\n")
 	b.WriteString("target only a run decides — is not drawn.\n")
 
-	flows := append([]archdoc.Flow(nil), m.Flows...)
+	flows := append([]core.Flow(nil), m.Flows...)
 	sort.SliceStable(flows, func(i, j int) bool {
 		if a, c := len(flows[i].Participants), len(flows[j].Participants); a != c {
 			return a > c
 		}
 		return flows[i].Entry < flows[j].Entry
 	})
-	entries := map[string]archdoc.Entry{}
+	entries := map[string]core.Entry{}
 	for _, e := range m.Entries {
 		entries[e.ID] = e
 	}
@@ -420,7 +420,7 @@ func runtimeFromCode(m archdoc.Model) string {
 }
 
 // FlowMermaid renders a flow as a Mermaid sequence diagram.
-func FlowMermaid(f archdoc.Flow) string {
+func FlowMermaid(f core.Flow) string {
 	var b strings.Builder
 	b.WriteString("sequenceDiagram\n")
 	id := map[string]string{}

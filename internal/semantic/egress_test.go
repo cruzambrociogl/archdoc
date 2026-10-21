@@ -13,7 +13,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go/option"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // fakeAnthropic answers like the Messages API and remembers every body it received, so a test can
@@ -144,9 +144,9 @@ func TestExplainSendsStructureAndSummariesAndNothingElse(t *testing.T) {
 		m.Nodes[i].Description = "a description nobody asked to send"
 		m.Nodes[i].Prov.Line = 7777
 	}
-	m.Nodes = append(m.Nodes, archdoc.Node{ID: "tbl:server/album", Name: "album", Kind: archdoc.Table, Parent: "svc:server",
-		Dir: "server/src/controllers/album.controller.ts", Prov: archdoc.Provenance{File: "server/src/controllers/album.controller.ts", Line: 7777},
-		Columns: []archdoc.Column{{Name: "ownerId", Type: "uuid-type-not-sent"}}})
+	m.Nodes = append(m.Nodes, core.Node{ID: "tbl:server/album", Name: "album", Kind: core.Table, Parent: "svc:server",
+		Dir: "server/src/controllers/album.controller.ts", Prov: core.Provenance{File: "server/src/controllers/album.controller.ts", Line: 7777},
+		Columns: []core.Column{{Name: "ownerId", Type: "uuid-type-not-sent"}}})
 	for i := range m.Entries {
 		m.Entries[i].Prov.Line = 7777
 		m.Entries[i].PathNote = "a note about resolution, not sent"

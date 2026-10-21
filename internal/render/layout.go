@@ -11,7 +11,7 @@ import (
 
 	"github.com/goccy/go-graphviz"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Layout computes where every element, boundary and arrow sits in one view (VIE-03).
@@ -23,7 +23,7 @@ import (
 //
 // Deterministic: the same view produces byte-identical input, and Graphviz produces identical
 // output for identical input. AC-7 depends on both halves.
-func Layout(ctx context.Context, view archdoc.Model, group bool) (archdoc.Layout, error) {
+func Layout(ctx context.Context, view core.Model, group bool) (core.Layout, error) {
 	ids := identifiers(view)
 	back := make(map[string]string, len(ids))
 	for model, dot := range ids {
@@ -32,23 +32,23 @@ func Layout(ctx context.Context, view archdoc.Model, group bool) (archdoc.Layout
 
 	g, err := graphviz.New(ctx)
 	if err != nil {
-		return archdoc.Layout{}, fmt.Errorf("starting the layout engine: %w", err)
+		return core.Layout{}, fmt.Errorf("starting the layout engine: %w", err)
 	}
 	defer g.Close()
 
 	var fold [][2]string // pairs kept a rank apart, to break up a rank too wide to read
-	lay := func(dir string) (archdoc.Layout, error) {
+	lay := func(dir string) (core.Layout, error) {
 		src, clusters := toDOT(view, group, ids, dir, fold)
 
 		graph, err := graphviz.ParseBytes([]byte(src))
 		if err != nil {
-			return archdoc.Layout{}, fmt.Errorf("layout input rejected: %w", err)
+			return core.Layout{}, fmt.Errorf("layout input rejected: %w", err)
 		}
 		defer graph.Close()
 
 		var out bytes.Buffer
 		if err := g.Render(ctx, graph, graphviz.Format("json0"), &out); err != nil {
-			return archdoc.Layout{}, fmt.Errorf("laying out: %w", err)
+			return core.Layout{}, fmt.Errorf("laying out: %w", err)
 		}
 		return parseLayout(out.Bytes(), back, clusters)
 	}
@@ -61,7 +61,7 @@ func Layout(ctx context.Context, view archdoc.Model, group bool) (archdoc.Layout
 	// Top to bottom first: it reads as C4 diagrams usually do, people above the system.
 	tall, err := lay("TB")
 	if err != nil {
-		return archdoc.Layout{}, err
+		return core.Layout{}, err
 	}
 	if aspect(tall) <= maxAspect {
 		return tall, nil
@@ -103,8 +103,8 @@ const rankWidth = 5
 
 // folds reads the ranks off a top-to-bottom layout — boxes at one height — and, for each rank with
 // more than rankWidth boxes, pairs every box with the one rankWidth places to its right.
-func folds(l archdoc.Layout, ids map[string]string) [][2]string {
-	ranks := map[int][]archdoc.Box{}
+func folds(l core.Layout, ids map[string]string) [][2]string {
+	ranks := map[int][]core.Box{}
 	for _, b := range l.Boxes {
 		y := int(b.Rect.Y+b.Rect.H/2) / 20 // boxes of different heights in one rank share a centre line
 		ranks[y] = append(ranks[y], b)
@@ -140,7 +140,7 @@ const maxAspect = 2.0
 // idealAspect is the shape a diagram is steered towards: a little wider than tall, like a page.
 const idealAspect = 1.4
 
-func aspect(l archdoc.Layout) float64 {
+func aspect(l core.Layout) float64 {
 	if l.Height <= 0 {
 		return 0
 	}
@@ -163,7 +163,7 @@ const LayoutVersion = 13
 // else: one stored for the same architecture can still be for a different picture of it, when
 // what a view shows changes and LayoutVersion was not bumped. Then an arrow is drawn to a box that
 // is not there — the context view of Supabase, the day it began leaving external systems out.
-func Places(l archdoc.Layout, view archdoc.Model) bool {
+func Places(l core.Layout, view core.Model) bool {
 	if len(l.Boxes) != len(view.Nodes) {
 		return false
 	}
@@ -194,7 +194,7 @@ const (
 )
 
 // boxLines is the text drawn in an element's box, in order: name, type, description lines.
-func boxLines(n archdoc.Node) (name, kind string, desc []string) {
+func boxLines(n core.Node) (name, kind string, desc []string) {
 	desc = wrap(n.Description, descChars, descMax)
 	if n.UsedBy > 0 || n.UsesMany > 0 {
 		desc = append(wrap(sharedLine(n), descChars, 2), desc...)
@@ -203,7 +203,7 @@ func boxLines(n archdoc.Node) (name, kind string, desc []string) {
 }
 
 // sharedLine is what a shared component's box says in place of the arrows into it.
-func sharedLine(n archdoc.Node) string {
+func sharedLine(n core.Node) string {
 	switch {
 	case n.UsedBy > 0 && n.UsesMany > 0:
 		return fmt.Sprintf("used by %d, uses %d of %d · not drawn", n.UsedBy, n.UsesMany, n.Among)
@@ -219,8 +219,8 @@ const (
 	tableRows  = 14
 )
 
-func boxWidthOf(n archdoc.Node) float64 {
-	if n.Kind == archdoc.Table {
+func boxWidthOf(n core.Node) float64 {
+	if n.Kind == core.Table {
 		return tableWidth
 	}
 	return boxWidth
@@ -228,15 +228,15 @@ func boxWidthOf(n archdoc.Node) float64 {
 
 // tableLines is how many column lines a table's box holds: every column, or tableRows of them
 // and a line saying how many more.
-func tableLines(n archdoc.Node) int {
+func tableLines(n core.Node) int {
 	if len(n.Columns) > tableRows+1 {
 		return tableRows + 1
 	}
 	return len(n.Columns)
 }
 
-func boxHeight(n archdoc.Node) float64 {
-	if n.Kind == archdoc.Table {
+func boxHeight(n core.Node) float64 {
+	if n.Kind == core.Table {
 		return boxPad*2 + nameLine + 6 + float64(tableLines(n))*textLine
 	}
 	_, _, desc := boxLines(n)
@@ -249,16 +249,16 @@ func boxHeight(n archdoc.Node) float64 {
 
 // toDOT writes the Graphviz input. Order is fixed — nodes and edges in view order, which is
 // already sorted — because the output must be byte-identical across runs.
-func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string, fold [][2]string) (string, map[string]archdoc.Boundary) {
+func toDOT(view core.Model, group bool, ids map[string]string, rankdir string, fold [][2]string) (string, map[string]core.Boundary) {
 	var b strings.Builder
-	clusters := map[string]archdoc.Boundary{}
+	clusters := map[string]core.Boundary{}
 
 	b.WriteString("digraph archdoc {\n")
 	fmt.Fprintf(&b, "  graph [rankdir=%s, nodesep=0.6, ranksep=0.9, fontsize=11, fontname=\"Helvetica\"];\n", rankdir)
 	b.WriteString("  node [shape=box, fixedsize=true, fontname=\"Helvetica\"];\n")
 	fmt.Fprintf(&b, "  edge [fontsize=%g, fontname=\"Helvetica\"];\n", labelSize)
 
-	node := func(indent string, n archdoc.Node) {
+	node := func(indent string, n core.Node) {
 		fmt.Fprintf(&b, "%s%s [label=\"\", width=%.3f, height=%.3f];\n",
 			indent, ids[n.ID], boxWidthOf(n)/pointsPerIn, boxHeight(n)/pointsPerIn)
 	}
@@ -294,7 +294,7 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 		if view.Boundary != "" {
 			label = view.Boundary
 		}
-		clusters["cluster_system"] = archdoc.Boundary{Name: view.Name, System: true, Label: label}
+		clusters["cluster_system"] = core.Boundary{Name: view.Name, System: true, Label: label}
 		fmt.Fprintf(&b, "  subgraph cluster_system {\n    label=%s;\n", quote(label))
 		if groups := boundaries(view, inside); groups != nil {
 			for _, n := range ungrouped(inside) {
@@ -336,7 +336,7 @@ func toDOT(view archdoc.Model, group bool, ids map[string]string, rankdir string
 // writeStages puts a data-flow view's stages side by side: each one a boundary holding its boxes in
 // one rank, and an unseen arrow from each stage to the next so they keep their order where no real
 // arrow does — nothing joins a store to an external system.
-func writeStages(b *strings.Builder, view archdoc.Model, ids map[string]string, node func(string, archdoc.Node), clusters map[string]archdoc.Boundary) {
+func writeStages(b *strings.Builder, view core.Model, ids map[string]string, node func(string, core.Node), clusters map[string]core.Boundary) {
 	b.WriteString("  newrank=true;\n")
 	var firsts []string
 	for i, st := range view.Stages {
@@ -350,7 +350,7 @@ func writeStages(b *strings.Builder, view archdoc.Model, ids map[string]string, 
 			continue
 		}
 		id := fmt.Sprintf("cluster_stage_%d", i)
-		clusters[id] = archdoc.Boundary{Name: st, Label: st, Stage: true}
+		clusters[id] = core.Boundary{Name: st, Label: st, Stage: true}
 		fmt.Fprintf(b, "  subgraph %s {\n    label=%s;\n", id, quote(st))
 		for _, n := range view.Nodes {
 			if n.Stage == st {
@@ -365,7 +365,7 @@ func writeStages(b *strings.Builder, view archdoc.Model, ids map[string]string, 
 	}
 }
 
-func writeDOTGroup(b *strings.Builder, g *group, ids map[string]string, node func(string, archdoc.Node), indent string, clusters map[string]archdoc.Boundary) {
+func writeDOTGroup(b *strings.Builder, g *group, ids map[string]string, node func(string, core.Node), indent string, clusters map[string]core.Boundary) {
 	if len(g.Nodes) == 0 && len(g.Children) == 0 {
 		return
 	}
@@ -374,7 +374,7 @@ func writeDOTGroup(b *strings.Builder, g *group, ids map[string]string, node fun
 		label += " — no external connectivity"
 	}
 	id := "cluster_net_" + sanitise(g.Name)
-	clusters[id] = archdoc.Boundary{Name: g.Name, Internal: g.Internal, Label: label}
+	clusters[id] = core.Boundary{Name: g.Name, Internal: g.Internal, Label: label}
 	fmt.Fprintf(b, "%ssubgraph %s {\n%s  label=%s;\n", indent, id, indent, quote(label))
 	for _, n := range g.Nodes {
 		node(indent+"  ", n)
@@ -385,7 +385,7 @@ func writeDOTGroup(b *strings.Builder, g *group, ids map[string]string, node fun
 	fmt.Fprintf(b, "%s}\n", indent)
 }
 
-func edgeText(e archdoc.Edge) string {
+func edgeText(e core.Edge) string {
 	if e.Technology != "" && e.Label != "" {
 		return e.Label + " [" + e.Technology + "]"
 	}
@@ -421,20 +421,20 @@ type gvGraph struct {
 
 // parseLayout turns Graphviz's answer into archdoc's own layout, flipping the y-axis: Graphviz
 // measures up from the bottom, SVG down from the top.
-func parseLayout(raw []byte, back map[string]string, clusters map[string]archdoc.Boundary) (archdoc.Layout, error) {
+func parseLayout(raw []byte, back map[string]string, clusters map[string]core.Boundary) (core.Layout, error) {
 	var g gvGraph
 	if err := json.Unmarshal(raw, &g); err != nil {
-		return archdoc.Layout{}, fmt.Errorf("reading the layout: %w", err)
+		return core.Layout{}, fmt.Errorf("reading the layout: %w", err)
 	}
 
 	bb, err := numbers(g.BB, 4)
 	if err != nil {
-		return archdoc.Layout{}, fmt.Errorf("graph bounds: %w", err)
+		return core.Layout{}, fmt.Errorf("graph bounds: %w", err)
 	}
 	height := bb[3]
-	flip := func(x, y float64) archdoc.Point { return archdoc.Point{X: x, Y: height - y} }
+	flip := func(x, y float64) core.Point { return core.Point{X: x, Y: height - y} }
 
-	out := archdoc.Layout{Version: LayoutVersion, Width: bb[2], Height: height}
+	out := core.Layout{Version: LayoutVersion, Width: bb[2], Height: height}
 	byGVID := map[int]string{}
 
 	for _, o := range g.Objects {
@@ -442,13 +442,13 @@ func parseLayout(raw []byte, back map[string]string, clusters map[string]archdoc
 		case strings.HasPrefix(o.Name, "cluster_"):
 			r, err := numbers(o.BB, 4)
 			if err != nil {
-				return archdoc.Layout{}, fmt.Errorf("boundary %s: %w", o.Name, err)
+				return core.Layout{}, fmt.Errorf("boundary %s: %w", o.Name, err)
 			}
 			grp, known := clusters[o.Name]
 			if !known {
-				grp = archdoc.Boundary{Name: o.Label, Label: o.Label, System: o.Name == "cluster_system"}
+				grp = core.Boundary{Name: o.Label, Label: o.Label, System: o.Name == "cluster_system"}
 			}
-			grp.Rect = archdoc.Rect{X: r[0], Y: height - r[3], W: r[2] - r[0], H: r[3] - r[1]}
+			grp.Rect = core.Rect{X: r[0], Y: height - r[3], W: r[2] - r[0], H: r[3] - r[1]}
 			if lp, err := numbers(o.LP, 2); err == nil {
 				grp.LabelAt = flip(lp[0], lp[1])
 			}
@@ -463,20 +463,20 @@ func parseLayout(raw []byte, back map[string]string, clusters map[string]archdoc
 
 			pos, err := numbers(o.Pos, 2)
 			if err != nil {
-				return archdoc.Layout{}, fmt.Errorf("position of %s: %w", id, err)
+				return core.Layout{}, fmt.Errorf("position of %s: %w", id, err)
 			}
 			w, _ := strconv.ParseFloat(o.Width, 64)
 			h, _ := strconv.ParseFloat(o.Height, 64)
 			w, h = w*pointsPerIn, h*pointsPerIn
 			c := flip(pos[0], pos[1])
-			out.Boxes = append(out.Boxes, archdoc.Box{
-				ID: id, Rect: archdoc.Rect{X: c.X - w/2, Y: c.Y - h/2, W: w, H: h},
+			out.Boxes = append(out.Boxes, core.Box{
+				ID: id, Rect: core.Rect{X: c.X - w/2, Y: c.Y - h/2, W: w, H: h},
 			})
 		}
 	}
 
 	for _, e := range g.Edges {
-		p := archdoc.Path{From: byGVID[e.Tail], To: byGVID[e.Head]}
+		p := core.Path{From: byGVID[e.Tail], To: byGVID[e.Head]}
 		if p.From == "" || p.To == "" || e.Style == "invis" {
 			continue // an unseen arrow only holds things in place: a fold, the order of stages
 		}

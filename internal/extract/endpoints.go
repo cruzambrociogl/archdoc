@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // notAHost are values that parse as hostnames but name no system. A loopback or wildcard
@@ -26,14 +26,14 @@ var notAHost = map[string]bool{
 // This is the only part of the environment that survives into the FactSet. Everything else —
 // passwords, JWT secrets, API keys, all four of which sit in plain sight in the subjects — is
 // read and discarded here, so nothing downstream has to remember to redact it.
-func endpoints(env map[string]envEntry) []archdoc.Endpoint {
+func endpoints(env map[string]envEntry) []core.Endpoint {
 	names := make([]string, 0, len(env))
 	for k := range env {
 		names = append(names, k)
 	}
 	sort.Strings(names) // Go randomises map iteration; AC-7 requires a stable order
 
-	out := make([]archdoc.Endpoint, 0, len(names))
+	out := make([]core.Endpoint, 0, len(names))
 	for _, name := range names {
 		entry := env[name]
 
@@ -62,7 +62,7 @@ func endpoints(env map[string]envEntry) []archdoc.Endpoint {
 // Nothing else is inspected. A value could be a hostname without either signal, but guessing
 // from the value alone would produce edges the repository never declared — and MDL-04 is a
 // deterministic capability precisely because it does not guess.
-func parseEndpoint(name, value string, env map[string]envEntry) (archdoc.Endpoint, bool) {
+func parseEndpoint(name, value string, env map[string]envEntry) (core.Endpoint, bool) {
 	value = strings.TrimSpace(value)
 
 	if strings.Contains(value, "://") {
@@ -71,45 +71,45 @@ func parseEndpoint(name, value string, env map[string]envEntry) (archdoc.Endpoin
 	if isHostVar(name) {
 		return parseHost(name, value, env)
 	}
-	return archdoc.Endpoint{}, false
+	return core.Endpoint{}, false
 }
 
-func parseURL(name, value string) (archdoc.Endpoint, bool) {
+func parseURL(name, value string) (core.Endpoint, bool) {
 	u, err := url.Parse(value)
 	if err != nil {
-		return archdoc.Endpoint{}, false
+		return core.Endpoint{}, false
 	}
 
 	host := u.Hostname()
 	if host == "" || notAHost[host] {
-		return archdoc.Endpoint{}, false
+		return core.Endpoint{}, false
 	}
 
 	// Hostname() has already dropped any user:password — the credential never reaches the
 	// FactSet even when the URL that named the host carried one.
-	ep := archdoc.Endpoint{Var: name, Scheme: u.Scheme, Host: host}
+	ep := core.Endpoint{Var: name, Scheme: u.Scheme, Host: host}
 	if p, err := strconv.Atoi(u.Port()); err == nil {
 		ep.Port = p
 	}
 	return ep, true
 }
 
-func parseHost(name, value string, env map[string]envEntry) (archdoc.Endpoint, bool) {
+func parseHost(name, value string, env map[string]envEntry) (core.Endpoint, bool) {
 	if value == "" || notAHost[value] {
-		return archdoc.Endpoint{}, false
+		return core.Endpoint{}, false
 	}
 	// A path is a unix socket, not a host — Supabase's own database sets
 	// POSTGRES_HOST=/var/run/postgresql. An unresolved variable is not a host either.
 	if strings.ContainsAny(value, "/ \t$") {
-		return archdoc.Endpoint{}, false
+		return core.Endpoint{}, false
 	}
 	// The suffix rule is a convention, and conventions collide: SEED_SELF_HOST=true is a
 	// flag whose name happens to end in HOST. A boolean or a bare number names no system.
 	if isFlagValue(value) {
-		return archdoc.Endpoint{}, false
+		return core.Endpoint{}, false
 	}
 
-	ep := archdoc.Endpoint{Var: name, Host: value}
+	ep := core.Endpoint{Var: name, Host: value}
 	if p, ok := siblingPort(name, env); ok {
 		ep.Port = p
 	}
@@ -185,7 +185,7 @@ func envValues(v any) map[string]any {
 
 // dependencies reads depends_on. compose-go canonicalises both the list and mapping forms into
 // a mapping before this sees it.
-func dependencies(v any, pos servicePos) []archdoc.Dependency {
+func dependencies(v any, pos servicePos) []core.Dependency {
 	deps, ok := v.(map[string]any)
 	if !ok {
 		return nil
@@ -197,9 +197,9 @@ func dependencies(v any, pos servicePos) []archdoc.Dependency {
 	}
 	sort.Strings(names)
 
-	out := make([]archdoc.Dependency, 0, len(names))
+	out := make([]core.Dependency, 0, len(names))
 	for _, n := range names {
-		out = append(out, archdoc.Dependency{Service: n, Prov: pos.dependency(n)})
+		out = append(out, core.Dependency{Service: n, Prov: pos.dependency(n)})
 	}
 	return out
 }
@@ -209,7 +209,7 @@ func dependencies(v any, pos servicePos) []archdoc.Dependency {
 //
 // Membership is the one boundary Compose states rather than implies: two services sharing no
 // network cannot reach each other, whatever the rest of the file says.
-func networks(v any, pos servicePos) []archdoc.NetworkRef {
+func networks(v any, pos servicePos) []core.NetworkRef {
 	nets, ok := v.(map[string]any)
 	if !ok {
 		return nil
@@ -221,9 +221,9 @@ func networks(v any, pos servicePos) []archdoc.NetworkRef {
 	}
 	sort.Strings(names)
 
-	out := make([]archdoc.NetworkRef, 0, len(names))
+	out := make([]core.NetworkRef, 0, len(names))
 	for _, n := range names {
-		out = append(out, archdoc.NetworkRef{Name: n, Prov: pos.network(n)})
+		out = append(out, core.NetworkRef{Name: n, Prov: pos.network(n)})
 	}
 	return out
 }
@@ -268,13 +268,13 @@ func aliases(svc map[string]any) []string {
 // An unpublished port is internal plumbing and says nothing about the architecture. A published
 // one is declared evidence that something outside the system reaches in, which is where actors
 // come from.
-func ports(v any, pos servicePos) []archdoc.Port {
+func ports(v any, pos servicePos) []core.Port {
 	list, ok := v.([]any)
 	if !ok {
 		return nil
 	}
 
-	out := make([]archdoc.Port, 0, len(list))
+	out := make([]core.Port, 0, len(list))
 	for i, item := range list {
 		p, ok := item.(map[string]any)
 		if !ok {
@@ -286,7 +286,7 @@ func ports(v any, pos servicePos) []archdoc.Port {
 			continue // not published: nothing outside can reach it
 		}
 
-		out = append(out, archdoc.Port{
+		out = append(out, core.Port{
 			Published: published,
 			Target:    asInt(p["target"]),
 			Protocol:  asString(p["protocol"]),

@@ -6,7 +6,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // SVG draws a view from its stored layout (VIE-10). archdoc draws the picture itself rather than
@@ -16,7 +16,7 @@ import (
 //
 // PRV-05 on the diagram itself: text a model wrote is set in italics, the same rule the evidence
 // tables follow. A reader can tell interpretation from reading without leaving the picture.
-func SVG(view archdoc.Model, l archdoc.Layout) string {
+func SVG(view core.Model, l core.Layout) string {
 	const margin = 16.0
 
 	var b strings.Builder
@@ -52,8 +52,8 @@ func SVG(view archdoc.Model, l archdoc.Layout) string {
 		// Where the engine reserved room for the label: centred along the top edge, clear of
 		// every nested boundary's own label.
 		at := g.LabelAt
-		if at == (archdoc.Point{}) {
-			at = archdoc.Point{X: g.Rect.X + g.Rect.W/2, Y: g.Rect.Y + 12}
+		if at == (core.Point{}) {
+			at = core.Point{X: g.Rect.X + g.Rect.W/2, Y: g.Rect.Y + 12}
 		}
 		fmt.Fprintf(&b, `<text x="%s" y="%s" font-size="11" fill="%s" text-anchor="middle" dominant-baseline="middle">%s</text>`+"\n",
 			num(at.X), num(at.Y), stroke, esc(label))
@@ -106,7 +106,7 @@ func SVG(view archdoc.Model, l archdoc.Layout) string {
 
 // tableBox draws a table: its name in a header band, then a line per column — the name, its
 // type, and marks for a primary key (PK), a foreign key (FK) and a nullable column (?).
-func tableBox(n archdoc.Node, r archdoc.Rect) string {
+func tableBox(n core.Node, r core.Rect) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, `<g id="%s">`+"\n", esc(n.ID))
 	fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="%s" rx="4" fill="#ffffff" stroke="#5d82a8" stroke-width="1.2"/>`+"\n",
@@ -155,20 +155,20 @@ func clip(s string, n int) string {
 }
 
 // box draws one element in C4 style.
-func box(n archdoc.Node, r archdoc.Rect) string {
-	if n.Kind == archdoc.Table {
+func box(n core.Node, r core.Rect) string {
+	if n.Kind == core.Table {
 		return tableBox(n, r)
 	}
 	fill, stroke, text, dash := "#1168bd", "#0b4884", "#ffffff", ""
 	switch {
-	case n.Kind == archdoc.Actor:
+	case n.Kind == core.Actor:
 		fill, stroke = "#08427b", "#052e56"
-	case n.Evidence == archdoc.Referenced || n.Kind == archdoc.External:
+	case n.Evidence == core.Referenced || n.Kind == core.External:
 		// Referenced, not declared: hollow and dashed, the same convention as the Mermaid view.
 		fill, stroke, text, dash = "#ffffff", "#8b8b8b", "#3d3d3d", ` stroke-dasharray="5 3"`
-	case n.Kind == archdoc.Datastore:
+	case n.Kind == core.Datastore:
 		fill, stroke = "#2574b8", "#0b4884"
-	case n.Kind == archdoc.Component || n.Kind == archdoc.Module:
+	case n.Kind == core.Component || n.Kind == core.Module:
 		// C4's component blue: lighter than the container it sits in, with dark text.
 		fill, stroke, text = "#85bbf0", "#5d82a8", "#0b2a4a"
 	}
@@ -202,18 +202,18 @@ func box(n archdoc.Node, r archdoc.Rect) string {
 }
 
 // svgTypeLabel is typeLabel without the Mermaid escaping, for text the SVG escapes itself.
-func svgTypeLabel(n archdoc.Node) string {
+func svgTypeLabel(n core.Node) string {
 	kind := "Container"
 	switch n.Kind {
-	case archdoc.Actor:
+	case core.Actor:
 		kind = "Person"
-	case archdoc.External:
+	case core.External:
 		kind = "External System"
-	case archdoc.System:
+	case core.System:
 		kind = "Software System"
-	case archdoc.Component:
+	case core.Component:
 		kind = "Component"
-	case archdoc.Module:
+	case core.Module:
 		kind = "Folder"
 	}
 	if n.Technology == "" {
@@ -224,27 +224,27 @@ func svgTypeLabel(n archdoc.Node) string {
 
 // strokeWidth thickens an arrow that stands for many imports: 1.2 for one, growing with the
 // logarithm of the count, never past 4.
-func strokeWidth(e archdoc.Edge) float64 {
+func strokeWidth(e core.Edge) float64 {
 	if e.Weight <= 1 {
 		return 1.2
 	}
 	return math.Min(4, 1.2+math.Log2(float64(e.Weight))*0.4)
 }
 
-func italic(p archdoc.Provenance) string {
+func italic(p core.Provenance) string {
 	if p.Origin.Interpretation() {
 		return ` font-style="italic"`
 	}
 	return ""
 }
 
-func edgeOf(m archdoc.Model, from, to string) (archdoc.Edge, bool) {
+func edgeOf(m core.Model, from, to string) (core.Edge, bool) {
 	for _, e := range m.Edges {
 		if e.From == from && e.To == to {
 			return e, true
 		}
 	}
-	return archdoc.Edge{}, false
+	return core.Edge{}, false
 }
 
 func esc(s string) string { return html.EscapeString(s) }

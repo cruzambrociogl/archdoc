@@ -3,7 +3,7 @@ package model
 import (
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // The data model (F-07): the tables the code declares, their columns, and the foreign keys
@@ -26,16 +26,16 @@ var relationDecorators = map[string]bool{"ManyToOne": true, "OneToOne": true, "O
 	"Collection": true} // the last: a C# property holding many of an entity, as the C# reader marks it
 
 type tableClass struct {
-	class archdoc.Class
+	class core.Class
 	file  string
 	name  string
 	sql   bool // from migrations, not from a declaration
 }
 
-func tables(m *archdoc.Model, sources []archdoc.Source) {
+func tables(m *core.Model, sources []core.Source) {
 	containerOf := map[string]string{}
 	for _, n := range m.Nodes {
-		if n.Dir != "" && n.Kind == archdoc.Application {
+		if n.Dir != "" && n.Kind == core.Application {
 			containerOf[n.Dir] = n.ID
 		}
 	}
@@ -47,9 +47,9 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 		_, local, _ := strings.Cut(container, ":")
 		prefix := "tbl:" + local + "/"
 
-		classes := map[string]archdoc.Class{} // every class, by name — for a Python table's bases
+		classes := map[string]core.Class{} // every class, by name — for a Python table's bases
 		var found []tableClass
-		all := append(append([]archdoc.SourceFile(nil), src.Files...), src.Schemas...)
+		all := append(append([]core.SourceFile(nil), src.Files...), src.Schemas...)
 		for _, f := range all {
 			for _, c := range f.Classes {
 				if c.Name != "" {
@@ -109,7 +109,7 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 				continue // two classes for one table: the first declaration is the table
 			}
 			seen[id] = true
-			var cols []archdoc.Column
+			var cols []core.Column
 			python := strings.HasSuffix(t.file, ".py")
 			switch {
 			case python:
@@ -121,14 +121,14 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 			default:
 				cols = tsColumns(t.class, byClass)
 			}
-			m.Nodes = append(m.Nodes, archdoc.Node{
-				ID: id, Name: t.name, Kind: archdoc.Table, Evidence: archdoc.Declared,
+			m.Nodes = append(m.Nodes, core.Node{
+				ID: id, Name: t.name, Kind: core.Table, Evidence: core.Declared,
 				Parent: container, Dir: t.file, Files: []string{t.file}, Columns: cols, Prov: t.class.Prov,
 			})
 			for _, c := range cols {
 				if c.References != "" && c.References != id {
-					m.Edges = append(m.Edges, archdoc.Edge{From: id, To: c.References, Label: "references",
-						Prov: []archdoc.Provenance{c.Prov}})
+					m.Edges = append(m.Edges, core.Edge{From: id, To: c.References, Label: "references",
+						Prov: []core.Provenance{c.Prov}})
 				}
 			}
 			if !python {
@@ -137,8 +137,8 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 				for _, f := range t.class.Fields {
 					for _, d := range f.Decorators {
 						if to, ok := byClass[d.Target]; ok && relationDecorators[d.Name] && to != id {
-							m.Edges = append(m.Edges, archdoc.Edge{From: id, To: to, Label: "relates to",
-								Prov: []archdoc.Provenance{d.Prov}})
+							m.Edges = append(m.Edges, core.Edge{From: id, To: to, Label: "relates to",
+								Prov: []core.Provenance{d.Prov}})
 						}
 					}
 				}
@@ -148,7 +148,7 @@ func tables(m *archdoc.Model, sources []archdoc.Source) {
 }
 
 // tableName says whether a class is a table, and its name.
-func tableName(c archdoc.Class, language string) (string, bool) {
+func tableName(c core.Class, language string) (string, bool) {
 	if language == "Python" {
 		for _, f := range c.Fields {
 			if f.Name == "__tablename__" && f.Value != "" {
@@ -178,14 +178,14 @@ func tableName(c archdoc.Class, language string) (string, bool) {
 }
 
 // tsColumns are the fields a column decorator marks.
-func tsColumns(c archdoc.Class, byClass map[string]string) []archdoc.Column {
-	var out []archdoc.Column
+func tsColumns(c core.Class, byClass map[string]string) []core.Column {
+	var out []core.Column
 	for _, f := range c.Fields {
 		for _, d := range f.Decorators {
 			if !strings.HasSuffix(d.Name, "Column") {
 				continue
 			}
-			col := archdoc.Column{Name: f.Name, Type: d.Options["type"], Prov: f.Prov}
+			col := core.Column{Name: f.Name, Type: d.Options["type"], Prov: f.Prov}
 			if n := d.Options["name"]; n != "" {
 				col.Name = n
 			}
@@ -218,11 +218,11 @@ func tsType(t string) string {
 
 // pyColumns are a SQLModel or SQLAlchemy table's fields, its bases' first — a SQLModel table
 // inherits most of its columns from the model it extends.
-func pyColumns(c archdoc.Class, classes map[string]archdoc.Class, byName map[string]string) []archdoc.Column {
-	var fields []archdoc.Field
+func pyColumns(c core.Class, classes map[string]core.Class, byName map[string]string) []core.Column {
+	var fields []core.Field
 	seen := map[string]bool{}
-	var collect func(c archdoc.Class, depth int)
-	collect = func(c archdoc.Class, depth int) {
+	var collect func(c core.Class, depth int)
+	collect = func(c core.Class, depth int) {
 		if depth > 8 {
 			return
 		}
@@ -246,19 +246,19 @@ func pyColumns(c archdoc.Class, classes map[string]archdoc.Class, byName map[str
 	}
 	collect(c, 0)
 
-	var out []archdoc.Column
+	var out []core.Column
 	for _, f := range fields {
 		if strings.HasPrefix(f.Name, "__") || f.Type == "" && len(f.Decorators) == 0 {
 			continue
 		}
-		var call archdoc.Decorator
+		var call core.Decorator
 		if len(f.Decorators) > 0 {
 			call = f.Decorators[0]
 		}
 		if strings.EqualFold(call.Name, "Relationship") || call.Name == "relationship" {
 			continue // the other side of a foreign key, not a column
 		}
-		col := archdoc.Column{Name: f.Name, Type: f.Type, Prov: f.Prov}
+		col := core.Column{Name: f.Name, Type: f.Type, Prov: f.Prov}
 		if col.Type == "" {
 			col.Type = call.Target // SQLAlchemy's classic style: id = Column(Integer, …)
 		}

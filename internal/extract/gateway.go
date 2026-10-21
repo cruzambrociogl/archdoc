@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // maxConfigSize bounds what is worth reading as a routing table. Gateway configs are small;
@@ -26,10 +26,10 @@ const maxConfigSize = 1 << 20
 // Which services are gateways is decided by what their mounted files contain, not by their
 // image name. Same principle as discovery: sniff for recall, then reject precisely. A gateway
 // running an image no catalog knows is still a gateway.
-func Routes(root, rel string, services []archdoc.Service) []archdoc.Route {
+func Routes(root, rel string, services []core.Service) []core.Route {
 	dir := filepath.Dir(rel)
 
-	var out []archdoc.Route
+	var out []core.Route
 	for _, s := range services {
 		for _, m := range s.Mounts {
 			path := filepath.Clean(filepath.Join(dir, m.Source))
@@ -61,7 +61,7 @@ func Routes(root, rel string, services []archdoc.Service) []archdoc.Route {
 	return out
 }
 
-func less(a, b archdoc.Provenance) bool {
+func less(a, b core.Provenance) bool {
 	if a.File != b.File {
 		return a.File < b.File
 	}
@@ -79,7 +79,7 @@ func worthReading(path string) bool {
 
 // parseGatewayConfig tries each dialect archdoc understands. A file that is not a routing table
 // yields nothing, which is the normal case — most mounts are data directories and seed scripts.
-func parseGatewayConfig(content []byte, gateway, path string) []archdoc.Route {
+func parseGatewayConfig(content []byte, gateway, path string) []core.Route {
 	var doc yaml.Node
 	if err := yaml.Unmarshal(content, &doc); err != nil {
 		return nil
@@ -95,13 +95,13 @@ func parseGatewayConfig(content []byte, gateway, path string) []archdoc.Route {
 // socket address is a hostname the compose file usually also declares as a service.
 //
 // Supabase's `cds.yaml` is exactly this: seven clusters, seven services.
-func envoyClusters(doc *yaml.Node, gateway, path string) []archdoc.Route {
+func envoyClusters(doc *yaml.Node, gateway, path string) []core.Route {
 	resources := lookup(doc, "resources")
 	if resources == nil || resources.Kind != yaml.SequenceNode {
 		return nil
 	}
 
-	var out []archdoc.Route
+	var out []core.Route
 	for _, res := range resources.Content {
 		if !typeIs(res, "Cluster") {
 			continue
@@ -117,11 +117,11 @@ func envoyClusters(doc *yaml.Node, gateway, path string) []archdoc.Route {
 				continue
 			}
 			if host := strings.TrimSpace(addr.Value); isRoutableHost(host) {
-				out = append(out, archdoc.Route{
+				out = append(out, core.Route{
 					Gateway: gateway,
 					Target:  host,
 					Config:  path,
-					Prov:    archdoc.Provenance{File: path, Line: addr.Line, Column: addr.Column},
+					Prov:    core.Provenance{File: path, Line: addr.Line, Column: addr.Column},
 				})
 			}
 		}
@@ -132,7 +132,7 @@ func envoyClusters(doc *yaml.Node, gateway, path string) []archdoc.Route {
 
 // kongServices reads a Kong declarative configuration: a list of services, each with a url or a
 // host naming its upstream.
-func kongServices(doc *yaml.Node, gateway, path string) []archdoc.Route {
+func kongServices(doc *yaml.Node, gateway, path string) []core.Route {
 	services := lookup(doc, "services")
 	if services == nil || services.Kind != yaml.SequenceNode {
 		return nil
@@ -143,7 +143,7 @@ func kongServices(doc *yaml.Node, gateway, path string) []archdoc.Route {
 		return nil
 	}
 
-	var out []archdoc.Route
+	var out []core.Route
 	for _, svc := range services.Content {
 		node := lookup(svc, "url")
 		if node == nil {
@@ -160,11 +160,11 @@ func kongServices(doc *yaml.Node, gateway, path string) []archdoc.Route {
 		host = strings.TrimSpace(strings.SplitN(strings.SplitN(host, "/", 2)[0], ":", 2)[0])
 
 		if isRoutableHost(host) {
-			out = append(out, archdoc.Route{
+			out = append(out, core.Route{
 				Gateway: gateway,
 				Target:  host,
 				Config:  path,
-				Prov:    archdoc.Provenance{File: path, Line: node.Line, Column: node.Column},
+				Prov:    core.Provenance{File: path, Line: node.Line, Column: node.Column},
 			})
 		}
 	}
@@ -210,13 +210,13 @@ func findAll(n *yaml.Node, key string) []*yaml.Node {
 
 // mounts reads a service's bind mounts. compose-go canonicalises every short form into a map
 // carrying source and target.
-func mounts(v any, pos servicePos) []archdoc.Mount {
+func mounts(v any, pos servicePos) []core.Mount {
 	list, ok := v.([]any)
 	if !ok {
 		return nil
 	}
 
-	out := make([]archdoc.Mount, 0, len(list))
+	out := make([]core.Mount, 0, len(list))
 	for i, item := range list {
 		m, ok := item.(map[string]any)
 		if !ok {
@@ -228,7 +228,7 @@ func mounts(v any, pos servicePos) []archdoc.Mount {
 			continue // a named volume holds data, not configuration the repository wrote
 		}
 
-		out = append(out, archdoc.Mount{
+		out = append(out, core.Mount{
 			Source: source,
 			Target: asString(m["target"]),
 			Prov:   pos.mount(i),

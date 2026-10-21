@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // View is one diagram archdoc draws. Its Name keys its stored layout, its arrangement and its
@@ -14,7 +14,7 @@ type View struct {
 	Name  string // "context", "container", "component:svc:immich-server"
 	File  string // "context", "container", "component-immich-server"
 	Title string
-	Model archdoc.Model
+	Model core.Model
 	// Group draws a boundary around what is inside: the system in a container view, the container
 	// in a component view.
 	Group bool
@@ -60,7 +60,7 @@ const AllSuffix = ":all"
 
 // Views lists every diagram of the model, in a fixed order: context, container, then one
 // component view per container whose code was read, in model order, and the data-flow view last.
-func Views(m archdoc.Model) []View {
+func Views(m core.Model) []View {
 	out := []View{
 		{Name: "context", File: "context", Title: "System context", Model: Overview(m, m.Context())},
 		{Name: "container", File: "container", Title: "Containers", Model: Overview(m, m.Container()), Group: true},
@@ -84,7 +84,7 @@ func Views(m archdoc.Model) []View {
 }
 
 // ViewOf returns the named view, if the model has it.
-func ViewOf(m archdoc.Model, name string) (View, bool) {
+func ViewOf(m core.Model, name string) (View, bool) {
 	switch {
 	case name == "context":
 		return View{Name: name, File: name, Title: "System context", Model: Overview(m, m.Context())}, true
@@ -130,7 +130,7 @@ func ViewOf(m archdoc.Model, name string) (View, bool) {
 	return View{}, false
 }
 
-func componentView(m archdoc.Model, id string) View {
+func componentView(m core.Model, id string) View {
 	// Every component edge says "uses"; drawn on each of a hundred arrows it says nothing, and
 	// the weight — how many imports — is drawn as the arrow's thickness instead.
 	view := unlabelled(m.Component(id))
@@ -152,10 +152,10 @@ func componentView(m archdoc.Model, id string) View {
 // MainExternals that the most containers reach — then those seen used rather than only
 // configured, then the most citations, then by ID — when it has more than externalsOver. What it
 // leaves out is counted in Folded.
-func Overview(m, view archdoc.Model) archdoc.Model {
+func Overview(m, view core.Model) core.Model {
 	var externals []string
 	for _, n := range view.Nodes {
-		if n.Kind == archdoc.External {
+		if n.Kind == core.External {
 			externals = append(externals, n.ID)
 		}
 	}
@@ -163,13 +163,13 @@ func Overview(m, view archdoc.Model) archdoc.Model {
 		return view
 	}
 	// Counted over the whole model, not the view: in the context view every container is one box.
-	kind := make(map[string]archdoc.Kind, len(m.Nodes))
+	kind := make(map[string]core.Kind, len(m.Nodes))
 	for _, n := range m.Nodes {
 		kind[n.ID] = n.Kind
 	}
 	reachedBy, cited, used := map[string]map[string]bool{}, map[string]int{}, map[string]bool{}
 	for _, e := range m.Edges {
-		if k, ok := kind[e.From]; !ok || k == archdoc.External {
+		if k, ok := kind[e.From]; !ok || k == core.External {
 			continue
 		}
 		if reachedBy[e.To] == nil {
@@ -177,7 +177,7 @@ func Overview(m, view archdoc.Model) archdoc.Model {
 		}
 		reachedBy[e.To][e.From] = true
 		cited[e.To] += len(e.Prov)
-		used[e.To] = used[e.To] || e.Label != archdoc.Configured
+		used[e.To] = used[e.To] || e.Label != core.Configured
 	}
 	sort.SliceStable(externals, func(i, j int) bool {
 		a, b := externals[i], externals[j]
@@ -213,10 +213,10 @@ func Overview(m, view archdoc.Model) archdoc.Model {
 }
 
 // Mains lists the containers with more components than one diagram can show, in model order.
-func Mains(m archdoc.Model) []string {
+func Mains(m core.Model) []string {
 	count := map[string]int{}
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind == core.Component {
 			count[n.Parent]++
 		}
 	}
@@ -233,7 +233,7 @@ func Mains(m archdoc.Model) []string {
 // routes, pages, commands and jobs — what the container is for, by what the code declares — or,
 // in a container that declares none, the largest. Only the uses among them are drawn. What each
 // is used by is still counted over all the container's components, so a shared one says so.
-func mainView(m archdoc.Model, id string) View {
+func mainView(m core.Model, id string) View {
 	view := unlabelled(m.Component(id))
 	markShared(&view)
 	handles := map[string]int{}
@@ -242,7 +242,7 @@ func mainView(m archdoc.Model, id string) View {
 			handles[e.Component]++
 		}
 	}
-	ranked := append([]archdoc.Node(nil), view.Nodes...)
+	ranked := append([]core.Node(nil), view.Nodes...)
 	sort.SliceStable(ranked, func(i, j int) bool {
 		a, b := ranked[i], ranked[j]
 		if handles[a.ID] != handles[b.ID] {
@@ -268,7 +268,7 @@ func mainView(m archdoc.Model, id string) View {
 	// here: among the main components of a tightly knit application nearly every one is used by
 	// most, and every arrow went. Immich's mobile app drew sixteen boxes and no lines, with 155
 	// uses between them.
-	out := map[string][]archdoc.Edge{}
+	out := map[string][]core.Edge{}
 	among := 0
 	for _, e := range view.Edges {
 		if keep[e.From] && keep[e.To] {
@@ -276,7 +276,7 @@ func mainView(m archdoc.Model, id string) View {
 			among++
 		}
 	}
-	var edges []archdoc.Edge
+	var edges []core.Edge
 	for i := range nodes {
 		nodes[i].UsedBy, nodes[i].UsesMany, nodes[i].Among = 0, 0, 0
 		uses := out[nodes[i].ID]
@@ -316,8 +316,8 @@ func mainView(m archdoc.Model, id string) View {
 // (F-19), where one is current — marked as the model's, as a container's description is. A view
 // of more components than a diagram shows is left to names: seventy-five paragraphs are not a
 // picture. An answer about an earlier version of the code is not shown as if it were about this.
-func describeParts(view *archdoc.Model, m archdoc.Model) {
-	said := map[string]archdoc.Explanation{}
+func describeParts(view *core.Model, m core.Model) {
+	said := map[string]core.Explanation{}
 	for _, x := range m.Explanations {
 		if !x.Stale && len(x.Claims) > 0 {
 			said[x.Element] = x
@@ -327,13 +327,13 @@ func describeParts(view *archdoc.Model, m archdoc.Model) {
 		n := &view.Nodes[i]
 		if x, ok := said[n.ID]; ok && n.Description == "" {
 			n.Description = x.Claims[0].Text
-			n.DescProv = archdoc.Provenance{Origin: archdoc.Semantic, Note: x.Prov.Note}
+			n.DescProv = core.Provenance{Origin: core.Semantic, Note: x.Prov.Note}
 		}
 	}
 }
 
 // structureView is one container's code by folder.
-func structureView(m archdoc.Model, id string) View {
+func structureView(m core.Model, id string) View {
 	view := unlabelled(m.Structure(id))
 	markShared(&view)
 	_, local, _ := strings.Cut(id, ":")
@@ -347,7 +347,7 @@ func structureView(m archdoc.Model, id string) View {
 }
 
 // dataView is one container's tables, drawn inside a boundary that names where they are stored.
-func dataView(m archdoc.Model, id string) View {
+func dataView(m core.Model, id string) View {
 	view := unlabelled(m.Data(id)) // an arrow between tables is a foreign key; the box says which column
 	view.Boundary = view.Name + " — tables its code declares"
 	if store, ok := storeOf(m, id); ok {
@@ -378,7 +378,7 @@ const (
 // markShared marks the parts most others use, and the ones that use most others. The layout then
 // draws no arrow into the first or out of the second, and their boxes say so in words: a picture
 // of who depends on the shared kernel is a picture of everything, and hides the rest.
-func markShared(view *archdoc.Model) {
+func markShared(view *core.Model) {
 	others := len(view.Nodes) - 1
 	need := (3*others + 4) / 5
 	if others > largeView {
@@ -392,7 +392,7 @@ func markShared(view *archdoc.Model) {
 		usedBy[e.To]++
 		uses[e.From]++
 	}
-	nodes := make([]archdoc.Node, len(view.Nodes))
+	nodes := make([]core.Node, len(view.Nodes))
 	copy(nodes, view.Nodes)
 	for i, n := range nodes {
 		if u := usedBy[n.ID]; u >= need {
@@ -406,10 +406,10 @@ func markShared(view *archdoc.Model) {
 }
 
 // unlabelled drops the label every edge of a view would repeat.
-func unlabelled(view archdoc.Model) archdoc.Model {
-	edges := make([]archdoc.Edge, len(view.Edges))
+func unlabelled(view core.Model) core.Model {
+	edges := make([]core.Edge, len(view.Edges))
 	for i, e := range view.Edges {
-		e.Label, e.LabelProv = "", archdoc.Provenance{}
+		e.Label, e.LabelProv = "", core.Provenance{}
 		edges[i] = e
 	}
 	view.Edges = edges
@@ -418,19 +418,19 @@ func unlabelled(view archdoc.Model) archdoc.Model {
 
 // storeOf is the relational data store a container connects to, when there is exactly one: where
 // the tables its code declares live. Two, or none, and the boundary says nothing rather than guess.
-func storeOf(m archdoc.Model, container string) (archdoc.Node, bool) {
-	var found []archdoc.Node
+func storeOf(m core.Model, container string) (core.Node, bool) {
+	var found []core.Node
 	for _, e := range m.Edges {
 		if e.From != container || !e.Traffic {
 			continue
 		}
 		n, ok := m.Node(e.To)
-		if ok && n.Kind == archdoc.Datastore && relational(n.Technology) {
+		if ok && n.Kind == core.Datastore && relational(n.Technology) {
 			found = append(found, n)
 		}
 	}
 	if len(found) != 1 {
-		return archdoc.Node{}, false
+		return core.Node{}, false
 	}
 	return found[0], true
 }

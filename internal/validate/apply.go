@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Ops checks a set of operations against the model they would be applied to, without applying
@@ -13,7 +13,7 @@ import (
 // Operations are checked *before* they run rather than after, because the alternative is
 // applying half of them and discovering the problem with a corrupted model in hand. That is what
 // VAL-08 forbids.
-func Ops(m archdoc.Model, ops []archdoc.Op) Result {
+func Ops(m core.Model, ops []core.Op) Result {
 	var r Result
 
 	nodes := make(map[string]bool, len(m.Nodes))
@@ -43,7 +43,7 @@ func Ops(m archdoc.Model, ops []archdoc.Op) Result {
 		}
 
 		switch op.Kind {
-		case archdoc.AddEdge:
+		case core.AddEdge:
 			requireNode(&r, nodes, id, op.Target, op)
 			requireNode(&r, nodes, id, op.To, op)
 			if op.Target == op.To {
@@ -53,17 +53,17 @@ func Ops(m archdoc.Model, ops []archdoc.Op) Result {
 				r.add("VAL-02", Warning, id, "edge already exists", op.Prov)
 			}
 
-		case archdoc.RemoveEdge:
+		case core.RemoveEdge:
 			if !edges[op.Target+"\x00"+op.To] {
 				r.add("VAL-02", Error, id,
 					fmt.Sprintf("no edge %s → %s to remove", op.Target, op.To), op.Prov)
 			}
 
-		case archdoc.Exclude:
+		case core.Exclude:
 			// Names an element and nothing else — there is no value to supply.
 			requireNode(&r, nodes, id, op.Target, op)
 
-		case archdoc.ExcludeEntry, archdoc.SetSummary:
+		case core.ExcludeEntry, core.SetSummary:
 			found := false
 			for _, e := range m.Entries {
 				found = found || e.ID == op.Target
@@ -71,17 +71,17 @@ func Ops(m archdoc.Model, ops []archdoc.Op) Result {
 			if !found {
 				r.add("VAL-02", Error, id, fmt.Sprintf("no route or page %q", op.Target), op.Prov)
 			}
-			if op.Kind == archdoc.SetSummary && strings.TrimSpace(op.Value) == "" {
+			if op.Kind == core.SetSummary && strings.TrimSpace(op.Value) == "" {
 				r.add("VAL-01", Error, id, "an empty summary", op.Prov)
 			}
 
-		case archdoc.SetKind:
+		case core.SetKind:
 			requireNode(&r, nodes, id, op.Target, op)
-			if !kinds[archdoc.Kind(op.Value)] {
+			if !kinds[core.Kind(op.Value)] {
 				r.add("VAL-01", Error, id, fmt.Sprintf("unknown kind %q", op.Value), op.Prov)
 			}
 
-		case archdoc.SetEdgeLabel:
+		case core.SetEdgeLabel:
 			if !edges[op.Target+"\x00"+op.To] {
 				r.add("VAL-02", Error, id,
 					fmt.Sprintf("no edge %s → %s to label", op.Target, op.To), op.Prov)
@@ -90,7 +90,7 @@ func Ops(m archdoc.Model, ops []archdoc.Op) Result {
 
 		default:
 			// The system as a whole is not an element of the model, and can be described.
-			if !(op.Kind == archdoc.SetDescription && op.Target == archdoc.SystemID) {
+			if !(op.Kind == core.SetDescription && op.Target == core.SystemID) {
 				requireNode(&r, nodes, id, op.Target, op)
 			}
 			requireValue(&r, id, op)
@@ -103,7 +103,7 @@ func Ops(m archdoc.Model, ops []archdoc.Op) Result {
 
 // requireNode is VAL-02 for operations: an operation on an element that does not exist is the
 // same defect as an edge to one, arriving a step earlier.
-func requireNode(r *Result, nodes map[string]bool, id, target string, op archdoc.Op) {
+func requireNode(r *Result, nodes map[string]bool, id, target string, op core.Op) {
 	if target == "" {
 		r.add("VAL-01", Error, id, "operation names no target", op.Prov)
 		return
@@ -113,7 +113,7 @@ func requireNode(r *Result, nodes map[string]bool, id, target string, op archdoc
 	}
 }
 
-func requireValue(r *Result, id string, op archdoc.Op) {
+func requireValue(r *Result, id string, op core.Op) {
 	if op.Value == "" {
 		r.add("VAL-01", Error, id, "operation has no value", op.Prov)
 	}
@@ -128,7 +128,7 @@ func requireValue(r *Result, id string, op archdoc.Op) {
 // The returned model is validated again afterwards. Operations are individually legal and can
 // still combine into something wrong — removing the last edge into a node, say — and the point
 // of a model is that it is checked as a whole.
-func Apply(m archdoc.Model, ops []archdoc.Op) (archdoc.Model, Result) {
+func Apply(m core.Model, ops []core.Op) (core.Model, Result) {
 	if r := Ops(m, ops); !r.OK() {
 		return m, r
 	}
@@ -145,21 +145,21 @@ func Apply(m archdoc.Model, ops []archdoc.Op) (archdoc.Model, Result) {
 	return out, Model(out)
 }
 
-func apply(m *archdoc.Model, op archdoc.Op) {
+func apply(m *core.Model, op core.Op) {
 	switch op.Kind {
-	case archdoc.AddEdge:
-		m.Edges = append(m.Edges, archdoc.Edge{
+	case core.AddEdge:
+		m.Edges = append(m.Edges, core.Edge{
 			From: op.Target, To: op.To, Label: op.Value,
-			Traffic: true, Prov: []archdoc.Provenance{op.Prov},
+			Traffic: true, Prov: []core.Provenance{op.Prov},
 		})
 		return
 
-	case archdoc.RemoveEdge, archdoc.SetEdgeLabel:
+	case core.RemoveEdge, core.SetEdgeLabel:
 		for i := range m.Edges {
 			if m.Edges[i].From != op.Target || m.Edges[i].To != op.To {
 				continue
 			}
-			if op.Kind == archdoc.SetEdgeLabel {
+			if op.Kind == core.SetEdgeLabel {
 				// The label's citation, not the relationship's. Appending it to Prov made a
 				// model that only reworded an arrow look like evidence the arrow exists.
 				m.Edges[i].Label, m.Edges[i].LabelProv = op.Value, op.Prov
@@ -170,17 +170,17 @@ func apply(m *archdoc.Model, op archdoc.Op) {
 		}
 		return
 
-	case archdoc.Exclude:
+	case core.Exclude:
 		exclude(m, op.Target)
 		return
 
-	case archdoc.ExcludeEntry:
+	case core.ExcludeEntry:
 		gone := map[string]bool{op.Target: true}
-		m.Entries = keep(m.Entries, func(e archdoc.Entry) bool { return !gone[e.ID] })
-		m.Flows = keep(m.Flows, func(f archdoc.Flow) bool { return !gone[f.Entry] })
+		m.Entries = keep(m.Entries, func(e core.Entry) bool { return !gone[e.ID] })
+		m.Flows = keep(m.Flows, func(f core.Flow) bool { return !gone[f.Entry] })
 		return
 
-	case archdoc.SetSummary:
+	case core.SetSummary:
 		for i := range m.Entries {
 			if m.Entries[i].ID == op.Target {
 				m.Entries[i].Summary, m.Entries[i].SummaryProv = op.Value, op.Prov
@@ -189,7 +189,7 @@ func apply(m *archdoc.Model, op archdoc.Op) {
 		return
 	}
 
-	if op.Kind == archdoc.SetDescription && op.Target == archdoc.SystemID {
+	if op.Kind == core.SetDescription && op.Target == core.SystemID {
 		m.Description, m.DescProv = op.Value, op.Prov
 		return
 	}
@@ -204,15 +204,15 @@ func apply(m *archdoc.Model, op archdoc.Op) {
 		// how a description ends up traceable to the run that wrote it, and it is what
 		// PRV-05 renders.
 		switch op.Kind {
-		case archdoc.SetName:
+		case core.SetName:
 			n.Name, n.NameProv = op.Value, op.Prov
-		case archdoc.SetDescription:
+		case core.SetDescription:
 			n.Description, n.DescProv = op.Value, op.Prov
-		case archdoc.SetTechnology:
+		case core.SetTechnology:
 			n.Technology, n.TechProv = op.Value, op.Prov
-		case archdoc.SetKind:
-			n.Kind = archdoc.Kind(op.Value)
-		case archdoc.Group:
+		case core.SetKind:
+			n.Kind = core.Kind(op.Value)
+		case core.Group:
 			n.Parent = op.Value
 		}
 		return
@@ -222,16 +222,16 @@ func apply(m *archdoc.Model, op archdoc.Op) {
 // clone copies deeply enough that a rejected Apply leaves the caller's model untouched. The
 // slices inside a node and an edge are shared otherwise, and a partial application would be
 // visible in the original — which is the exact failure VAL-08 exists to prevent.
-func clone(m archdoc.Model) archdoc.Model {
+func clone(m core.Model) core.Model {
 	out := m
-	out.Nodes = append([]archdoc.Node(nil), m.Nodes...)
-	out.Edges = append([]archdoc.Edge(nil), m.Edges...)
+	out.Nodes = append([]core.Node(nil), m.Nodes...)
+	out.Edges = append([]core.Edge(nil), m.Edges...)
 
 	for i := range out.Nodes {
 		out.Nodes[i].Networks = append([]string(nil), m.Nodes[i].Networks...)
 	}
 	for i := range out.Edges {
-		out.Edges[i].Prov = append([]archdoc.Provenance(nil), m.Edges[i].Prov...)
+		out.Edges[i].Prov = append([]core.Provenance(nil), m.Edges[i].Prov...)
 	}
 	return out
 }
@@ -240,7 +240,7 @@ func clone(m archdoc.Model) archdoc.Model {
 // container's components and tables, the routes its code declares and their flows, what was left
 // unresolved in it, what was written about any of them. A component that goes leaves its routes
 // behind — they are still routes of the container — without a component to name.
-func exclude(m *archdoc.Model, target string) {
+func exclude(m *core.Model, target string) {
 	gone := map[string]bool{target: true}
 	for changed := true; changed; {
 		changed = false
@@ -250,12 +250,12 @@ func exclude(m *archdoc.Model, target string) {
 			}
 		}
 	}
-	m.Nodes = keep(m.Nodes, func(n archdoc.Node) bool { return !gone[n.ID] })
+	m.Nodes = keep(m.Nodes, func(n core.Node) bool { return !gone[n.ID] })
 	// An excluded node's edges would dangle, and VAL-02 would reject the result.
-	m.Edges = keep(m.Edges, func(e archdoc.Edge) bool { return !gone[e.From] && !gone[e.To] })
+	m.Edges = keep(m.Edges, func(e core.Edge) bool { return !gone[e.From] && !gone[e.To] })
 
 	entries := map[string]bool{}
-	m.Entries = keep(m.Entries, func(e archdoc.Entry) bool {
+	m.Entries = keep(m.Entries, func(e core.Entry) bool {
 		if gone[e.Container] {
 			entries[e.ID] = true
 			return false
@@ -267,14 +267,14 @@ func exclude(m *archdoc.Model, target string) {
 			m.Entries[i].Component = ""
 		}
 	}
-	m.Flows = keep(m.Flows, func(f archdoc.Flow) bool { return !entries[f.Entry] })
-	m.Unresolved = keep(m.Unresolved, func(u archdoc.Unresolved) bool { return !gone[u.Container] })
+	m.Flows = keep(m.Flows, func(f core.Flow) bool { return !entries[f.Entry] })
+	m.Unresolved = keep(m.Unresolved, func(u core.Unresolved) bool { return !gone[u.Container] })
 	for i := range m.Unresolved {
 		if gone[m.Unresolved[i].Component] {
 			m.Unresolved[i].Component = ""
 		}
 	}
-	m.Explanations = keep(m.Explanations, func(x archdoc.Explanation) bool { return !gone[x.Element] })
+	m.Explanations = keep(m.Explanations, func(x core.Explanation) bool { return !gone[x.Element] })
 }
 
 func keep[T any](in []T, ok func(T) bool) []T {

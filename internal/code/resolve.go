@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // tsResolver ties a JavaScript or TypeScript import to a file of the application: relative paths
@@ -31,7 +31,7 @@ type alias struct {
 // file imports its neighbour as "./x.js" and means x.ts, so .js is also replaced.
 var scriptExts = []string{".ts", ".tsx", ".js", ".jsx", ".mjs", ".mts", ".cjs", ".svelte"}
 
-func newTSResolver(repo string, app archdoc.App, known map[string]bool) *tsResolver {
+func newTSResolver(repo string, app core.App, known map[string]bool) *tsResolver {
 	r := &tsResolver{repo: repo, known: known}
 	r.aliases = tsconfigAliases(repo, path.Join(app.Dir, "tsconfig.json"), 0)
 	if app.Framework == "SvelteKit" || exists(repo, path.Join(app.Dir, "svelte.config.js")) {
@@ -47,9 +47,9 @@ func newTSResolver(repo string, app archdoc.App, known map[string]bool) *tsResol
 	return r
 }
 
-func (r *tsResolver) resolve(file string, imp rawImport) []archdoc.Import {
+func (r *tsResolver) resolve(file string, imp rawImport) []core.Import {
 	spec := imp.spec
-	out := archdoc.Import{Spec: spec}
+	out := core.Import{Spec: spec}
 	if i := strings.IndexByte(spec, '?'); i >= 0 {
 		spec = spec[:i] // a bundler's query — "?url", "?raw" — is not part of the path
 	}
@@ -58,24 +58,24 @@ func (r *tsResolver) resolve(file string, imp rawImport) []archdoc.Import {
 	}
 	if r.kit && (spec == "./$types" || strings.HasSuffix(spec, "/$types")) {
 		// The types SvelteKit generates for each route: the framework's, and never on disk.
-		out.How, out.Package = archdoc.ByPackage, "@sveltejs/kit"
-		return []archdoc.Import{out}
+		out.How, out.Package = core.ByPackage, "@sveltejs/kit"
+		return []core.Import{out}
 	}
 	if strings.HasPrefix(spec, ".") {
 		base := path.Clean(path.Join(path.Dir(file), spec))
 		if t, ok := r.file(base); ok {
-			out.Target, out.How = t, archdoc.ByPath
+			out.Target, out.How = t, core.ByPath
 		} else if r.asset(base) {
 			return nil // a stylesheet, an image, JSON: not code, so not a dependency between parts
 		} else {
-			out.How = archdoc.NoMatch
+			out.How = core.NoMatch
 		}
-		return []archdoc.Import{out}
+		return []core.Import{out}
 	}
 	for _, v := range r.virtual {
 		if strings.HasPrefix(spec, v) {
-			out.How, out.Package = archdoc.ByPackage, "@sveltejs/kit"
-			return []archdoc.Import{out}
+			out.How, out.Package = core.ByPackage, "@sveltejs/kit"
+			return []core.Import{out}
 		}
 	}
 	for _, a := range r.aliases {
@@ -86,8 +86,8 @@ func (r *tsResolver) resolve(file string, imp rawImport) []archdoc.Import {
 		for _, t := range a.targets {
 			base := path.Clean(strings.Replace(t, "*", rest, 1))
 			if f, ok := r.file(base); ok {
-				out.Target, out.How = f, archdoc.ByAlias
-				return []archdoc.Import{out}
+				out.Target, out.How = f, core.ByAlias
+				return []core.Import{out}
 			}
 			if r.asset(base) {
 				return nil
@@ -99,11 +99,11 @@ func (r *tsResolver) resolve(file string, imp rawImport) []archdoc.Import {
 		if strings.Contains(a.pattern, "*") && strings.TrimSuffix(a.pattern, "*") == "" {
 			continue
 		}
-		out.How = archdoc.NoMatch
-		return []archdoc.Import{out}
+		out.How = core.NoMatch
+		return []core.Import{out}
 	}
-	out.How, out.Package = archdoc.ByPackage, packageName(spec)
-	return []archdoc.Import{out}
+	out.How, out.Package = core.ByPackage, packageName(spec)
+	return []core.Import{out}
 }
 
 // file finds the code file an import of base means.
@@ -289,10 +289,10 @@ func newPyResolver(root, dir string, known map[string]bool) *pyResolver {
 	return r
 }
 
-func (r *pyResolver) resolve(file string, imp rawImport) []archdoc.Import {
+func (r *pyResolver) resolve(file string, imp rawImport) []core.Import {
 	spec := imp.spec
 	var from string // the directory the module path starts in
-	how := archdoc.ByModule
+	how := core.ByModule
 	mod := spec
 	if strings.HasPrefix(spec, ".") {
 		dots := len(spec) - len(strings.TrimLeft(spec, "."))
@@ -301,30 +301,30 @@ func (r *pyResolver) resolve(file string, imp rawImport) []archdoc.Import {
 		for i := 1; i < dots; i++ {
 			from = path.Dir(from)
 		}
-		how = archdoc.ByPath
+		how = core.ByPath
 	} else {
 		top := strings.SplitN(spec, ".", 2)[0]
 		if !r.tops[top] {
-			return []archdoc.Import{{Spec: spec, How: archdoc.ByPackage, Package: top}}
+			return []core.Import{{Spec: spec, How: core.ByPackage, Package: top}}
 		}
 		from = r.base
 	}
 	modPath := path.Join(from, strings.ReplaceAll(mod, ".", "/"))
 
 	// from x import a, b: each name that is itself a module is a dependency on that module.
-	var out []archdoc.Import
+	var out []core.Import
 	for _, n := range imp.names {
 		if t, ok := r.module(path.Join(modPath, strings.ReplaceAll(n, ".", "/"))); ok {
-			out = append(out, archdoc.Import{Spec: joinSpec(spec, n), Target: t, How: how})
+			out = append(out, core.Import{Spec: joinSpec(spec, n), Target: t, How: how})
 		}
 	}
 	if len(out) > 0 {
 		return out
 	}
 	if t, ok := r.module(modPath); ok {
-		return []archdoc.Import{{Spec: spec, Target: t, How: how}}
+		return []core.Import{{Spec: spec, Target: t, How: how}}
 	}
-	return []archdoc.Import{{Spec: spec, How: archdoc.NoMatch}}
+	return []core.Import{{Spec: spec, How: core.NoMatch}}
 }
 
 func joinSpec(mod, name string) string {

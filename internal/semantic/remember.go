@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Labels are remembered (F-30) as explanations are: a description a model wrote is kept beside what
@@ -19,17 +19,17 @@ import (
 
 // RememberedLabel is one remembered operation and the basis it was written on.
 type RememberedLabel struct {
-	Op    archdoc.Op `json:"op"`
-	Basis string     `json:"basis"`
+	Op    core.Op `json:"op"`
+	Basis string  `json:"basis"`
 }
 
 // Labels are every remembered label, in a fixed order.
 type Labels []RememberedLabel
 
-func labelKey(op archdoc.Op) string { return string(op.Kind) + "\x00" + op.Target + "\x00" + op.To }
+func labelKey(op core.Op) string { return string(op.Kind) + "\x00" + op.Target + "\x00" + op.To }
 
 // basis is what an operation's target looks like in a model, as extracted.
-func basis(m archdoc.Model, op archdoc.Op) (string, bool) {
+func basis(m core.Model, op core.Op) (string, bool) {
 	if op.To != "" {
 		for _, e := range m.Edges {
 			if e.From == op.Target && e.To == op.To {
@@ -38,11 +38,11 @@ func basis(m archdoc.Model, op archdoc.Op) (string, bool) {
 		}
 		return "", false
 	}
-	if op.Target == archdoc.SystemID {
+	if op.Target == core.SystemID {
 		// The system is what it contains: described again when a container comes or goes.
 		var inside []string
 		for _, n := range m.Nodes {
-			if !n.Kind.Part() && n.Evidence == archdoc.Declared && n.Kind != archdoc.Actor {
+			if !n.Kind.Part() && n.Evidence == core.Declared && n.Kind != core.Actor {
 				inside = append(inside, n.ID)
 			}
 		}
@@ -59,7 +59,7 @@ func basis(m archdoc.Model, op archdoc.Op) (string, bool) {
 // Remember records the operations a labelling run was given credit for against the model they
 // were written about — the model before they were applied — over what was remembered before. A
 // newer label for the same value replaces the older; nothing else is dropped.
-func Remember(before Labels, extracted archdoc.Model, ops []archdoc.Op) Labels {
+func Remember(before Labels, extracted core.Model, ops []core.Op) Labels {
 	byKey := map[string]RememberedLabel{}
 	for _, l := range before {
 		byKey[labelKey(l.Op)] = l
@@ -83,8 +83,8 @@ func Remember(before Labels, extracted archdoc.Model, ops []archdoc.Op) Labels {
 
 // Recall returns the remembered operations that still apply to a model as extracted: the ones
 // whose target is there and is what it was when the label was written.
-func Recall(labels Labels, extracted archdoc.Model) []archdoc.Op {
-	var out []archdoc.Op
+func Recall(labels Labels, extracted core.Model) []core.Op {
+	var out []core.Op
 	for _, l := range labels {
 		if b, ok := basis(extracted, l.Op); ok && b == l.Basis {
 			out = append(out, l.Op)

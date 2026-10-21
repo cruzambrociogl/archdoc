@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // ComponentsFile is a page per component (F-19). Generated, hence the suffix (hard rule 2).
@@ -17,7 +17,7 @@ const listedEntries = 8
 // made of, what it uses and is used by, the routes it handles and the tables it declares — all read
 // from the code — and, where a model was asked what it does, its sentences, set in italics and
 // each followed by the lines it cites. Empty when no code was read, and then not written.
-func Components(m archdoc.Model, meta Meta) string {
+func Components(m core.Model, meta Meta) string {
 	containers := m.Components()
 	if len(containers) == 0 {
 		return ""
@@ -28,7 +28,7 @@ func Components(m archdoc.Model, meta Meta) string {
 		}
 		return id
 	}
-	explained := map[string]archdoc.Explanation{}
+	explained := map[string]core.Explanation{}
 	for _, x := range m.Explanations {
 		explained[x.Element] = x
 	}
@@ -66,7 +66,7 @@ func Components(m archdoc.Model, meta Meta) string {
 				if e.From == n.ID {
 					uses = append(uses, fmt.Sprintf("%s (%d)", name(e.To), e.Weight))
 				}
-				if to, ok := m.Node(e.From); e.To == n.ID && ok && to.Kind == archdoc.Component {
+				if to, ok := m.Node(e.From); e.To == n.ID && ok && to.Kind == core.Component {
 					usedBy = append(usedBy, fmt.Sprintf("%s (%d)", to.Name, e.Weight))
 				}
 			}
@@ -76,7 +76,7 @@ func Components(m archdoc.Model, meta Meta) string {
 			if len(usedBy) > 0 {
 				fmt.Fprintf(&b, "- **Used by**: %s\n", strings.Join(usedBy, ", "))
 			}
-			var routes, pages []archdoc.Entry
+			var routes, pages []core.Entry
 			for _, e := range m.Entries {
 				if e.Component != n.ID {
 					continue
@@ -89,7 +89,7 @@ func Components(m archdoc.Model, meta Meta) string {
 			}
 			for _, group := range []struct {
 				label   string
-				entries []archdoc.Entry
+				entries []core.Entry
 			}{{"Handles", routes}, {"Pages", pages}} {
 				if len(group.entries) == 0 {
 					continue
@@ -110,7 +110,7 @@ func Components(m archdoc.Model, meta Meta) string {
 			}
 			var tables []string
 			for _, t := range m.Nodes {
-				if t.Kind == archdoc.Table && files[t.Dir] {
+				if t.Kind == core.Table && files[t.Dir] {
 					tables = append(tables, "`"+t.Name+"`")
 				}
 			}

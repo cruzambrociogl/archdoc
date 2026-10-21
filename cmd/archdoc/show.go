@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // show answers a question about one thing without opening the app: an element, a route and its
@@ -59,21 +59,21 @@ func show(e env, args []string) error {
 // match is one thing a query found: an element, a route, or a file and the component it is in.
 type match struct {
 	key, what string
-	node      *archdoc.Node
-	entry     *archdoc.Entry
+	node      *core.Node
+	entry     *core.Entry
 	file      string
 }
 
 // resolve finds what a query names, most exact first: an id; a route as METHOD /path or a path; a
 // file; a name; and only then part of a name. The first kind of match that finds anything wins.
-func resolve(m archdoc.Model, root, query string) []match {
+func resolve(m core.Model, root, query string) []match {
 	q := strings.TrimSpace(query)
 	lower := strings.ToLower(q)
-	node := func(n archdoc.Node) match {
+	node := func(n core.Node) match {
 		n2 := n
 		return match{key: n.ID, what: kindWords(m, n), node: &n2}
 	}
-	entry := func(en archdoc.Entry) match {
+	entry := func(en core.Entry) match {
 		e2 := en
 		return match{key: en.Method + " " + en.Path, what: en.Kind + " · " + en.Container, entry: &e2}
 	}
@@ -118,7 +118,7 @@ func resolve(m archdoc.Model, root, query string) []match {
 			var out []match
 			seen := map[string]bool{}
 			for _, n := range m.Nodes {
-				if n.Kind != archdoc.Component {
+				if n.Kind != core.Component {
 					continue
 				}
 				for _, f := range n.Files {
@@ -134,7 +134,7 @@ func resolve(m archdoc.Model, root, query string) []match {
 		func() []match {
 			var out []match
 			for _, n := range m.Nodes {
-				if strings.EqualFold(n.Name, q) && n.Kind != archdoc.Module {
+				if strings.EqualFold(n.Name, q) && n.Kind != core.Module {
 					out = append(out, node(n))
 				}
 			}
@@ -143,7 +143,7 @@ func resolve(m archdoc.Model, root, query string) []match {
 		func() []match {
 			var out []match
 			for _, n := range m.Nodes {
-				if n.Kind != archdoc.Module && (strings.Contains(strings.ToLower(n.Name), lower) || strings.Contains(strings.ToLower(n.ID), lower)) {
+				if n.Kind != core.Module && (strings.Contains(strings.ToLower(n.Name), lower) || strings.Contains(strings.ToLower(n.ID), lower)) {
 					out = append(out, node(n))
 				}
 			}
@@ -157,7 +157,7 @@ func resolve(m archdoc.Model, root, query string) []match {
 	)
 }
 
-func kindWords(m archdoc.Model, n archdoc.Node) string {
+func kindWords(m core.Model, n core.Node) string {
 	what := string(n.Kind)
 	if n.Parent != "" {
 		if p, ok := m.Node(n.Parent); ok {
@@ -167,13 +167,13 @@ func kindWords(m archdoc.Model, n archdoc.Node) string {
 	return what
 }
 
-func (f match) print(out io.Writer, m archdoc.Model) {
+func (f match) print(out io.Writer, m core.Model) {
 	switch {
 	case f.entry != nil:
 		printEntry(out, m, *f.entry)
 	case f.file != "":
 		fmt.Fprintf(out, "%s\n  in component %s, %s\n", f.file, f.node.Name, kindWords(m, *f.node))
-		var here []archdoc.Entry
+		var here []core.Entry
 		for _, en := range m.Entries {
 			if en.Prov.File == f.file {
 				here = append(here, en)
@@ -196,13 +196,13 @@ func (f match) print(out io.Writer, m archdoc.Model) {
 	}
 }
 
-func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
+func printNode(out io.Writer, m core.Model, n core.Node) {
 	fmt.Fprintf(out, "%s  [%s", n.Name, kindWords(m, n))
 	if n.Technology != "" {
 		fmt.Fprintf(out, " · %s", n.Technology)
 	}
 	fmt.Fprintf(out, "]\n  id %s · declared at %s", n.ID, cite(n.Prov))
-	if n.Evidence == archdoc.Referenced {
+	if n.Evidence == core.Referenced {
 		fmt.Fprint(out, " — referred to there, not defined by this repository")
 	}
 	fmt.Fprintln(out)
@@ -222,7 +222,7 @@ func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
 		}
 		return id
 	}
-	var uses, usedBy []archdoc.Edge
+	var uses, usedBy []core.Edge
 	for _, e := range m.Edges {
 		if e.From == n.ID {
 			uses = append(uses, e)
@@ -233,7 +233,7 @@ func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
 	}
 	// A relationship is shown by the other end's name, and its label where it says more than "uses":
 	// every arrow between components is a use, so the header says it once.
-	rel := func(head string, es []archdoc.Edge, other func(archdoc.Edge) string) {
+	rel := func(head string, es []core.Edge, other func(core.Edge) string) {
 		if len(es) == 0 {
 			return
 		}
@@ -258,10 +258,10 @@ func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
 			fmt.Fprintf(out, "  %-56s %s\n", text, at)
 		}
 	}
-	rel("uses", uses, func(e archdoc.Edge) string { return e.To })
-	rel("used by", usedBy, func(e archdoc.Edge) string { return e.From })
+	rel("uses", uses, func(e core.Edge) string { return e.To })
+	rel("used by", usedBy, func(e core.Edge) string { return e.From })
 
-	if n.Kind == archdoc.Table {
+	if n.Kind == core.Table {
 		fmt.Fprintf(out, "\ncolumns (%d):\n", len(n.Columns))
 		for _, c := range n.Columns {
 			mark := ""
@@ -275,7 +275,7 @@ func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
 		}
 	}
 
-	var handles []archdoc.Entry
+	var handles []core.Entry
 	for _, e := range m.Entries {
 		if e.Component == n.ID {
 			handles = append(handles, e)
@@ -292,7 +292,7 @@ func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
 		}
 	}
 
-	var data []archdoc.Access
+	var data []core.Access
 	for _, a := range m.Access {
 		if a.Component == n.ID || a.Element == n.ID {
 			data = append(data, a)
@@ -300,13 +300,13 @@ func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
 	}
 	if len(data) > 0 {
 		head := "tables its code queries"
-		if n.Kind == archdoc.Table {
+		if n.Kind == core.Table {
 			head = "queried by"
 		}
 		fmt.Fprintf(out, "\n%s:\n", head)
 		for _, a := range data {
 			who := a.Table
-			if n.Kind == archdoc.Table {
+			if n.Kind == core.Table {
 				who = name(a.Component)
 			}
 			fmt.Fprintf(out, "  %-8s %-40s %3d× · first at %s\n", a.Op, who, a.Count, cite(a.Prov[0]))
@@ -332,7 +332,7 @@ func printNode(out io.Writer, m archdoc.Model, n archdoc.Node) {
 	}
 }
 
-func printEntry(out io.Writer, m archdoc.Model, en archdoc.Entry) {
+func printEntry(out io.Writer, m core.Model, en core.Entry) {
 	fmt.Fprintf(out, "%s %s  [%s in %s]\n", en.Method, en.Path, en.Kind, nameOf(m, en.Container))
 	if en.Summary != "" {
 		fmt.Fprintf(out, "  %q — the code's own description, %s\n", en.Summary, cite(en.SummaryProv))
@@ -384,10 +384,10 @@ func printEntry(out io.Writer, m archdoc.Model, en archdoc.Entry) {
 	}
 }
 
-func (f match) json(m archdoc.Model) any {
+func (f match) json(m core.Model) any {
 	switch {
 	case f.entry != nil:
-		var flow *archdoc.Flow
+		var flow *core.Flow
 		for i := range m.Flows {
 			if m.Flows[i].Entry == f.entry.ID {
 				flow = &m.Flows[i]
@@ -397,13 +397,13 @@ func (f match) json(m archdoc.Model) any {
 	case f.file != "":
 		return map[string]any{"file": f.file, "component": f.node}
 	}
-	var access []archdoc.Access
+	var access []core.Access
 	for _, a := range m.Access {
 		if a.Component == f.node.ID || a.Element == f.node.ID {
 			access = append(access, a)
 		}
 	}
-	var explanation *archdoc.Explanation
+	var explanation *core.Explanation
 	for i := range m.Explanations {
 		if m.Explanations[i].Element == f.node.ID {
 			explanation = &m.Explanations[i]
@@ -412,7 +412,7 @@ func (f match) json(m archdoc.Model) any {
 	return map[string]any{"element": f.node, "access": access, "explanation": explanation}
 }
 
-func nameOf(m archdoc.Model, id string) string {
+func nameOf(m core.Model, id string) string {
 	if n, ok := m.Node(id); ok {
 		return n.Name
 	}
@@ -420,10 +420,10 @@ func nameOf(m archdoc.Model, id string) string {
 }
 
 // cite is a provenance as an editor opens it.
-func cite(p archdoc.Provenance) string { return p.String() }
+func cite(p core.Provenance) string { return p.String() }
 
 // interpreted marks what a model wrote rather than what was read.
-func interpreted(p archdoc.Provenance) string {
+func interpreted(p core.Provenance) string {
 	if p.Origin.Interpretation() {
 		return "◇ "
 	}

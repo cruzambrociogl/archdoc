@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Components: the parts of an application's code, and which uses which (F-03, F-10).
@@ -61,11 +61,11 @@ var dataRoles = map[string]bool{"table": true, "dto": true, "entity": true, "mod
 
 // components adds each source's components and their uses — and, where components are features, the
 // folders as a second view — and returns the component every file belongs to.
-func components(m *archdoc.Model, sources []archdoc.Source) map[string]string {
+func components(m *core.Model, sources []core.Source) map[string]string {
 	componentOf := map[string]string{}
-	containerOf := map[string]archdoc.Node{}
+	containerOf := map[string]core.Node{}
 	for _, n := range m.Nodes {
-		if n.Dir != "" && n.Kind == archdoc.Application {
+		if n.Dir != "" && n.Kind == core.Application {
 			containerOf[n.Dir] = n
 		}
 	}
@@ -88,9 +88,9 @@ func components(m *archdoc.Model, sources []archdoc.Source) map[string]string {
 		}
 		if ok {
 			group, roles = features, r
-			emit(m, src, parent.ID, archdoc.Module, "dir:"+local+"/", folders, nil)
+			emit(m, src, parent.ID, core.Module, "dir:"+local+"/", folders, nil)
 		}
-		for file, id := range emit(m, src, parent.ID, archdoc.Component, "cmp:"+local+"/", group, roles) {
+		for file, id := range emit(m, src, parent.ID, core.Component, "cmp:"+local+"/", group, roles) {
 			componentOf[file] = id
 		}
 	}
@@ -107,7 +107,7 @@ func components(m *archdoc.Model, sources []archdoc.Source) map[string]string {
 // itself has used as a name: the stem of a file with a counted suffix, or a directory inside a
 // layer. A name nothing else carries is not a feature, and a feature of fewer than minLayered
 // files is too small to be one; both stay with their folder.
-func slices(src archdoc.Source, folders map[string]string, layered bool) (group map[string]string, roles map[string][]string, ok bool) {
+func slices(src core.Source, folders map[string]string, layered bool) (group map[string]string, roles map[string][]string, ok bool) {
 	type named struct{ stem, role string }
 	names := map[string]named{}
 	count := map[string]int{}
@@ -344,7 +344,7 @@ func generic(words []string) bool {
 
 // emit adds one grouping of a source's files as nodes of a kind, with the uses between them, and
 // returns the node every file went to. roles, when given, names the roles a feature spans.
-func emit(m *archdoc.Model, src archdoc.Source, parent string, kind archdoc.Kind, prefix string, group map[string]string, roles map[string][]string) map[string]string {
+func emit(m *core.Model, src core.Source, parent string, kind core.Kind, prefix string, group map[string]string, roles map[string][]string) map[string]string {
 	type part struct {
 		files     []string
 		lines     int
@@ -388,18 +388,18 @@ func emit(m *archdoc.Model, src archdoc.Source, parent string, kind archdoc.Kind
 		if r := roles[key]; len(r) > 0 {
 			note = fmt.Sprintf("%d %s named %s.* — %s", len(p.files), plural(len(p.files), "file", "files"), key, strings.Join(r, ", "))
 		}
-		m.Nodes = append(m.Nodes, archdoc.Node{
+		m.Nodes = append(m.Nodes, core.Node{
 			ID:         prefix + key,
 			Name:       name,
 			Kind:       kind,
 			Technology: strings.Join(sortedKeys(p.languages), " · "),
-			Evidence:   archdoc.Declared,
+			Evidence:   core.Declared,
 			Parent:     parent,
 			Dir:        dir,
 			Files:      p.files,
 			Lines:      p.lines,
-			TechProv:   archdoc.Provenance{File: p.files[0], Line: 1, Note: "the language of its files"},
-			Prov:       archdoc.Provenance{File: p.files[0], Line: 1, Note: note},
+			TechProv:   core.Provenance{File: p.files[0], Line: 1, Note: "the language of its files"},
+			Prov:       core.Provenance{File: p.files[0], Line: 1, Note: note},
 		})
 	}
 
@@ -411,7 +411,7 @@ func emit(m *archdoc.Model, src archdoc.Source, parent string, kind archdoc.Kind
 	}
 
 	type link struct {
-		cited  map[string]archdoc.Provenance // importing file → its first import of the other
+		cited  map[string]core.Provenance // importing file → its first import of the other
 		weight int
 	}
 	links := map[[2]string]*link{}
@@ -425,7 +425,7 @@ func emit(m *archdoc.Model, src archdoc.Source, parent string, kind archdoc.Kind
 			k := [2]string{from, to}
 			l := links[k]
 			if l == nil {
-				l = &link{cited: map[string]archdoc.Provenance{}}
+				l = &link{cited: map[string]core.Provenance{}}
 				links[k] = l
 			}
 			l.weight++
@@ -446,14 +446,14 @@ func emit(m *archdoc.Model, src archdoc.Source, parent string, kind archdoc.Kind
 	})
 	for _, k := range keys {
 		l := links[k]
-		var prov []archdoc.Provenance
+		var prov []core.Provenance
 		for _, file := range sortedKeys(l.cited) {
 			if len(prov) == maxCited {
 				break
 			}
 			prov = append(prov, l.cited[file])
 		}
-		m.Edges = append(m.Edges, archdoc.Edge{
+		m.Edges = append(m.Edges, core.Edge{
 			From: prefix + k[0], To: prefix + k[1], Label: "uses", Prov: prov, Weight: l.weight,
 		})
 	}
@@ -462,7 +462,7 @@ func emit(m *archdoc.Model, src archdoc.Source, parent string, kind archdoc.Kind
 
 // grouping assigns each file of a source to its component, keyed by the component's path under
 // the source root: "services", "lib/components", "main" for a Python module, "." for loose files.
-func grouping(src archdoc.Source, python bool) map[string]string {
+func grouping(src core.Source, python bool) map[string]string {
 	rel := map[string]string{}
 	for _, f := range src.Files {
 		rel[f.Path] = strings.TrimPrefix(f.Path, src.Root+"/")

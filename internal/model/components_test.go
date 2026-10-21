@@ -5,31 +5,31 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // codeFacts builds an application at dir with the given files; imports maps a file to the files it
 // imports, each on its own line.
-func codeFacts(dir, root string, files []string, imports map[string][]string) *archdoc.FactSet {
-	src := archdoc.Source{App: dir, Root: root}
+func codeFacts(dir, root string, files []string, imports map[string][]string) *core.FactSet {
+	src := core.Source{App: dir, Root: root}
 	for _, f := range files {
-		sf := archdoc.SourceFile{Path: f, Language: "TypeScript", Lines: 10}
+		sf := core.SourceFile{Path: f, Language: "TypeScript", Lines: 10}
 		for i, t := range imports[f] {
-			sf.Imports = append(sf.Imports, archdoc.Import{Spec: t, Target: t, How: archdoc.ByAlias,
-				Prov: archdoc.Provenance{File: f, Line: i + 1}})
+			sf.Imports = append(sf.Imports, core.Import{Spec: t, Target: t, How: core.ByAlias,
+				Prov: core.Provenance{File: f, Line: i + 1}})
 		}
 		src.Files = append(src.Files, sf)
 	}
-	return &archdoc.FactSet{
+	return &core.FactSet{
 		Name: "x",
-		Apps: []archdoc.App{{Name: dir, Dir: dir, Manifest: dir + "/package.json", Role: archdoc.RoleService,
-			Language: "TypeScript", Prov: archdoc.Provenance{File: dir + "/package.json", Line: 1}}},
-		Sources: []archdoc.Source{src},
+		Apps: []core.App{{Name: dir, Dir: dir, Manifest: dir + "/package.json", Role: core.RoleService,
+			Language: "TypeScript", Prov: core.Provenance{File: dir + "/package.json", Line: 1}}},
+		Sources: []core.Source{src},
 	}
 }
 
-func byID(m archdoc.Model) map[string]archdoc.Node {
-	out := map[string]archdoc.Node{}
+func byID(m core.Model) map[string]core.Node {
+	out := map[string]core.Node{}
 	for _, n := range m.Nodes {
 		out[n.ID] = n
 	}
@@ -53,13 +53,13 @@ func TestComponentsFromDirectories(t *testing.T) {
 	m := Derive(codeFacts("server", "server/src", files, imports))
 	nodes := byID(m)
 	ctl, ok := nodes["cmp:server/controllers"]
-	if !ok || ctl.Kind != archdoc.Component || ctl.Parent != "app:server" || len(ctl.Files) != 12 || ctl.Lines != 120 {
+	if !ok || ctl.Kind != core.Component || ctl.Parent != "app:server" || len(ctl.Files) != 12 || ctl.Lines != 120 {
 		t.Fatalf("controllers: %+v", ctl)
 	}
 	if top := nodes["cmp:server/."]; top.Name != "src (top level)" || len(top.Files) != 2 {
 		t.Errorf("loose files: %+v", top)
 	}
-	var uses *archdoc.Edge
+	var uses *core.Edge
 	for i, e := range m.Edges {
 		if e.From == "cmp:server/controllers" && e.To == "cmp:server/services" {
 			uses = &m.Edges[i]
@@ -76,12 +76,12 @@ func TestComponentsFromDirectories(t *testing.T) {
 		t.Errorf("component view: %d nodes, named %q", len(view.Nodes), view.Name)
 	}
 	for _, n := range m.Container().Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind == core.Component {
 			t.Errorf("a component in the container view: %s", n.ID)
 		}
 	}
 	for _, n := range m.Context().Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind == core.Component {
 			t.Errorf("a component in the context view: %s", n.ID)
 		}
 	}
@@ -160,7 +160,7 @@ func TestComponentsAreFeaturesWhereTheCodeNamesThem(t *testing.T) {
 	m := Derive(codeFacts("server", "server/src", files, imports))
 	nodes := byID(m)
 	album, ok := nodes["cmp:server/album"]
-	if !ok || album.Kind != archdoc.Component || len(album.Files) != 6 {
+	if !ok || album.Kind != core.Component || len(album.Files) != 6 {
 		t.Fatalf("album: %+v", album)
 	}
 	if album.Prov.Note != "6 files named album.* — controller, repository, service, table" {
@@ -186,7 +186,7 @@ func TestComponentsAreFeaturesWhereTheCodeNamesThem(t *testing.T) {
 		t.Errorf("album uses %v", uses)
 	}
 	// The folders are still there, as the other view of the same code.
-	if folder, ok := nodes["dir:server/controllers"]; !ok || folder.Kind != archdoc.Module || len(folder.Files) != 3 {
+	if folder, ok := nodes["dir:server/controllers"]; !ok || folder.Kind != core.Module || len(folder.Files) != 3 {
 		t.Errorf("controllers folder: %+v", folder)
 	}
 	if got := len(m.Structure("app:server").Nodes); got != 6 {
@@ -219,7 +219,7 @@ func TestFeaturesAcrossLayers(t *testing.T) {
 	m := Derive(codeFacts("web", "web/src", files, nil))
 	in := map[string]string{}
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Component {
+		if n.Kind == core.Component {
 			for _, f := range n.Files {
 				in[f] = n.Name
 			}
@@ -248,7 +248,7 @@ func TestFeaturesAcrossLayers(t *testing.T) {
 	}
 	modules := 0
 	for _, n := range m.Nodes {
-		if n.Kind == archdoc.Module {
+		if n.Kind == core.Module {
 			modules++
 		}
 	}

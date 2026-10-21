@@ -14,7 +14,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // An API description is how a repository says, in one file, what one of its containers offers:
@@ -48,8 +48,8 @@ var (
 )
 
 // APIs reads every API description in the repository and finds its clients.
-func APIs(root string, apps []archdoc.App) []archdoc.API {
-	var out []archdoc.API
+func APIs(root string, apps []core.App) []core.API {
+	var out []core.API
 	var commands []string // files that may hold a generator command
 	filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -80,11 +80,11 @@ func APIs(root string, apps []archdoc.App) []archdoc.API {
 	sort.Slice(out, func(i, j int) bool { return out[i].File < out[j].File })
 
 	// The application a path belongs to: the deepest one whose directory holds it.
-	owner := func(rel string) (archdoc.App, bool) {
-		var best archdoc.App
+	owner := func(rel string) (core.App, bool) {
+		var best core.App
 		found := false
 		for _, a := range apps {
-			if a.Role == archdoc.RoleWorkspace {
+			if a.Role == core.RoleWorkspace {
 				continue
 			}
 			if a.Dir == "." || rel == a.Dir || strings.HasPrefix(rel, a.Dir+"/") {
@@ -99,7 +99,7 @@ func APIs(root string, apps []archdoc.App) []archdoc.API {
 	for i := range out {
 		api := &out[i]
 		seen := map[string]bool{}
-		add := func(c archdoc.APIClient) {
+		add := func(c core.APIClient) {
 			if !seen[c.App] {
 				seen[c.App] = true
 				api.Clients = append(api.Clients, c)
@@ -117,14 +117,14 @@ func APIs(root string, apps []archdoc.App) []archdoc.API {
 }
 
 // apiDocument reads an OpenAPI or Swagger document: its paths and the methods on each.
-func apiDocument(root, rel string) (archdoc.API, bool) {
+func apiDocument(root, rel string) (core.API, bool) {
 	full := filepath.Join(root, filepath.FromSlash(rel))
 	if info, err := os.Stat(full); err != nil || info.Size() > maxAPIFile {
-		return archdoc.API{}, false
+		return core.API{}, false
 	}
 	content, err := os.ReadFile(full)
 	if err != nil {
-		return archdoc.API{}, false
+		return core.API{}, false
 	}
 	var doc struct {
 		OpenAPI string                    `json:"openapi" yaml:"openapi"`
@@ -137,13 +137,13 @@ func apiDocument(root, rel string) (archdoc.API, bool) {
 		err = yaml.Unmarshal(content, &doc)
 	}
 	if err != nil || (doc.OpenAPI == "" && doc.Swagger == "") || len(doc.Paths) == 0 {
-		return archdoc.API{}, false
+		return core.API{}, false
 	}
-	api := archdoc.API{File: rel, Prov: archdoc.Provenance{File: rel, Line: max(lineOf(content, "paths"), 1)}}
+	api := core.API{File: rel, Prov: core.Provenance{File: rel, Line: max(lineOf(content, "paths"), 1)}}
 	for p, methods := range doc.Paths {
 		for m := range methods {
 			if httpMethods[strings.ToLower(m)] {
-				api.Operations = append(api.Operations, archdoc.Operation{Method: strings.ToUpper(m), Path: p})
+				api.Operations = append(api.Operations, core.Operation{Method: strings.ToUpper(m), Path: p})
 			}
 		}
 	}
@@ -166,7 +166,7 @@ func staticPart(p string) string {
 
 // codeClients are the applications and packages whose own source holds most of the API's paths as
 // string literals — what a generated client looks like.
-func codeClients(root string, apps []archdoc.App, api archdoc.API) []archdoc.APIClient {
+func codeClients(root string, apps []core.App, api core.API) []core.APIClient {
 	want := map[string]bool{}
 	for _, op := range api.Operations {
 		if s := staticPart(op.Path); len(s) > 1 {
@@ -187,9 +187,9 @@ func codeClients(root string, apps []archdoc.App, api archdoc.API) []archdoc.API
 	for _, a := range apps {
 		nested[a.Dir] = true
 	}
-	var out []archdoc.APIClient
+	var out []core.APIClient
 	for _, a := range apps {
-		if a.Role == archdoc.RoleWorkspace || a.Dir == "." {
+		if a.Role == core.RoleWorkspace || a.Dir == "." {
 			continue
 		}
 		found := map[string]bool{}
@@ -240,9 +240,9 @@ func codeClients(root string, apps []archdoc.App, api archdoc.API) []archdoc.API
 			}
 			return files[i] < files[j]
 		})
-		out = append(out, archdoc.APIClient{App: a.Dir, Dir: path.Dir(files[0]),
+		out = append(out, core.APIClient{App: a.Dir, Dir: path.Dir(files[0]),
 			How:  fmt.Sprintf("its code names %d of the %d paths in %s", len(found), len(distinct), api.File),
-			Prov: archdoc.Provenance{File: files[0], Line: 1}})
+			Prov: core.Provenance{File: files[0], Line: 1}})
 	}
 	return out
 }
@@ -269,9 +269,9 @@ func pathLiterals(content []byte) []string {
 
 // generatedClients are the directories a generator command writes a client of this API into:
 // openapi-generator-cli generate -i ./spec.json -o ../mobile/generated/openapi.
-func generatedClients(root string, commands []string, api archdoc.API, owner func(string) (archdoc.App, bool)) []archdoc.APIClient {
+func generatedClients(root string, commands []string, api core.API, owner func(string) (core.App, bool)) []core.APIClient {
 	unquote := func(s string) string { return strings.Trim(s, `"'`) }
-	var out []archdoc.APIClient
+	var out []core.APIClient
 	for _, file := range commands {
 		content, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(file)))
 		if err != nil || !bytes.Contains(content, []byte("openapi-generator")) {
@@ -291,9 +291,9 @@ func generatedClients(root string, commands []string, api archdoc.API, owner fun
 				if path.Clean(path.Join(base, unquote(in[1]))) == api.File {
 					dir := path.Clean(path.Join(base, unquote(to[1])))
 					if app, ok := owner(dir); ok && !strings.HasPrefix(dir, "..") {
-						out = append(out, archdoc.APIClient{App: app.Dir, Dir: dir,
+						out = append(out, core.APIClient{App: app.Dir, Dir: dir,
 							How:  fmt.Sprintf("a client generated from %s into %s", api.File, dir),
-							Prov: archdoc.Provenance{File: file, Line: n + 1}})
+							Prov: core.Provenance{File: file, Line: n + 1}})
 					}
 					break
 				}

@@ -7,7 +7,7 @@ import (
 
 	ts "github.com/odvcencio/gotreesitter"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // C# is read as Java is — classes with their attributes as decorators, fields and properties, what
@@ -46,12 +46,12 @@ func isCSharp(name string) bool {
 }
 
 func csharpFacts(src []byte, file string) (out facts, partial bool) {
-	at := func(n *ts.Node) archdoc.Provenance {
+	at := func(n *ts.Node) core.Provenance {
 		p := n.StartPoint()
-		return archdoc.Provenance{File: file, Line: int(p.Row) + 1, Column: int(p.Column) + 1}
+		return core.Provenance{File: file, Line: int(p.Row) + 1, Column: int(p.Column) + 1}
 	}
-	called := map[archdoc.Provenance]bool{}
-	module := archdoc.Class{Prov: archdoc.Provenance{File: file, Line: 1}}
+	called := map[core.Provenance]bool{}
+	module := core.Class{Prov: core.Provenance{File: file, Line: 1}}
 	mentioned := map[string]bool{}
 	partial = parse("C#", src, func(root *ts.Node, l *ts.Language) {
 		text := func(n *ts.Node) string { return n.Text(src) }
@@ -78,7 +78,7 @@ func csharpFacts(src []byte, file string) (out facts, partial bool) {
 				out.declares = append(out.declares, c.Name)
 				if strings.HasSuffix(file, ".cshtml.cs") && containsName(c.Extends, "PageModel") {
 					if p, ok := razorPage(file); ok {
-						out.pages = append(out.pages, archdoc.Literal{Value: p, Prov: c.Prov})
+						out.pages = append(out.pages, core.Literal{Value: p, Prov: c.Prov})
 					}
 				}
 			case "enum_declaration", "delegate_declaration":
@@ -96,7 +96,7 @@ func csharpFacts(src []byte, file string) (out facts, partial bool) {
 				// A parameter of type WebApplication or IEndpointRouteBuilder is where routes are mapped.
 				typ, name := n.ChildByFieldName("type", l), n.ChildByFieldName("name", l)
 				if typ != nil && name != nil && csRouteBuilders[csTypeName(typ, l, src)] {
-					out.routers = append(out.routers, archdoc.Router{Var: text(name), Kind: "aspnet", Prov: at(n)})
+					out.routers = append(out.routers, core.Router{Var: text(name), Kind: "aspnet", Prov: at(n)})
 				}
 			case "variable_declarator":
 				name := n.ChildByFieldName("name", l)
@@ -110,10 +110,10 @@ func csharpFacts(src []byte, file string) (out facts, partial bool) {
 				// var app = builder.Build(): the application. var api = app.MapGroup("/api"): a group
 				// of it, under a prefix.
 				if prefix, root, ok := csGroup(value, l, src); ok {
-					out.routers = append(out.routers, archdoc.Router{Var: text(name), Kind: "group", Prefix: prefix, Prov: at(n)})
-					out.incs = append(out.incs, archdoc.Include{Parent: root, Child: text(name), Prov: at(n)})
+					out.routers = append(out.routers, core.Router{Var: text(name), Kind: "group", Prefix: prefix, Prov: at(n)})
+					out.incs = append(out.incs, core.Include{Parent: root, Child: text(name), Prov: at(n)})
 				} else if csCalls(value, l, src, "Build") {
-					out.routers = append(out.routers, archdoc.Router{Var: text(name), Kind: "aspnet", Prov: at(n)})
+					out.routers = append(out.routers, core.Router{Var: text(name), Kind: "aspnet", Prov: at(n)})
 				}
 			case "invocation_expression":
 				fn, args := n.ChildByFieldName("function", l), n.ChildByFieldName("arguments", l)
@@ -138,8 +138,8 @@ func csharpFacts(src []byte, file string) (out facts, partial bool) {
 					} else if m := enclosing(n, l, "method_declaration"); m != nil && m.ChildByFieldName("name", l) != nil {
 						handler = text(m.ChildByFieldName("name", l))
 					}
-					module.Methods = append(module.Methods, archdoc.Method{Name: handler, Prov: at(n),
-						Decorators: []archdoc.Decorator{{Name: text(obj) + "." + verb, Arg: v, HasArg: true, Prov: at(n)}}})
+					module.Methods = append(module.Methods, core.Method{Name: handler, Prov: at(n),
+						Decorators: []core.Decorator{{Name: text(obj) + "." + verb, Arg: v, HasArg: true, Prov: at(n)}}})
 				case csHTTP[text(name)] && first != nil:
 					target := first
 					if target.Type(l) == "object_creation_expression" { // new Uri("http://…")
@@ -152,7 +152,7 @@ func csharpFacts(src []byte, file string) (out facts, partial bool) {
 						}
 					}
 					if csClient.MatchString(text(obj)) {
-						out.calls = append(out.calls, archdoc.Call{Callee: shorten(text(obj)) + "." + text(name), Target: shorten(text(first)), Prov: at(n)})
+						out.calls = append(out.calls, core.Call{Callee: shorten(text(obj)) + "." + text(name), Target: shorten(text(first)), Prov: at(n)})
 					}
 				}
 			case "string_literal", "verbatim_string_literal", "interpolated_string_expression":
@@ -404,9 +404,9 @@ func csElement(n *ts.Node, l *ts.Language, src []byte) string {
 	return csTypeName(n, l, src)
 }
 
-func csClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) archdoc.Class {
+func csClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) core.Class {
 	text := func(n *ts.Node) string { return n.Text(src) }
-	c := archdoc.Class{Prov: at(n), Interface: n.Type(l) == "interface_declaration"}
+	c := core.Class{Prov: at(n), Interface: n.Type(l) == "interface_declaration"}
 	if name := n.ChildByFieldName("name", l); name != nil {
 		c.Name = text(name)
 	}
@@ -424,9 +424,9 @@ func csClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 		case "parameter_list": // a primary constructor: class OrderService(IOrderRepository orders)
 			for _, p := range csParams(ch, l, src, at) {
 				c.Params = append(c.Params, p)
-				c.Injects = append(c.Injects, archdoc.Literal{Value: p.Type, Prov: p.Prov})
+				c.Injects = append(c.Injects, core.Literal{Value: p.Type, Prov: p.Prov})
 				if n.Type(l) == "record_declaration" {
-					c.Fields = append(c.Fields, archdoc.Field{Name: p.Name, Type: p.Type, Prov: p.Prov})
+					c.Fields = append(c.Fields, core.Field{Name: p.Name, Type: p.Type, Prov: p.Prov})
 				}
 			}
 		}
@@ -439,7 +439,7 @@ func csClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 		m := body.NamedChild(i)
 		switch m.Type(l) {
 		case "field_declaration", "property_declaration":
-			var decs []archdoc.Decorator
+			var decs []core.Decorator
 			static := false
 			for j := 0; j < m.NamedChildCount(); j++ {
 				switch x := m.NamedChild(j); x.Type(l) {
@@ -452,17 +452,17 @@ func csClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 			if static {
 				continue
 			}
-			add := func(name string, typ *ts.Node, value *ts.Node, at0 archdoc.Provenance) {
-				f := archdoc.Field{Name: name, Type: text(typ), Decorators: decs, Prov: at0}
+			add := func(name string, typ *ts.Node, value *ts.Node, at0 core.Provenance) {
+				f := core.Field{Name: name, Type: text(typ), Decorators: decs, Prov: at0}
 				if v, ok := csString(value, l, src); ok {
 					f.Value = v
 				}
 				// What a property of a collection holds, for a table's relations.
 				if el := csElement(typ, l, src); el != csTypeName(typ, l, src) {
-					f.Decorators = append(append([]archdoc.Decorator(nil), decs...), archdoc.Decorator{Name: "Collection", Target: el, Prov: at0})
+					f.Decorators = append(append([]core.Decorator(nil), decs...), core.Decorator{Name: "Collection", Target: el, Prov: at0})
 				}
 				c.Fields = append(c.Fields, f)
-				c.Params = append(c.Params, archdoc.Param{Name: name, Type: csTypeName(typ, l, src), Prov: at0})
+				c.Params = append(c.Params, core.Param{Name: name, Type: csTypeName(typ, l, src), Prov: at0})
 			}
 			if m.Type(l) == "property_declaration" {
 				typ, name := m.ChildByFieldName("type", l), m.ChildByFieldName("name", l)
@@ -495,11 +495,11 @@ func csClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 			if ps := m.ChildByFieldName("parameters", l); ps != nil {
 				for _, p := range csParams(ps, l, src, at) {
 					c.Params = append(c.Params, p)
-					c.Injects = append(c.Injects, archdoc.Literal{Value: p.Type, Prov: p.Prov})
+					c.Injects = append(c.Injects, core.Literal{Value: p.Type, Prov: p.Prov})
 				}
 			}
 		case "method_declaration":
-			meth := archdoc.Method{Prov: at(m), EndLine: int(m.EndPoint().Row) + 1}
+			meth := core.Method{Prov: at(m), EndLine: int(m.EndPoint().Row) + 1}
 			if name := m.ChildByFieldName("name", l); name != nil {
 				meth.Name = text(name)
 			}
@@ -527,13 +527,13 @@ func csClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 					}
 					switch fn.Type(l) {
 					case "identifier":
-						meth.Invokes = append(meth.Invokes, archdoc.Invocation{Method: text(fn), Prov: at(x)})
+						meth.Invokes = append(meth.Invokes, core.Invocation{Method: text(fn), Prov: at(x)})
 					case "member_access_expression":
 						obj, name := fn.ChildByFieldName("expression", l), fn.ChildByFieldName("name", l)
 						if obj == nil || name == nil {
 							return
 						}
-						inv := archdoc.Invocation{Method: csTypeName(name, l, src), Prov: at(x)}
+						inv := core.Invocation{Method: csTypeName(name, l, src), Prov: at(x)}
 						switch {
 						case obj.Type(l) == "identifier":
 							inv.Object = text(obj)
@@ -554,8 +554,8 @@ func csClass(n *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.P
 	return c
 }
 
-func csParams(ps *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Param {
-	var out []archdoc.Param
+func csParams(ps *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) []core.Param {
+	var out []core.Param
 	for i := 0; i < ps.NamedChildCount(); i++ {
 		p := ps.NamedChild(i)
 		if p.Type(l) != "parameter" {
@@ -563,7 +563,7 @@ func csParams(ps *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 		}
 		typ, name := p.ChildByFieldName("type", l), p.ChildByFieldName("name", l)
 		if typ != nil && name != nil {
-			out = append(out, archdoc.Param{Name: name.Text(src), Type: csTypeName(typ, l, src), Prov: at(p)})
+			out = append(out, core.Param{Name: name.Text(src), Type: csTypeName(typ, l, src), Prov: at(p)})
 		}
 	}
 	return out
@@ -571,14 +571,14 @@ func csParams(ps *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc
 
 // csAttributes are the attributes an attribute list holds, as decorators: [HttpGet("{id}")] is HttpGet
 // with argument "{id}"; [Table("Orders", Schema = "x")] has the option Schema.
-func csAttributes(list *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) archdoc.Provenance) []archdoc.Decorator {
-	var out []archdoc.Decorator
+func csAttributes(list *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) []core.Decorator {
+	var out []core.Decorator
 	for i := 0; i < list.NamedChildCount(); i++ {
 		a := list.NamedChild(i)
 		if a.Type(l) != "attribute" {
 			continue
 		}
-		d := archdoc.Decorator{Prov: at(a)}
+		d := core.Decorator{Prov: at(a)}
 		if name := a.ChildByFieldName("name", l); name != nil {
 			d.Name = strings.TrimSuffix(csTypeName(name, l, src), "Attribute")
 		}
@@ -653,12 +653,12 @@ func newCSResolver(files []string, got map[string]facts) *csResolver {
 // csMention marks a raw import as a type the file names, not a using directive.
 const csMention = "\x00type:"
 
-func (r *csResolver) resolve(file string, imp rawImport) []archdoc.Import {
+func (r *csResolver) resolve(file string, imp rawImport) []core.Import {
 	if name, ok := strings.CutPrefix(imp.spec, csMention); ok {
-		var out []archdoc.Import
+		var out []core.Import
 		for _, f := range r.types[name] {
 			if f != file {
-				out = append(out, archdoc.Import{Spec: name, Target: f, How: archdoc.ByName})
+				out = append(out, core.Import{Spec: name, Target: f, How: core.ByName})
 			}
 		}
 		return out
@@ -668,5 +668,5 @@ func (r *csResolver) resolve(file string, imp rawImport) []archdoc.Import {
 			return nil // its own code, read through the types the file names
 		}
 	}
-	return []archdoc.Import{{Spec: imp.spec, How: archdoc.ByPackage, Package: imp.spec}}
+	return []core.Import{{Spec: imp.spec, How: core.ByPackage, Package: imp.spec}}
 }

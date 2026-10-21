@@ -3,7 +3,7 @@ package validate
 import (
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // Found on the first live run: a model that only reworded an arrow's label was appended to the
@@ -13,9 +13,9 @@ import (
 func TestRelabellingNeverBecomesEvidenceForTheEdge(t *testing.T) {
 	m := good()
 
-	out, r := Apply(m, []archdoc.Op{{
-		Kind: archdoc.SetEdgeLabel, Target: "svc:api", To: "svc:db", Value: "reads and writes orders",
-		Origin: archdoc.Semantic, Prov: runProv(),
+	out, r := Apply(m, []core.Op{{
+		Kind: core.SetEdgeLabel, Target: "svc:api", To: "svc:db", Value: "reads and writes orders",
+		Origin: core.Semantic, Prov: runProv(),
 	}})
 	if !r.OK() {
 		t.Fatalf("relabel rejected:\n%s", r.Error())
@@ -28,11 +28,11 @@ func TestRelabellingNeverBecomesEvidenceForTheEdge(t *testing.T) {
 		if e.Label != "reads and writes orders" {
 			t.Errorf("label not applied: %q", e.Label)
 		}
-		if e.LabelProv.Origin != archdoc.Semantic {
+		if e.LabelProv.Origin != core.Semantic {
 			t.Errorf("the label does not cite the model: %+v", e.LabelProv)
 		}
 		for _, p := range e.Prov {
-			if p.Origin == archdoc.Semantic {
+			if p.Origin == core.Semantic {
 				t.Errorf("the model appears as evidence the relationship exists: %+v", e.Prov)
 			}
 		}
@@ -44,19 +44,19 @@ func TestRelabellingNeverBecomesEvidenceForTheEdge(t *testing.T) {
 // A renamed element must say so. Without it, "REST API" reads as the name the configuration
 // declared, when the configuration said `rest`.
 func TestRenameCarriesItsOwnCitation(t *testing.T) {
-	out, r := Apply(good(), []archdoc.Op{{
-		Kind: archdoc.SetName, Target: "svc:api", Value: "Public API",
-		Origin: archdoc.Semantic, Prov: runProv(),
+	out, r := Apply(good(), []core.Op{{
+		Kind: core.SetName, Target: "svc:api", Value: "Public API",
+		Origin: core.Semantic, Prov: runProv(),
 	}})
 	if !r.OK() {
 		t.Fatalf("rename rejected:\n%s", r.Error())
 	}
 
 	n, _ := out.Node("svc:api")
-	if n.Name != "Public API" || n.NameProv.Origin != archdoc.Semantic {
+	if n.Name != "Public API" || n.NameProv.Origin != core.Semantic {
 		t.Errorf("rename not cited: name=%q prov=%+v", n.Name, n.NameProv)
 	}
-	if n.Prov.Origin == archdoc.Semantic {
+	if n.Prov.Origin == core.Semantic {
 		t.Error("the element's own evidence was replaced by the model")
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // The catalog turns an image reference into the two things a container diagram needs: what the
@@ -16,51 +16,51 @@ import (
 // than a proxy; both would be misfiled by any rule loose enough to also catch them.
 
 type entry struct {
-	kind archdoc.Kind
+	kind core.Kind
 	tech string // display name; the version is appended from the tag when there is one
 }
 
 var catalog = map[string]entry{
 	// Relational
-	"postgres":   {archdoc.Datastore, "PostgreSQL"},
-	"postgresql": {archdoc.Datastore, "PostgreSQL"},
-	"mysql":      {archdoc.Datastore, "MySQL"},
-	"mariadb":    {archdoc.Datastore, "MariaDB"},
-	"cockroach":  {archdoc.Datastore, "CockroachDB"},
+	"postgres":   {core.Datastore, "PostgreSQL"},
+	"postgresql": {core.Datastore, "PostgreSQL"},
+	"mysql":      {core.Datastore, "MySQL"},
+	"mariadb":    {core.Datastore, "MariaDB"},
+	"cockroach":  {core.Datastore, "CockroachDB"},
 	// Microsoft's: the image's last segment alone is too generic for mssql/server, so it is keyed
 	// with its namespace.
-	"mssql/server":   {archdoc.Datastore, "SQL Server"},
-	"azure-sql-edge": {archdoc.Datastore, "Azure SQL Edge"},
+	"mssql/server":   {core.Datastore, "SQL Server"},
+	"azure-sql-edge": {core.Datastore, "Azure SQL Edge"},
 
 	// Key-value and document
-	"redis":     {archdoc.Datastore, "Redis"},
-	"valkey":    {archdoc.Datastore, "Valkey"},
-	"memcached": {archdoc.Datastore, "Memcached"},
-	"mongo":     {archdoc.Datastore, "MongoDB"},
-	"etcd":      {archdoc.Datastore, "etcd"},
+	"redis":     {core.Datastore, "Redis"},
+	"valkey":    {core.Datastore, "Valkey"},
+	"memcached": {core.Datastore, "Memcached"},
+	"mongo":     {core.Datastore, "MongoDB"},
+	"etcd":      {core.Datastore, "etcd"},
 
 	// Search and analytics
-	"elasticsearch": {archdoc.Datastore, "Elasticsearch"},
-	"opensearch":    {archdoc.Datastore, "OpenSearch"},
-	"meilisearch":   {archdoc.Datastore, "Meilisearch"},
-	"typesense":     {archdoc.Datastore, "Typesense"},
-	"clickhouse":    {archdoc.Datastore, "ClickHouse"},
+	"elasticsearch": {core.Datastore, "Elasticsearch"},
+	"opensearch":    {core.Datastore, "OpenSearch"},
+	"meilisearch":   {core.Datastore, "Meilisearch"},
+	"typesense":     {core.Datastore, "Typesense"},
+	"clickhouse":    {core.Datastore, "ClickHouse"},
 
 	// Object storage
-	"minio": {archdoc.Datastore, "MinIO"},
+	"minio": {core.Datastore, "MinIO"},
 
 	// Messaging
-	"rabbitmq": {archdoc.Queue, "RabbitMQ"},
-	"kafka":    {archdoc.Queue, "Kafka"},
-	"nats":     {archdoc.Queue, "NATS"},
+	"rabbitmq": {core.Queue, "RabbitMQ"},
+	"kafka":    {core.Queue, "Kafka"},
+	"nats":     {core.Queue, "NATS"},
 
 	// Edge — infrastructure, which the derivation rule keeps out of the container view
-	"nginx":   {archdoc.Proxy, "nginx"},
-	"traefik": {archdoc.Proxy, "Traefik"},
-	"haproxy": {archdoc.Proxy, "HAProxy"},
-	"caddy":   {archdoc.Proxy, "Caddy"},
-	"envoy":   {archdoc.Proxy, "Envoy"},
-	"kong":    {archdoc.Proxy, "Kong"},
+	"nginx":   {core.Proxy, "nginx"},
+	"traefik": {core.Proxy, "Traefik"},
+	"haproxy": {core.Proxy, "HAProxy"},
+	"caddy":   {core.Proxy, "Caddy"},
+	"envoy":   {core.Proxy, "Envoy"},
+	"kong":    {core.Proxy, "Kong"},
 }
 
 // classify returns what an image is, what it runs, and the evidence for the second answer.
@@ -69,7 +69,7 @@ var catalog = map[string]entry{
 // every custom-built service is an application, and leaving the technology empty says "not
 // known from configuration" rather than inventing a stack. MDL-08 hands exactly this case to
 // the semantic layer later.
-func classify(image string) (kind archdoc.Kind, tech string, prov archdoc.Provenance) {
+func classify(image string) (kind core.Kind, tech string, prov core.Provenance) {
 	name, tag := splitImage(image)
 
 	e, ok := catalog[name]
@@ -78,13 +78,13 @@ func classify(image string) (kind archdoc.Kind, tech string, prov archdoc.Proven
 		name = ns
 	}
 	if !ok {
-		return archdoc.Application, "", archdoc.Provenance{}
+		return core.Application, "", core.Provenance{}
 	}
 
 	// The technology is not something the repository stated — a lookup table supplied it.
 	// Recording that is PRV-02, and it is what makes AC-1 measurable: the criterion admits
 	// catalog provenance, but only if the catalog actually leaves a trace.
-	prov = archdoc.Provenance{Origin: archdoc.Catalog, Note: name}
+	prov = core.Provenance{Origin: core.Catalog, Note: name}
 
 	if v := version(tag); v != "" {
 		return e.kind, e.tech + " " + v, prov

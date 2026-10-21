@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
 // The data-flow view (F-16): the system's containers read left to right, from the people who put
@@ -40,23 +40,23 @@ const dataNames = 3
 
 // HasDataFlow reports whether the model has a data-flow view: a project with more than one
 // application's worth to say — something stored or reached outside, and something that does it.
-func HasDataFlow(m archdoc.Model) bool {
+func HasDataFlow(m core.Model) bool {
 	if Tiny(m) {
 		return false
 	}
 	return len(dataFlowView(m).Model.Stages) >= 3
 }
 
-func dataFlowView(m archdoc.Model) View {
+func dataFlowView(m core.Model) View {
 	view := m.Container()
 	view.Networks = nil
-	kind := map[string]archdoc.Kind{}
+	kind := map[string]core.Kind{}
 	for _, n := range view.Nodes {
 		kind[n.ID] = n.Kind
 	}
 	calledByApp, callsApp := map[string]bool{}, map[string]bool{}
 	for _, e := range view.Edges {
-		if kind[e.From] == archdoc.Application && kind[e.To] == archdoc.Application {
+		if kind[e.From] == core.Application && kind[e.To] == core.Application {
 			calledByApp[e.To], callsApp[e.From] = true, true
 		}
 	}
@@ -64,13 +64,13 @@ func dataFlowView(m archdoc.Model) View {
 	for i := range view.Nodes {
 		n := &view.Nodes[i]
 		switch {
-		case n.Kind == archdoc.Actor:
+		case n.Kind == core.Actor:
 			n.Stage = stagePeople
-		case n.Kind == archdoc.Application && callsApp[n.ID] && !calledByApp[n.ID]:
+		case n.Kind == core.Application && callsApp[n.ID] && !calledByApp[n.ID]:
 			n.Stage = stageClients
-		case n.Kind == archdoc.Application:
+		case n.Kind == core.Application:
 			n.Stage = stageServices
-		case n.Kind == archdoc.Datastore || n.Kind == archdoc.Queue:
+		case n.Kind == core.Datastore || n.Kind == core.Queue:
 			n.Stage = stageStores
 		default:
 			n.Stage = stageOutside
@@ -82,13 +82,13 @@ func dataFlowView(m archdoc.Model) View {
 			view.Stages = append(view.Stages, s)
 		}
 	}
-	edges := make([]archdoc.Edge, len(view.Edges))
+	edges := make([]core.Edge, len(view.Edges))
 	copy(edges, view.Edges)
 	for i, e := range edges {
 		if store, ok := storeOf(m, e.From); ok && store.ID == e.To {
 			if label, cites := carried(m, e.From); label != "" {
 				edges[i].Label, edges[i].LabelProv = label, cites[0]
-				edges[i].Prov = append(append([]archdoc.Provenance(nil), e.Prov...), cites...)
+				edges[i].Prov = append(append([]core.Provenance(nil), e.Prov...), cites...)
 			}
 		}
 	}
@@ -100,11 +100,11 @@ func dataFlowView(m archdoc.Model) View {
 // asset, album, user and 38 more tables · reads 11 more" — and the first query of each table it
 // names, as the citation. Only tables the code declares count: a query naming anything else is
 // not known to be in that store.
-func carried(m archdoc.Model, container string) (string, []archdoc.Provenance) {
+func carried(m core.Model, container string) (string, []core.Provenance) {
 	type use struct {
 		table         string
 		writes, reads int
-		first         archdoc.Provenance
+		first         core.Provenance
 	}
 	byTable := map[string]*use{}
 	for _, a := range m.Access {
@@ -161,7 +161,7 @@ func carried(m archdoc.Model, container string) (string, []archdoc.Provenance) {
 		return s
 	}
 	var parts []string
-	var cites []archdoc.Provenance
+	var cites []core.Provenance
 	switch {
 	case len(written) > 0:
 		parts = append(parts, named("writes", written))
@@ -185,7 +185,7 @@ func carried(m archdoc.Model, container string) (string, []archdoc.Provenance) {
 // busiest first.
 const accessCites = 10
 
-func less(a, b archdoc.Provenance) bool {
+func less(a, b core.Provenance) bool {
 	if a.File != b.File {
 		return a.File < b.File
 	}

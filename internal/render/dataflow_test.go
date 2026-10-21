@@ -4,22 +4,22 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/archdoc"
+	"github.com/cruzambrociogl/archdoc/internal/core"
 )
 
-func dataFlowFixture() archdoc.Model {
-	code := func(line int) archdoc.Provenance { return archdoc.Provenance{File: "api/src/repo.ts", Line: line} }
+func dataFlowFixture() core.Model {
+	code := func(line int) core.Provenance { return core.Provenance{File: "api/src/repo.ts", Line: line} }
 	m := fixture()
-	m.Nodes = append(m.Nodes, archdoc.Node{ID: "app:web", Name: "web", Kind: archdoc.Application, Evidence: archdoc.Declared, Prov: at(30)},
-		archdoc.Node{ID: "tbl:api/album", Name: "album", Kind: archdoc.Table, Parent: "svc:api", Evidence: archdoc.Declared, Prov: code(1)},
-		archdoc.Node{ID: "tbl:api/user", Name: "user", Kind: archdoc.Table, Parent: "svc:api", Evidence: archdoc.Declared, Prov: code(2)})
+	m.Nodes = append(m.Nodes, core.Node{ID: "app:web", Name: "web", Kind: core.Application, Evidence: core.Declared, Prov: at(30)},
+		core.Node{ID: "tbl:api/album", Name: "album", Kind: core.Table, Parent: "svc:api", Evidence: core.Declared, Prov: code(1)},
+		core.Node{ID: "tbl:api/user", Name: "user", Kind: core.Table, Parent: "svc:api", Evidence: core.Declared, Prov: code(2)})
 	m.Edges = append(m.Edges,
-		archdoc.Edge{From: "actor:user", To: "app:web", Label: "reaches", Traffic: true, Prov: []archdoc.Provenance{at(30)}},
-		archdoc.Edge{From: "app:web", To: "svc:api", Label: "calls", Traffic: true, Prov: []archdoc.Provenance{at(31)}})
-	m.Access = []archdoc.Access{
-		{Container: "svc:api", Table: "album", Element: "tbl:api/album", Op: "writes", Count: 3, Prov: []archdoc.Provenance{code(10)}},
-		{Container: "svc:api", Table: "user", Element: "tbl:api/user", Op: "reads", Count: 1, Prov: []archdoc.Provenance{code(20)}},
-		{Container: "svc:api", Table: "tmp", Op: "reads", Count: 1, Prov: []archdoc.Provenance{code(30)}}, // not declared: not counted
+		core.Edge{From: "actor:user", To: "app:web", Label: "reaches", Traffic: true, Prov: []core.Provenance{at(30)}},
+		core.Edge{From: "app:web", To: "svc:api", Label: "calls", Traffic: true, Prov: []core.Provenance{at(31)}})
+	m.Access = []core.Access{
+		{Container: "svc:api", Table: "album", Element: "tbl:api/album", Op: "writes", Count: 3, Prov: []core.Provenance{code(10)}},
+		{Container: "svc:api", Table: "user", Element: "tbl:api/user", Op: "reads", Count: 1, Prov: []core.Provenance{code(20)}},
+		{Container: "svc:api", Table: "tmp", Op: "reads", Count: 1, Prov: []core.Provenance{code(30)}}, // not declared: not counted
 	}
 	return m.Normalise()
 }
