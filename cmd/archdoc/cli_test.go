@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/cruzambrociogl/archdoc"
 )
 
 // cli runs archdoc as a script would — no one to ask — and returns what it printed and its exit code.
@@ -122,7 +124,7 @@ func TestPaidRunsAskFirstAndDryRunsWriteNothing(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "[system]") || !strings.Contains(out, "Label this architecture") || !strings.Contains(out, "Nothing sent, nothing written") {
 		t.Errorf("label --dry-run: exit %d\n%s", code, out)
 	}
-	if _, err := os.Stat(filepath.Join(root, docsDir)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, archdoc.DocsDir)); !os.IsNotExist(err) {
 		t.Error("a refused or dry run wrote the documentation")
 	}
 

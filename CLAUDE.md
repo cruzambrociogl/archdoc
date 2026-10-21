@@ -81,7 +81,7 @@ acceptance criterion.
    iteration; unsorted output silently breaks AC-7 (five runs, byte-identical). This is the
    single most likely defect in generated Go here.
 2. **Never write to human-owned files. Never read them either.** The write set is closed and
-   named in `cmd/archdoc/generate.go`: `docs/architecture/*.generated.md`, the `.mmd`, `.svg`
+   named in `generate.go` (package archdoc): `docs/architecture/*.generated.md`, the `.mmd`, `.svg`
    and (with `--site`) `mkdocs.yml` beside them, and `.archdoc/`. Each is overwritten wholesale. Human sections are *linked*, not
    parsed — `OUT-02` / `OUT-03`. A documentation generator that eats someone's writing gets
    uninstalled once.
@@ -119,7 +119,9 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 | `internal/render` | Layout, SVG, Mermaid; the list of views; the documents, sized to the project |
 | `internal/arrange` | `layout.yaml`, `views.yaml` — presentation a person saves, applied over the layout |
 | `internal/serve` | Local HTTP, the action gate, the published-site export, embedded web assets |
-| `cmd/archdoc` | CLI — thin, no logic |
+| `archdoc` (the module root) | **The public API** — `Generate`, `Diff`/`Compare`, `Status`, `BuildSite`, `Read`, `Find`, `OpenHistory`, `Init`; the pipeline's one door. Types are aliases of `internal/core`. Prints nothing itself: output goes to the caller's `Log` writer; paid runs ask the caller's `Consent` |
+| `server` | Serves the app for one repository — public, and apart from the root so the API never imports `net/http` |
+| `cmd/archdoc` | CLI — flags and printing over package `archdoc`. Imports nothing from `internal/` (CI: Public API) |
 
 `output` lives as files inside the packages that use it until coupling earns it a package.
 

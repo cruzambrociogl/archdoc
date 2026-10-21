@@ -8,12 +8,12 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/cruzambrociogl/archdoc/internal/serve"
+	"github.com/cruzambrociogl/archdoc/server"
 )
 
-// serveCommand starts the web app for one repository (SUR-07). The listening happens in
-// internal/serve, so this package still never imports an HTTP client — the CI network rule
-// stays about imports, not exceptions.
+// serveCommand starts the web app for one repository (SUR-07). The listening happens in package
+// server, so this package still never imports an HTTP client — the CI network rule stays about
+// imports, not exceptions.
 func serveCommand(e env, args []string) error {
 	fs := flags("serve")
 	port := fs.Int("port", 7474, "local `port` to serve on; only this machine can connect")
@@ -31,7 +31,7 @@ func serveCommand(e env, args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	return serve.ListenAndServe(ctx, root, *port, func(url string) {
+	return server.ListenAndServe(ctx, root, *port, func(url string) {
 		fmt.Fprintf(e.out, "archdoc serving %s at %s — this machine only. Ctrl-C to stop.\n", root, url)
 		if *open {
 			if err := browse(url); err != nil {

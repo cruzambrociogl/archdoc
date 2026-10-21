@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cruzambrociogl/archdoc/internal/model"
+	"github.com/cruzambrociogl/archdoc"
 )
 
 // The drift set (F-39): the fixtures AC-6 is scored against. Each case changes the repository in
@@ -152,7 +152,7 @@ func copyTree(t *testing.T, from, to string) {
 // AC-6 — every drift in the set detected and classified.
 func TestDriftSetIsDetectedAndClassified(t *testing.T) {
 	base := filepath.Join("..", "..", "testdata", "drift", "base")
-	before, err := modelOf(base)
+	before, err := archdoc.ReadModel(base)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,13 +164,13 @@ func TestDriftSetIsDetectedAndClassified(t *testing.T) {
 		for _, e := range c.edits {
 			e(t, dir)
 		}
-		after, err := modelOf(dir)
+		after, err := archdoc.ReadModel(dir)
 		if err != nil {
 			t.Errorf("%s: %v", c.name, err)
 			continue
 		}
 		var got []string
-		for _, d := range model.Compare(before, after).Drift() {
+		for _, d := range archdoc.Compare(before, after).Drift {
 			got = append(got, d.Class+" "+d.Element)
 		}
 		if strings.Join(got, "\n") != strings.Join(c.want, "\n") {

@@ -1241,3 +1241,14 @@ at either file mean its copy there. From here on this log holds the engine's own
 product's, the platform's, and those touching more than one repository go to
 `archdoc-platform/docs/decisions.md`. `platform-surface.md` stays: it specifies the public app.
 → `CLAUDE.md`, "Read this before anything else"
+
+**2026-10-21 — The engine's public API: one door, the CLI its first client**
+The module root, package `archdoc`, is the pipeline's only door. Its types are aliases of
+`internal/core`, renamed from `internal/archdoc` so the names do not clash. Strict over minimal: every
+command goes through it — not only the four the platform needs — and CI fails if `cmd/archdoc`
+imports `internal/`, so the seam cannot erode. The library prints nothing on its own: lines go to a
+caller's `Log` writer, which keeps the command's output byte-identical; a paid run asks a caller's
+`Consent`, so the terminal prompt stays in the CLI. History is an option, off for a throwaway clone.
+`serve` is a public `server` package, so the API never imports `net/http`. A stream of progress
+events for the Generating screen is new capability, and waits for the freeze to lift.
+→ `archdoc.go`, `generate.go`; `CLAUDE.md`, package map

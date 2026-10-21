@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	"github.com/cruzambrociogl/archdoc/internal/extract"
+	"github.com/cruzambrociogl/archdoc"
 )
 
 // history lists what archdoc has recorded for a repository.
@@ -27,20 +27,15 @@ func history(e env, args []string) error {
 	}
 	out := e.out
 
-	facts, err := extract.Scan(root)
+	h, err := archdoc.OpenHistory(root)
 	if err != nil {
 		return err
 	}
-
-	h, ok, err := openHistory(facts.Root)
-	if err != nil {
-		return err
-	}
-	if !ok {
+	if !h.Recorded() {
 		if *asJSON {
 			return printJSON(out, []any{})
 		}
-		fmt.Fprintf(out, "No history yet for %s — 'archdoc generate %s' records the first version.\n", facts.Root, root)
+		fmt.Fprintf(out, "No history yet for %s — 'archdoc generate %s' records the first version.\n", h.Root, root)
 		return nil
 	}
 	defer h.Close()
@@ -58,7 +53,7 @@ func history(e env, args []string) error {
 		return printJSON(out, list)
 	}
 	if len(versions) == 0 {
-		fmt.Fprintf(out, "No history yet for %s — 'archdoc generate %s' records the first version.\n", facts.Root, root)
+		fmt.Fprintf(out, "No history yet for %s — 'archdoc generate %s' records the first version.\n", h.Root, root)
 		return nil
 	}
 

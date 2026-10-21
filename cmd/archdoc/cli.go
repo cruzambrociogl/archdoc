@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+
 	"flag"
 	"fmt"
+	"github.com/cruzambrociogl/archdoc"
 	"io"
 	"path/filepath"
 	"sort"
@@ -106,8 +108,8 @@ func lookupCommand(name string) (command, bool) {
 var errHelped = errors.New("help shown")
 
 // errStopped ends a command that stopped on purpose — a dry run, or a "no" to sending — with
-// nothing written: nothing failed.
-var errStopped = errors.New("stopped")
+// nothing written: nothing failed. The engine's own, so a stop it passes back is recognised.
+var errStopped = archdoc.ErrStopped
 
 // usageError is a command used wrongly: exit code 2, and a pointer to its help.
 type usageError struct{ msg string }

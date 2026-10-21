@@ -92,3 +92,38 @@ jobs:
           fi
 
           echo "Network boundary holds."
+
+  # The engine's public API (package archdoc) is the one door to the pipeline: the CLI is its first
+  # client and may import nothing from internal/, and a program in a module of its own — which Go
+  # forbids from importing internal/ at all — documents a repository through it. If either breaks,
+  # the API is no longer enough on its own (platform plan, step 1).
+  public-api:
+    name: Public API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: The CLI imports nothing from internal/
+        run: |
+          set -euo pipefail
+          offenders=$(go list -f '{{join .Imports "\n"}}' ./cmd/archdoc | grep '/internal/' || true)
+          if [ -n "$offenders" ]; then
+            echo "cmd/archdoc imports internal packages — it may use only package archdoc:"
+            echo "$offenders"
+            exit 1
+          fi
+          echo "The CLI uses the public API only."
+
+      - name: A program outside the module documents a repository
+        working-directory: examples/library
+        run: |
+          set -euo pipefail
+          go vet .
+          work=$(mktemp -d)
+          cp -R ../../testdata/drift/base "$work/shop"
+          go run . "$work/shop"

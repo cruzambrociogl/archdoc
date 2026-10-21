@@ -1,18 +1,11 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
-	"github.com/cruzambrociogl/archdoc/internal/core"
-	"github.com/cruzambrociogl/archdoc/internal/model"
-	"github.com/cruzambrociogl/archdoc/internal/render"
-	"github.com/cruzambrociogl/archdoc/internal/semantic"
-	"github.com/cruzambrociogl/archdoc/internal/store"
-	"github.com/cruzambrociogl/archdoc/internal/validate"
+	"github.com/cruzambrociogl/archdoc"
 )
 
 // status answers "is the documentation up to date, and what is open?" — the question the app's
@@ -30,85 +23,17 @@ func status(e env, args []string) error {
 		return err
 	}
 
-	type report struct {
-		Root       string `json:"root"`
-		Documented bool   `json:"documented"`
-		Name       string `json:"name,omitempty"`
-		Version    int64  `json:"version,omitempty"`
-		Recorded   string `json:"recorded,omitempty"`
-		Commit     string `json:"commit,omitempty"`
-		Head       string `json:"head,omitempty"`
-		// Changes is how many changes to the structure the code has now that the documentation does
-		// not; -1 when the code could not be read.
-		Changes      int     `json:"changes"`
-		CodeError    string  `json:"code_error,omitempty"`
-		Labelled     int     `json:"labelled"`
-		Components   int     `json:"components"`
-		Explained    int     `json:"explained"`
-		Stale        int     `json:"stale"`
-		WouldAsk     int     `json:"would_ask"`
-		Gaps         int     `json:"gaps"`
-		Runs         int     `json:"runs"`
-		Spent        float64 `json:"spent_usd"`
-		UnknownCosts int     `json:"runs_of_unknown_cost,omitempty"`
-	}
-	r := report{Root: absolute(root), Head: render.Commit(root)}
-
-	stored, ok, err := committedModel(root)
+	r, err := archdoc.Status(context.Background(), root)
 	if err != nil {
 		return err
 	}
-	if !ok {
+	if !r.Documented {
 		if *asJSON {
 			return printJSON(e.out, r)
 		}
 		fmt.Fprintf(e.out, "%s is not documented yet — 'archdoc scan %s' previews it, 'archdoc generate %s' writes it.\n", r.Root, root, root)
 		return nil
 	}
-	r.Documented, r.Name = true, stored.Name
-
-	if h, ok, err := openHistory(root); err != nil {
-		return err
-	} else if ok {
-		if v, err := h.Latest(); err == nil && v != nil {
-			r.Version, r.Recorded, r.Commit = v.ID, v.CreatedAt.Local().Format("2 Jan 2006 15:04"), v.Commit
-		}
-		if all, err := h.Runs(1 << 30); err == nil {
-			r.Runs = len(all)
-			r.Spent, r.UnknownCosts = spent(all)
-		}
-		h.Close()
-	}
-
-	r.Changes = -1
-	if now, err := modelOf(root); err != nil {
-		r.CodeError = err.Error()
-	} else {
-		r.Changes = structuralChanges(model.Compare(stored, now))
-	}
-
-	for _, n := range stored.Nodes {
-		if n.DescProv.Origin.Interpretation() || n.NameProv.Origin.Interpretation() {
-			r.Labelled++
-		}
-		if n.Kind == core.Component {
-			r.Components++
-		}
-	}
-	for _, x := range stored.Explanations {
-		r.Explained++
-		if x.Stale {
-			r.Stale++
-		}
-	}
-	memory, err := loadMemory(root)
-	if err != nil {
-		return err
-	}
-	plans := semantic.ExplainPlan(stored, memory, "", 0)
-	r.WouldAsk = len(plans)
-	r.Gaps = len(validate.Model(stored).Warnings())
-
 	if *asJSON {
 		return printJSON(e.out, r)
 	}
@@ -119,7 +44,7 @@ func status(e env, args []string) error {
 	case r.Version > 0:
 		line("documented", "version %d, recorded %s%s", r.Version, r.Recorded, atCommit(r.Commit))
 	default:
-		line("documented", "%s is committed; this clone has no local history — 'archdoc generate %s' records it", modelOut, root)
+		line("documented", "%s is committed; this clone has no local history — 'archdoc generate %s' records it", archdoc.ModelFile, root)
 	}
 	switch {
 	case r.Changes < 0:
@@ -143,13 +68,9 @@ func status(e env, args []string) error {
 			x += fmt.Sprintf(", %d of them about facts that have since changed", r.Stale)
 		}
 		if r.WouldAsk > 0 {
-			bytes := 0
-			for _, p := range plans {
-				bytes += p.Bytes()
-			}
 			x += fmt.Sprintf(" — 'archdoc explain %s' would ask about %d", root, r.WouldAsk)
-			if usd, ok := semantic.Cost(semantic.ExplainModel, int64(float64(bytes)/bytesPerToken), explainAnswer*int64(len(plans))); ok {
-				x += ", " + dollars(usd)
+			if r.AskEstimateKnown {
+				x += ", " + dollars(r.AskEstimate)
 			}
 		}
 		line("explanations", "%s", x)
@@ -170,46 +91,6 @@ func status(e env, args []string) error {
 		line("network", "%s — 'archdoc runs %s' lists them", x, root)
 	}
 	return nil
-}
-
-// structuralChanges counts what changed in what the system is, leaving out what it is called or
-// said to be: a model's descriptions are in the committed model and not in a fresh reading.
-func structuralChanges(d model.Diff) int {
-	n := len(d.AddedNodes) + len(d.RemovedNodes) + len(d.AddedEdges) + len(d.RemovedEdges) +
-		len(d.AddedEntries) + len(d.RemovedEntries) + len(d.Moved)
-	for _, c := range d.Changed {
-		if !wordFields[c.Field] {
-			n++
-		}
-	}
-	return n
-}
-
-// committedModel is .archdoc/model.json: the durable record generate writes and a repository
-// commits, which a fresh clone has and its local history does not.
-func committedModel(root string) (core.Model, bool, error) {
-	b, err := os.ReadFile(filepath.Join(root, modelOut))
-	if os.IsNotExist(err) {
-		return core.Model{}, false, nil
-	}
-	if err != nil {
-		return core.Model{}, false, err
-	}
-	var m core.Model
-	if err := json.Unmarshal(b, &m); err != nil {
-		return m, false, fmt.Errorf("%s: %w", modelOut, err)
-	}
-	return m, true, nil
-}
-
-// openHistory opens a repository's history only if it has one. store.Open creates the database,
-// which a command that only reads must never do to a repository archdoc has not documented.
-func openHistory(root string) (*store.Store, bool, error) {
-	if _, err := os.Stat(filepath.Join(root, store.File)); os.IsNotExist(err) {
-		return nil, false, nil
-	}
-	h, err := store.Open(root)
-	return h, err == nil, err
 }
 
 func atCommit(c string) string {

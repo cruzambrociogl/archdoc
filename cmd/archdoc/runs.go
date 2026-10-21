@@ -5,8 +5,7 @@ import (
 	"io"
 	"text/tabwriter"
 
-	"github.com/cruzambrociogl/archdoc/internal/extract"
-	"github.com/cruzambrociogl/archdoc/internal/store"
+	"github.com/cruzambrociogl/archdoc"
 )
 
 // runs is SUR-13 and SUR-14: every run that used the network, what it cost, and — with --show —
@@ -31,16 +30,11 @@ func runs(e env, args []string) error {
 	}
 	out := e.out
 
-	facts, err := extract.Scan(root)
+	h, err := archdoc.OpenHistory(root)
 	if err != nil {
 		return err
 	}
-
-	h, ok, err := openHistory(facts.Root)
-	if err != nil {
-		return err
-	}
-	if !ok {
+	if !h.Recorded() {
 		if *asJSON {
 			return printJSON(out, []any{})
 		}
@@ -84,7 +78,7 @@ func runs(e env, args []string) error {
 	}
 	w.Flush()
 
-	total, unknown := spent(all)
+	total, unknown := archdoc.Spent(all)
 	fmt.Fprintf(out, "\n%d run(s), $%.2f in all", len(all), total)
 	if unknown > 0 {
 		fmt.Fprintf(out, ", and %d whose cost is unknown", unknown)
@@ -96,7 +90,7 @@ func runs(e env, args []string) error {
 	return nil
 }
 
-func showRun(h *store.Store, id int64, out io.Writer) error {
+func showRun(h *archdoc.History, id int64, out io.Writer) error {
 	r, err := h.Run(id)
 	if err != nil {
 		return err
@@ -120,20 +114,7 @@ func showRun(h *store.Store, id int64, out io.Writer) error {
 	return nil
 }
 
-// spent is what the runs cost, and how many of them cost an unknown amount.
-func spent(rs []store.Run) (float64, int) {
-	total, unknown := 0.0, 0
-	for _, r := range rs {
-		if r.CostKnown {
-			total += r.CostUSD
-		} else {
-			unknown++
-		}
-	}
-	return total, unknown
-}
-
-func costText(r store.Run) string {
+func costText(r archdoc.Run) string {
 	if !r.CostKnown {
 		return "unknown"
 	}

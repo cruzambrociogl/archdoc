@@ -11,6 +11,7 @@ criteria are defined in `docs/product-definition.md` §12 and their status is ke
 | Vet | `go vet ./...` | Locally and CI |
 | Tests, race detector on, no cache | `go test -race -count=1 ./...` | Locally and CI |
 | The network boundary — only `internal/semantic` may make outbound calls (hard rule 3, AC-8) | the `network-boundary` job in `.github/workflows/ci.yml` | CI |
+| The public API is enough: `cmd/archdoc` imports nothing from `internal/`, and `examples/library` — a module of its own — documents a fixture through it | the `public-api` job | CI |
 | The web app typechecks and builds | `cd web && npm run build` | Locally; CI from platform-plan step 8 |
 
 ## The acceptance criteria

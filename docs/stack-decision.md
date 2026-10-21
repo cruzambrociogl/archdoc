@@ -410,7 +410,7 @@ requires:
 
 ```
 archdoc/
-├── cmd/archdoc/       CLI entry point — thin
+├── cmd/archdoc/       CLI entry point — thin, over the public API at the module root
 ├── internal/
 │   ├── archdoc/       core types: Fact, Provenance, FactSet, Node, Edge, Model, Version
 │   ├── extract/       discovery + the parser registry

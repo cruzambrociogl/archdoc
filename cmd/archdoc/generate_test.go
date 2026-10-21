@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/cruzambrociogl/archdoc"
 )
 
 // copyFixture puts a fixture repository somewhere writable. archdoc writes into the repository
@@ -57,7 +59,7 @@ func TestRegenerationNeverTouchesHumanSections(t *testing.T) {
 	root := copyFixture(t, "gateway")
 	gen(t, root)
 
-	mine := filepath.Join(root, docsDir, "01-introduction-and-goals.md")
+	mine := filepath.Join(root, archdoc.DocsDir, "01-introduction-and-goals.md")
 	written := "# 1. Introduction and Goals\n\nThis sentence is mine and must survive.\n"
 
 	if err := os.WriteFile(mine, []byte(written), 0o644); err != nil {
@@ -83,7 +85,7 @@ func TestGeneratedSectionsAreOverwritten(t *testing.T) {
 	root := copyFixture(t, "gateway")
 	gen(t, root)
 
-	generated := filepath.Join(root, docsDir, "05-building-block-view.generated.md")
+	generated := filepath.Join(root, archdoc.DocsDir, "05-building-block-view.generated.md")
 	if err := os.WriteFile(generated, []byte("stale nonsense\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +120,7 @@ func TestFirstRunProducesTheWholeDocument(t *testing.T) {
 	root := copyFixture(t, "gateway")
 	gen(t, root)
 
-	entries, err := os.ReadDir(filepath.Join(root, docsDir))
+	entries, err := os.ReadDir(filepath.Join(root, archdoc.DocsDir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,9 +141,9 @@ func TestGeneratedOutputIsStableAcrossRuns(t *testing.T) {
 	root := copyFixture(t, "rules")
 	gen(t, root)
 
-	before := readAll(t, filepath.Join(root, docsDir))
+	before := readAll(t, filepath.Join(root, archdoc.DocsDir))
 	gen(t, root)
-	after := readAll(t, filepath.Join(root, docsDir))
+	after := readAll(t, filepath.Join(root, archdoc.DocsDir))
 
 	for name, content := range before {
 		if after[name] != content {
@@ -175,7 +177,7 @@ func TestOrphanedGeneratedFilesAreRemoved(t *testing.T) {
 	root := copyFixture(t, "gateway")
 	gen(t, root)
 
-	dir := filepath.Join(root, docsDir)
+	dir := filepath.Join(root, archdoc.DocsDir)
 	orphan := filepath.Join(dir, "architecture.generated.md")
 	mine := filepath.Join(dir, "notes-on-architecture.md")
 	theirs := filepath.Join(dir, "diagram.svg")
@@ -188,7 +190,7 @@ func TestOrphanedGeneratedFilesAreRemoved(t *testing.T) {
 	if _, err := os.Stat(orphan); !os.IsNotExist(err) {
 		t.Error("an orphaned generated file survived")
 	}
-	if !strings.Contains(out, "removed "+filepath.Join(docsDir, "architecture.generated.md")) {
+	if !strings.Contains(out, "removed "+filepath.Join(archdoc.DocsDir, "architecture.generated.md")) {
 		t.Errorf("the removal was not reported:\n%s", out)
 	}
 	for _, p := range []string{mine, theirs} {
@@ -215,7 +217,7 @@ func TestARepositoryWithoutComposeIsDocumented(t *testing.T) {
 	if !strings.Contains(out, "3 elements, 1 relationship,") {
 		t.Errorf("want the two applications and the person who uses the web one:\n%s", out)
 	}
-	b, err := os.ReadFile(filepath.Join(root, modelOut))
+	b, err := os.ReadFile(filepath.Join(root, archdoc.ModelFile))
 	if err != nil {
 		t.Fatal(err)
 	}

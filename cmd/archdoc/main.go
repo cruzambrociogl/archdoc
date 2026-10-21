@@ -1,9 +1,9 @@
 // Command archdoc reads a repository and produces the architecture documentation it should
 // have had — accurate, traceable to the code, and regenerable as the system changes.
 //
-// This is the CLI: argument parsing over the engine, and nothing else. All behaviour lives in
-// internal/, so the engine stays testable with no frontend present. See docs/stack-decision.md
-// §3.
+// This is the CLI: argument parsing and printing over the engine's public API, package archdoc,
+// and nothing else. It imports nothing from internal/ — CI checks it — so whatever the command can
+// do, any other program can do through the same API.
 package main
 
 import (
@@ -15,8 +15,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/cruzambrociogl/archdoc/internal/core"
-	"github.com/cruzambrociogl/archdoc/internal/extract"
+	"github.com/cruzambrociogl/archdoc"
 )
 
 func main() {
@@ -71,7 +70,7 @@ func interactive(f *os.File) bool {
 }
 
 func version(e env) error {
-	fmt.Fprintln(e.out, core.Build())
+	fmt.Fprintln(e.out, archdoc.Build())
 	return nil
 }
 
@@ -91,14 +90,15 @@ func scan(e env, args []string) error {
 		return err
 	}
 
-	facts, err := extract.Scan(root)
+	reading, err := archdoc.Read(root)
 	if err != nil {
 		return err
 	}
+	facts := reading.Facts
 	if *raw {
 		return printJSON(e.out, facts)
 	}
-	if facts.Source == "" && !hasContainerApp(facts.Apps) {
+	if !reading.Documentable {
 		if *asJSON {
 			return printJSON(e.out, map[string]any{"root": facts.Root, "documentable": false})
 		}
@@ -107,7 +107,7 @@ func scan(e env, args []string) error {
 		listConsidered(e.out, facts)
 		return nil
 	}
-	m, err := corrected(facts)
+	m, err := reading.Model()
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func scan(e env, args []string) error {
 			apps = append(apps, map[string]string{"name": a.Name, "dir": a.Dir, "role": string(a.Role), "framework": a.Framework, "why": a.Why})
 		}
 		return printJSON(e.out, map[string]any{"root": facts.Root, "documentable": true, "name": m.Name, "source": m.Source,
-			"applications": apps, "counts": countModel(m)})
+			"applications": apps, "counts": archdoc.Count(m)})
 	}
 
 	fmt.Fprintf(e.out, "%s — %s\n\n", m.Name, facts.Root)
@@ -133,7 +133,7 @@ func scan(e env, args []string) error {
 	if facts.Source != "" {
 		fmt.Fprintf(e.out, "%d services in %s\n", len(facts.Services), facts.Source)
 	}
-	countModel(m).print(e.out, m.Source)
+	archdoc.Count(m).Print(e.out, m.Source)
 	if *considered {
 		listConsidered(e.out, facts)
 	}
@@ -141,7 +141,7 @@ func scan(e env, args []string) error {
 	return nil
 }
 
-func listConsidered(out io.Writer, f *core.FactSet) {
+func listConsidered(out io.Writer, f *archdoc.FactSet) {
 	if len(f.Considered) == 0 {
 		return
 	}
