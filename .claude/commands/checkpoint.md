@@ -24,6 +24,11 @@ anything now false in an auto-loaded file.
 | Scope or schedule change | `docs/delivery-schedule.md` — **and flag its published mirrors**, listed at the top of that file. They do not update themselves, and a stale schedule shown to a supervisor is worse than none |
 | Product decision that changes what archdoc *is* | `docs/product-definition.md` — rare, and say so explicitly |
 | Open question raised or closed | `PROGRESS.md`, open questions table |
+| A change shipped in a tagged version | `CHANGELOG.md` — what is different for a user, not why |
+| How the engine is tested, or a new gate | `docs/testing.md` |
+| **Anything confidential** — business, pricing, the platform's infrastructure, security, plan | `../archdoc-platform`, by its own checkpoint table. **Never here** — this repository is public |
+| Decision about the product, the platform, or more than one repository | `../archdoc-platform/docs/decisions.md` |
+| The plan across the three repositories — a step reached | `../archdoc-platform/PROGRESS.md` |
 
 ## Drain `.claude/NOTES.md` — do this every time
 
@@ -67,6 +72,8 @@ did, say so and justify it.
 - List every file you will touch before starting
 - Do not duplicate — check whether it is already captured
 - Prefer the repo over any external memory. If it belongs in `docs/`, it goes in `docs/`
+- Before writing anything here, check it is not confidential: this repository is public, and a
+  public commit cannot be taken back
 - Terse. Decisions 3–6 lines; progress entries one line
 - Skip clarifying questions, small talk, and conversational back-and-forth
 - Respect document precedence: the product definition outranks the stack decision. If a

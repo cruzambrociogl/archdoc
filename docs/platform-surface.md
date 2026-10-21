@@ -18,9 +18,14 @@
 place, a density budget, plain names, and related repositories — the information architecture of §4;
 what changed is listed in §12. **Revision 4, 2026-10-20**, after round 3 (`App.dc.html`, `App Findings`):
 corrections, not a redesign — listed in §13. **Revision 5, 2026-10-20**: the Landing leaves the app
-for a static website at the root domain — §14. **Nothing here is built**: the code is
+for a static website at the root domain — §14. **Revision 6, 2026-10-21**: every page in the app —
+§15. **Nothing here is built**: the code is
 > frozen until the platform's development environment exists (`platform-plan.md`); designing is not
 > building, and is the right work now. Direction: `hosted-proposal.md` §8.
+>
+> **`platform-plan.md` and `hosted-proposal.md`**, cited throughout, moved on 2026-10-21 to the
+> private `archdoc-platform` repository, beside this one. What a design round needs from them is
+> written here: the website's pages in §14.
 
 ### Where to look
 
@@ -40,7 +45,8 @@ for a static website at the root domain — §14. **Nothing here is built**: the
 | What the first design round changed | §11 |
 | What revision 3 changed | §12 |
 | What revision 4 changed | §13 |
-| What revision 5 changed — the website | §14 |
+| What revision 5 changed — the website, and its pages for its design round | §14 |
+| What revision 6 changed — every page in the app | §15 |
 
 ### Pieces
 
@@ -1072,26 +1078,6 @@ differing only where §4.5 says. Revision 4 corrects what reviewing it showed.
 drawn; the place note was removed (§4.3) — the far-right slot says the place; the rule for clustering tables (§10, question 6) is still needed — round 3 shows
 the 34-table cluster on the Map.
 
----
-
-## 14. Revision 5 — the website
-
-The Landing (§5.1) was the app's one page for strangers, and the one place allowed to sell. A
-product with a business aim needs more than one such page — how it works, trust, pricing, docs — and
-pages strangers find through search, which a single-page app serves badly. Revision 5 moves it out.
-
-- **A static website at the root domain** holds the Landing's content as its home page, and How it
-  works, Gallery, Trust, Pricing, Docs, Changelog, Terms and Privacy around it. Its stack and its
-  three origins — website, app, generated sites — are in `platform-plan.md` §7, "The website".
-- **The app keeps Start** (`/new?repo=…`), which the website's link box opens, with every state the
-  Landing had (§5.1). A signed-out visitor at the app's root is sent to the website.
-- **The gallery is built with the website**, by the engine at pinned commits — no platform needed
-  (§8, §10 question 4).
-- **The app now has no page for strangers.** Every app page is for someone using a repository; the
-  selling is the website's.
-- **The website is designed in a round of its own**, after the app's: same design system, no app
-  shell. This round draws Start in place of the Landing (§9).
-
 ### After round 4
 
 Round 4 (`App.dc.html`, `App Notifications`, `App Findings` "Round 4") applied every correction of
@@ -1144,3 +1130,58 @@ so the end of its sample data cannot be read back for review. Its data moves to 
 **The design is done enough to build from.** Five rounds cover the one app, the three places, the
 information architecture, the vocabulary, phone layouts and the states. What remains is found by
 using it, not by more rounds.
+
+---
+
+## 14. Revision 5 — the website
+
+The Landing (§5.1) was the app's one page for strangers, and the one place allowed to sell. A
+product with a business aim needs more than one such page — how it works, trust, pricing, docs — and
+pages strangers find through search, which a single-page app serves badly. Revision 5 moves it out.
+
+- **A static website at the root domain** holds the Landing's content as its home page, and How it
+  works, Gallery, Trust, Pricing, Docs, Changelog, Terms and Privacy around it. Its stack and its
+  three origins — website, app, generated sites — are in the platform's plan (§7, "The website").
+- **The app keeps Start** (`/new?repo=…`), which the website's link box opens, with every state the
+  Landing had (§5.1). A signed-out visitor at the app's root is sent to the website.
+- **The gallery is built with the website**, by the engine at pinned commits — no platform needed
+  (§8, §10 question 4).
+- **The app now has no page for strangers.** Every app page is for someone using a repository; the
+  selling is the website's.
+- **The website is designed in a round of its own**, after the app's: same design system, no app
+  shell. This round draws Start in place of the Landing (§9).
+
+### The website's pages — the brief for its design round
+
+The website's own design round works from this section; the platform's plan is not readable from
+here. Same design system as the app, no app shell; readable before complete; the one place allowed
+to sell, calmly — the gallery does the selling.
+
+- **Home** — one sentence of what archdoc is; the link box, **Show its architecture**, which opens
+  the app's Start; the gallery; the three ways to use it — local, the GitHub Action, hosted; Sign in
+  with GitHub.
+- **How it works** — the pipeline in plain words; what proven, written by AI and couldn't be
+  resolved mean, each with an example from the gallery.
+- **Gallery** — a page per repository, generated by the engine: the plain summary, the diagram, what
+  could not be read (Mastodon's card says it was partly read), and "open in archdoc".
+- **Trust** — what leaves your machine locally, what the platform keeps, and what it never keeps.
+  The never-keep-your-code wording is still open (§10, question 3).
+- **Pricing** — once decided; until then absent, not "coming soon".
+- **Docs** — install, the CLI, `rules.yaml`, the GitHub Action, self-hosting. Written beside the
+  engine's code, rendered here.
+- **Changelog** — the engine's versions.
+- **Terms**, **Privacy** — linked from the footer and the sign-in page.
+- **Footer** on every page — the three ways to use it, Docs, Changelog, Terms, Privacy, status.
+- **Light and dark, desktop and phone (390)** — as the app.
+
+---
+
+## 15. Revision 6 — every page in the app
+
+Settled 2026-10-21, after the design was done: **the app ships every page.** Only three pages
+belong to the website signed in alone — Connect a repository, Account settings, sign-in — and one to
+local alone — This machine; but what the platform adds runs through every shared page: the
+far-right "you" slot, Share with link, embed and badge, corrections as pull requests, owner and
+viewer, and the §4.8 states. So the app holds every page and its routing, and what appears is
+decided by the place's capabilities (§4.5), as the design already draws it: one file, one app, a
+review bar that changes only the place. Nothing about the screens changes.

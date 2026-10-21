@@ -4,11 +4,11 @@ Reads an existing codebase and produces the architecture documentation it should
 accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
 web app, one static binary.
 
-**Phase:** frozen for new features since 19 Oct, while the development environment for the
-platform is set up — `docs/platform-plan.md` (the steps, and when the freeze lifts) and
-`docs/hosted-proposal.md` §8 (the direction). What the engine does today: `PROGRESS.md`, "Where this
-stands". This is one of three repositories — with `archdoc-platform` and `archdoc-website`, siblings
-in one folder (`docs/platform-plan.md` §2).
+**Phase:** frozen for new features since 19 Oct, while the platform's development environment is
+set up. One of three repositories, always siblings in one folder: this engine (public),
+`../archdoc-platform` and `../archdoc-website` (private). **The platform repository is the source** —
+the plan and when the freeze lifts (`../archdoc-platform/docs/platform-plan.md`), the direction, and
+the map of all three (`../archdoc-platform/WORKSPACE.md`). What the engine does today: `PROGRESS.md`, "Where this stands".
 **Target:** code freeze 4 Dec 2026, delivered 11 Dec 2026.
 
 ---
@@ -43,7 +43,11 @@ disagree, **the definition wins**. The definition is what the product *is*; the 
 decision is what it is built with. `docs/survey-test-subjects.md` is evidence, never
 instruction.
 
-**Token discipline.** `docs/` totals ~4,750 lines. Never load a document whole. Load the named
+**This repository is public — nothing confidential is written here.** Business, pricing, the
+platform's infrastructure, security and plan go to `../archdoc-platform` (its `WORKSPACE.md` §2),
+even when the session is in this repository: a public commit cannot be taken back.
+
+**Token discipline.** `docs/` totals ~8,600 lines. Never load a document whole. Load the named
 section for the task at hand and nothing else.
 
 | Load this | When |
@@ -60,6 +64,7 @@ section for the task at hand and nothing else.
 | `docs/surface-spec.md` | Working on the web app or the published site — screens, design system, modes, what the app may do. Design: Claude Design project (memory). The information architecture of the whole app — one app for local, hosted and published; where every screen lives; related repositories — plus the platform's flows and screens: `docs/platform-surface.md` §4, which supersedes surface-spec §4.1 and reverses rule 7 |
 | `docs/vision.md` | Discussing scope beyond configuration — code as evidence, lenses, explanations. **A proposal:** until a decision there is recorded in `decisions.md`, the definition wins |
 | `PROGRESS.md` | Starting work — what is done, what gate is next |
+| `docs/testing.md` | Running or writing tests — the commands, the gates, the test data |
 | `.claude/NOTES.md` | Starting or ending a session — the inbox of unplanned items |
 | `docs/origin/` | Asking *why* the project is shaped this way, or "did we consider X?" — the ideation record, including discarded alternatives |
 | `docs/decisions.md` | Before revisiting anything that looks already-settled |
@@ -121,8 +126,7 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 **Build:** contributors need Node; users do not. `web/dist` is built before the binary and
 embedded. A `dev` build tag proxies to the frontend dev server instead.
 
-**Module path:** `github.com/cruzambrociogl/archdoc`. Clone and configure git however you
-normally would — `.git/config` is untracked, so nothing here touches your setup.
+**Module path:** `github.com/cruzambrociogl/archdoc`.
 
 **Branch discipline — convention, not enforced.** There is no ruleset on `main`; nothing on
 GitHub will stop a mistaken push. Honour it anyway:
@@ -143,7 +147,8 @@ in the form `-> path — [what]`. Never save silently.**
 | Say | Means |
 |---|---|
 | "add a note" / "take a note" / "remember this" / **"add a TODO"** / "we'll do this later" / "don't forget" | `.claude/NOTES.md` — the inbox. One line, no filing effort |
-| "log this decision" | `docs/decisions.md`, dated entry, 3–6 lines |
+| "log this decision" | `docs/decisions.md`, dated entry, 3–6 lines — the engine's own; the product's, or one touching another repository, goes to `../archdoc-platform/docs/decisions.md` |
+| "this is confidential" | `../archdoc-platform` — never this repository |
 | "mark this done" / "X is done" | `PROGRESS.md` — capability ID or AC gate |
 | "update the context" | this file — and remove something stale in the same edit |
 | "update the docs" | the relevant `docs/` file |

@@ -87,19 +87,17 @@ raised, not quietly promoted over it.
   stop after phase 2 for a review. Recommended: class, with Simple mode folding; all three phases.
 - [ ] Long external names overflow their box in every SVG ("Telemetry collector (OpenTelemetry)",
   seen on the data-flow view): the name is not wrapped or clipped as descriptions are.
-- [ ] After the current Claude Design round, pull it and settle two repository questions, even if the
-  design does not answer them: (1) pages only the platform has (Connect, Account, billing — the Landing
-  is now the website)
-  — the shared app exports its routes and the platform adds its own, or the app ships every page;
-  (2) where the platform documents belong — no longer a privacy question (the engine was always
-  public; 2026-10-21). Proposed after the final design: `platform-surface.md` stays beside the
-  shared app; `platform-plan.md`'s platform half and `hosted-proposal.md` move when step 4 creates
-  the platform repository. Proposed for (1): the app ships every page, gated by capabilities. Also: rename `internal/archdoc` → `internal/core` in step 1 — 2026-10-20
+- [ ] Rename `internal/archdoc` → `internal/core` in the plan's step 1: the public root package is
+  also `archdoc`, and every file of the API would need an import alias — 2026-10-20
 
 ## Recently resolved
 
 Staging, not an archive. An item lands here when it is resolved, and is deleted at the
 **next** checkpoint after that. Nothing stays under *Open* once it has a marker.
+
+- [→ ../archdoc-platform/docs/platform-plan.md step 2; ../archdoc-platform/docs/decisions.md] The two
+  repository questions after the design: the app ships every page; `platform-plan.md` and
+  `hosted-proposal.md` moved to the platform repository, `platform-surface.md` stays — 2026-10-21
 
 - [x] Dense component views — a component most others use is drawn as shared: its box says "used by
   12 of 13" and no arrow is drawn into it; the arrows stay in the model and the inspector — 2026-10-08

@@ -1233,3 +1233,11 @@ and every flow from the engine would have needed credentials. Private depends on
 reverse, so nothing needs a token to read the engine. The engine was public before this plan, so
 step 3 has no review before publishing: what it holds was already readable.
 → `docs/platform-plan.md` §2, step 3
+
+**2026-10-21 — The platform's documents leave this repository; its decisions are logged there**
+`docs/platform-plan.md` and `docs/hosted-proposal.md` moved to the private `archdoc-platform`, which
+is the source for the three repositories and holds everything confidential. Entries above that point
+at either file mean its copy there. From here on this log holds the engine's own decisions; the
+product's, the platform's, and those touching more than one repository go to
+`archdoc-platform/docs/decisions.md`. `platform-surface.md` stays: it specifies the public app.
+→ `CLAUDE.md`, "Read this before anything else"
