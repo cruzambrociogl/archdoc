@@ -125,8 +125,8 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 
 `output` lives as files inside the packages that use it until coupling earns it a package.
 
-**Build:** contributors need Node; users do not. `web/dist` is built before the binary and
-embedded. A `dev` build tag proxies to the frontend dev server instead.
+**Build:** contributors need Node; users do not. `web/host/dist` is built before the binary and
+embedded. The app is `web/app` (`@archdoc/app`), reading through a Source each place gives it — `web/README.md`. A `dev` build tag proxies to the frontend dev server instead.
 
 **Module path:** `github.com/cruzambrociogl/archdoc`.
 

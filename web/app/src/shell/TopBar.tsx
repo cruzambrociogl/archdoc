@@ -1,5 +1,5 @@
 import type { Session, Summary, Version } from '../api'
-import { published } from '../api'
+import { useCapabilities } from '../source'
 import type { Route } from '../route'
 import type { Theme } from '../theme'
 import { Planned } from '../ui/Planned'
@@ -25,6 +25,7 @@ export function TopBar(props: {
   onKeys: () => void
   session?: Session
 }) {
+  const can = useCapabilities()
   const { summary: s, route, go } = props
   const inExplorer = route.screen === 'explorer'
 
@@ -38,7 +39,7 @@ export function TopBar(props: {
         <span className="brand-repo">/ {s.name}</span>
       </div>
 
-      {published ? (
+      {!can.history ? (
         <span className="generated-from" title="This published site shows one version, built from the committed record">
           Generated from <span className="mono">{(props.session?.commit ?? s.commit ?? '').slice(0, 7) || 'an uncommitted tree'}</span>
           {props.session?.generated_at && <> on {new Date(props.session.generated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</>}
@@ -108,7 +109,7 @@ export function TopBar(props: {
       <button className="icon-btn" onClick={props.onTheme} title={themeLabel[props.theme]} aria-label={themeLabel[props.theme]}>
         {themeGlyph[props.theme]}
       </button>
-      {published ? (
+      {can.place === 'published' ? (
         <span className="mode-badge published" title="A static site built by archdoc export --site: one version, no controls">
           Published
         </span>

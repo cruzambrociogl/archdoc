@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CoverageResponse, Session, Summary, Version, ViewsResponse } from './api'
-import { RootContext, published, useApi } from './api'
+import { RootContext, useApi } from './api'
+import { useCapabilities } from './source'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
 import { useRoute } from './route'
@@ -40,6 +41,7 @@ export function App() {
   const summary = useApi<Summary>('/api/summary')
   const versions = useApi<Version[]>('/api/versions')
   const [route, go] = useRoute()
+  const can = useCapabilities()
   const [theme, nextTheme] = useTheme()
   const [navOpen, setNavOpen] = useState(false)
   const [viewsKey, setViewsKey] = useState(0)
@@ -112,7 +114,7 @@ export function App() {
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
             {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
             {route.screen === 'explorer' && (
-              <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={!published} onViewsChanged={() => setViewsKey((k) => k + 1)} />
+              <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} onViewsChanged={() => setViewsKey((k) => k + 1)} />
             )}
             {route.screen === 'features' && <Features version={version} route={route} go={go} />}
             {route.screen === 'component' && <Component version={version} route={route} go={go} />}

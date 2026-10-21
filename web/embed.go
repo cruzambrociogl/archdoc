@@ -4,7 +4,7 @@
 // nothing installed: `archdoc serve` works from the one file.
 //
 // Building from source needs Node; using archdoc does not (docs/stack-decision.md §3). The
-// `all:` prefix embeds the tracked dist/.gitkeep, so the binary compiles on a fresh clone before
+// `all:` prefix embeds the tracked host/dist/.gitkeep, so the binary compiles on a fresh clone before
 // the frontend has ever been built — serve then says what to run instead of showing a blank page.
 package web
 
@@ -13,12 +13,12 @@ import (
 	"io/fs"
 )
 
-//go:embed all:dist
+//go:embed all:host/dist
 var dist embed.FS
 
 // Assets returns the built frontend, and whether it has actually been built.
 func Assets() (fs.FS, bool) {
-	sub, err := fs.Sub(dist, "dist")
+	sub, err := fs.Sub(dist, "host/dist")
 	if err != nil {
 		return nil, false
 	}

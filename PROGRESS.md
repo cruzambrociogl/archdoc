@@ -24,8 +24,10 @@ development environment exists. **The plan across the three repositories is trac
 
 **Step 1 is done (21 Oct):** the engine's public API at the module root, the CLI its only client.
 The CLI's output on Immich and Supabase at their pinned commits is identical to before but for the
-build stamp — every command, every file written. **Next, in this repository:** step 2, the shared
-app; then step 3, the licence and the first tag.
+build stamp — every command, every file written. **Step 2 is done (21 Oct):** the app is
+`@archdoc/app`, reading through a Source each place gives it, with the build the binary embeds as
+its host; every screen renders as before, live and published. **Next, in this repository:** step 3,
+the licence and the first tag.
 
 ## Where this stands — 9 Oct 2026, to resume from
 

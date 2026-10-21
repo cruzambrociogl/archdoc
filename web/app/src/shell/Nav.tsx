@@ -1,5 +1,5 @@
 import type { CoverageResponse, SavedView, Summary } from '../api'
-import { published } from '../api'
+import { useCapabilities } from '../source'
 import { planned } from '../planned'
 import { componentLevel, dataLevel } from '../api'
 import type { Route, Screen } from '../route'
@@ -31,7 +31,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
 
   const c = s.counts ?? {}
   const entries = (props.coverage?.routes ?? 0) + (props.coverage?.pages ?? 0) + (props.coverage?.commands ?? 0) + (props.coverage?.jobs ?? 0)
-  const local = !published
+  const local = useCapabilities().plans
 
   // In the order the design gives it (Surface Screens): the explorer, then the reading pages by level,
   // then what changed and how far to trust it. Unbuilt entries sit where they will go, marked.

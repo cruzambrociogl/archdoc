@@ -4,14 +4,24 @@ The surface people see: `archdoc serve`'s live app, and the published site `arch
 builds from the same code. What it shows and why is specified in
 [`../docs/surface-spec.md`](../docs/surface-spec.md); this file is how it is built.
 
-React 19, TypeScript, Vite, React Flow for the diagrams. Built into `web/dist` and embedded in the
-binary, so users install nothing.
+React 19, TypeScript, Vite, React Flow for the diagrams. Built into `web/host/dist` and embedded in
+the binary, so users install nothing.
+
+**One app, several places** (platform-plan step 2). An npm workspace of two packages:
+
+- **`app/` — `@archdoc/app`**: the shell and every page, the styles, the data types. It reads every
+  value through a **Source** it is given (`app/src/source.ts`) and never asks where it runs.
+- **`host/`** — the build this binary embeds: `index.html`, the Vite config, and the two Sources the
+  engine ships — **local** (`archdoc serve`) and **published** (`export --site`). The archdoc
+  website gives the same app a third, **hosted**, from the platform repository.
 
 ## Running it
 
+From `web/`:
+
 ```console
-npm ci                       # once
-npm run build                # typecheck, then build into dist/ — what the binary embeds
+npm ci                       # once, for both packages
+npm run build                # typecheck both, then build into host/dist/ — what the binary embeds
 npm run typecheck            # typecheck only
 ```
 
@@ -19,7 +29,7 @@ While working on the app, run Vite and a dev build of archdoc side by side — t
 the page to Vite, so a change shows on reload without rebuilding Go:
 
 ```console
-npm run dev                                          # Vite on :5173
+npm run dev                                          # Vite on 127.0.0.1:5173
 go build -tags dev -o archdoc ../cmd/archdoc         # from web/, or adjust the path
 ./archdoc serve ../path/to/a/documented/repository   # http://localhost:7474
 ```
@@ -43,31 +53,43 @@ tables, routes, flows; for scale, generate a repository of a few hundred Compose
    view; saved views are simply named addresses. A level is `context`, `container`,
    `component:<container id>` or `data:<container id>` (`componentLevel`, `dataLevel` in `api.ts`);
    with none, the explorer opens on the context.
-4. **Anything that writes goes through `action()`** (`api.ts`), which sends the session token the
-   server checks with the Origin (`internal/serve/guard.go`). Never `fetch` a write directly.
+4. **Every read and write goes through the Source.** Read with `useApi(path)`; write with
+   `useSource().act(path, body)` — locally it sends the session token the server checks with the
+   Origin (`internal/serve/guard.go`). Never `fetch` directly, and never ask which place this is:
+   ask `useCapabilities()` whether the place can do the thing.
 
-## Two modes
+## Places and capabilities
 
-The same build runs live and published (`docs/surface-spec.md` §3). `export --site` writes a
-`<meta name="archdoc-mode" content="published">` into `index.html`; `api.ts` reads it into
-`published`.
+The same app runs in three places (`docs/platform-surface.md` §4.5). Each host gives it a Source:
+`get` and `act` by the paths of archdoc serve's API, `url` for a link to one, `link` for where a
+citation opens, and `capabilities` — what the place can do. A feature appears only where its
+capability is true; no screen checks which place it is in.
 
-| | Live | Published |
-|---|---|---|
-| Data | `/api/…` | `data/…` — `staticName()` mirrors `serve.StaticName` in Go; change one, change both |
-| Citations | `vscode://` at the line | the repository host at the commit, or plain text when no host is known |
-| Actions | arrange, save views (more to come — §11) | none |
-| Version | any stored version | the latest and its baseline |
+| | Local | Published | Hosted (the website) |
+|---|---|---|---|
+| Source | `host/src/adapters/local.ts` | `host/src/adapters/published.ts` | in `archdoc-platform` |
+| Data | `/api/…` from archdoc serve | `data/…` — `staticName()` mirrors `serve.StaticName` in Go; change one, change both | the platform's API |
+| `history` — versions to pick | yes | no: the latest and its baseline | yes |
+| `edit` — save views, arrange | yes | no | (decided with the platform) |
+| `runDetails` — requests as sent | yes | no: they stay on the machine that sent them | — |
+| `plans` — the planned placeholders | yes | no | — |
+| `links` — where citations open | `editor`: `vscode://` at the line | `host`: the repository host at the commit, or plain text when none is known | `host` |
 
-A screen that offers an action checks `published` (or takes an `editable` prop) and hides it. A
-path the published site does not export simply fails; `serve.Export` lists what it exports.
+`export --site` writes `<meta name="archdoc-mode" content="published">` into `index.html`;
+`host/src/main.tsx` reads it to choose the Source. A path the published site does not export simply
+fails; `serve.Export` lists what it exports.
+
+**A new place** is a new Source, not a branch in a screen. **A new capability** is a field in
+`Capabilities`, set by every Source, and asked for by the screens that need it.
 
 ## Where things are
 
 ```
-src/
-  main.tsx, App.tsx      entry; the shell and which screen to show
-  api.ts                 types, useApi, action(), live/published, citation links
+app/src/                 @archdoc/app
+  index.ts               the package: App, SourceProvider, the Source and data types, the styles
+  source.ts              Source and Capabilities — the contract every place implements
+  App.tsx                the shell and which screen to show
+  api.ts                 the data types; useApi; citation links through the Source
   route.ts               URL state
   theme.ts               light / dark / system, per viewer
   shell/                 TopBar, Nav, Palette (⌘K), Shortcuts (?)
@@ -76,7 +98,14 @@ src/
                          parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView
   ui/                    Cite, TruthMark/TruthChip, KindTile, kinds (icons and hues), Sequence (a flow)
   styles/                tokens, fonts, base, shell, ui, inspector, explorer, page
+host/                    the build the binary embeds
+  index.html, vite.config.ts
+  src/main.tsx           chooses the Source — published if index.html says so, else local
+  src/adapters/          local.ts, published.ts, read.ts
 ```
+
+`app/src/index.ts` exports the app before importing the styles: React Flow's base styles, which the
+app's modules import, must precede the app's own. The order is the cascade.
 
 ## The design system
 
@@ -99,9 +128,9 @@ that gets exported. Fonts come from Fontsource and are bundled — nothing is fe
 
 - `screens/explorer/scene.ts` `arrangeDraft()` is a port of `internal/arrange/arrange.go`
   `Apply()`: the preview while dragging must be what the engine draws after saving.
-- `api.ts` `staticName()` mirrors `internal/serve/export.go` `StaticName()`.
-- The response types in `api.ts` mirror the handlers in `internal/serve`.
-- `screens/Features.tsx` `groupOf()` mirrors `archdoc.Entry.Group()`: the app and
+- `host/src/adapters/published.ts` `staticName()` mirrors `internal/serve/export.go` `StaticName()`.
+- The response types in `app/src/api.ts` mirror the handlers in `internal/serve`.
+- `screens/Features.tsx` `groupOf()` mirrors `core.Entry.Group()`: the app and
   `features.generated.md` group routes and pages alike.
 - `screens/explorer/parts.tsx` `TABLE_ROWS` and the table box's 28px header and 13px rows mirror
   `internal/render/layout.go` (`tableRows`, `boxHeight`): the engine sized the box for that text.

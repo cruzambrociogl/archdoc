@@ -10,5 +10,7 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   build: { outDir: 'dist', emptyOutDir: true },
-  server: { port: 5173, strictPort: true, proxy: { '/api': 'http://127.0.0.1:7474' } },
+  // 127.0.0.1, not localhost: the dev build of archdoc proxies to this exact address (web/embed_dev.go),
+  // and localhost can resolve to IPv6 alone.
+  server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy: { '/api': 'http://127.0.0.1:7474' } },
 })

@@ -1252,3 +1252,13 @@ caller's `Log` writer, which keeps the command's output byte-identical; a paid r
 `serve` is a public `server` package, so the API never imports `net/http`. A stream of progress
 events for the Generating screen is new capability, and waits for the freeze to lift.
 → `archdoc.go`, `generate.go`; `CLAUDE.md`, package map
+
+**2026-10-21 — One app, a Source per place, capabilities instead of a mode flag**
+`web/` is an npm workspace: `@archdoc/app` holds the shell and every page; `host` is the build the
+binary embeds. The app reads every value through a Source its host gives it — by the paths of archdoc
+serve's API, so screens barely changed, and the platform's hosted Source answers the same paths per
+repository. Typed methods per endpoint were the alternative: a clearer contract, but every call site
+and every adapter rewritten now. The nine checks of `published` became named capabilities — history,
+edit, runDetails, plans, links, place — so a feature asks what the place can do, never which place.
+Structure only: the §4 redesign, and TanStack Router with it, wait for the freeze to lift.
+→ `web/README.md`, "Places and capabilities"; `web/app/src/source.ts`

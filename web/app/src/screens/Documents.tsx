@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { marked } from 'marked'
 import type { CompletenessResponse, DocsResponse } from '../api'
-import { published, source, useApi, useEditorLink, when } from '../api'
+import { useApi, useEditorLink, when } from '../api'
+import { useCapabilities, useSource } from '../source'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
 
@@ -144,6 +145,7 @@ function Head({ entry, owner }: { entry: Entry; owner: string }) {
 function Generated({ entry, onOpen }: { entry: Entry; dir: string; onOpen: (f: string) => void }) {
   const doc = useApi<string>(`/api/docs/${encodeURIComponent(entry.file)}`, 'text')
   const link = useEditorLink()
+  const source = useSource()
   if (doc.error) return <Failure error={doc.error} />
   if (doc.data === undefined) return <Loading />
 
@@ -154,7 +156,7 @@ function Generated({ entry, onOpen }: { entry: Entry; dir: string; onOpen: (f: s
     /(src|href)="(?![a-z]+:|#|\/)([^"]+)"/g,
     (_, attr: string, ref: string) => {
       if (attr === 'href' && isGenerated(ref)) return `href="#screen=docs&doc=${encodeURIComponent(ref)}" data-doc="${ref}"`
-      if (/\.generated\.md$|\.svg$|\.mmd$/.test(ref)) return `${attr}="${source(`/api/docs/${encodeURIComponent(ref)}`)}"`
+      if (/\.generated\.md$|\.svg$|\.mmd$/.test(ref)) return `${attr}="${source.url(`/api/docs/${encodeURIComponent(ref)}`)}"`
       const to = link(`docs/architecture/${ref}`)
       return to ? `${attr}="${to}"` : `${attr}="#screen=docs&doc=${encodeURIComponent(ref)}" data-doc="${ref}"`
     },
@@ -185,6 +187,7 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
   )
   const [copied, setCopied] = useState(false)
   const link = useEditorLink()(`docs/architecture/${entry.file}`)
+  const can = useCapabilities()
 
   return (
     <article className="doc-reading">
@@ -235,7 +238,7 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
             <p className="yours-note">
               No preview. This section is yours, and archdoc never reads it (hard rule 2). The app shows only what the file
               system reports — when it last changed — and compares that with the architecture's history.
-              {published &&
+              {can.place === 'published' &&
                 ' On a published site the state is judged by size alone: the files come from a fresh checkout, where every modification time is the checkout’s, so staleness is not shown here — the live app shows it.'}
             </p>
           </>
@@ -244,7 +247,7 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
           {entry.state !== 'missing' &&
             (link ? (
               <a className="btn btn-ink" href={link}>
-                {published ? 'View on the repository host' : 'Open in editor'}
+                {can.links === 'host' ? 'View on the repository host' : 'Open in editor'}
               </a>
             ) : (
               <span className="mono small">docs/architecture/{entry.file}</span>

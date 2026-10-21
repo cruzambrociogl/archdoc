@@ -1,5 +1,6 @@
 import type { Exchange, Run } from '../api'
-import { bytes, published, useApi, when } from '../api'
+import { bytes, useApi, when } from '../api'
+import { useCapabilities } from '../source'
 import type { Route } from '../route'
 import { Planned } from '../ui/Planned'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
@@ -10,6 +11,7 @@ import { Eyebrow, Failure, Loading } from '../ui/marks'
  * the thing that was sent. The empty state is a feature, and says so.
  */
 export function NetworkRuns(props: { route: Route; go: (r: Partial<Route>, o?: { replace?: boolean }) => void }) {
+  const can = useCapabilities()
   const runs = useApi<Run[]>('/api/runs')
   if (runs.error) return <Failure error={runs.error} />
   if (!runs.data) return <Loading />
@@ -67,7 +69,7 @@ export function NetworkRuns(props: { route: Route; go: (r: Partial<Route>, o?: {
         ))}
       </div>
 
-      {published ? (
+      {!can.runDetails ? (
         <p className="lede-quiet">
           This published site carries only the summary above. Each request, exactly as it was sent, stays on the machine that
           made it, in archdoc serve.

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ViewsResponse } from '../../api'
-import { action, useApi } from '../../api'
+import { useApi } from '../../api'
+import { useSource } from '../../source'
 import type { Route } from '../../route'
 import { Eyebrow } from '../../ui/marks'
 
@@ -11,6 +12,7 @@ import { Eyebrow } from '../../ui/marks'
  */
 export function SaveView(props: { route: Route; level: string; placed: number; onClose: () => void; onSaved: () => void }) {
   const views = useApi<ViewsResponse>('/api/views')
+  const source = useSource()
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -36,7 +38,7 @@ export function SaveView(props: { route: Route; level: string; placed: number; o
     setBusy(true)
     setError(null)
     try {
-      await action('/api/views/save', { view, base: views.data.hash })
+      await source.act('/api/views/save', { view, base: views.data.hash })
       props.onSaved()
     } catch (e) {
       setError((e as Error).message)

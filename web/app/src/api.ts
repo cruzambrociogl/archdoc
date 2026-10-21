@@ -2,6 +2,10 @@
 // nothing of its own: every value on screen is one of these, as the engine stored it.
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import type { Place } from './source'
+import { useSource } from './source'
+
+export type { Place }
 
 export type Origin = 'extraction' | 'catalog' | 'rules' | 'model'
 
@@ -392,51 +396,20 @@ export interface CompletenessResponse {
   }[]
 }
 
-// ——— live or published ———
-// The same app runs in two modes (surface-spec §3). Live, it reads archdoc serve's API. Published —
-// built by 'archdoc export --site' — it reads the same responses from static files beside it; the
-// marker is written into index.html by the exporter.
-
-export const published = !!document.querySelector('meta[name="archdoc-mode"][content="published"]')
-
-/** The file a published site reads an API path from. Mirrors serve.StaticName in Go. */
-export function staticName(apiPath: string): string {
-  const [p, query = ''] = apiPath.replace(/#.*$/, '').replace(/^\/api\//, '').split('?')
-  if (p.startsWith('docs/')) return `data/${p}`
-  const ext = p === 'svg' ? '.svg' : '.json'
-  const q = new URLSearchParams(query)
-  const keys = [...new Set([...q.keys()])].sort()
-  // A view name may hold an element ID ("component:app:packages/cli"): no slash or colon in a file name.
-  const safe = (v: string | null) => (v ?? '').replace(/\//g, '_').replace(/:/g, '~')
-  const tail = keys.length ? '@' + keys.map((k) => `${k}=${safe(q.get(k))}`).join(',') : ''
-  return `data/${p.replace(/\//g, '_')}${tail}${ext}`
-}
-
-/** Where a path is fetched from in this mode. */
-export const source = (path: string) => (published && path.startsWith('/api/') ? staticName(path) : path)
-
-async function request(path: string): Promise<Response> {
-  const r = await fetch(source(path))
-  if (!r.ok) {
-    let msg = r.statusText
-    try {
-      msg = (await r.json()).error ?? msg
-    } catch {
-      /* not JSON: keep the status text */
-    }
-    throw new Error(msg)
-  }
-  return r
-}
+// ——— reading ———
+// Every value comes through the place's Source (source.ts): archdoc serve on this machine, static
+// files on a published site, the platform's API on the website. The paths are the same in all three.
 
 /** Fetches path whenever it changes; null fetches nothing. Stale answers are never shown. */
 export function useApi<T>(path: string | null, as: 'json' | 'text' = 'json') {
+  const source = useSource()
   // A path that differs only by a trailing `#n` is fetched again: that is how a screen reloads.
   const [state, setState] = useState<{ path?: string; data?: T; error?: string }>({})
   useEffect(() => {
     if (!path) return
     let live = true
-    request(path)
+    source
+      .get(path)
       .then((r) => (as === 'json' ? r.json() : r.text()))
       .then(
         (data) => live && setState({ path, data: data as T }),
@@ -445,7 +418,7 @@ export function useApi<T>(path: string | null, as: 'json' | 'text' = 'json') {
     return () => {
       live = false
     }
-  }, [path, as])
+  }, [path, as, source])
   const current = state.path === path
   return {
     data: current ? state.data : undefined,
@@ -454,66 +427,17 @@ export function useApi<T>(path: string | null, as: 'json' | 'text' = 'json') {
   }
 }
 
-// ——— actions ———
-// Anything that runs or writes goes through action(): a POST carrying this session's token, which
-// the server checks together with the Origin (internal/serve/guard.go, surface-spec §11.5). The
-// token is fetched once per page from /api/session, which answers same-origin pages only.
-
-let session: Promise<string> | null = null
-
-function token(): Promise<string> {
-  session ??= request('/api/session')
-    .then((r) => r.json())
-    .then((s: { token: string }) => s.token)
-    .catch((e) => {
-      session = null
-      throw e
-    })
-  return session
-}
-
-export async function action<T>(path: string, body?: unknown): Promise<T> {
-  const r = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Archdoc-Token': await token() },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  const text = await r.text()
-  let data: unknown = undefined
-  try {
-    data = text ? JSON.parse(text) : undefined
-  } catch {
-    /* not JSON */
-  }
-  if (!r.ok) throw new Error((data as { error?: string } | undefined)?.error ?? r.statusText)
-  return data as T
-}
-
 /**
- * Where citations open. Live: the repository's absolute path, so a citation opens in the editor.
- * Published: the repository host at the commit, when a remote is known; with no known remote a
- * citation is plain text, never a guessed link (surface-spec S-3).
+ * Where citations open, resolved by the place's Source: on this machine, the repository's own
+ * files in the editor; on a published site, the repository host at the commit when a remote is
+ * known, and plain text otherwise — never a guessed link (surface-spec S-3).
  */
-export interface Place {
-  root: string
-  remote?: string
-  commit?: string
-}
 export const RootContext = createContext<Place>({ root: '' })
-
-export function editorLink(place: Place | string, file: string, line?: number): string | undefined {
-  const p = typeof place === 'string' ? { root: place } : place
-  if (published) {
-    if (!p.remote || !p.commit) return undefined
-    return `${p.remote}/blob/${p.commit}/${file.replace(/^\.\//, '')}${line ? `#L${line}` : ''}`
-  }
-  const path = file.startsWith('/') ? file : `${p.root}/${file}`
-  return `vscode://file${path}${line ? `:${line}` : ''}`
-}
 
 export function useEditorLink() {
   const place = useContext(RootContext)
-  return (file: string, line?: number) => editorLink(place, file, line)
+  const source = useSource()
+  return (file: string, line?: number) => source.link(place, file, line)
 }
 
 export interface Session {

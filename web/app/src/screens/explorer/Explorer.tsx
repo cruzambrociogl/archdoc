@@ -3,7 +3,8 @@ import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, V
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
 import type { DiffResponse, Opening, SceneResponse, Version } from '../../api'
-import { action, componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, overview, source, structureLevel, structureOf, useApi } from '../../api'
+import { componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, overview, structureLevel, structureOf, useApi } from '../../api'
+import { useSource } from '../../source'
 import type { Route } from '../../route'
 import { Planned } from '../../ui/Planned'
 import { Failure, Loading } from '../../ui/marks'
@@ -140,6 +141,7 @@ function Toolbar(props: {
   scene?: SceneResponse
   onViewsChanged: () => void
 }) {
+  const source = useSource()
   const q = props.version ? `&version=${props.version}` : ''
   const [saving, setSaving] = useState(false)
   // The Components and Data tabs open the selected container when it has them, else the one on
@@ -253,7 +255,7 @@ function Toolbar(props: {
       )}
       <a
         className="tool"
-        href={source(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
+        href={source.url(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
         download={`${props.level.replace(/^(component|data|structure|main):[^:]*:/, '$1-').replace(/[:/]/g, '-')}.svg`}
         title="The same scene, as the committed SVG"
       >
@@ -303,6 +305,7 @@ function Arranged(props: {
   reload: () => void
   open: (container: string) => void
 }) {
+  const source = useSource()
   const { scene } = props
   const opens = useMemo(() => {
     const m = new Map(scene.components.map((o) => [o.id, o.components]))
@@ -329,7 +332,7 @@ function Arranged(props: {
     setBusy(true)
     setProblem(null)
     try {
-      await action(path, body)
+      await source.act(path, body)
       setDraft({})
       props.reload()
     } catch (e) {

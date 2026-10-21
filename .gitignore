@@ -9,10 +9,11 @@
 /vendor/
 
 # Frontend — built assets are generated, never committed.
-# dist/.gitkeep is tracked so //go:embed all:dist compiles before the first frontend build.
+# host/dist/.gitkeep is tracked so //go:embed all:host/dist compiles before the first frontend build.
 /web/node_modules/
-/web/dist/*
-!/web/dist/.gitkeep
+/web/*/node_modules/
+/web/host/dist/*
+!/web/host/dist/.gitkeep
 
 # archdoc's own output, if it is ever pointed at this repository
 /.archdoc/

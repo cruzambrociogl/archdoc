@@ -447,7 +447,7 @@ settled at the same time, for the same reason.
 
 ### Two build decisions
 
-**Building from source requires Node; using archdoc does not.** `//go:embed web/dist` will
+**Building from source requires Node; using archdoc does not.** `//go:embed web/host/dist` will
 not compile if `dist/` is absent, so the repository carries a placeholder `index.html` and a
 build script that builds the frontend before the binary. Committing real build output was
 rejected — generated artifacts in version control rot silently. Users are unaffected: they
