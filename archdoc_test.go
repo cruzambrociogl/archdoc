@@ -186,3 +186,47 @@ func TestComparingStoredModelsEqualsDiffingTheirCommits(t *testing.T) {
 		t.Errorf("summaries differ:\n  %+v\n  %+v", direct.Summary(), viaGit.Summary())
 	}
 }
+
+// A caller keeping models elsewhere versions them as history does: a line moved above every
+// citation is the same version; a renamed service is a new one.
+func TestFingerprintIsTheVersion(t *testing.T) {
+	dir := shop(t)
+	fingerprint := func() (string, []byte) {
+		t.Helper()
+		m, err := archdoc.ReadModel(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fp, err := archdoc.Fingerprint(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		encoded, err := m.JSON()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return fp, encoded
+	}
+	before, bytesBefore := fingerprint()
+
+	p := filepath.Join(dir, "docker-compose.yml")
+	b, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, append([]byte("# moved down a line\n"), b...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	moved, bytesMoved := fingerprint()
+	if bytes.Equal(bytesMoved, bytesBefore) {
+		t.Fatal("the moved line changed nothing in the model; the test proves nothing")
+	}
+	if moved != before {
+		t.Errorf("a moved line changed the fingerprint: %s, was %s", moved, before)
+	}
+
+	rename(t, dir)
+	if renamed, _ := fingerprint(); renamed == before {
+		t.Error("a renamed service kept the fingerprint")
+	}
+}

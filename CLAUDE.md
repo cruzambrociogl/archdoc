@@ -119,7 +119,7 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 | `internal/render` | Layout, SVG, Mermaid; the list of views; the documents, sized to the project |
 | `internal/arrange` | `layout.yaml`, `views.yaml` — presentation a person saves, applied over the layout |
 | `internal/serve` | Local HTTP, the action gate, the published-site export, embedded web assets |
-| `archdoc` (the module root) | **The public API** — `Generate`, `Diff`/`Compare`, `Status`, `BuildSite`, `Read`, `Find`, `OpenHistory`, `Init`; the pipeline's one door. Types are aliases of `internal/core`. Prints nothing itself: output goes to the caller's `Log` writer; paid runs ask the caller's `Consent` |
+| `archdoc` (the module root) | **The public API** — `Generate`, `Diff`/`Compare`, `Status`, `BuildSite`, `Read`, `Find`, `OpenHistory`, `Fingerprint`, `Init`; the pipeline's one door. Types are aliases of `internal/core`. Prints nothing itself: output goes to the caller's `Log` writer; paid runs ask the caller's `Consent` |
 | `server` | Serves the app for one repository — public, and apart from the root so the API never imports `net/http` |
 | `cmd/archdoc` | CLI — flags and printing over package `archdoc`. Imports nothing from `internal/` (CI: Public API) |
 

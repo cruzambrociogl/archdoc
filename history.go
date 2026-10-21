@@ -32,6 +32,13 @@ func OpenHistory(root string) (*History, error) {
 	return h, nil
 }
 
+// Fingerprint is what decides whether a model is a new version, as history decides it: a hash of
+// the architecture, not of the model's encoding. A citation whose line moved, or a field added to
+// the schema, leaves it unchanged (F-50); two models with one fingerprint are one version. A caller
+// keeping models elsewhere uses it to keep versions as archdoc does — and hashes the bytes itself
+// when it needs to prove a stored file is the one written.
+func Fingerprint(m Model) (string, error) { return store.Fingerprint(m) }
+
 // Recorded reports whether the repository has a history at all.
 func (h *History) Recorded() bool { return h.s != nil }
 
