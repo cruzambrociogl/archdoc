@@ -1115,3 +1115,32 @@ and a review:
 - **§4.8, the states every screen must answer** — loading inside pages, errors beyond reading,
   feedback after actions, a newer version while looking, access, accessibility, email and legal.
   Round 4 drew one whole-page loading state; the rest is new.
+
+### After round 5
+
+Round 5 applied the corrections and drew the states of §4.8 — loading inside pages, the errors, the
+feedback, a newer version while looking, access, reduced motion, email and legal — with five shared
+pieces: a notice strip, a progress card, a rail wait, a toast, and a confirm dialog. It worked from
+the brief: this section and §4.8 had not been pushed when it read the repository. Settled from its
+findings:
+
+- **"Pushes stopped arriving"** shows relative to the repository's own rhythm — several times its
+  usual gap between pushes, never less than a few days — not after a fixed week. archdoc cannot know
+  *why* a hook went quiet, so the copy asks rather than states.
+- **Docs from commits rewritten off the branch** (a force-push) are kept, marked "no longer on main",
+  with the nearest kept version offered. History changing is not a reason to delete documentation.
+- **A deleted repository keeps its docs, read-only, for 30 days**, said on screen, then they are
+  deleted — "delete really deletes" (`platform-plan.md` §7).
+- **Offline and archdoc-down notices** are one line that opens, not three: on a phone, three lines
+  pushed the page's opening sentence below the fold.
+- **AI failures cost nothing**, and the website retries on its own while the provider is down; the
+  proven facts stay, the sentences fall back to templates, and the notice says which part is missing.
+- **Sign-in asks GitHub only for a name and email.** Access to repositories comes separately, through
+  the GitHub App, and the two requests stay visibly apart.
+
+**The design file outgrew the design tool's download limit** (256 KB; `App.dc.html` is about 261 KB),
+so the end of its sample data cannot be read back for review. Its data moves to a file of its own.
+
+**The design is done enough to build from.** Five rounds cover the one app, the three places, the
+information architecture, the vocabulary, phone layouts and the states. What remains is found by
+using it, not by more rounds.
