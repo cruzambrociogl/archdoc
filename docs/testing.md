@@ -12,7 +12,7 @@ criteria are defined in `docs/product-definition.md` §12 and their status is ke
 | Tests, race detector on, no cache | `go test -race -count=1 ./...` | Locally and CI |
 | The network boundary — only `internal/semantic` may make outbound calls (hard rule 3, AC-8) | the `network-boundary` job in `.github/workflows/ci.yml` | CI |
 | The public API is enough: `cmd/archdoc` imports nothing from `internal/`, and `examples/library` — a module of its own — documents a fixture through it | the `public-api` job | CI |
-| The web app — both packages — typechecks and builds | `cd web && npm run build` | Locally; CI from platform-plan step 8 |
+| The web app — both packages — typechecks and builds | `cd web && npm run build`; the `web` job | Locally and CI |
 | Every screen renders the same, live and published | headless Chrome over each screen, text compared with the previous build — by hand, as for step 2 (`docs/decisions.md`, 21 Oct) | Before a release |
 
 ## The acceptance criteria
