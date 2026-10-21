@@ -87,6 +87,8 @@ fails; `serve.Export` lists what it exports.
 ```
 app/src/                 @archdoc/app
   index.ts               the package: App, SourceProvider, the Source and data types, the styles
+                         (`@archdoc/app/styles/*.css` also alone, for a page that should look like the app
+                         without being it)
   source.ts              Source and Capabilities — the contract every place implements
   App.tsx                the shell and which screen to show
   api.ts                 the data types; useApi; citation links through the Source

@@ -5,7 +5,8 @@
   "description": "The archdoc app: the shell and every page, for every place it runs. Give it a Source.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./styles/*": "./src/styles/*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
