@@ -143,7 +143,8 @@ The rules of `surface-spec.md` §2, one by one:
 19. **Nothing costs money or sends data without saying so** (`surface-spec.md` §11.1, line 3). The
     one-click action is always the free, offline one. Updating with AI explanations is a separate,
     deliberate step that shows what will be sent and roughly what it costs; Ask says once that it
-    uses the model and roughly what a question costs.
+    uses the model and roughly what a question costs. **The figures come from the engine's own
+    estimate** (`explain --dry-run` already prints one) — never fixed copy.
 20. **Dates and pushes, not version numbers.** Versions are archdoc's bookkeeping. Screens say "since
     12 Oct, when you last looked", "pinned to the 18 Oct push"; version numbers appear only under
     Advanced, where versions are compared.
@@ -304,7 +305,8 @@ site have only the repository level.
   the user guess which one to use.
 - **Share** — the same entry everywhere, with what each place can do (§5.6).
 - **Theme**, in every place — the account only remembers a default.
-- **⋯** for what belongs to the page: the version picker, keyboard shortcuts (`?`, in every place),
+- **⋯** for what belongs to the page: **"Showing · the 18 Oct push"**, which opens What changed ›
+  Every version (version numbers stay there, rule 20), keyboard shortcuts (`?`, in every place),
   the truth-state legend.
 - **The far-right slot is "you"**, and differs by place:
 
@@ -504,15 +506,70 @@ One word per idea, everywhere — the legend, the marks, the sentences, the noti
 | Written by the model on top of proven facts | **Written by AI** | interpreted, the AI's reading, AI-written |
 | Evidence that something exists, which archdoc could not identify | **Couldn't be resolved** | unresolved, not provable, seen but not provable |
 | A file or language archdoc does not parse | **Not read** | couldn't read, not read yet, named — and never mixed up with *couldn't be resolved* |
-| The documentation is behind the code | **Out of date** → **Update** | code changed, Generate |
+| The documentation is behind the code | **Out of date** → **Update**; while it runs, **Updating…** | code changed, Generate, Generating… |
+| The first read of a folder or repository | **Show its architecture** | Generate, Update |
 | A match the model made against a plan | **Looks built** / **looks missing** | found, missing |
+| A plan requirement too vague to check | **Couldn't check** — muted ink, never ochre | couldn't tell |
 | Archdoc proposes, the user decides | **Suggested** | reachable, not grouped |
-| When something happened | a date, a push, a commit | v14 (only under Advanced, rule 20) |
+| When something happened | a date, a push, a commit — and the short commit when two pushes share a day: "the 18 Oct push · 9c3e7d1" | v14 (only under Advanced, rule 20) |
+| Who made a change, in a change story | **This push added…** · **This pull request adds…** (before the merge) · **This session added…** (after an agent session, pushed or not) | — |
+
+**The marks are four**, each its own form: Proven; Written by AI; **Couldn't be resolved — ochre,
+and only it**; **Not read — a neutral grey hatch**. The legend lists all four.
 
 The truth states keep their technical names in this document and in `surface-spec.md`; on screen,
 the left column is never shown — only "Say".
 
 The website's link box says what the visitor gets — **Show its architecture** — rather than "Read it".
+
+### 4.8 States every screen must answer
+
+A screen is not designed until it answers each of these that applies. Added after round 4, which drew
+a whole-page loading state and the reading failures, and little else of this kind.
+
+**Loading — where it happens, not only the whole page**
+- The page: its question line at once (the route knows it), the rest as placeholders.
+- **Ask**: the answer appears as it is written, citations as they resolve; it can be stopped.
+- Search results as you type; the right rail as it opens; the Map drawing a large system.
+- After an action: a correction's pull request opening, the GitHub App installing, the first call
+  from a newly connected agent ("waiting for Claude Code…" → "Claude Code asked its first question").
+- Never a spinner alone: say what is being waited for (rule 11).
+
+**Errors — beyond reading a repository**
+- archdoc or the network unreachable; a page that fails to load while the rest works.
+- The AI: the provider failing, a key that is invalid or out of credit, the AI step failing while the
+  facts succeed — the facts are shown, and the screen says what is missing (rule 19's spirit).
+- GitHub: access revoked, a repository renamed, moved or deleted, **a push hook that stops arriving**.
+  The last is the worst failure — the docs quietly stop following the code — so it must surface on
+  the status line and the Home card ("No push received since 14 Oct — is archdoc still installed?").
+- Each error says what happened in plain words, what is still true, and what to do.
+
+**Feedback after an action**
+- **Copied** after copying a link, embed, badge, command or token.
+- **Destructive actions** — revoke a token, remove a repository from a system, disconnect GitHub,
+  delete an account — confirm with what will be lost, or offer undo; never neither.
+- Saved, sent, dismissed — said once, briefly, where it happened.
+
+**While you are looking**
+- A newer version arrives (a push lands, an update finishes): a quiet notice to show it; the page
+  never changes under the reader.
+- Two updates at once — the CLI and the app (`surface-spec.md` §11.5): the second waits and says so.
+
+**Access**
+- A shared link to a private repository, opened by someone who may not see it: say so, and how to
+  ask the owner — not "private, or doesn't exist".
+- A link to a version, part or page that no longer exists: what replaced it, if anything.
+
+**Accessibility**
+- **A text alternative for every diagram** — a screen reader gets nothing from a picture. The phone's
+  stacked list of parts (§13) can serve as both.
+- Reduced motion: no fades or animated layout.
+- Keyboard and contrast as round 4 drew them.
+
+**Email and legal**
+- Every email has an unsubscribe link and says why it was sent.
+- Terms and Privacy linked from the website's footer and sign-in. GitHub requires a privacy policy
+  before it lists an app.
 
 ---
 
@@ -1012,8 +1069,7 @@ differing only where §4.5 says. Revision 4 corrects what reviewing it showed.
 - **Where am I is said once**: the breadcrumb carries sub-pages; no back links, no place note.
 
 **Still open from the findings:** the Home feed page and component and table detail pages are not
-drawn; a "place note" at the foot of the menu ("On this machine · ~/code/immich") is kept as drawn,
-to be judged in use; the rule for clustering tables (§10, question 6) is still needed — round 3 shows
+drawn; the place note was removed (§4.3) — the far-right slot says the place; the rule for clustering tables (§10, question 6) is still needed — round 3 shows
 the 34-table cluster on the Map.
 
 ---
@@ -1035,3 +1091,27 @@ pages strangers find through search, which a single-page app serves badly. Revis
   selling is the website's.
 - **The website is designed in a round of its own**, after the app's: same design system, no app
   shell. This round draws Start in place of the Landing (§9).
+
+### After round 4
+
+Round 4 (`App.dc.html`, `App Notifications`, `App Findings` "Round 4") applied every correction of
+this revision, solved the six problems it was given, and measured contrast. Settled from its findings
+and a review:
+
+- **Empty change groups** collapse into one closing line — "Nothing changed, removed or reworded" —
+  while the groups with content keep their fixed order. The same in all three notifications.
+- **Same-day pushes** add the short commit (§4.7).
+- **Updating…** replaces Generating… everywhere; a first read says **Show its architecture**; a plan
+  requirement too vague to check is **Couldn't check**; a change story has three subjects — push,
+  pull request, session (§4.7).
+- **⋯ › Showing · the 18 Oct push** replaces the version picker and opens Every version (§4.3).
+- **Not read** has a grey hatch; ochre is only *couldn't be resolved*. Four marks (§4.7).
+- Signed out, the reason to sign in lives in the button's tooltip; on a phone, the button says "Sign
+  in". The local Home card may carry two status lines — out of date, and what changed.
+- **At phone width the Overview's picture is a stacked list of parts**, not a diagram that scrolls
+  sideways — and that list is the diagram's text alternative (§4.8).
+- **Cost figures come from the engine's estimate** (rule 19). Round 4's are placeholders and do not
+  agree in scale: a full update with AI at about $0.04 and one question at about $0.02.
+- **§4.8, the states every screen must answer** — loading inside pages, errors beyond reading,
+  feedback after actions, a newer version while looking, access, accessibility, email and legal.
+  Round 4 drew one whole-page loading state; the rest is new.
