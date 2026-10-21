@@ -213,6 +213,10 @@ network. Opening the repository in VS Code ("Reopen in Container") starts them a
   as extra repositories — a browser and nothing installed.
 - **The task runner is the only interface** — `task setup`, `migrate`, `gen` (sqlc), `test`, `logs`,
   `reset` — so nobody needs Compose's flags.
+- **Git inside the workspace** — open, to settle when this step is built. VS Code forwards the host's
+  SSH agent into the container but not `~/.ssh/config`, so a remote written with a host alias
+  (`git@github-edu:…`, as on the machine these were set up on) fails inside it. Either the
+  workspace mounts the SSH config read-only, or remotes inside it use HTTPS through `gh`.
 - **The engine has no Dev Container.** It is developed from this workspace, or natively with plain Go
   and Node as today; its CI keeps building on a bare runner, which is what protects "runs with no
   container runtime" (hard rule 7). The website keeps a small one of its own — Node and the archdoc
