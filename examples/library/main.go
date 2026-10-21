@@ -7,6 +7,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -44,9 +45,13 @@ func run(root string) error {
 
 	// The published site, in memory: a platform uploads these files instead of writing them.
 	site, err := archdoc.BuildSite(ctx, root, 0)
-	if err != nil {
+	switch {
+	case errors.Is(err, archdoc.ErrNoWebApp):
+		fmt.Println("published site: not built — this build of archdoc has no web app")
+	case err != nil:
 		return err
+	default:
+		fmt.Printf("published site: %d files\n", len(site.Files))
 	}
-	fmt.Printf("published site: %d files\n", len(site.Files))
 	return nil
 }

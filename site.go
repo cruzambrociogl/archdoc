@@ -2,7 +2,7 @@ package archdoc
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -21,6 +21,10 @@ const siteDir = stateDir + "/site"
 // actions, and opens citations on the repository host (surface-spec §3).
 const publishedMarker = `<meta name="archdoc-mode" content="published">`
 
+// ErrNoWebApp is BuildSite in a build of archdoc made without its web app: web/ was not built
+// before the Go code, so there is no app to publish.
+var ErrNoWebApp = errors.New("this archdoc was built without its web app — build web/ first (see README)")
+
 // Site is the published site (SUR-05, surface-spec §3): the web app as static files, with the
 // latest version's data — and the change since a baseline — beside it. Files maps each path,
 // relative to the site's root, to its content.
@@ -35,7 +39,7 @@ type Site struct {
 func BuildSite(ctx context.Context, root string, since int64) (*Site, error) {
 	assets, built := web.Assets()
 	if !built {
-		return nil, fmt.Errorf("this archdoc was built without its web app — build web/ first (see README)")
+		return nil, ErrNoWebApp
 	}
 	data, err := serve.Export(root, since)
 	if err != nil {
