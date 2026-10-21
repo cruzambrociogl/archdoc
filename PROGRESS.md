@@ -5,9 +5,31 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-10-09 (end of the 8–9 Oct session — see "Where this stands" below)
+Last updated: 2026-10-20 (the platform planned — see "Where this stands" below)
 
 ---
+
+## Where this stands — 20 Oct 2026: frozen, the platform planned
+
+The engine is **frozen for new features since 19 Oct** and stands as described in the 9 Oct section
+below. archdoc is becoming a platform — local and hosted, "verifiable, wherever it runs"
+(`docs/hosted-proposal.md` §8) — and the freeze lifts when its development environment exists
+(`docs/platform-plan.md` §5). Settled in documents, nothing built:
+
+- **Three repositories**, siblings in `archdoc-workspace/`: this engine; `archdoc-platform` (API,
+  worker, hosted app, the development environment); `archdoc-website` (the static site at the root
+  domain). All three public for now; work on `develop` in each (`platform-plan.md` §2).
+- **The platform's stack**: Go, Postgres with the engine's output in `JSONB`, River, pgx/sqlc/goose,
+  S3-compatible storage — SeaweedFS locally — and the shared React app (§1); the data rules of
+  step 5.
+- **The development environment**: a Dev Container on Docker Compose, the worker locked down as in
+  production (step 4).
+- **The surface**: one app for every place, designed in Claude Design rounds 1–4; the Landing moved
+  to the website (`docs/platform-surface.md` §14).
+
+**Next:** step 1, the engine's public API. Waiting on the current design round: where the
+platform-only pages plug into the app, and moving the platform documents out of this repository
+(`.claude/NOTES.md`).
 
 ## Where this stands — 9 Oct 2026, to resume from
 

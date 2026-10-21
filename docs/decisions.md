@@ -1182,3 +1182,46 @@ level: a **system** groups repositories, its map shows how they link — cited a
 version drift — grouped by the user first, suggested by archdoc second, never guessed. The plan's
 shared viewer becomes a shared app with an adapter per place.
 → `docs/platform-surface.md` §4, §12; `docs/platform-plan.md` step 2
+
+**2026-10-19 — The platform's data: fingerprints, one transaction, models in the API**
+Settled before step 5 so none of it is retrofitted. `JSONB` normalises key order and whitespace,
+so a run stores a fingerprint of the engine's original bytes, and the raw `model.json` in object
+storage; versions are runs with distinct fingerprints. A run and its River job are created in one
+transaction. Repositories carry public or private from the first table. The `JSONB` is the truth;
+projection tables only when a query needs them. In the engine's API, `Diff` takes two models and
+the SQLite history is optional, since the platform has no clone to diff and keeps history in `runs`.
+→ `docs/platform-plan.md` steps 1, 5
+
+**2026-10-20 — A static website at the root domain; the Landing leaves the app**
+The platform needs pages for strangers — how it works, trust, pricing, docs — that search engines
+can find. A static **Astro** site (Starlight for docs) at the root domain holds them, in `site/` of
+the private platform repository; the app moves to its own subdomain and stays a pure single-page
+app, keeping only **Start** for the link box. Three origins: website, app, generated sites. The
+gallery is built with the website by running the engine at pinned commits, so the website needs no
+platform. The docs' text lives in the engine repository, versioned with the code.
+*Revised the same day: the website has a repository of its own, not `site/` — below.*
+→ `docs/platform-plan.md` §7 "The website"; `docs/platform-surface.md` §5.1, §14
+
+**2026-10-20 — SeaweedFS for local object storage, not MinIO**
+MinIO's community edition is no longer open: maintenance mode, no published images. Of the
+S3-compatible replacements, **SeaweedFS** — Apache 2.0, written in Go, mature, one container with
+`weed server -s3`. Garage is AGPL and needs a layout and key bootstrap before first use; RustFS is
+the closest drop-in for MinIO but young. Apache 2.0 also matters for piece E, where a self-hosted
+install may ship it. Production uses a provider's S3 (open question 5); only the S3 API is assumed.
+→ `docs/platform-plan.md` §1, step 4
+
+**2026-10-20 — The website in a repository of its own**
+`archdoc-website`, private, beside the engine and the platform. It depends on the engine — the app
+package, the CLI, the docs — and on nothing of the platform's; its links to the app are URLs. Its
+own repository keeps that true by construction and lets it deploy alone. One rule spans the two
+private repositories: the website never runs ahead of the platform's engine version.
+→ `docs/platform-plan.md` §2, §7
+
+**2026-10-20 — The development environment: a Dev Container on Docker Compose**
+Of three levels — services in Docker, everything that runs in Docker, a Dev Container — the third:
+Docker and an editor are all anyone installs. Not one container: the workspace (tools, terminal,
+the API under a debugger) is one, and Postgres, SeaweedFS, an egress proxy and the worker are their
+own. The worker runs locked down as in production, reaching only GitHub through the proxy, so step
+6's lockdown is tested on every local run. It lives in the platform repository and mounts the
+folder holding all three; the engine keeps no Dev Container and its CI a bare runner (hard rule 7).
+→ `docs/platform-plan.md` step 4

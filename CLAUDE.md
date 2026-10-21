@@ -7,7 +7,8 @@ web app, one static binary.
 **Phase:** frozen for new features since 19 Oct, while the development environment for the
 platform is set up — `docs/platform-plan.md` (the steps, and when the freeze lifts) and
 `docs/hosted-proposal.md` §8 (the direction). What the engine does today: `PROGRESS.md`, "Where this
-stands".
+stands". This is one of three repositories — with `archdoc-platform` and `archdoc-website`, siblings
+in one folder (`docs/platform-plan.md` §2).
 **Target:** code freeze 4 Dec 2026, delivered 11 Dec 2026.
 
 ---

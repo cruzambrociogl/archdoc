@@ -87,6 +87,13 @@ raised, not quietly promoted over it.
   stop after phase 2 for a review. Recommended: class, with Simple mode folding; all three phases.
 - [ ] Long external names overflow their box in every SVG ("Telemetry collector (OpenTelemetry)",
   seen on the data-flow view): the name is not wrapped or clipped as descriptions are.
+- [ ] After the current Claude Design round, pull it and settle two repository questions, even if the
+  design does not answer them: (1) pages only the platform has (Connect, Account, billing — the Landing
+  is now the website)
+  — the shared app exports its routes and the platform adds its own, or the app ships every page;
+  (2) `hosted-proposal.md`, `platform-plan.md` and `platform-surface.md` move to the private platform
+  repository before the engine goes public (step 3), history included — check Claude Design can
+  read a private remote first. Also: rename `internal/archdoc` → `internal/core` in step 1 — 2026-10-20
 
 ## Recently resolved
 

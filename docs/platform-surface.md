@@ -17,7 +17,8 @@
 > its `Platform Findings`. What changed is listed in §11. **Revision 3, 2026-10-19**: one app for every
 place, a density budget, plain names, and related repositories — the information architecture of §4;
 what changed is listed in §12. **Revision 4, 2026-10-20**, after round 3 (`App.dc.html`, `App Findings`):
-corrections, not a redesign — listed in §13. **Nothing here is built**: the code is
+corrections, not a redesign — listed in §13. **Revision 5, 2026-10-20**: the Landing leaves the app
+for a static website at the root domain — §14. **Nothing here is built**: the code is
 > frozen until the platform's development environment exists (`platform-plan.md`); designing is not
 > building, and is the right work now. Direction: `hosted-proposal.md` §8.
 
@@ -39,6 +40,7 @@ corrections, not a redesign — listed in §13. **Nothing here is built**: the c
 | What the first design round changed | §11 |
 | What revision 3 changed | §12 |
 | What revision 4 changed | §13 |
+| What revision 5 changed — the website | §14 |
 
 ### Pieces
 
@@ -178,7 +180,7 @@ dig.
 
 ### Flow 1 — First look, no account · C
 
-1. **Landing** (§5.1) — paste `github.com/owner/repo`.
+1. **The website's home** (§5.1) — paste `github.com/owner/repo`; the app's **Start** takes it.
 2. **Generating** (§5.2) — the narrative of what is being found.
 3. **Overview** (§6.1) of that repository.
 
@@ -187,7 +189,7 @@ visitor to the same repository at the same commit gets the result instantly.
 
 ### Flow 2 — Connect and keep current · D
 
-1. Landing or Overview → **Sign in with GitHub**.
+1. The website or Overview → **Sign in with GitHub**.
 2. **Connect a repository** (§5.4) — install the GitHub App, pick repositories.
 3. **Generating** for each.
 4. **Home** (§5.3) — from the second repository on. With one repository, sign-in lands on that
@@ -400,7 +402,7 @@ menu entry.
 
 | Screen | Lives in | Change |
 |---|---|---|
-| Landing §5.1 | Public entry (C) | Unchanged |
+| Landing §5.1 | **The website**, outside the app; the app keeps **Start** | **Moved out** (revision 5) |
 | Generating §5.2 | The status's progress; full screen on a first run | Unchanged |
 | Home §5.3 | Home level — **local too** | Start (§5.8) merged into it |
 | Connect a repository §5.4 | Home (D) | Unchanged |
@@ -423,7 +425,7 @@ repository has their avatar and account but none of that repository's settings �
 
 | Feature | Local | Website, signed out | Website, signed in | Published site |
 |---|---|---|---|---|
-| Home | Recent folders and systems | — (Landing instead) | Your systems and repositories | — |
+| Home | Recent folders and systems | — (the website instead) | Your systems and repositories | — |
 | System level | A folder of repositories, or a workspace file | — | Connected repositories | — |
 | Every repository screen | ✓ | ✓ | ✓ | ✓, one version and its baseline |
 | Generate | From the status menu | Automatic, on request | Automatic, on every push | — |
@@ -439,7 +441,7 @@ repository has their avatar and account but none of that repository's settings �
 | Connect your agent | `archdoc mcp` | — | ✓ | — |
 | Sign in, account | — | Sign in only | ✓ | — |
 
-A feature that does not apply is **absent**, not disabled. The one exception: Landing and Overview
+A feature that does not apply is **absent**, not disabled. The one exception: Start and Overview
 on C may say "sign in to keep this repository current" — the one place the platform invites.
 
 ### 4.6 Related repositories — the system level
@@ -510,25 +512,36 @@ One word per idea, everywhere — the legend, the marks, the sentences, the noti
 The truth states keep their technical names in this document and in `surface-spec.md`; on screen,
 the left column is never shown — only "Say".
 
-The Landing's button says what the visitor gets — **Show its architecture** — rather than "Read it".
+The website's link box says what the visitor gets — **Show its architecture** — rather than "Read it".
 
 ---
 
 ## 5. Platform screens
 
-### 5.1 Landing · C
+### 5.1 Landing · C — moved to the website in revision 5
 
 **Answers:** what is this, and can I try it right now?
+
+The Landing is no longer a screen of the app. It is the home page of **the website** — a static site
+at the root domain, outside the app and its shell (`platform-plan.md` §7, "The website"). Its content
+is unchanged:
 
 - One sentence of what archdoc is, and one input: **paste a GitHub link**.
 - A **gallery** of well-known repositories, already generated — Immich, Supabase, Mastodon, others.
   Each card: name, one-line summary, the diagram's thumbnail.
-- One line for those who prefer local: how to install.
+- The three ways to use it: local (how to install), the GitHub Action, hosted.
 - Sign in with GitHub, for private repositories.
 
-**States:** link not a GitHub repository; repository private (→ sign in); already generated at this
-commit (→ straight to Overview).
-**Tone:** the one screen allowed to sell. Still calm; the gallery does the selling.
+Around it, the website's other pages: How it works, Gallery (a page per repository), Trust, Pricing,
+Docs, Changelog, Terms and Privacy.
+
+**What stays in the app — Start** (`/new?repo=…`): the link box submits to it, and it shows the
+states: link not a GitHub repository; repository private (→ sign in); already generated at this
+commit (→ straight to Overview); otherwise → Generating (§5.2). It has a link box of its own for
+anyone who arrives without one. A signed-out visitor at the app's root is sent to the website.
+
+**Tone:** the website is the one place allowed to sell. Still calm; the gallery does the selling.
+**Designed in a round of its own**, after the app's — same design system, no app shell.
 
 ### 5.2 Generating · C, D, L
 
@@ -803,7 +816,7 @@ All of it is platform API, except where marked L (the local app's `serve`).
 | Plain-language summary | Overview | The structure sentence from templates; manifest descriptions read and cited; the model's purpose and feature sentences where AI is on (§6.1) |
 | Impact for an element | Impact | A query over the model: readers, writers, routes, flows, outside services |
 | Intent results | Did it build what I asked? | F-40, F-41 |
-| Gallery | Landing | A curated list of repositories, generated ahead |
+| Gallery | The website's home and gallery pages | A curated list of repositories, generated by the engine at pinned commits when the website is built — no platform needed |
 | Settings, sharing, tokens | Settings, Share, Connect your agent | Platform tables |
 | Systems and their links | System map, Home | Which repositories a system holds; links between them with both citations; pinned versions for drift; suggestions kept apart from groupings — multi-repository composition in the engine (§4.6) |
 
@@ -833,15 +846,16 @@ content) and §6 (the design system).
    user; the platform imports the engine at v0.3.0 while the engine is at v0.5.0; one suggestion
    kept apart — a `homebrew-archdoc` repository whose formula installs the engine's releases. And
    **Home** with a system card and a single repository, locally and on the platform.
-7. Landing, Generating, Connect a repository, Share, Connect your agent, Account — updated to the
-   shell, and the notifications.
+7. Start, Generating, Connect a repository, Share, Connect your agent, Account — updated to the
+   shell, and the notifications. The Landing is now the website (§5.1, revision 5), designed in a
+   round of its own.
 
 **Use realistic content.** Immich as in `surface-spec.md` §8; Supabase for the large case; Mastodon
 for the small case. For What changed and Did it build what I asked?, the album-comments push
 (`9c3e7d1`, 18 Oct, v14) and the plan "Comments on albums", every name consistent across screens.
 
 **Tone:** a precise instrument that opens in plain words — a good explainer first, a good code editor
-one step behind. Less on every screen than before: when in doubt, it goes one step away. The Landing
+one step behind. Less on every screen than before: when in doubt, it goes one step away. The website
 is the one place allowed to sell, and the gallery does it.
 
 **What we want from the design:** to see the shape and find its flaws. A screen that does not work
@@ -862,8 +876,9 @@ Still open:
 2. **"Publish to archdoc" from local** — the bridge between L and D; slot only for now.
 3. **The never-keep-your-code promise** (`hosted-proposal.md` question 6) — Connect a repository
    (§5.4) shows it as a draft until it is decided; the `.env` line is the undecided part.
-4. **The gallery** — which repositories, and who keeps it current. Kept from the design: a partly
-   read repository (Mastodon) says so on its card — the product's honesty, before sign-up.
+4. **The gallery** — which repositories. Who keeps it current is answered by revision 5: the
+   website's build, running the engine at pinned commits. Kept from the design: a partly read
+   repository (Mastodon) says so on its card — the product's honesty, before sign-up.
 5. **The name and domain** — `archdoc.dev` in the designs is a placeholder (`platform-plan.md`
    question 4).
 6. **Clustering in the Data view** — grouping tables by name prefix leaves one cluster of 34 of
@@ -1000,3 +1015,23 @@ differing only where §4.5 says. Revision 4 corrects what reviewing it showed.
 drawn; a "place note" at the foot of the menu ("On this machine · ~/code/immich") is kept as drawn,
 to be judged in use; the rule for clustering tables (§10, question 6) is still needed — round 3 shows
 the 34-table cluster on the Map.
+
+---
+
+## 14. Revision 5 — the website
+
+The Landing (§5.1) was the app's one page for strangers, and the one place allowed to sell. A
+product with a business aim needs more than one such page — how it works, trust, pricing, docs — and
+pages strangers find through search, which a single-page app serves badly. Revision 5 moves it out.
+
+- **A static website at the root domain** holds the Landing's content as its home page, and How it
+  works, Gallery, Trust, Pricing, Docs, Changelog, Terms and Privacy around it. Its stack and its
+  three origins — website, app, generated sites — are in `platform-plan.md` §7, "The website".
+- **The app keeps Start** (`/new?repo=…`), which the website's link box opens, with every state the
+  Landing had (§5.1). A signed-out visitor at the app's root is sent to the website.
+- **The gallery is built with the website**, by the engine at pinned commits — no platform needed
+  (§8, §10 question 4).
+- **The app now has no page for strangers.** Every app page is for someone using a repository; the
+  selling is the website's.
+- **The website is designed in a round of its own**, after the app's: same design system, no app
+  shell. This round draws Start in place of the Landing (§9).
