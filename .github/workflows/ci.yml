@@ -127,3 +127,26 @@ jobs:
           work=$(mktemp -d)
           cp -R ../../testdata/drift/base "$work/shop"
           go run . "$work/shop"
+
+  # The app every place shares (platform plan, step 2): the binary embeds its build, and published
+  # sites are made of it. A change that breaks its typecheck or its build breaks all three places.
+  web:
+    name: Web app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck and build
+        run: npm run build
