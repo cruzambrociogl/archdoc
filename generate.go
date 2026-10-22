@@ -55,6 +55,10 @@ type GenerateOptions struct {
 	// agrees. Nil is never.
 	Label   *LabelOptions
 	Explain *ExplainOptions
+	// Progress is told what the run is doing as it goes — the applications found, each one as its
+	// code is read, the diagrams drawn — for a screen to show while a large repository is read.
+	// Nil is no one.
+	Progress func(Progress)
 }
 
 // LabelOptions is a label run: the model to ask, and who agrees to sending.
@@ -96,7 +100,11 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 		out = io.Discard
 	}
 	res := &Generated{}
-	facts, err := extract.Scan(root)
+	progress := o.Progress
+	if progress == nil {
+		progress = func(Progress) {}
+	}
+	facts, err := extract.ScanReporting(root, progress)
 	if err != nil {
 		return nil, err
 	}
@@ -277,8 +285,10 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 	// picture cannot shift between identical runs. --stdout writes nothing, so it draws nothing.
 	var layouts map[string]core.Layout
 	if !o.IndexOnly {
+		progress(Progress{Doing: "drawing the diagrams", Found: found(m)})
 		layouts = layoutViews(facts.Root, m, o.History, out)
 		meta.Pictures = layouts != nil
+		progress(Progress{Doing: "writing the documents", Found: found(m)})
 	}
 
 	// Which sections this repository has evidence for. A single-service repo with no networks
@@ -749,4 +759,31 @@ func loadMemory(root string) (semantic.Memory, error) {
 		return nil, fmt.Errorf("%s: %w", memoryOut, err)
 	}
 	return m, nil
+}
+
+// found says what a model holds, for a run's progress: its parts, routes and tables.
+func found(m core.Model) []string {
+	parts, tables := 0, 0
+	for _, n := range m.Nodes {
+		switch {
+		case n.Kind.Container():
+			parts++
+		case n.Kind == core.Table:
+			tables++
+		}
+	}
+	count := func(n int, one, many string) string {
+		if n == 1 {
+			return "1 " + one + " found"
+		}
+		return fmt.Sprintf("%d %s found", n, many)
+	}
+	out := []string{count(parts, "app or service", "apps and services")}
+	if len(m.Entries) > 0 {
+		out = append(out, count(len(m.Entries), "route", "routes"))
+	}
+	if tables > 0 {
+		out = append(out, count(tables, "table", "tables"))
+	}
+	return out
 }

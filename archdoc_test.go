@@ -230,3 +230,23 @@ func TestFingerprintIsTheVersion(t *testing.T) {
 		t.Error("a renamed service kept the fingerprint")
 	}
 }
+
+// A run says what it is doing as it goes: each application as its code is read, then the services,
+// then the diagrams and the documents — each step with what has been found so far.
+func TestGenerateSaysWhatItIsDoing(t *testing.T) {
+	var steps []archdoc.Progress
+	if _, err := archdoc.Generate(context.Background(), shop(t), archdoc.GenerateOptions{Progress: func(p archdoc.Progress) { steps = append(steps, p) }}); err != nil {
+		t.Fatal(err)
+	}
+	var doing []string
+	for _, p := range steps {
+		doing = append(doing, p.Doing)
+	}
+	got := strings.Join(doing, " · ")
+	if !strings.HasPrefix(got, "reading ") || !strings.Contains(got, "following the calls between them") || !strings.HasSuffix(got, "drawing the diagrams · writing the documents") {
+		t.Errorf("steps: %s", got)
+	}
+	if last := steps[len(steps)-1]; len(last.Found) == 0 || !strings.Contains(last.Found[0], "apps and services") {
+		t.Errorf("what the last step had found: %v", last.Found)
+	}
+}

@@ -633,16 +633,36 @@ func goMod(root, rel string) *core.App {
 
 // sources reads the code of every application that runs as a container (F-03). A package nested
 // inside another's directory is its own; the reader leaves it to its own manifest.
-func sources(root string, apps []core.App) []core.Source {
+func sources(root string, apps []core.App, report func(core.Progress)) []core.Source {
 	dirs := make([]string, 0, len(apps))
+	running := 0
 	for _, a := range apps {
 		dirs = append(dirs, a.Dir)
+		if a.Role.Container() {
+			running++
+		}
+	}
+	found := fmt.Sprintf("%d applications found", running)
+	if running == 1 {
+		found = "1 application found"
 	}
 	var out []core.Source
 	for _, a := range apps {
 		if !a.Role.Container() {
 			continue
 		}
+		what := a.Framework
+		if what == "" {
+			what = a.Language
+		}
+		if what == "" {
+			what = "the code"
+		}
+		where := a.Dir
+		if where == "." {
+			where = a.Name
+		}
+		report(core.Progress{Doing: fmt.Sprintf("reading %s in %s", what, where), Found: []string{found, readSoFar(out)}})
 		src, ok := code.Read(root, a, dirs)
 		if libs := libraries(a, apps); len(libs) > 0 {
 			if more := code.LibrarySchemas(root, libs); len(more) > 0 {
@@ -693,4 +713,16 @@ func libraries(a core.App, apps []core.App) []core.App {
 	visit(a, 0)
 	sortedApps(out)
 	return out
+}
+
+// readSoFar says how much code has been read: "212 files read".
+func readSoFar(sources []core.Source) string {
+	n := 0
+	for _, s := range sources {
+		n += len(s.Files)
+	}
+	if n == 1 {
+		return "1 file read"
+	}
+	return fmt.Sprintf("%d files read", n)
 }

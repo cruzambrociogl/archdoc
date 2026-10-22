@@ -37,6 +37,7 @@ type (
 	FactSet     = core.FactSet
 	App         = core.App
 	BuildInfo   = core.BuildInfo
+	Progress    = core.Progress
 )
 
 // Kinds of element the command's own output distinguishes.

@@ -613,3 +613,11 @@ type Candidate struct {
 	Reason string `json:"reason"` // why it was chosen, or why it was not
 	Chosen bool   `json:"chosen"`
 }
+
+// Progress is what a run is doing, in words, and what it has found so far — what the Generating
+// screen says while a repository is read (platform-surface §5.2, 6.17): "reading NestJS in server",
+// after "9 applications found" and "212 files read".
+type Progress struct {
+	Doing string   `json:"doing"`
+	Found []string `json:"found,omitempty"`
+}

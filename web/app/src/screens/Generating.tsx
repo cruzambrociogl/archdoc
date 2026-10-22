@@ -55,8 +55,16 @@ export function Generating(props: { run?: HostedRun; error?: Error; runs: Runs; 
   } else if (r.status === 'running') {
     q = 'Is it working, and what is it finding?'
     const i = Math.max(0, steps.findIndex((s) => s.phase === r.phase))
-    sentence = `Reading ${repo}: ${steps[i].now(c).toLowerCase()}.`
-    lines = [...steps.slice(0, i).map((s) => s.done(c)), `${steps[i].now(c)} · ${elapsed}`]
+    const p = r.phase === 'generating' ? r.progress : undefined
+    if (p) {
+      // What the engine says it is doing, and what it has found so far (6.17).
+      const found = p.found ?? []
+      sentence = `Reading ${repo}. ${found.length ? `${found[0]} so far; now ` : 'Now '}${p.doing}.`
+      lines = [...steps.slice(0, i).map((s) => s.done(c)), ...found.map((f) => f.charAt(0).toUpperCase() + f.slice(1)), `${p.doing.charAt(0).toUpperCase()}${p.doing.slice(1)} · ${elapsed}`]
+    } else {
+      sentence = `Reading ${repo}: ${steps[i].now(c).toLowerCase()}.`
+      lines = [...steps.slice(0, i).map((s) => s.done(c)), `${steps[i].now(c)} · ${elapsed}`]
+    }
   } else if (r.failure === 'not_found') {
     q = 'Can archdoc read this?'
     sentence = `GitHub shows no public repository at ${repo}. It may be private, or not exist — private repositories need an account, which the website doesn’t have yet.`

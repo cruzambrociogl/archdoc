@@ -119,6 +119,8 @@ export interface HostedRun {
   status: 'queued' | 'running' | 'done' | 'unchanged' | 'failed'
   /** What a running read is doing. */
   phase: 'resolving' | 'cloning' | 'generating' | 'storing' | null
+  /** While it reads the code: what the engine says it is doing, and what it has found so far. */
+  progress?: { doing: string; found?: string[] } | null
   /** Which of the designed failures a failed read is (§5.2): missing or private, too big, out of time, interrupted, other. */
   failure: 'not_found' | 'too_big' | 'timed_out' | 'stopped' | 'failed' | null
   error: string | null

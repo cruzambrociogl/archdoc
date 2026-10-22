@@ -35,7 +35,15 @@ var composeTags = [][]byte{[]byte("!override"), []byte("!reset")}
 // correctly but discards source positions; a raw yaml.v3 parse recovers them, addressable by
 // key path. Neither pass alone is sufficient: the first knows what is true, the second knows
 // where it was written.
-func Scan(root string) (*core.FactSet, error) {
+func Scan(root string) (*core.FactSet, error) { return ScanReporting(root, nil) }
+
+// ScanReporting is Scan, saying what it is doing as it goes: the applications found, then each one
+// as its code is read, then the services — for a screen to show while a large repository is read.
+// report may be nil.
+func ScanReporting(root string, report func(core.Progress)) (*core.FactSet, error) {
+	if report == nil {
+		report = func(core.Progress) {}
+	}
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return nil, err
@@ -64,7 +72,7 @@ func Scan(root string) (*core.FactSet, error) {
 	// code, and a repository with no Compose file at all still has applications to document.
 	fs.Apps = Apps(abs)
 	fs.APIs = APIs(abs, fs.Apps)
-	fs.Sources = sources(abs, fs.Apps)
+	fs.Sources = sources(abs, fs.Apps, report)
 
 	if chosen == "" {
 		return fs, nil // nothing more to extract; the candidate list still explains why
@@ -78,6 +86,8 @@ func Scan(root string) (*core.FactSet, error) {
 	}
 	fs.Services = services
 	fs.Networks = nets
+	report(core.Progress{Doing: "following the calls between them", Found: []string{
+		fmt.Sprintf("%d services found in %s", len(services), chosen), readSoFar(fs.Sources)}})
 	if name, sample := envSource(filepath.Dir(filepath.Join(abs, chosen))); name != "" {
 		fs.Interpolation = &core.EnvSource{File: filepath.ToSlash(filepath.Join(filepath.Dir(chosen), name)), Sample: sample}
 	}
