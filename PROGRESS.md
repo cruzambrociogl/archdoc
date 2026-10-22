@@ -34,7 +34,9 @@ for, links to a page, version or part that is gone, the Overview's picture as a 
 Stage 4 has begun with the system level: `archdoc serve` on a folder of repositories shows the
 System map — code links read from every manifest, Go's included, cited at both ends, with drift.
 Home is built too: `archdoc home` lists every place this machine remembers, with what changed in each
-since it was last opened here. The system's What changed is next. **The plan across
+since it was last opened here; and the system's What changed, each repository's latest version told,
+with who in the system requires it. Stage 4 is built but for what waits on other features —
+generating from Home, and systems and Home on the website, which need accounts. **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
 

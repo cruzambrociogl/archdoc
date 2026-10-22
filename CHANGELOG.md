@@ -32,6 +32,9 @@ what is different for a user.
   served, with what changed in each since you last opened it here, what couldn't be resolved, and
   when it last changed. The list is a file in your user configuration folder, never in a repository;
   `generate` and `serve` add to it. With one place there is no Home: it opens that place.
+- **What changed across a system.** Beside its map, a system tells each repository's latest version
+  in the sentence that repository's own What changed writes, the most recent first, and says which of
+  the others require it.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

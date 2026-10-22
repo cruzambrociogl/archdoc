@@ -81,8 +81,9 @@ capability is true; no screen checks which place it is in.
 
 **A system.** On a folder of documented repositories, `archdoc serve` answers `/api/system` and each
 repository's API under `/repos/{name}/`; the local Source then has `system` — read the system, open
-one repository's Source. Given it, `App` shows the System map at `/` and each repository's pages at
-`/repos/{name}`, after `#`, with the system first in the breadcrumb.
+one repository's Source. Given it, `App` shows the System map at `/`, what changed across the system
+at `/changes`, and each repository's pages at `/repos/{name}`, after `#`, with the system first in the
+breadcrumb.
 
 **Home.** `archdoc home` answers `/api/home` and each remembered place's API under `/at/{id}/`; its
 Source has `home` — list the places, open one's Source (a repository's, or a system's), remember it
@@ -114,6 +115,8 @@ app/src/                 @archdoc/app
   api.ts                 the data types; useApi; citation links through the Source
   connection.ts          whether the place answers: a read nothing answered marks it down, the shell asks
                          again, and every failed read is asked again when it answers (§4.8)
+  story.ts               one version told: its changes by meaning, and its sentence — a repository's What
+                         changed and a system's both
   route.ts               URL state: each screen's path, title and menu section; the Map levels' plain names
   theme.ts               light / dark / system, per viewer
   shell/                 TopBar (breadcrumb, status, search, Share, ⋯), Nav (the six entries and Settings),
@@ -126,7 +129,8 @@ app/src/                 @archdoc/app
   screens/               Overview, Changes, Features (What it does), Reference, About (with Coverage), Documents,
                          Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector;
                          Start and Generating, the website's; Gone (a page, version or part a link names
-                         and this place doesn't have); SystemMap (how a system's repositories fit together); Home
+                         and this place doesn't have); SystemMap (how a system's repositories fit together, and the system's
+                         frame) and SystemChanges (what changed across it); Home
   screens/explorer/      Explorer, scene.ts (scene → React Flow; the draft preview; the change overlay),
                          parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView
   ui/                    Cite, TruthMark/TruthChip, markInfo (the four marks, what each means), KindTile,

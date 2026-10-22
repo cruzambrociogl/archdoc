@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 import type { SystemLink, SystemRepo, SystemResponse } from '../api'
 import { RootContext } from '../api'
@@ -22,13 +23,41 @@ const short = (pkg: string) => (pkg.includes('/') && !pkg.startsWith('@') ? pkg.
  * one required, drift on the arrow; and every link with the lines at both ends — which is also the
  * picture's text alternative (§4.8). A box opens that repository.
  */
-export function SystemMap(props: { sys?: SystemResponse; error?: Error; missing?: string; above?: Crumb[]; onOpen: (repo: string) => void; onSystem: () => void }) {
+export function SystemMap(props: { sys?: SystemResponse; error?: Error; missing?: string; above?: Crumb[]; onOpen: (repo: string) => void; onSystem: () => void; onChanges: () => void }) {
   const { sys } = props
   const [chosen, setChosen] = useState<number | null>(null)
+  return (
+    <SystemFrame sys={sys} above={props.above} on="map" onMap={props.onSystem} onChanges={props.onChanges}>
+      {props.error ? (
+        <Failure error={props.error.message} whole />
+      ) : !sys ? (
+        <Loading q="How do my repositories fit together?" what="the repositories" />
+      ) : (
+        <>
+          <div className="page-q">How do my repositories fit together?</div>
+          {props.missing && <p className="gone-more">There’s no repository {props.missing} in {sys.name}. These are the ones it holds:</p>}
+          <p className="overview-answer">{systemSentence(sys).join(' ')}</p>
+          <Picture sys={sys} chosen={chosen} onChoose={setChosen} onOpen={props.onOpen} />
+          <Evidence sys={sys} chosen={chosen} onChoose={setChosen} />
+        </>
+      )}
+    </SystemFrame>
+  )
+}
 
+/**
+ * The system level's frame (platform-surface §4.3): its own short menu — System map and What
+ * changed; Settings when a system has any — under the levels above it in the breadcrumb.
+ */
+export function SystemFrame(props: { sys?: SystemResponse; above?: Crumb[]; on: 'map' | 'changes'; onMap: () => void; onChanges: () => void; children: ReactNode }) {
+  const { sys } = props
+  const entries = [
+    { id: 'map', label: 'System map', q: 'How do my repositories fit together?', go: props.onMap },
+    { id: 'changes', label: 'What changed', q: 'What changed across them?', go: props.onChanges },
+  ] as const
   return (
     <div className="shell">
-      <WebsiteBar onStart={props.onSystem}>
+      <WebsiteBar onStart={props.onMap}>
         {sys && (
           <nav className="crumbs" aria-label="Where you are">
             {(props.above ?? []).map((c) => (
@@ -39,35 +68,31 @@ export function SystemMap(props: { sys?: SystemResponse; error?: Error; missing?
                 <span className="crumb-sep">›</span>
               </span>
             ))}
-            <span className="crumb current mono" aria-current="page">
-              {sys.name}
+            <span className="crumb-step">
+              <button className="crumb mono" onClick={props.onMap}>
+                {sys.name}
+              </button>
+            </span>
+            <span className="crumb-step">
+              <span className="crumb-sep">›</span>
+              <span className="crumb current" aria-current="page">
+                {props.on === 'map' ? 'System map' : 'What changed'}
+              </span>
             </span>
           </nav>
         )}
       </WebsiteBar>
       <div className="shell-body">
         <nav className="nav" aria-label="Sections">
-          <button className="nav-item active" aria-current="page" title="How do my repositories fit together?">
-            <span className="nav-label">System map</span>
-          </button>
+          {entries.map((e) => (
+            <button key={e.id} className={`nav-item ${props.on === e.id ? 'active' : ''}`} aria-current={props.on === e.id ? 'page' : undefined} title={e.q} onClick={e.go}>
+              <span className="nav-label">{e.label}</span>
+            </button>
+          ))}
         </nav>
         <div className="main-col">
           <main className="shell-main page">
-            <div className="reading wide system-map">
-              {props.error ? (
-                <Failure error={props.error.message} whole />
-              ) : !sys ? (
-                <Loading q="How do my repositories fit together?" what="the repositories" />
-              ) : (
-                <>
-                  <div className="page-q">How do my repositories fit together?</div>
-                  {props.missing && <p className="gone-more">There’s no repository {props.missing} in {sys.name}. These are the ones it holds:</p>}
-                  <p className="overview-answer">{systemSentence(sys).join(' ')}</p>
-                  <Picture sys={sys} chosen={chosen} onChoose={setChosen} onOpen={props.onOpen} />
-                  <Evidence sys={sys} chosen={chosen} onChoose={setChosen} />
-                </>
-              )}
-            </div>
+            <div className="reading wide system-map">{props.children}</div>
           </main>
         </div>
       </div>

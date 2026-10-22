@@ -4,20 +4,24 @@ import type { SystemResponse } from '../api'
 import type { Systems } from '../source'
 import { SourceProvider } from '../source'
 import { SystemMap } from '../screens/SystemMap'
+import { SystemChanges } from '../screens/SystemChanges'
 import { Loading } from '../ui/marks'
 import type { Crumb } from './parent'
 import { ParentContext } from './parent'
 import { goTo, usePath } from './path'
 
 /**
- * A system's pages (platform-surface §4.3, §4.6): its map at `base`, and each repository's pages at
+ * A system's pages (platform-surface §4.3, §4.6): its map at `base`, what changed across it at
+ * `base/changes`, and each repository's pages at
  * `base/repos/{name}`, after `#`, through the Source the system opens for it — under the system in
  * the breadcrumb, and under whatever is above the system (`above`: Home).
  */
 export function SystemSite({ system, Repository, base = '', above = [] }: { system: Systems; Repository: ComponentType; base?: string; above?: Crumb[] }) {
   const path = usePath()
-  const m = path.slice(base.length).match(/^\/repos\/([^/]+)\/?$/)
+  const rest = path.slice(base.length)
+  const m = rest.match(/^\/repos\/([^/]+)\/?$/)
   const name = m ? decodeURIComponent(m[1]) : undefined
+  const changes = /^\/changes\/?$/.test(rest)
   const [sys, setSys] = useState<SystemResponse>()
   const [error, setError] = useState<Error>()
 
@@ -49,5 +53,8 @@ export function SystemSite({ system, Repository, base = '', above = [] }: { syst
       </SourceProvider>
     )
   }
-  return <SystemMap sys={sys} error={error} missing={missing} above={above} onOpen={(r) => goTo(`${base}/repos/${encodeURIComponent(r)}`)} onSystem={toMap} />
+  const toChanges = () => goTo(`${base}/changes`)
+  const open = (r: string, page?: string) => goTo(`${base}/repos/${encodeURIComponent(r)}${page === 'changes' ? '#/changes' : ''}`)
+  if (changes) return <SystemChanges sys={sys} error={error} above={above} system={system} onMap={toMap} onChanges={toChanges} onOpen={open} />
+  return <SystemMap sys={sys} error={error} missing={missing} above={above} onOpen={open} onSystem={toMap} onChanges={toChanges} />
 }

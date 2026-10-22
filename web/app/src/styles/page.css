@@ -1986,3 +1986,34 @@ button.runs-row:hover {
     flex-direction: column;
   }
 }
+
+/* What changed across a system (§4.6): each repository's latest version, told. */
+.system-change {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-soft);
+}
+.system-change-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.system-change-line {
+  margin: 6px 0 0;
+  font: 17px/1.5 var(--font-serif);
+}
+.system-change-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 8px;
+  font-size: var(--t-small);
+}
+.system-change-deps {
+  margin: 8px 0 0;
+  font-size: var(--t-body);
+}

@@ -21,7 +21,7 @@ window.addEventListener('popstate', () => {
 export function goTo(path: string) {
   const leaving = location.hash !== ''
   if (!leaving) history.pushState(null, '', path)
-  current = path
+  current = new URL(path, location.href).pathname // a repository's page may follow, after #
   emit()
   if (leaving) setTimeout(() => history.pushState(null, '', path), 0)
 }
