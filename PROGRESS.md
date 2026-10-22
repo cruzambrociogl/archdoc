@@ -49,7 +49,7 @@ web app builds (`cd web && npm run build`), and `go build -o archdoc ./cmd/archd
 | "What the AI did" | Not built. `archdoc diff` compares two commits and classifies every change; nothing yet turns that into a summary a person reads, and nothing reads a plan file |
 
 **Acceptance criteria:** seven of nine met — AC-1, 2, 4, 5, 6, 7, 8. AC-3 waits for the hand-drawn
-Immich reference (Cruz). AC-9 can be measured now that Supabase is on disk again (9 Oct): moved to the evidence sprint.
+Immich reference (the team). AC-9 can be measured now that Supabase is on disk again (9 Oct): moved to the evidence sprint.
 
 **Against the vision** (`docs/vision.md`; the check itself is in `docs/decisions.md`, 9 Oct): on
 path for a system; back on path for small projects; not started on the change view per session and
@@ -106,7 +106,7 @@ constantly, not just at a review.
 |---|---|---|---|---|
 | AC-1 | Nodes and edges carry extraction or catalog provenance | ≥ 95% | no | ✓ **100% on Immich with its code read — 1,333 of 1,333 elements and relationships, 9 Oct**, and on every fixture but the one where a rule adds an element (4 of 5, as it should be). Counted on every run now: the first row of the coverage report. The validator already refuses an element nothing vouches for (VAL-05), so what this number can show is the share a rule or a model supplied; `--label` and `--explain` add values and sentences, never elements, and leave it at 100% |
 | AC-2 | Container diagram produced with the LLM disabled | renders + validates, both subjects | **yes** | ✓ **met, 11 Sep.** Renders and validates on all three subjects with no model involved. The live on/off comparison held on Supabase across four versions: identical elements, kinds and relationships — only words changed |
-| AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · **reference due 5–16 Oct (Cruz)**, scored in the evidence sprint 20–24 Oct. Also the answer key for the Code Wiki / DeepWiki comparison |
+| AC-3 | Structural accuracy vs hand-drawn reference | ≥ 0.85 on Immich | no — needs the reference | · **reference due 5–16 Oct (the team)**, scored in the evidence sprint 20–24 Oct. Also the answer key for the Code Wiki / DeepWiki comparison |
 | AC-4 | Validator rejects malformed models | 100% of fault-injection suite | **yes** | ✓ **13 of 13 rejected, 8 Sep.** Every fault in the suite is a way the draw.io experiment failed, or a way the model could lie without a reader noticing. Grow the suite as new failure modes appear |
 | AC-5 | Rule persistence | 10 rules survive regeneration | **yes** | ✓ **10 of 10, 8 Sep.** Measured by running the whole pipeline from disk twice, not by re-applying a cached model — surviving *regeneration* is the criterion |
 | AC-6 | Drift detection | 100% of synthetic drift set | **yes** | ✓ **16 of 16 detected and classified, 9 Oct.** `archdoc diff <path> <commit> [<commit>]` (F-37) reads the repository at each revision; the drift set (F-39, `cmd/archdoc/drift_test.go` over `testdata/drift/base`) changes it one way per case — services, dependencies, protocols, routes, columns, renames, a boundary crossing, and a change that is none — and each must be reported under its class with nothing else beside it |
@@ -117,7 +117,7 @@ constantly, not just at a review.
 > **AC-3 is predicted to miss its threshold.** Immich declares none of its three service
 > connections in configuration — all live in TypeScript source. Reporting that as a measured
 > limitation of declaration-based extraction is the intended outcome, not a defect to fix.
-> See `docs/delivery-schedule.md` §7.
+> See `../archdoc-platform/docs/academic/delivery-schedule.md` §7.
 
 ---
 
@@ -253,7 +253,7 @@ are in `docs/decisions.md` under the same date.
 | Hosted backends in the catalog; a named URL that is called; Next's page rule only for Next; the root application named | The small app: Supabase drawn, 2 pages for 2 (was 4), the script's API drawn (was "computed at run time") | `a0c3bda` |
 | A small project told as a story, on its page and in the app's Overview; the app without a containers level for it; a page's inline scripts read | `subjects/small-script`, `small-page`, `small-app`: each a cited story of four to six sentences | `493ef72` |
 
-**9 Oct, data flow** — F-16, brought back at Cruz's request after looking at Archify's data-flow diagrams (`docs/decisions.md`). Option (a) of two: the whole system at container level; (b), one table's lineage, is next on the same machinery.
+**9 Oct, data flow** — F-16, brought back at the team's request after looking at Archify's data-flow diagrams (`docs/decisions.md`). Option (a) of two: the whole system at container level; (b), one table's lineage, is next on the same machinery.
 
 | What | Measured | Commit |
 |---|---|---|
@@ -262,7 +262,7 @@ are in `docs/decisions.md` under the same date.
 | The arrow into the store a container's tables live in names what its code writes and reads there, citing a query of each table | Immich: "writes asset, user, asset_face and 49 more tables" | `a65d5fd` |
 | Fixed: a layout's unseen arrows — the ones that fold a wide row, and now the ones that keep stages in order — were drawn as stray arrows. Layout version 12 | — | `a65d5fd` |
 
-**9 Oct, the CLI** — reworked at Cruz's request after trying every command (`docs/decisions.md`).
+**9 Oct, the CLI** — reworked at the team's request after trying every command (`docs/decisions.md`).
 
 | What | Measured | Commit |
 |---|---|---|
@@ -289,7 +289,7 @@ are in `docs/decisions.md` under the same date.
 | What | Why it is open |
 |---|---|
 | Stale explanations on small components | Eleven of Immich's one-file components still show an earlier model's answer, marked stale, with advice to run `--explain` — which no longer asks about them. Hide them, or stop marking them: undecided |
-| AC-3 and AC-9 | AC-3 waits for the hand-drawn Immich reference (Cruz). AC-9 waits for its slot in the evidence sprint; Supabase is on disk again. A first informal timing: `generate` on Supabase, code read, 10.3 s |
+| AC-3 and AC-9 | AC-3 waits for the hand-drawn Immich reference (the team). AC-9 waits for its slot in the evidence sprint; Supabase is on disk again. A first informal timing: `generate` on Supabase, code read, 10.3 s |
 | `archdoc diff` on real history | The Immich clone holds one commit, so two real commits of a real repository have not been compared; the two-commit test uses the fixture |
 | Earlier `--explain` runs keep their old label | Runs 1–7 in Immich's log still read `structure-only`; the log is a record and was not rewritten |
 | A person choosing a container's main components | The main view picks by count of routes, pages, commands and jobs handled. A rule in `rules.yaml` naming them would be better and is not built |
@@ -325,16 +325,16 @@ mistaken for pending work.
 
 ## Sprint gates
 
-From `docs/delivery-schedule.md` §4. A sprint is done when its gate passes, not when its
+From `../archdoc-platform/docs/academic/delivery-schedule.md` §4. A sprint is done when its gate passes, not when its
 items are ticked.
 
 | | Ends | Gate | Status |
 |---|---|---|---|
 | Week 0 | 28 Aug | O-8 answered; `go test ./...` green in CI | ✓ **met, verified.** O-8 and O-7 closed on evidence. CI green on `a96fc1d` — both jobs, including the import check that enforces the network boundary |
-| Sprint 1 | 11 Sep | `archdoc generate` produces a container **and** a context diagram for all three subjects, every element traceable to a file and line | ✓ **met, 6 Sep.** All three generated; AC-7 verified on each. (The gate here previously read *AC-7, AC-4, AC-5* — those are sprint 2's, per `docs/delivery-schedule.md` §4.3) |
+| Sprint 1 | 11 Sep | `archdoc generate` produces a container **and** a context diagram for all three subjects, every element traceable to a file and line | ✓ **met, 6 Sep.** All three generated; AC-7 verified on each. (The gate here previously read *AC-7, AC-4, AC-5* — those are sprint 2's, per `../archdoc-platform/docs/academic/delivery-schedule.md` §4.3) |
 | Sprint 2 | 25 Sep | AC-2, AC-4, AC-5 — **the thesis, demonstrated** (per O-9; this line read AC-2, AC-6, AC-8 until 12 Sep) | ✓ **all three met by 12 Sep**, as is AC-8. Every coding row done, web app included. Left: report draft, self-check (18 Sep), review prep (24 Sep) |
 | Sprint 3 | 9 Oct | All nine evaluated and written up | ⊘ **superseded 2 Oct** — 9 Oct became a progress review; this gate moves to the extension phase below |
-| **Extension** | **11 Dec** | Code as evidence: component, data and flow views on all subjects, every element cited and what cannot be resolved shown; all nine criteria scored and written up | · plan in `docs/delivery-schedule.md` §7; work chosen in `docs/feature-inventory.md` |
+| **Extension** | **11 Dec** | Code as evidence: component, data and flow views on all subjects, every element cited and what cannot be resolved shown; all nine criteria scored and written up | · plan in `../archdoc-platform/docs/academic/delivery-schedule.md` §7; work chosen in `docs/feature-inventory.md` |
 
 ---
 
@@ -357,4 +357,4 @@ Verification-bound items that AI assistance does not accelerate.
 
 | | Needed for | Status |
 |---|---|---|
-| Hand-drawn Immich reference architecture | AC-3 — it is the answer key | · not on the calendar, by decision. Owned by Cruz, no date |
+| Hand-drawn Immich reference architecture | AC-3 — it is the answer key | · not on the calendar, by decision. Owned by one teammate, no date |

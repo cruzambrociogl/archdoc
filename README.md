@@ -183,7 +183,7 @@ yourself, at the revisions pinned in
 this directory rather than inside it:
 
 ```
-University/SP2/
+projects/
 ├── archdoc/          this repository
 └── subjects/
     ├── immich/
@@ -568,12 +568,8 @@ view is as good as the environment — which is usually somewhere else.**
 | [`docs/vision.md`](docs/vision.md) | Where archdoc goes next: the code as evidence |
 | [`docs/stack-decision.md`](docs/stack-decision.md) | What it is built with, and why, including the rejected alternatives |
 | [`docs/survey-test-subjects.md`](docs/survey-test-subjects.md) | The evidence both rest on |
-| [`docs/delivery-schedule.md`](docs/delivery-schedule.md) | The plan through 11 December |
 | [`docs/decisions.md`](docs/decisions.md) | Decision log — read before proposing anything that seems obvious |
 | [`PROGRESS.md`](PROGRESS.md) | What is done, and which gate is next |
 
 New to the repository? [`CLAUDE.md`](CLAUDE.md) opens with a reading order.
 
----
-
-*Seminar project · Universidad Galileo · 2026*

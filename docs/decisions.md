@@ -82,7 +82,7 @@ Scope tiered by what each piece is *limited* by, not by volume. Implementation-b
 verification-bound work (acceptance measurement, the hand-drawn reference) does not;
 research-bound work (R1.b semantic clustering) does not compress at all and is **not
 committed**. Web app is in scope. R1.c and R1.b static analysis are stretch.
-→ `docs/delivery-schedule.md` §2
+→ `../archdoc-platform/docs/academic/delivery-schedule.md` §2 (moved 21 Oct)
 
 
 **2026-08-25 — Context system: three layers, adapted rather than adopted**
@@ -359,7 +359,7 @@ the requirement is that the output reads with archdoc absent and with no build s
 markdown preview in the editor demonstrates that as well as GitHub does. It also sidesteps the
 awkwardness that the worked examples live in clones of other people's repositories.
 
-Separately, the hand-drawn Immich reference architecture comes off the schedule at Cruz's
+Separately, the hand-drawn Immich reference architecture comes off the schedule at the team's
 request. It stays in `PROGRESS.md` under manual work, with an owner and no date, because it is
 the answer key for AC-3 — dropping it from the plan entirely would quietly drop the criterion.
 
@@ -586,7 +586,7 @@ proposes: code reading, sequence diagrams, module walkthroughs, chat over the re
 commit. Decided not to compete on breadth and not to retreat either: offer the same usefulness on a
 foundation they cannot — extraction that can be checked, determinism, local and offline operation,
 documentation the user owns in their own repository, and `rules.yaml` corrections that survive
-regeneration. Parity list, build order and non-goals in §2.2; canonical wording in `docs/brief.md`.
+regeneration. Parity list, build order and non-goals in §2.2; canonical wording in `../archdoc-platform/docs/academic/brief.md`.
 The line that holds: every feature we match must have a verifiable counterpart, or we have built a
 worse Code Wiki.
 
@@ -702,7 +702,7 @@ of code, no string the code holds — not the route summaries its decorators sta
 though both would help the prose — and no provenance. Strings in code are where people write
 things they did not mean to publish; names are what a reader of the repository's tree already sees.
 `internal/semantic/explain_test.go` holds the line. Revisit only with the person who owns the data.
-*Amended 8 Oct, by Cruz:* a route's summary — what a decorator's `summary` or a docstring's first line
+*Amended 8 Oct:* a route's summary — what a decorator's `summary` or a docstring's first line
 says the route does — is now sent with the route. It is the code describing itself, and the prose is
 much the poorer without it. Everything else above stands: no other string, no code, no provenance.
 The fact wording changed, so remembered answers are asked for again on the next `--explain`.
@@ -713,7 +713,7 @@ on `claude-opus-5`; `internal/semantic` keeps it as the default and the only pri
 *Superseded the same day — see "Two models, by what the job needs" below.*
 
 **2026-10-08 — A component is a responsibility, not a folder (D-2, F-10)**
-Looking at Immich in the explorer, Cruz saw that the component level showed how the code is filed —
+Looking at Immich in the explorer, the team saw that the component level showed how the code is filed —
 `controllers`, `services`, `repositories` — not what C4 means by a component. It had been built on
 directories for speed, against D-2's "conventions first". Now: where files are named by what they
 are for and what they do (`album.controller`, `album.service`, `album.repository`, `album.table`),
@@ -739,7 +739,7 @@ are told apart. Immich: seven external systems, none of them a link.
 **2026-10-08 — Two models, by what the job needs; trivial components are not asked about**
 The first full `--explain` run cost $1.52 for 43 components, and Immich now has 122. Measured on
 five components after the prompt was fixed (no retries): 1,220 tokens in and 337 out each, $0.0145
-on Claude Opus 5 — two thirds of it output. Decided with Cruz: `--explain` moves to
+on Claude Opus 5 — two thirds of it output. Decided with the team: `--explain` moves to
 `claude-sonnet-5-5` ($2 / $10 per million against $5 / $25) at low effort, since turning a fact list
 into three cited sentences does not need the largest model and there is a request per component;
 `--label`, one request for the whole system, moves to `claude-opus-5-5`, newer and a fifth cheaper
@@ -750,7 +750,7 @@ needs the run reworked.
 
 **2026-10-08 — `--label` defaults to `claude-sonnet-5-5` too**
 Tried on Immich the same evening: one request, 27 operations accepted on the first attempt, $0.018,
-and the 16 descriptions and 11 edge labels read correctly. Cruz chose it as the default over
+and the 16 descriptions and 11 edge labels read correctly. The team chose it as the default over
 `claude-opus-5-5`, which the entry above had named. `--label-model` asks another model; no
 side-by-side run against Opus 5.5 was made.
 
@@ -931,7 +931,7 @@ route, page or job, the boundary says the components are its largest, since that
 picked them.
 
 **2026-10-09 — Checked against the vision: on path for a system, off it for anything small**
-Cruz asked whether the product is still what the vision describes — able to explain what an AI
+The team asked whether the product is still what the vision describes — able to explain what an AI
 built whether it is a full-stack project, a script, a page or an app. Tried on three projects
 written for the question, not assumed:
 
@@ -953,7 +953,7 @@ Why: 8 and 9 Oct went into making Immich's C4 picture good. Worth doing, and it 
 toward architecture documentation for large systems — the narrower product the vision was written
 to move beyond. Order agreed to get back: (1) accept a project with no manifest, output sized to
 it; (2) make the small app right — hosted backends recognised, pages counted once; then (3) a
-change summary a person reads, on `archdoc diff`; (4) plan against code. Cruz chose 1 and 2 now.
+change summary a person reads, on `archdoc diff`; (4) plan against code. The team chose 1 and 2 now.
 
 **2026-10-09 — A project with no manifest is documented, on one page**
 The first two steps back toward the vision. (1) Where no manifest describes anything that runs,
@@ -991,7 +991,7 @@ archdoc yet, and that is the next thing to learn from.
 
 **2026-10-09 — What is designed and not built is shown, marked, in the local app**
 The surface spec's rule 3 hid every unearned view, and the top bar carried "only controls that
-work today". Cruz asked for the opposite where the gap is the app's, not the repository's: the
+work today". The team asked for the opposite where the gap is the app's, not the repository's: the
 design has controls and screens the app does not have yet, and hiding them made them easy to
 forget. Twenty pieces are now placeholders where they will go — dashed, labelled *planned*, each
 opening a "Not built yet" page that says what it will do and which spec section describes it: the
@@ -1020,7 +1020,7 @@ page was italic, where the design underlines it with dots so a mostly interprete
 readable.
 
 **2026-10-09 — The navigation and the Overview follow the design**
-Compared side by side with `Surface Screens` at Cruz's request. Built now, from data the app
+Compared side by side with `Surface Screens` at the team's request. Built now, from data the app
 already had: the Architecture explorer card at the top of the navigation (containers and
 components counted, a box per container in its kind's hue); the navigation in the design's order —
 Explorer, Components diagram, Deployment, saved views, Components, Features, Flows, Data model,
@@ -1036,7 +1036,7 @@ design's share of outbound references resolved, which it does not yet; and the c
 the tree — each component under Components — are a placeholder (`wiki-tree`), since Immich has 179.
 
 **2026-10-09 — A data-flow view, built from facts (F-16)**
-F-16 was out for this phase (`feature-inventory.md`); brought back at Cruz's request, after
+F-16 was out for this phase (`feature-inventory.md`); brought back at the team's request, after
 comparing with Archify's data-flow diagrams: stages as columns, labelled arrows, stores set apart.
 Archify's agent decides every column, label and PII mark; archdoc keeps its rules instead. The view
 is the container view, staged by a rule — an actor is People; an application no other calls but
@@ -1049,12 +1049,12 @@ list, not edges between components and tables: edges would change the facts ever
 explanation was written from and mark all of them stale. Left for later: what the other arrows
 carry, sensitivity labels (which would be interpretation, marked so), the main path, and one
 table's lineage — option (b).
-*Seen in the app the same night: not what Cruz meant. The Archify diagrams in question are its
+*Seen in the app the same night: not what the team meant. The Archify diagrams in question are its
 sequence diagrams, and the design's Flow screen — see the next entry. Whether this view stays is
 open (`.claude/NOTES.md`).*
 
 **2026-10-09 — The Flows screen: planned, to build later**
-What Cruz asked for is the design's Flow screen (`Surface Screens`, "Flows · assets · arc42 §6";
+What the team asked for is the design's Flow screen (`Surface Screens`, "Flows · assets · arc42 §6";
 spec §5.6), drawn the way Archify draws a sequence: one flow, stepped through. Agreed as the plan,
 not started.
 - **Every flow, main ones first.** One screen shows any of the flows extraction already has (Immich:
@@ -1082,11 +1082,11 @@ not started.
   a paid, marked option: `--explain` writing one sentence per band, cited to its steps.
 
 **2026-10-09 — The CLI: what each command may do, said and enforced**
-Tried command by command at Cruz's request. What was wrong was not style: `generate` with no path
+Tried command by command at the team's request. What was wrong was not style: `generate` with no path
 wrote into the current directory (it documented archdoc itself that day); `--label` and `--explain`
 spent money with no estimate and no confirmation; "explain" meant three things; `scan` still spoke
 of Compose only; per-command help failed; reading `history` or `runs` created a database. Decided,
-with Cruz: commands are grouped by what they may do — write (`init`, `generate`, `export`), read
+with the team: commands are grouped by what they may do — write (`init`, `generate`, `export`), read
 (`status`, `scan`, `show`, `diff`, `history`, `runs`, `serve`), ask Claude (`label`, `explain`) — and
 the grouping is enforced. Writing needs an explicit path; reading writes nothing. `label` and
 `explain` became commands, so `generate` never costs money: a promise that is easy to trust and to
@@ -1120,7 +1120,7 @@ element of the view (`render.Places`). Without that check, an unchanged model ke
 for a different cut and drew arrows to boxes that did not exist.
 
 **2026-10-09 — Java and C# are read**
-Asked for by Cruz after the Supabase work. gotreesitter already ships both grammars; the two add
+Asked for by the team after the Supabase work. gotreesitter already ships both grammars; the two add
 0.85 MB to the binary (47.9 → 48.8 MB). A Java module is found by `pom.xml` (a pom beside a
 `build.gradle` is kept, the Gradle file dropped) or `build.gradle(.kts)`, read by pattern; a .NET
 project by its `.csproj`, whose SDK says most of what it is. Both readers fill the facts TypeScript
@@ -1150,7 +1150,7 @@ leaves for another container as a flow step; Razor markup; Maven/NuGet dependenc
 imports.
 
 **2026-10-19 — After the current work: a platform, verifiable wherever it runs**
-Raised by the professor, adopted by the team; discussed 17–19 Oct in `docs/hosted-proposal.md`.
+Raised in review, adopted by the team; discussed 17–19 Oct in `docs/hosted-proposal.md`.
 archdoc becomes both a local tool anyone can use and a hosted service, with a business as an aim —
 **after** the current state is wrapped up, on a plan of its own. Positioning moves from "the local,
 verifiable alternative" to **"verifiable, wherever it runs"**: locality is an option offered, not

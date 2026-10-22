@@ -4,7 +4,7 @@
 > schedule can be built from a chosen list instead of a guess. **It is a menu, not a plan.**
 >
 > **How to use it:** mark each row **in** or **out**. The ones marked in become capability IDs in
-> `product-definition.md` §4 and rows in `schedule.csv`. The recommendation column is my opinion,
+> `product-definition.md` §4 and rows in the schedule's calendar (`../archdoc-platform/docs/academic/schedule.csv`). The recommendation column is my opinion,
 > not a decision.
 >
 > Drafted 2026-10-02. To be decided in the planning week, 13–17 Oct. Delivery 11 Dec 2026.
@@ -115,7 +115,7 @@ Nothing in B or C exists without these.
 |---|---|---|---|---|---|---|---|
 | F-42 | **Comprehension pilot** — three conditions: code alone, asking a coding agent, archdoc. Includes questions about things the participant was never told exist (D-14) | P | — | — | ✦ | M | **Evid** |
 | F-43 | **Competitor comparison on Immich** — archdoc vs Code Wiki vs DeepWiki against the hand-drawn reference: what each missed, what each invented | P | needs the reference | — | ✦ | M | **Evid** |
-| F-44 | **Hand-drawn Immich reference** — the answer key for F-43 and AC-3. **Owner: Cruz. Nobody else can do it** | P | — | — | — | M | **Evid** |
+| F-44 | **Hand-drawn Immich reference** — the answer key for F-43 and AC-3. **Owner: one teammate; nobody else can do it** | P | — | — | — | M | **Evid** |
 | F-45 | **Structure-only quality check** — are explanations good enough when only names and structure leave the machine? (D-8) | P | have | — | ✦ | S | **Evid** |
 | F-46 | **Local model quality check** — the same labels from Granite 4.2 8B or Qwen3 14B versus Opus, on the same subjects | P | F-34 | — | ✦ | S | **Evid** |
 | F-47 | **Performance measurement** — AC-9: NFR-1 (<30 s scan) and NFR-2 (<3 min generate), measured on Supabase and on a large code repo | P | have | — | — | S | **Evid** |

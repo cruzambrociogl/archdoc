@@ -163,7 +163,7 @@ offer — and that foundation is the project's roots, not a departure from them.
 > repository rather than only on someone else's website. *(Amended 2026-10-21; it was "the local,
 > verifiable alternative to hosted AI code wikis".)*
 
-The Spanish wording for the report, and the shorter forms, are in `docs/brief.md` — one canonical
+The Spanish wording for the report, and the shorter forms, are in `../archdoc-platform/docs/academic/brief.md` — one canonical
 place, so the report, the slides and the branding sheet do not drift.
 
 #### What we match, and how ours differs
@@ -682,7 +682,7 @@ interface (§4). All four run the same engine.
 | **R1.d — Interaction** | The former R1.c: chat refinement, editable canvas, answer surface |
 | R2 — Authority | Unchanged; intent vs actual (D-9) is its descriptive first step, and the agent interface brings R2b nearer |
 
-`docs/delivery-schedule.md` and the calendar are **not** updated by this document. They change
+`../archdoc-platform/docs/academic/delivery-schedule.md` and the calendar are **not** updated by this document. They change
 only when this roadmap is agreed.
 
 ### F. Audience and delivery

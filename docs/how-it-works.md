@@ -251,5 +251,5 @@ pass a gate that admits only its own page. The surface in full: `surface-spec.md
 and `stack-decision.md` §2.3 for what each library does.
 
 **On C4 specifically:** the quotations above are from *"The C4 Model — Beyond the Basics"*,
-Simon Brown, YOW! 2025 — transcript in this directory. Worth reading if you are deciding what a
+Simon Brown, YOW! 2025 — the talk itself, which is not kept here. Worth watching if you are deciding what a
 view may show; it is the source for the derivation rule and for excluding gateways.

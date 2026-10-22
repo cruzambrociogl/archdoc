@@ -31,7 +31,7 @@ Where things get promoted to:
 | A capability finished, a gate passed | `PROGRESS.md` |
 | A rule that must hold in every session | `CLAUDE.md`, Hard rules |
 | Something true about a test subject | `docs/survey-test-subjects.md` |
-| Scope or timing | `docs/delivery-schedule.md` |
+| Scope or timing | `../archdoc-platform/docs/academic/delivery-schedule.md` |
 | What the product *is* | `docs/product-definition.md` — rare, flag it |
 
 **Precedence still applies:** if a note contradicts `docs/product-definition.md`, it is
@@ -78,7 +78,7 @@ raised, not quietly promoted over it.
       name; it now says the container and counts parts under it — 9 Oct
 
 ---
-- [ ] The data-flow view (built 9 Oct, `a65d5fd`) was not what Cruz meant — that is the Flows
+- [ ] The data-flow view (built 9 Oct, `a65d5fd`) was not what the team meant — that is the Flows
   screen, planned in `docs/decisions.md`. Undecided: remove the view (tab, menu entry,
   `dataflow.svg`, the index section) and keep `Model.Access` for component pages, or keep it as a
   secondary view. If kept, its next steps: one table's lineage; what a client's arrow carries; the
