@@ -6,6 +6,15 @@ what is different for a user.
 
 ## Unreleased
 
+- **The app answers questions first.** One shell for the local app and published sites: Overview,
+  What changed, Map, What it does, Reference and Settings, each named in plain words. The Overview
+  says what the system is in one paragraph — the repository's own description where its manifest
+  has one, then how its parts call each other — with one picture and one sentence on how far to trust
+  it. What changed tells each version in a sentence, grouped by what the changes mean. What it does
+  turns routes into sentences. Select any part to see what it touches. Old links still open.
+- **Manifest descriptions are quoted.** A `description` in package.json, pyproject.toml or
+  pubspec.yaml becomes the part's description, and the root manifest's the system's — cited at its
+  line, as read, never interpreted.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

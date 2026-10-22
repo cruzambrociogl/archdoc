@@ -552,10 +552,14 @@ func (r AppRole) Container() bool {
 
 // App is one manifest and what it says about the package it describes.
 type App struct {
-	Name     string `json:"name"`     // the manifest's package name, or its directory's
-	Dir      string `json:"dir"`      // repository-relative; "." for the root
-	Manifest string `json:"manifest"` // repository-relative
-	Language string `json:"language,omitempty"`
+	Name string `json:"name"` // the manifest's package name, or its directory's
+	Dir  string `json:"dir"`  // repository-relative; "." for the root
+	// Description is what the manifest says the package is for — package.json's description,
+	// pyproject's, pubspec's — at its line. The repository's own words, so proven.
+	Description string     `json:"description,omitempty"`
+	DescProv    Provenance `json:"description_provenance,omitzero"`
+	Manifest    string     `json:"manifest"` // repository-relative
+	Language    string     `json:"language,omitempty"`
 	// Framework is what the role was judged from — NestJS, SvelteKit, FastAPI, Flutter — and
 	// FrameworkProv is the line in the manifest that names it.
 	Framework     string     `json:"framework,omitempty"`

@@ -228,15 +228,16 @@ func packageJSON(root, rel string) *core.App {
 		return nil
 	}
 	var pkg struct {
-		Name       string            `json:"name"`
-		Deps       map[string]string `json:"dependencies"`
-		DevDeps    map[string]string `json:"devDependencies"`
-		Bin        json.RawMessage   `json:"bin"`
-		Main       string            `json:"main"`
-		Module     string            `json:"module"`
-		Exports    json.RawMessage   `json:"exports"`
-		Types      string            `json:"types"`
-		Workspaces json.RawMessage   `json:"workspaces"`
+		Name        string            `json:"name"`
+		Description string            `json:"description"`
+		Deps        map[string]string `json:"dependencies"`
+		DevDeps     map[string]string `json:"devDependencies"`
+		Bin         json.RawMessage   `json:"bin"`
+		Main        string            `json:"main"`
+		Module      string            `json:"module"`
+		Exports     json.RawMessage   `json:"exports"`
+		Types       string            `json:"types"`
+		Workspaces  json.RawMessage   `json:"workspaces"`
 	}
 	if json.Unmarshal(content, &pkg) != nil {
 		return nil
@@ -244,6 +245,7 @@ func packageJSON(root, rel string) *core.App {
 	dir := dirOf(rel)
 	app := &core.App{Name: pkg.Name, Dir: dir, Manifest: rel, Language: "JavaScript",
 		Prov: core.Provenance{File: rel, Line: lineOf(content, `"name"`)}}
+	describe(app, pkg.Description, rel, lineOf(content, `"description"`))
 	if app.Name == "" {
 		app.Name = path.Base(dir)
 	}
@@ -457,6 +459,10 @@ func pyproject(root, rel string) *core.App {
 			app.Prov.Line = i + 1
 			continue
 		}
+		if isKV && key == "description" && (section == "project" || section == "tool.poetry") {
+			describe(app, strings.Trim(strings.TrimSpace(value), `"'`), rel, i+1)
+			continue
+		}
 		if section == "tool.poetry.dependencies" && isKV {
 			deps[strings.ToLower(key)] = i + 1
 			continue
@@ -522,6 +528,7 @@ func pubspec(root, rel string) *core.App {
 	}
 	var spec struct {
 		Name         string         `yaml:"name"`
+		Description  string         `yaml:"description"`
 		Dependencies map[string]any `yaml:"dependencies"`
 		Flutter      map[string]any `yaml:"flutter"`
 	}
@@ -531,6 +538,7 @@ func pubspec(root, rel string) *core.App {
 	dir := dirOf(rel)
 	app := &core.App{Name: spec.Name, Dir: dir, Manifest: rel, Language: "Dart",
 		Prov: core.Provenance{File: rel, Line: lineOf(content, "name:")}}
+	describe(app, spec.Description, rel, lineOf(content, "description:"))
 	_, flutter := spec.Dependencies["flutter"]
 	_, plugin := spec.Flutter["plugin"]
 	underPackages := strings.Contains("/"+dir+"/", "/packages/")
@@ -544,6 +552,25 @@ func pubspec(root, rel string) *core.App {
 		app.Role, app.Why = core.RoleLibrary, "a Dart package used by others"
 	}
 	return app
+}
+
+// Placeholders a project generator writes into a manifest: not anyone's statement of what the
+// package is for, so not quoted as one.
+var generated = map[string]bool{
+	"a new flutter project.":    true,
+	"a new flutter package.":    true,
+	"add your description here": true,
+}
+
+// describe keeps a manifest's description — trimmed, on one line — unless it is empty or a
+// generator's placeholder.
+func describe(app *core.App, text, file string, line int) {
+	text = strings.Join(strings.Fields(text), " ")
+	if text == "" || generated[strings.ToLower(text)] {
+		return
+	}
+	app.Description = text
+	app.DescProv = core.Provenance{File: file, Line: line}
 }
 
 // goMod reads a Go module. One with a main package at its root or under cmd/ ships a program.

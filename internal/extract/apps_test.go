@@ -162,3 +162,32 @@ func TestExamplesAndComponentLibraries(t *testing.T) {
 		t.Errorf("a repository of examples alone: %q (%s)", a.Role, a.Why)
 	}
 }
+
+// A manifest's description is the repository's own words about the package, quoted at its line —
+// from package.json, pyproject.toml and pubspec.yaml alike. A generator's placeholder is nobody's
+// statement, and is left out.
+func TestManifestsSayWhatTheyAreFor(t *testing.T) {
+	root := tree(t, map[string]string{
+		"package.json":        "{\n  \"name\": \"photos\",\n  \"description\": \"A self-hosted  photo\\n and video app\",\n  \"workspaces\": [\"web\"]\n}\n",
+		"web/package.json":    `{"name": "web", "dependencies": {"svelte": "^5"}}`,
+		"ml/pyproject.toml":   "[project]\nname = \"ml\"\ndescription = \"Finds faces and objects\"\n",
+		"mobile/pubspec.yaml": "name: phone\ndescription: A new Flutter project.\ndependencies:\n  flutter:\n    sdk: flutter\n",
+		"tablet/pubspec.yaml": "name: tablet\ndescription: Browse photos on a tablet\ndependencies:\n  flutter:\n    sdk: flutter\n",
+	})
+	apps := byDir(Apps(root))
+	for dir, want := range map[string]struct {
+		text string
+		line int
+	}{
+		".":      {"A self-hosted photo and video app", 3},
+		"ml":     {"Finds faces and objects", 3},
+		"tablet": {"Browse photos on a tablet", 2},
+		"web":    {"", 0},
+		"mobile": {"", 0},
+	} {
+		a := apps[dir]
+		if a.Description != want.text || a.DescProv.Line != want.line {
+			t.Errorf("%s: %q at line %d, want %q at %d", dir, a.Description, a.DescProv.Line, want.text, want.line)
+		}
+	}
+}

@@ -95,6 +95,9 @@ func Derive(f *core.FactSet) core.Model {
 				if n.Technology == "" {
 					n.Technology, n.TechProv = tech, techProv
 				}
+				if n.Description == "" && a.Description != "" {
+					n.Description, n.DescProv = a.Description, a.DescProv
+				}
 				continue
 			}
 		}
@@ -108,7 +111,17 @@ func Derive(f *core.FactSet) core.Model {
 			Dir:        a.Dir,
 			DirProv:    a.Prov,
 			Prov:       a.Prov,
+			// The manifest's own words, when it has them.
+			Description: a.Description,
+			DescProv:    a.DescProv,
 		})
+	}
+
+	// What the system is for, in the repository's own words: its root manifest's description.
+	for _, a := range f.Apps {
+		if a.Dir == "." && a.Description != "" && m.Description == "" {
+			m.Description, m.DescProv = a.Description, a.DescProv
+		}
 	}
 
 	componentOf := components(&m, f.Sources)

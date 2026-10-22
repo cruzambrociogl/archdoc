@@ -270,3 +270,34 @@ func TestServiceCallingAGatewayDoesNotFanOut(t *testing.T) {
 	}
 	t.Error("the actor's route through the gateway was lost")
 }
+
+// The repository's own words come through: the root manifest's description is what the system is
+// for; an application's is what its container does — on the Compose service it is deployed as, or
+// on its own node — each cited to the manifest line, as read, not interpreted.
+func TestManifestDescriptionsAreQuoted(t *testing.T) {
+	f := facts()
+	f.Apps = []core.App{
+		{Name: "monorepo", Dir: ".", Manifest: "package.json", Role: core.RoleWorkspace,
+			Description: "Orders, paid and shipped", DescProv: core.Provenance{File: "package.json", Line: 3}},
+		{Name: "api", Dir: "api", Manifest: "api/package.json", Role: core.RoleService, Prov: core.Provenance{File: "api/package.json", Line: 2},
+			Description: "Takes and tracks orders", DescProv: core.Provenance{File: "api/package.json", Line: 3},
+			Deployed: &core.Deployment{Service: "api", Prov: at(11)}},
+		{Name: "admin", Dir: "admin", Manifest: "admin/package.json", Role: core.RoleWeb, Prov: core.Provenance{File: "admin/package.json", Line: 2},
+			Description: "Where staff refund an order", DescProv: core.Provenance{File: "admin/package.json", Line: 4}},
+	}
+	m := Derive(f)
+	if m.Description != "Orders, paid and shipped" || m.DescProv.File != "package.json" || m.DescProv.Line != 3 || m.DescProv.Origin == core.Semantic {
+		t.Errorf("system: %q %+v", m.Description, m.DescProv)
+	}
+	for id, want := range map[string]string{serviceID("api"): "Takes and tracks orders", "app:admin": "Where staff refund an order"} {
+		var got *core.Node
+		for i := range m.Nodes {
+			if m.Nodes[i].ID == id {
+				got = &m.Nodes[i]
+			}
+		}
+		if got == nil || got.Description != want || got.DescProv.Line == 0 {
+			t.Errorf("%s: %+v", id, got)
+		}
+	}
+}

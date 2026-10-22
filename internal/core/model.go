@@ -88,8 +88,9 @@ type Node struct {
 	NameProv Provenance `json:"name_provenance,omitzero"`
 	Kind     Kind       `json:"kind"`
 
-	// Description is the one-line responsibility a C4 container should carry. Configuration
-	// never states it, so it stays empty until the semantic layer or a rule supplies one.
+	// Description is the one-line responsibility a C4 container should carry. Compose never states
+	// it; an application's manifest may, and is quoted; otherwise it stays empty until the semantic
+	// layer or a rule supplies one.
 	Description string `json:"description,omitempty"`
 
 	// Technology is what runs *inside* the container — "PostgreSQL 14", "Node.js". Never
@@ -208,7 +209,8 @@ type Model struct {
 	Source string `json:"source"`
 
 	// Description is what the system as a whole is for: the line on its box in the context view.
-	// No file states it, so it is only ever something a model or a person wrote, and says so.
+	// The root manifest's description where it has one — the repository's own words, cited —
+	// else only ever something a model or a person wrote, and DescProv says which.
 	Description string     `json:"description,omitempty"`
 	DescProv    Provenance `json:"description_provenance,omitzero"`
 

@@ -59,7 +59,8 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
       ) : (
         <>
           <p className="overview-answer">
-            {purpose && <span className={purposeByAI ? 'interp-sentence' : ''}>{purpose} </span>}
+            {/* A manifest's description often has no full stop; the next sentence needs one. */}
+            {purpose && <span className={purposeByAI ? 'interp-sentence' : ''}>{/[.!?]$/.test(purpose) ? purpose : `${purpose}.`} </span>}
             {sentences.map((s, i) => (
               <span key={i}>
                 <Sentence pieces={s} open={open} />{' '}
