@@ -7,9 +7,9 @@ library, package `archdoc`, which the CLI and the hosted platform both run. arch
 in CI and hosted ("verifiable, wherever it runs" — `docs/vision.md` §2.2); this repository is the
 part that runs everywhere, and the only public one.
 
-**Phase:** frozen for new features since 19 Oct. The freeze lifts when the plan's exit criteria
-are met (`../archdoc-platform/docs/platform-plan.md` §5): what is left is this repository's licence
-and first tag (step 3) and CI enforcing in all three. One of three repositories, always siblings in
+**Phase:** the freeze of 19 Oct lifted on 22 Oct; this repository's licence and first tag (step 3)
+are still open. Next: the shared app's redesign — the information architecture of
+`docs/platform-surface.md` §4. One of three repositories, always siblings in
 one folder: this engine (public), `../archdoc-platform` and `../archdoc-website` (private). **The
 platform repository is the source** — the plan, the direction, and the map of all three
 (`../archdoc-platform/WORKSPACE.md`). What the engine does today: `PROGRESS.md`, "Where this stands".
@@ -64,7 +64,7 @@ section for the task at hand and nothing else.
 | `docs/stack-decision.md` §3 | Questions about layout, packages, or the build |
 | `docs/survey-test-subjects.md` §1–2 | Writing or fixing a parser — real dialects, real failures |
 | `docs/how-it-works.md` | Orienting — the pipeline on one screen, and which stage lives in which package |
-| `../archdoc-platform/docs/academic/delivery-schedule.md` | Planning or scoping. **Not** while building. The academic workstream lives in the platform repository since 21 Oct |
+| `../archdoc-platform/docs/platform-plan.md` | Planning or scoping — what comes next. The old delivery schedule (`../archdoc-platform/docs/academic/`) no longer drives it |
 | `docs/surface-spec.md` | Working on the web app or the published site — screens, design system, modes, what the app may do. Design: Claude Design project (memory). The information architecture of the whole app — one app for local, hosted and published; where every screen lives; related repositories — plus the platform's flows and screens: `docs/platform-surface.md` §4, which supersedes surface-spec §4.1 and reverses rule 7 |
 | `docs/vision.md` | Discussing scope beyond configuration — code as evidence, lenses, explanations. **A proposal:** until a decision there is recorded in `decisions.md`, the definition wins |
 | `PROGRESS.md` | Starting work — what is done, what gate is next |

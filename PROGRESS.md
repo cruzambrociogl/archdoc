@@ -9,13 +9,14 @@ Last updated: 2026-10-21 (the platform built through step 8 — see "Where this 
 
 ---
 
-## Where this stands — 21 Oct 2026: frozen, the platform built on it
+## Where this stands — 22 Oct 2026: the freeze lifted, the platform built on it
 
-The engine is **frozen for new features since 19 Oct** and stands as described in the 9 Oct section
-below. It is one part of a larger product — archdoc runs locally, in CI and hosted, "verifiable,
+The engine was **frozen for new features from 19 to 22 Oct** and stands as described in the 9 Oct
+section below. It is one part of a larger product — archdoc runs locally, in CI and hosted, "verifiable,
 wherever it runs" (`docs/vision.md` §2.2, `docs/product-definition.md` §7, both amended 21 Oct) —
-and the hosted platform now runs it end to end through the public API. The freeze lifts when the
-plan's exit criteria are met; left: step 3 here, and CI enforcing in all three. **The plan across
+and the hosted platform now runs it end to end through the public API. The freeze lifted on 22 Oct
+with step 3 here — the licence and first tag — still open. **Next:** the shared app's redesign,
+`docs/platform-surface.md` §4. **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
 
