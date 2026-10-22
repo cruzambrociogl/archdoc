@@ -40,6 +40,9 @@ what is different for a user.
   and each requirement is read against the code — looks built, looks missing, couldn't check — with
   what was built that the plan didn't ask for. Both say what they send and roughly what it costs
   before sending, and remember answers so asking again costs nothing.
+- **One update at a time.** `archdoc generate` holds the repository while it writes: a second run
+  waits and says for whom, and the app says an update is running in the terminal, with what it is
+  doing. A Map link to a part a later version removed says where it went.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

@@ -79,6 +79,7 @@ capability is true; no screen checks which place it is in.
 | `plans` — the planned placeholders | in a development build only (§4.4) | no | no |
 | `links` — where citations open | `editor`: `vscode://` at the line | `host`: the repository host at the commit, or plain text when none is known | `host` |
 | `ask` — Ask, and Did it build what I asked? | yes, on the person's own key | no | not yet: whose key pays waits for accounts |
+| `update` — Update from the status menu | built, switched off until a security review | no | no |
 
 **A system.** On a folder of documented repositories, `archdoc serve` answers `/api/system` and each
 repository's API under `/repos/{name}/`; the local Source then has `system` — read the system, open

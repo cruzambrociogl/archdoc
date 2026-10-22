@@ -143,6 +143,8 @@ export interface Version {
   created_at: string
   commit: string
   source: string
+  /** On the website: when the read that made it began, so how long it took can be said. */
+  started_at?: string
 }
 
 export interface ModelResponse {

@@ -59,6 +59,8 @@ type GenerateOptions struct {
 	// code is read, the diagrams drawn — for a screen to show while a large repository is read.
 	// Nil is no one.
 	Progress func(Progress)
+	// By names who is updating, for anyone who looks while it runs: "archdoc generate" when empty.
+	By string
 }
 
 // LabelOptions is a label run: the model to ask, and who agrees to sending.
@@ -100,9 +102,41 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 		out = io.Discard
 	}
 	res := &Generated{}
-	progress := o.Progress
-	if progress == nil {
-		progress = func(Progress) {}
+	// One update at a time (surface-spec §11.5): a run that writes holds the repository, and says
+	// what it is doing for the app to show; a second waits, and says so. A repository archdoc never
+	// documented is held only once there is something in it to document.
+	var lock *store.Lock
+	hold := func() error {
+		if o.IndexOnly || lock != nil {
+			return nil
+		}
+		by := o.By
+		if by == "" {
+			by = "archdoc generate"
+		}
+		var err error
+		lock, err = store.Take(ctx, root, by, func(b store.Busy) {
+			fmt.Fprintf(out, "%s has been updating this repository since %s — waiting for it to finish\n", b.By, b.Since.Local().Format("15:04"))
+		})
+		return err
+	}
+	defer func() {
+		if lock != nil {
+			lock.Release()
+		}
+	}()
+	if _, err := os.Stat(filepath.Join(root, stateDir)); err == nil {
+		if err := hold(); err != nil {
+			return nil, err
+		}
+	}
+	progress := func(p Progress) {
+		if lock != nil {
+			lock.Report(p)
+		}
+		if o.Progress != nil {
+			o.Progress(p)
+		}
 	}
 	facts, err := extract.ScanReporting(root, progress)
 	if err != nil {
@@ -111,6 +145,9 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 	res.Root = facts.Root
 	if facts.Source == "" && !hasContainerApp(facts.Apps) {
 		return nil, fmt.Errorf("nothing to document in %s: no Compose file, no application manifest, and no Python, JavaScript or HTML files", facts.Root)
+	}
+	if err := hold(); err != nil {
+		return nil, err
 	}
 	if !o.IndexOnly {
 		fmt.Fprintf(out, "documenting %s\n", facts.Root)
@@ -523,11 +560,14 @@ const ignoreFile = `# Written by archdoc.
 # coverage.json, layout.yaml and views.yaml beside it.
 #
 # site/ is what 'archdoc export --site' builds from the committed record — a build product,
-# rebuilt by CI, not something to commit.
+# rebuilt by CI, not something to commit. updating.json says which run is updating the
+# repository right now, and lasts only as long as it does.
 history.db
 history.db-shm
 history.db-wal
 site/
+updating.json
+updating.json.tmp
 `
 
 // logRun records one use of the network: every request exactly as it left, and what it cost. A

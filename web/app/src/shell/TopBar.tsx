@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Session, Summary, Version } from '../api'
-import { useCapabilities } from '../source'
+import { useCapabilities, useSource } from '../source'
 import type { Route } from '../route'
 import { levelName, sectionOf, titles } from '../route'
 import type { Theme } from '../theme'
@@ -13,6 +13,14 @@ export const themeLabel: Record<Theme, string> = { system: 'Theme: system', ligh
 export const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
 
 type Menu = 'status' | 'share' | 'more' | null
+
+/** How long the read that made a version took, on the website: "9 s", "2 min 5 s". */
+function took(v?: Version): string {
+  if (!v?.started_at) return ''
+  const s = Math.round((Date.parse(v.created_at) - Date.parse(v.started_at)) / 1000)
+  if (!(s >= 0)) return ''
+  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`
+}
 
 const day = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '')
 
@@ -130,7 +138,8 @@ export function TopBar(props: {
               ) : can.place === 'hosted' ? (
                 <>
                   These docs were generated from commit <span className="mono">{commit.slice(0, 7)}</span>
-                  {made ? <> on {day(made)}</> : null}, when someone asked for them. A later commit is documented the next time someone asks.
+                  {made ? <> on {day(made)}</> : null}, when someone asked for them{took(shown) ? `; reading it took ${took(shown)}` : ''}. A later
+                  commit is documented the next time someone asks.
                 </>
               ) : (
                 <>
@@ -153,9 +162,13 @@ export function TopBar(props: {
               <Planned id="freshness" go={go}>
                 Up to date?
               </Planned>
-              <Planned id="run" go={go}>
-                Update
-              </Planned>
+              {can.update ? (
+                <UpdateButton />
+              ) : (
+                <Planned id="run" go={go}>
+                  Update
+                </Planned>
+              )}
               <Planned id="git" go={go}>
                 Uncommitted
               </Planned>
@@ -269,3 +282,33 @@ function SharePop() {
     </div>
   )
 }
+
+/**
+ * Update (§4.3): regenerate this repository's documentation, free and offline — where the place can
+ * (capabilities.update, false everywhere today). The run is followed in the notice band.
+ */
+function UpdateButton() {
+  const source = useSource()
+  const [state, setState] = useState<{ asking?: boolean; error?: string; started?: boolean }>({})
+  return (
+    <>
+      <button
+        className="btn btn-ink"
+        disabled={state.asking || state.started}
+        onClick={async () => {
+          setState({ asking: true })
+          try {
+            await source.act('/api/update')
+            setState({ started: true })
+          } catch (e) {
+            setState({ error: e instanceof Error ? e.message : String(e) })
+          }
+        }}
+      >
+        {state.started ? 'Updating…' : 'Update'}
+      </button>
+      {state.error && <span className="pop-sentence">{state.error}</span>}
+    </>
+  )
+}
+

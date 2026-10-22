@@ -30,7 +30,7 @@ export function localAt(prefix: string): Source {
   return {
     // What is designed and not built shows only while developing the app (platform-surface §4.4):
     // the product a user runs never carries placeholders.
-    capabilities: { place: 'local', history: true, edit: true, runDetails: true, plans: import.meta.env.DEV, links: 'editor', ask: true },
+    capabilities: { place: 'local', history: true, edit: true, runDetails: true, plans: import.meta.env.DEV, links: 'editor', ask: true, update: false },
     get: (path) => read(prefix + path),
     url: (path) => prefix + path,
     async act<T>(path: string, body?: unknown): Promise<T> {

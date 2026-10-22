@@ -18,7 +18,7 @@ export function Gone(
   props:
     | { kind: 'page'; address: string; go: Go }
     | { kind: 'version'; v: number; versions: Version[]; name: string; go: Go }
-    | { kind: 'part'; id: string; shown: number; name: string; go: Go },
+    | { kind: 'part'; id: string; shown: number; name: string; go: Go; compact?: boolean },
 ) {
   const can = useCapabilities()
   const { go } = props
@@ -63,7 +63,7 @@ export function Gone(
 }
 
 /** A part a link names that this version does not have: where it was last seen, when history can say. */
-function PartGone(props: { id: string; shown: number; name: string; go: Go }) {
+function PartGone(props: { id: string; shown: number; name: string; go: Go; compact?: boolean }) {
   const can = useCapabilities()
   const versions = useApi<Version[]>(can.history ? '/api/versions' : null).data
   const last = useLastSeen(props.id, props.shown, can.history ? versions : none)
@@ -77,15 +77,25 @@ function PartGone(props: { id: string; shown: number; name: string; go: Go }) {
     const v = last.version
     s2 = (
       <>
-        It was last in version {v.id}, from commit <span className="mono">{v.commit.slice(0, 7)}</span> on {day(v.created_at)}.
+        It was last in version {v.id},{' '}
+        {v.commit ? (
+          <>
+            from commit <span className="mono">{v.commit.slice(0, 7)}</span>{' '}
+          </>
+        ) : (
+          'recorded '
+        )}
+        on {day(v.created_at)}.
       </>
     )
     rows = [
       {
         label: `${last.name ?? label}, as it was`,
         sub: `in version ${v.id}`,
-        // A component has a page of its own; any other part is shown where it stood, on the Map.
-        on: () => (last.kind === 'component' ? props.go({ v: v.id }, { keep: true }) : props.go({ screen: 'explorer', level: 'container', focus: props.id, v: v.id })),
+        // A component has a page of its own; any other part is shown where it stood, on the Map —
+        // which, asked from the Map, is where the link already points.
+        on: () =>
+          last.kind === 'component' || props.compact ? props.go({ v: v.id }, { keep: true }) : props.go({ screen: 'explorer', level: 'container', focus: props.id, v: v.id }),
       },
       ...(after ? [{ label: `What changed in version ${after.id}`, sub: 'the change that removed it', on: () => props.go({ screen: 'changes', v: after.id }) }] : []),
     ]
@@ -93,7 +103,26 @@ function PartGone(props: { id: string; shown: number; name: string; go: Go }) {
     s2 = can.history ? 'archdoc has no record of a part with that name in any version.' : 'This site keeps one version, so it can’t say where it went.'
     rows = [{ label: 'Reference', sub: 'every part, as this version has it', on: () => props.go({ screen: 'reference' }) }]
   }
-  return <Page label="Where did it go?" s={`${label} isn’t in this version of ${props.name}.`} s2={s2} rows={rows} />
+  const s = `${label} isn’t in this version of ${props.name}.`
+  if (props.compact) {
+    // On the Map: a note over the picture, which stays, rather than a page in its place.
+    return (
+      <div className="gone-note" role="note">
+        <div className="page-q">Where did it go?</div>
+        <p>
+          {s} {s2}
+        </p>
+        <div className="gone-note-acts">
+          {rows.map((r) => (
+            <button key={r.label} className="link-btn" onClick={r.on}>
+              {r.label} →
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  return <Page label="Where did it go?" s={s} s2={s2} rows={rows} />
 }
 
 function Page(props: { label: string; s: string; s2: ReactNode; rows: { label: string; sub: string; on: () => void }[] }) {

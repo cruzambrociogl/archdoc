@@ -36,7 +36,8 @@ export function NoticeBand({ summary }: { summary: Summary }) {
   const can = useCapabilities()
   const { down } = useConnection()
   const given = useContext(NoticeContext)
-  const newer = useNewer(summary)
+  const busy = useUpdating()
+  const newer = useNewer(summary, busy?.since)
   const [dismissed, setDismissed] = useState<string[]>([])
   const dismiss = (id: string) => () => setDismissed((d) => [...d, id])
 
@@ -60,6 +61,17 @@ export function NoticeBand({ summary }: { summary: Summary }) {
             fold: true,
           },
     )
+  }
+  if (busy) {
+    // Two updates at once (surface-spec §11.5): this page waits for the one running, and says so.
+    notices.push({
+      id: `updating-${busy.since}`,
+      glyph: 'info',
+      what: `An update ${busy.by === 'the app' ? 'started here' : 'started in the terminal'} is running: ${busy.by}, since ${time(Date.parse(busy.since))}.`,
+      still: busy.doing ? `Now ${busy.doing}${busy.found?.length ? ` — ${busy.found.join(', ')} so far` : ''}.` : undefined,
+      todo: 'These docs stay as they are until it ends; then this page says what changed.',
+      acts: [],
+    })
   }
   if (newer && !dismissed.includes(`newer-${newer.id}`)) {
     notices.push({
@@ -120,7 +132,7 @@ function Band({ n }: { n: Notice }) {
  * (§4.8, "a newer version arrives"). Asked every 15 seconds while the page is visible, in a place
  * with history; nothing on the page changes until the reader says so.
  */
-function useNewer(summary: Summary): Version | undefined {
+function useNewer(summary: Summary, updatingSince?: string): Version | undefined {
   const source = useSource()
   const can = useCapabilities()
   const [newer, setNewer] = useState<Version>()
@@ -140,10 +152,46 @@ function useNewer(summary: Summary): Version | undefined {
       }
     }
     const t = setInterval(look, 15000)
+    // An update that has just ended: look now, rather than in up to fifteen seconds.
+    if (updatingSince === undefined) void look()
     return () => {
       live = false
       clearInterval(t)
     }
-  }, [can.history, source, summary.latest_version])
+  }, [can.history, source, summary.latest_version, updatingSince])
   return newer
+}
+
+interface Busy {
+  by: string
+  since: string
+  doing?: string
+  found?: string[]
+}
+
+/** A run updating the repository now — from the terminal, on this machine — asked every few seconds. */
+function useUpdating(): Busy | undefined {
+  const source = useSource()
+  const can = useCapabilities()
+  const [busy, setBusy] = useState<Busy>()
+  useEffect(() => {
+    if (can.place !== 'local') return
+    let live = true
+    const look = async () => {
+      if (document.hidden) return
+      try {
+        const b = await (await source.get('/api/updating')).json()
+        if (live) setBusy(b.running ? b : undefined)
+      } catch {
+        /* the connection's notice says so */
+      }
+    }
+    void look()
+    const t = setInterval(look, 4000)
+    return () => {
+      live = false
+      clearInterval(t)
+    }
+  }, [can.place, source])
+  return busy
 }

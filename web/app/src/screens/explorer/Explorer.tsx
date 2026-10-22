@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, ViewportPortal, useReactFlow, useStore } from '@xyflow/react'
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
-import type { DiffResponse, Opening, SavedView, SceneResponse, Version } from '../../api'
+import type { DiffResponse, ModelResponse, Opening, SavedView, SceneResponse, Version } from '../../api'
 import { componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, overview, structureLevel, structureOf, useApi } from '../../api'
 import { useSource } from '../../source'
 import type { Route } from '../../route'
@@ -10,6 +10,7 @@ import { Planned } from '../../ui/Planned'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
 import { Inspector } from '../Inspector'
+import { Gone } from '../Gone'
 import { Legend } from './Legend'
 import { Ghosts, Markers, edgeTypes, nodeTypes } from './parts'
 import type { Delta, Draft, ElementData } from './scene'
@@ -86,6 +87,12 @@ export function Explorer(props: {
   const before = useApi<SceneResponse>(compare !== undefined ? `/api/scene?view=${encodeURIComponent(useMain ? level : sceneName)}&version=${compare}` : null)
   const delta = useMemo(() => (diff.data ? toDelta(diff.data, before.data) : undefined), [diff.data, before.data])
 
+  // A link whose part is in no level of this version: the picture says where it went (§4.8). One in
+  // another level is not gone — only a part the whole model lacks is.
+  const offScene = !!selected && !selected.includes('>') && !!scene.data && !(scene.data.model.nodes ?? []).some((n) => n.id === selected)
+  const whole = useApi<ModelResponse>(offScene ? `/api/model${props.version ? `?version=${props.version}` : ''}` : null)
+  const gone = offScene && !!whole.data && !(whole.data.model.nodes ?? []).some((n) => n.id === selected)
+
   const select = (id: string | null) =>
     props.go({ screen: 'explorer', level: props.route.level, focus: id ?? undefined, q: props.route.q, dim: props.route.dim, all: props.route.all, from: props.route.from }, { replace: true })
 
@@ -113,6 +120,7 @@ export function Explorer(props: {
           <Loading what="the map" />
         </div>
       )}
+      {gone && <Gone kind="part" id={selected!} shown={whole.data!.version} name={whole.data!.model.name} go={props.go} compact />}
       {scene.data && (
         <ReactFlowProvider>
           <Arranged

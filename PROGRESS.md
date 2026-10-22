@@ -23,7 +23,7 @@ written by a template, one picture, the trust sentence), **What changed** (one v
 meaning; the old comparison under Advanced), **What it does** (each feature a sentence from its routes;
 the old list is Reference › Every entry point) and **Impact** in the rail are built, all deterministic
 and cited, and the Overview opens with the repository's own description where a manifest has one.
-**Left in stage 2:** Ask, and Did it build what I asked? Stage 3, the hosted place, is built: the app
+Stage 3, the hosted place, is built: the app
 renders a hosted repository itself, so what a repository says is escaped and sanitised before it is
 shown, the app runs under a Content-Security-Policy, and published sites carry their documents'
 diagrams. The website's own pages are the app's too — Start and Generating, through a Source that
@@ -39,6 +39,10 @@ with who in the system requires it. Stage 4 is built but for what waits on other
 generating from Home, and systems and Home on the website, which need accounts. Ask and "Did it
 build what I asked?" are built in the local app, on the person's own key: facts chosen without a
 model, the cost said before anything is sent, answers remembered so asking again is free.
+One update runs at a time: `generate` holds the repository while it writes, a second run waits and
+says for whom, and the app says an update is running in the terminal, with what it is doing. A Map
+link to a part a version lacks says where it went. Update from the app is built and switched off
+until a security review (`../archdoc-platform/docs/decisions.md`, 22 Oct).
 **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.

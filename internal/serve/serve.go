@@ -53,6 +53,9 @@ type Server struct {
 	token   string // this run's session token; see guard.go
 	// completer makes the client Ask and the plan check go through (ai.go); nil is the real one.
 	completer completer
+	// update runs generate for the app (update.go). Nil — as it is everywhere today — is updating
+	// from the app switched off.
+	update func(ctx context.Context) error
 }
 
 // New prepares a server for the repository at root. It needs history to exist: the app displays
@@ -95,6 +98,7 @@ func newServer(root, history string) *Server {
 	s.mux.HandleFunc("/api/layout/reset", s.action(s.resetLayout))
 	s.mux.HandleFunc("/api/views/save", s.action(s.saveView))
 	s.registerAI()
+	s.registerUpdate()
 	// Anything else under /api is not an endpoint: an answer, not the app's page.
 	s.mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { notFound(w, "no such endpoint: "+r.URL.Path) })
 	s.mux.Handle("/", frontend())
