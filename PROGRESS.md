@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-10-21 (the platform built through step 8 — see "Where this stands" below)
+Last updated: 2026-10-22 (the redesign's stages 1–3 — see "Where this stands" below)
 
 ---
 
@@ -22,8 +22,11 @@ Stage 2, the screens rebuilt around questions, is under way: the **Overview** (a
 written by a template, one picture, the trust sentence), **What changed** (one version told, grouped by
 meaning; the old comparison under Advanced), **What it does** (each feature a sentence from its routes;
 the old list is Reference › Every entry point) and **Impact** in the rail are built, all deterministic
-and cited. **Left in stage 2:** the purpose sentence from a manifest's description, Ask, and Did it
-build what I asked? **The plan across
+and cited, and the Overview opens with the repository's own description where a manifest has one.
+**Left in stage 2:** Ask, and Did it build what I asked? Stage 3, the hosted place, is built: the app
+renders a hosted repository itself, so what a repository says is escaped and sanitised before it is
+shown, the app runs under a Content-Security-Policy, and published sites carry their documents'
+diagrams. **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
 
