@@ -17,6 +17,7 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/model"
 	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/store"
+	"github.com/cruzambrociogl/archdoc/web"
 )
 
 // repo copies a fixture repository somewhere writable and gives it the history generate would:
@@ -321,5 +322,24 @@ func TestTextIsSentCompressed(t *testing.T) {
 		if !json.Valid(body) {
 			t.Errorf("with Accept-Encoding %q the summary is not JSON: %.80s", enc, body)
 		}
+	}
+}
+
+// The page runs under the Content-Security-Policy whether or not this build carries the web app:
+// only its own scripts, and it cannot be framed. Outside the dev build, which proxies to Vite.
+func TestThePageRunsUnderThePolicy(t *testing.T) {
+	if web.DevServer() != "" {
+		t.Skip("the dev build proxies the page to Vite")
+	}
+	rec := httptest.NewRecorder()
+	(&Server{}).frontend().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	csp := rec.Header().Get("Content-Security-Policy")
+	for _, want := range []string{"script-src 'self'", "object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'"} {
+		if !strings.Contains(csp, want) {
+			t.Errorf("the page's policy %q lacks %q", csp, want)
+		}
+	}
+	if strings.Contains(csp, "script-src 'self' 'unsafe-inline'") || strings.Contains(csp, "unsafe-eval") {
+		t.Errorf("the policy allows inline or evaluated script: %q", csp)
 	}
 }

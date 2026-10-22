@@ -646,6 +646,14 @@ func (s *Server) completeness(w http.ResponseWriter, r *http.Request) {
 
 // ——— the page ———
 
+// Policy is the Content-Security-Policy the app runs under, wherever it is served. The page shows
+// text from other people's repositories, sanitised before it is rendered; the policy is the second
+// line: only the app's own scripts, nothing inline, no plugins, no <base>, no form posts. Inline
+// styles are allowed — the app and its diagrams set style attributes. A published site carries the
+// same policy in a meta tag, without frame-ancestors, which a meta tag cannot set.
+const Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; " +
+	"font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+
 // frontend serves the built app, proxies to the development server in the dev build, or explains
 // how to build the app when neither is available — never a blank page.
 func (s *Server) frontend() http.Handler {
@@ -657,6 +665,7 @@ func (s *Server) frontend() http.Handler {
 	assets, built := web.Assets()
 	if !built {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Security-Policy", Policy+"; frame-ancestors 'none'")
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprint(w, `<!doctype html><title>archdoc</title><body style="font-family:system-ui;max-width:40em;margin:4em auto">
 <h1>The web app has not been built</h1>
@@ -670,6 +679,8 @@ go build -o ./archdoc ./cmd/archdoc</pre>
 
 	files := http.FileServerFS(assets)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Served by archdoc itself, the page cannot be framed by another site either.
+		w.Header().Set("Content-Security-Policy", Policy+"; frame-ancestors 'none'")
 		// A single-page app: any path that is not a file is the app itself.
 		if _, err := fs.Stat(assets, strings.TrimPrefix(path.Clean(r.URL.Path), "/")); err != nil {
 			r.URL.Path = "/"

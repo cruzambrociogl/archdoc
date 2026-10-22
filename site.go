@@ -21,6 +21,10 @@ const siteDir = stateDir + "/site"
 // actions, and opens citations on the repository host (surface-spec §3).
 const publishedMarker = `<meta name="archdoc-mode" content="published">`
 
+// publishedPolicy carries the app's Content-Security-Policy in the page, since a published site's
+// host may set no headers (serve.Policy).
+var publishedPolicy = `<meta http-equiv="Content-Security-Policy" content="` + serve.Policy + `">`
+
 // ErrNoWebApp is BuildSite in a build of archdoc made without its web app: web/ was not built
 // before the Go code, so there is no app to publish.
 var ErrNoWebApp = errors.New("this archdoc was built without its web app — build web/ first (see README)")
@@ -49,7 +53,7 @@ func BuildSite(ctx context.Context, root string, since int64) (*Site, error) {
 	files := map[string][]byte{}
 	err = walkAssets(assets, func(name string, b []byte) {
 		if name == "index.html" {
-			b = []byte(strings.Replace(string(b), "<head>", "<head>\n    "+publishedMarker, 1))
+			b = []byte(strings.Replace(string(b), "<head>", "<head>\n    "+publishedPolicy+"\n    "+publishedMarker, 1))
 		}
 		files[name] = b
 	})

@@ -15,6 +15,9 @@ what is different for a user.
 - **Manifest descriptions are quoted.** A `description` in package.json, pyproject.toml or
   pubspec.yaml becomes the part's description, and the root manifest's the system's — cited at its
   line, as read, never interpreted.
+- **Other people's text can't run in the app.** Every document's Markdown is sanitised before it is
+  shown, and the app runs under a Content-Security-Policy — sent by `archdoc serve`, and written into
+  every published site's page — that allows only its own scripts.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their
