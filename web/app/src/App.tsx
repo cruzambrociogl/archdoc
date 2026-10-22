@@ -18,7 +18,7 @@ import { Overview } from './screens/Overview'
 import { Features } from './screens/Features'
 import { Component } from './screens/Component'
 import { Dependencies } from './screens/Dependencies'
-import { Changes } from './screens/Changes'
+import { WhatChanged } from './screens/WhatChanged'
 import { Corrections } from './screens/Corrections'
 import { Documents } from './screens/Documents'
 import { NetworkRuns } from './screens/NetworkRuns'
@@ -139,7 +139,7 @@ function Shell() {
             {route.screen === 'features' && <Features version={version} route={route} go={go} />}
             {route.screen === 'component' && <Component version={version} route={route} go={go} />}
             {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
-            {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
+            {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
             {route.screen === 'reference' && <Reference summary={s} coverage={coverage.data} go={go} />}
             {route.screen === 'about' && <About summary={s} session={session.data} go={go} />}
