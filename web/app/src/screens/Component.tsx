@@ -118,7 +118,7 @@ export function Component(props: { version: number | null; route: Route; go: (r:
             {entries.slice(0, 40).map((e) => (
               <Row
                 key={e.id}
-                onClick={() => props.go({ screen: 'features', focus: e.id })}
+                onClick={() => props.go({ screen: 'entries', focus: e.id })}
                 text={`${e.kind === 'page' ? '' : e.method + ' '}${e.path}`}
                 meta={e.summary}
                 cite={e.provenance}
@@ -126,7 +126,7 @@ export function Component(props: { version: number | null; route: Route; go: (r:
               />
             ))}
             {entries.length > 40 && (
-              <button className="text-link" onClick={() => props.go({ screen: 'features' })}>
+              <button className="text-link" onClick={() => props.go({ screen: 'entries' })}>
                 and {entries.length - 40} more on Features
               </button>
             )}

@@ -26,6 +26,7 @@ const screenNames: [Screen, string][] = [
   ['changes', 'What changed · Changes'],
   ['explorer', 'Map · Explorer'],
   ['features', 'What it does · Features'],
+  ['entries', 'Every entry point · Routes'],
   ['reference', 'Reference'],
   ['deps', 'What it relies on · Dependencies'],
   ['docs', 'Documentation · Documents'],
@@ -103,7 +104,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
         title: `${e.method} ${e.path}`,
         meta: e.summary ?? e.handler,
         cite: at(e.provenance),
-        go: () => props.go({ screen: 'features', focus: e.id }),
+        go: () => props.go({ screen: 'entries', focus: e.id }),
       })
     }
 

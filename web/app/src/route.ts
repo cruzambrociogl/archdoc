@@ -17,6 +17,7 @@ export const screens = [
   'explorer',
   'features',
   'reference',
+  'entries',
   'component',
   'deps',
   'docs',
@@ -35,6 +36,7 @@ export const paths: Record<Screen, string> = {
   explorer: '/map',
   features: '/does',
   reference: '/reference',
+  entries: '/reference/entry-points',
   component: '/reference/component',
   deps: '/reference/dependencies',
   docs: '/reference/documentation',
@@ -157,6 +159,7 @@ export const titles: Record<Screen, string> = {
   explorer: 'Map',
   features: 'What it does',
   reference: 'Reference',
+  entries: 'Every entry point',
   component: 'A component',
   deps: 'What it relies on',
   docs: 'Documentation',
@@ -169,6 +172,7 @@ export const titles: Record<Screen, string> = {
 /** The menu entry a screen belongs to: a component page is in Reference, what left this machine in About. */
 export function sectionOf(screen: Screen): Screen {
   switch (screen) {
+    case 'entries':
     case 'component':
     case 'deps':
     case 'docs':

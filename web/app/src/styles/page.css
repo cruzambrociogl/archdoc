@@ -1553,3 +1553,65 @@ button.runs-row:hover {
 .advanced-body {
   margin-top: 16px;
 }
+
+/* What it does (platform-surface §6.6): each feature a sentence, opening onto its entries. */
+.what-it-does {
+  max-width: 820px;
+}
+.features {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+.feature {
+  border-bottom: 1px solid var(--rule-soft);
+}
+.feature-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  width: 100%;
+  padding: 14px 2px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.feature-head:hover {
+  background: var(--hover);
+}
+.feature-sentence {
+  font: 19px/1.4 var(--font-serif);
+  text-wrap: pretty;
+}
+.feature-count {
+  flex: 0 0 auto;
+  font: 11px var(--font-mono);
+  color: var(--muted);
+}
+.feature-entries {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0 0 0 14px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.feature-entries li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: baseline;
+}
+.feature-entry-right {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+.features-all {
+  margin-top: 14px;
+}

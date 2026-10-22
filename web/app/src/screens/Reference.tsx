@@ -21,7 +21,7 @@ export function Reference(props: { summary: Summary; coverage?: CoverageResponse
       ? [{ title: 'Every table', what: 'What it stores, table by table, with its columns', count: c.tables ? String(c.tables) : undefined, on: () => go({ screen: 'explorer', level: dataLevel(cov.tables_in![0]) }) }]
       : []),
     ...(entries
-      ? [{ title: 'Every entry point', what: 'Every route, page, command and job — in What it does, each with what it sets off', count: String(entries), on: () => go({ screen: 'features' }) }]
+      ? [{ title: 'Every entry point', what: 'Every route, page, command and job, each with what it sets off', count: String(entries), on: () => go({ screen: 'entries' }) }]
       : []),
     ...(cov?.dependencies
       ? [{ title: 'What it relies on', what: 'Other people’s code, package by package, and where it is used', count: String(cov.dependencies), on: () => go({ screen: 'deps' }) }]

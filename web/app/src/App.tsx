@@ -16,6 +16,7 @@ import { MarksBand, Rail, marksSeen } from './shell/Rail'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
 import { Features } from './screens/Features'
+import { WhatItDoes } from './screens/WhatItDoes'
 import { Component } from './screens/Component'
 import { Dependencies } from './screens/Dependencies'
 import { WhatChanged } from './screens/WhatChanged'
@@ -136,7 +137,8 @@ function Shell() {
             {route.screen === 'explorer' && (
               <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} />
             )}
-            {route.screen === 'features' && <Features version={version} route={route} go={go} />}
+            {route.screen === 'features' && <WhatItDoes version={version} go={go} />}
+            {route.screen === 'entries' && <Features version={version} route={route} go={go} />}
             {route.screen === 'component' && <Component version={version} route={route} go={go} />}
             {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
             {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} />}

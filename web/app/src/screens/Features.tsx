@@ -56,12 +56,12 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
     .join(', ')
   const containers = new Set(entries.map((e) => e.container)).size
   const shown = groups.reduce((n, g) => n + g.classes.reduce((k, [, es]) => k + es.length, 0), 0)
-  const setFind = (v: string) => props.go({ screen: 'features', q: v || undefined, focus: open }, { replace: true })
-  const toggle = (id: string) => props.go({ screen: 'features', q: props.route.q, focus: open === id ? undefined : id }, { replace: true })
+  const setFind = (v: string) => props.go({ screen: 'entries', q: v || undefined, focus: open }, { replace: true })
+  const toggle = (id: string) => props.go({ screen: 'entries', q: props.route.q, focus: open === id ? undefined : id }, { replace: true })
 
   return (
     <div className="reading wide">
-      <Eyebrow>Features · what the system does</Eyebrow>
+      <Eyebrow>Reference · every entry point</Eyebrow>
       <h1 className="page-title">The ways in</h1>
       {entries.length === 0 ? (
         <p className="lede">
@@ -112,7 +112,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
                   nodes={nodes}
                   flow={flows.get(e.id)}
                   onTable={(id) => props.go({ screen: 'explorer', level: dataLevel(g.container), focus: id })}
-                  onJob={(id) => props.go({ screen: 'features', focus: id })}
+                  onJob={(id) => props.go({ screen: 'entries', focus: id })}
                   go={props.go}
                 />
               ))}
