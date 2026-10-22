@@ -1,16 +1,10 @@
 import { useState } from 'react'
-import { marked } from 'marked'
+import { safeMarkdown } from '../ui/safeMarkdown'
 import type { CompletenessResponse, DocsResponse } from '../api'
 import { useApi, useEditorLink, when } from '../api'
 import { useCapabilities, useSource } from '../source'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
-
-const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-// Generated documents quote names from other people's configuration: raw HTML in them is shown as
-// text, never interpreted. Comments are archdoc's own stamps, not content.
-marked.use({ renderer: { html: (token) => escape(token.text) } })
 
 type State = 'generated' | 'not started' | 'written' | 'may be stale' | 'missing' | 'unknown'
 
@@ -152,14 +146,14 @@ function Generated({ entry, onOpen }: { entry: Entry; dir: string; onOpen: (f: s
   const text = doc.data.replace(/<!--[\s\S]*?-->/g, '')
   // Relative references point beside the document: generated files through the API (and
   // generated pages within this screen), the sections a person owns to their editor.
-  const html = (marked.parse(text, { async: false }) as string).replace(
-    /(src|href)="(?![a-z]+:|#|\/)([^"]+)"/g,
-    (_, attr: string, ref: string) => {
-      if (attr === 'href' && isGenerated(ref)) return `href="#screen=docs&doc=${encodeURIComponent(ref)}" data-doc="${ref}"`
+  // Sanitised after the links are rewritten (ui/safeMarkdown): the text is someone else's.
+  const html = safeMarkdown(text, (raw) =>
+    raw.replace(/(src|href)="(?![a-z]+:|#|\/)([^"]+)"/g, (_, attr: string, ref: string) => {
+      if (attr === 'href' && isGenerated(ref)) return `href="#/reference/documentation?doc=${encodeURIComponent(ref)}" data-doc="${ref}"`
       if (/\.generated\.md$|\.svg$|\.mmd$/.test(ref)) return `${attr}="${source.url(`/api/docs/${encodeURIComponent(ref)}`)}"`
       const to = link(`docs/architecture/${ref}`)
-      return to ? `${attr}="${to}"` : `${attr}="#screen=docs&doc=${encodeURIComponent(ref)}" data-doc="${ref}"`
-    },
+      return to ? `${attr}="${to}"` : `${attr}="#/reference/documentation?doc=${encodeURIComponent(ref)}" data-doc="${ref}"`
+    }),
   )
 
   return (
@@ -201,7 +195,7 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
             </p>
             <Eyebrow>Questions</Eyebrow>
             {q.data ? (
-              <div className="markdown-body questions" dangerouslySetInnerHTML={{ __html: marked.parse(q.data.markdown, { async: false }) as string }} />
+              <div className="markdown-body questions" dangerouslySetInnerHTML={{ __html: safeMarkdown(q.data.markdown) }} />
             ) : q.error ? (
               <Failure error={q.error} />
             ) : (
