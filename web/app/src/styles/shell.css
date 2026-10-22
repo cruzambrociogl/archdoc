@@ -947,3 +947,52 @@ button.legend-row:hover {
     background: rgba(21, 32, 30, 0.35);
   }
 }
+
+/* Impact in the rail (platform-surface §6.4): the sentence, then each group of five, cited. */
+.impact-sentence {
+  font: 20px/1.4 var(--font-serif);
+  margin: 0;
+  text-wrap: pretty;
+}
+.impact-group {
+  margin-top: 18px;
+}
+.impact-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 5px;
+  font: 600 10.5px var(--font-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.impact-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 13px;
+}
+.impact-row .part-link {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.impact-row .cite {
+  margin-left: auto;
+  max-width: 100%;
+}
+.impact-more {
+  padding-top: 6px;
+  font-size: 12px;
+}
+.inspector-touch {
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--rule-soft);
+}

@@ -12,7 +12,7 @@ import { Nav } from './shell/Nav'
 import { Palette } from './shell/Palette'
 import { Shortcuts } from './shell/Shortcuts'
 import type { RailContent } from './shell/Rail'
-import { MarksBand, Rail, marksSeen } from './shell/Rail'
+import { MarksBand, Rail, RailProvider, marksSeen } from './shell/Rail'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
 import { Features } from './screens/Features'
@@ -112,6 +112,7 @@ function Shell() {
 
   return (
     <RootContext.Provider value={{ root: s.root, remote: session.data?.remote, commit: session.data?.commit }}>
+      <RailProvider value={setRail}>
       <div className="shell">
         <TopBar
           summary={s}
@@ -152,11 +153,12 @@ function Shell() {
           </main>
           {route.screen !== 'explorer' && <AskDock go={go} />}
           </div>
-          {rail && <Rail content={rail} onOpen={setRail} onClose={() => setRail(null)} />}
+          {rail && <Rail content={rail} onOpen={setRail} onClose={() => setRail(null)} version={version} go={go} />}
         </div>
       </div>
       <Palette open={searching} onClose={() => setSearching(false)} go={go} views={views.data?.views ?? []} version={version} />
       {keys && <Shortcuts onClose={() => setKeys(false)} />}
+      </RailProvider>
     </RootContext.Provider>
   )
 }

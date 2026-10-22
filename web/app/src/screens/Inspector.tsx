@@ -5,6 +5,7 @@ import { KindTile } from '../ui/KindTile'
 import { kindStyle } from '../ui/kinds'
 import { Eyebrow, TruthChip, TruthMark } from '../ui/marks'
 import { Planned } from '../ui/Planned'
+import { useRail } from '../shell/Rail'
 import type { Route } from '../route'
 
 /**
@@ -57,6 +58,7 @@ export function Inspector({
         <Eyebrow>Inspector</Eyebrow>
         <span className="mono muted small">{what}</span>
       </div>
+      {node && <TouchButton id={node.id} />}
       {(node || edge) && changes?.mark && <ChangeNote changes={changes} />}
       {node ? (
         <Passport
@@ -535,6 +537,18 @@ function Relation(props: { dir: string; other: string; edge: Edge; name: (id: st
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Opens Impact for the element in the rail (platform-surface §6.4). */
+function TouchButton({ id }: { id: string }) {
+  const open = useRail()
+  return (
+    <div className="inspector-touch">
+      <button className="link-btn" onClick={() => open({ kind: 'impact', element: id })}>
+        What does this touch? →
+      </button>
     </div>
   )
 }
