@@ -45,7 +45,7 @@ export function App() {
         if (to) throw redirect({ href: to.slice(1), replace: true })
       },
     })
-    const home = createRoute({ getParentRoute: () => root, path: '/', beforeLoad: () => { throw redirect({ to: '/overview' }) } })
+    const home = createRoute({ getParentRoute: () => root, path: '/', beforeLoad: () => { throw redirect({ href: '/overview' }) } })
     const any = createRoute({ getParentRoute: () => root, path: '$' })
     return createRouter({ routeTree: root.addChildren([home, any]), history: createHashHistory(), parseSearch, stringifySearch })
   }, [])

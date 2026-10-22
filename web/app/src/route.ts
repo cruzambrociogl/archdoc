@@ -143,7 +143,8 @@ export function useRoute(): [Route, Go] {
       const r = { ...base, ...next }
       const search: Record<string, unknown> = {}
       for (const k of order) if (r[k] !== undefined && r[k] !== '') search[k] = r[k]
-      navigate({ to: paths[r.screen], search, replace: opts.replace })
+      // By href, not a typed `to`: a host may register a router of its own, and the app's paths are not its.
+      navigate({ href: paths[r.screen] + stringifySearch(search), replace: opts.replace })
     },
     [route, navigate],
   )

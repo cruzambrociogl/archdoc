@@ -5,11 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,7 +27,7 @@ import (
 // response the app reads, so the published files have exactly the live API's shapes — there is no
 // second implementation to drift.
 
-// StaticName is the file a published site reads an API path from. web/src/api.ts mirrors it.
+// StaticName is the file a published site reads an API path from. web/app/src/staticName.ts mirrors it.
 //
 //	/api/docs/x.md             → data/docs/x.md
 //	/api/svg?view=container    → data/svg@view=container.svg
@@ -66,6 +69,9 @@ func StaticName(apiPath string) string {
 // from the committed record instead: .archdoc/model.json, laid out by the same engine, as a single
 // version. Nothing is regenerated, so model-written labels in model.json survive and no key is
 // needed (surface-spec §3.2).
+// svgRef finds a diagram a document names: a file name ending .svg, with no folder.
+var svgRef = regexp.MustCompile(`([A-Za-z0-9_.-]+\.svg)\b`)
+
 func Export(root string, since int64) (map[string][]byte, error) {
 	s, err := New(root)
 	if err != nil {
@@ -178,6 +184,19 @@ func Export(root string, since int64) (map[string][]byte, error) {
 	json.Unmarshal(out[StaticName("/api/docs")], &docs)
 	for _, f := range docs.Generated {
 		if err := put("/api/docs/"+url.PathEscape(f), false); err != nil {
+			return nil, err
+		}
+	}
+	// And the diagrams they show: each SVG a document names, from archdoc's own folder. One named
+	// and not generated is left out, as the live app would answer it.
+	named := map[string]bool{}
+	for _, f := range docs.Generated {
+		for _, m := range svgRef.FindAllSubmatch(out[StaticName("/api/docs/"+url.PathEscape(f))], -1) {
+			named[string(m[1])] = true
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(named)) {
+		if err := put("/api/docs/"+url.PathEscape(name), true); err != nil {
 			return nil, err
 		}
 	}

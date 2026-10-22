@@ -101,3 +101,30 @@ func TestExportFromTheCommittedRecordAlone(t *testing.T) {
 		t.Errorf("export with nothing to build from: %v", err)
 	}
 }
+
+// A published site carries the diagrams its documents show — a document names container.svg, and
+// the site has it beside the document — and leaves out one named but never generated.
+func TestExportCarriesTheDiagramsTheDocumentsShow(t *testing.T) {
+	root := repo(t)
+	dir := filepath.Join(root, docsDir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	doc := "# Containers\n\n![The containers](container.svg)\n\n<img src=\"ghost.svg\">\n"
+	if err := os.WriteFile(filepath.Join(dir, "05-building-block-view.generated.md"), []byte(doc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "container.svg"), []byte(`<svg xmlns="http://www.w3.org/2000/svg"/>`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	files, err := Export(root, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := files["data/docs/container.svg"]; !ok {
+		t.Error("the site lacks container.svg, which a document shows")
+	}
+	if _, ok := files["data/docs/ghost.svg"]; ok {
+		t.Error("the site has ghost.svg, which was never generated")
+	}
+}
