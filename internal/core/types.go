@@ -554,6 +554,10 @@ func (r AppRole) Container() bool {
 type App struct {
 	Name string `json:"name"` // the manifest's package name, or its directory's
 	Dir  string `json:"dir"`  // repository-relative; "." for the root
+	// Package is what the manifest names the package for others to require — package.json's name,
+	// go.mod's module path, pyproject's or pubspec's name — exactly, at Prov's line. Empty when the
+	// manifest names none. It is how another repository's requirement finds this one (§4.6).
+	Package string `json:"package,omitempty"`
 	// Description is what the manifest says the package is for — package.json's description,
 	// pyproject's, pubspec's — at its line. The repository's own words, so proven.
 	Description string     `json:"description,omitempty"`

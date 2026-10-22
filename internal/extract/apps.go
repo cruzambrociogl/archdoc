@@ -243,7 +243,7 @@ func packageJSON(root, rel string) *core.App {
 		return nil
 	}
 	dir := dirOf(rel)
-	app := &core.App{Name: pkg.Name, Dir: dir, Manifest: rel, Language: "JavaScript",
+	app := &core.App{Name: pkg.Name, Package: pkg.Name, Dir: dir, Manifest: rel, Language: "JavaScript",
 		Prov: core.Provenance{File: rel, Line: lineOf(content, `"name"`)}}
 	describe(app, pkg.Description, rel, lineOf(content, `"description"`))
 	if app.Name == "" {
@@ -456,6 +456,7 @@ func pyproject(root, rel string) *core.App {
 		key = strings.TrimSpace(key)
 		if isKV && key == "name" && (section == "project" || section == "tool.poetry") {
 			app.Name = strings.Trim(strings.TrimSpace(value), `"'`)
+			app.Package = app.Name
 			app.Prov.Line = i + 1
 			continue
 		}
@@ -536,7 +537,7 @@ func pubspec(root, rel string) *core.App {
 		return nil
 	}
 	dir := dirOf(rel)
-	app := &core.App{Name: spec.Name, Dir: dir, Manifest: rel, Language: "Dart",
+	app := &core.App{Name: spec.Name, Package: spec.Name, Dir: dir, Manifest: rel, Language: "Dart",
 		Prov: core.Provenance{File: rel, Line: lineOf(content, "name:")}}
 	describe(app, spec.Description, rel, lineOf(content, "description:"))
 	_, flutter := spec.Dependencies["flutter"]
@@ -580,14 +581,39 @@ func goMod(root, rel string) *core.App {
 		return nil
 	}
 	dir := dirOf(rel)
-	name := path.Base(dir)
-	for _, line := range strings.Split(string(content), "\n") {
-		if mod, ok := strings.CutPrefix(strings.TrimSpace(line), "module "); ok {
-			name = path.Base(strings.TrimSpace(mod))
-			break
+	name, module := path.Base(dir), ""
+	var requires []core.Requirement
+	inRequire := false
+	for i, raw := range strings.Split(string(content), "\n") {
+		line := strings.TrimSpace(raw)
+		if mod, ok := strings.CutPrefix(line, "module "); ok && module == "" {
+			module = strings.Trim(strings.TrimSpace(mod), `"`)
+			name = path.Base(module)
+			continue
+		}
+		// require x v1 — or a block of them. An indirect one is another package's need, not this one's.
+		spec, single := strings.CutPrefix(line, "require ")
+		switch {
+		case line == "require (":
+			inRequire = true
+			continue
+		case inRequire && line == ")":
+			inRequire = false
+			continue
+		case !inRequire && !single:
+			continue
+		}
+		if !inRequire {
+			line = strings.TrimSpace(spec)
+		}
+		if strings.Contains(line, "// indirect") {
+			continue
+		}
+		if f := strings.Fields(line); len(f) >= 2 && !strings.HasPrefix(f[0], "//") {
+			requires = append(requires, core.Requirement{Name: strings.Trim(f[0], `"`), Version: f[1], Prov: core.Provenance{File: rel, Line: i + 1}})
 		}
 	}
-	app := &core.App{Name: name, Dir: dir, Manifest: rel, Language: "Go",
+	app := &core.App{Name: name, Package: module, Dir: dir, Manifest: rel, Language: "Go", Requires: requires,
 		Prov: core.Provenance{File: rel, Line: lineOf(content, "module ")}}
 	if inTestDir(dir) {
 		app.Role, app.Why = core.RoleTest, "lives in a test directory"

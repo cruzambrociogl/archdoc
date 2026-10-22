@@ -252,9 +252,24 @@ type Model struct {
 	// of its components import them (F-14).
 	Dependencies []Package `json:"dependencies,omitempty"`
 
+	// Manifests are what each package in the repository is called for others to require, and what
+	// it requires, each at its line — every package, libraries included, whatever runs. They are
+	// what ties one repository to another (platform-surface §4.6); not part of the architecture a
+	// version is judged by.
+	Manifests []Manifest `json:"manifests,omitempty"`
+
 	// Explanations are model-written prose about an element — what a component does — every
 	// sentence citing the facts it rests on (F-19, F-36). Interpretation, marked as such.
 	Explanations []Explanation `json:"explanations,omitempty"`
+}
+
+// Manifest is one package's manifest: the name it offers, at its line, and what it requires.
+type Manifest struct {
+	Package  string        `json:"package"`
+	Dir      string        `json:"dir"`
+	Language string        `json:"language,omitempty"`
+	Prov     Provenance    `json:"provenance"`
+	Requires []Requirement `json:"requires,omitempty"`
 }
 
 // Package is a package a container's manifest declares: where it is declared, and where the

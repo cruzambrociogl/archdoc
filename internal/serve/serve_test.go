@@ -332,7 +332,7 @@ func TestThePageRunsUnderThePolicy(t *testing.T) {
 		t.Skip("the dev build proxies the page to Vite")
 	}
 	rec := httptest.NewRecorder()
-	(&Server{}).frontend().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	frontend().ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
 	csp := rec.Header().Get("Content-Security-Policy")
 	for _, want := range []string{"script-src 'self'", "object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'"} {
 		if !strings.Contains(csp, want) {

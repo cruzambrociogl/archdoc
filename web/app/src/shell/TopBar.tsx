@@ -7,6 +7,7 @@ import type { Theme } from '../theme'
 import { Planned } from '../ui/Planned'
 import type { MarkKind } from '../ui/markInfo'
 import { MarkGlyph } from '../ui/markInfo'
+import { useParent } from './parent'
 
 export const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
 export const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
@@ -38,6 +39,7 @@ export function TopBar(props: {
   onMark: (mark: MarkKind) => void
 }) {
   const can = useCapabilities()
+  const parent = useParent()
   const { summary: s, route, go } = props
   const [open, setOpen] = useState<Menu>(null)
   const bar = useRef<HTMLElement>(null)
@@ -67,7 +69,8 @@ export function TopBar(props: {
   // Where you are: the repository, the section, and the page or level inside it.
   const section = sectionOf(route.screen)
   const crumbs: { label: string; mono?: boolean; on?: () => void }[] = [
-    { label: s.name, mono: true, on: () => go({ screen: 'overview' }) },
+    ...(parent ? [{ label: parent.label, mono: true, on: parent.open }] : []),
+    { label: parent?.repo ?? s.name, mono: true, on: () => go({ screen: 'overview' }) },
     { label: titles[section], on: route.screen !== section || (section === 'explorer' && route.level) ? () => go({ screen: section }) : undefined },
     ...(route.screen !== section ? [{ label: titles[route.screen] }] : []),
     ...(route.screen === 'explorer' && route.level ? [{ label: levelName(route.level, props.name) }] : []),

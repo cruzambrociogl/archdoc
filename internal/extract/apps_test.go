@@ -191,3 +191,34 @@ func TestManifestsSayWhatTheyAreFor(t *testing.T) {
 		}
 	}
 }
+
+// A package's own name is what another repository requires it by: go.mod's whole module path, not
+// the short name the diagram uses. Its requirements are the ones it states — a block or a single
+// line — and not the indirect ones, which are another package's.
+func TestManifestsNameTheirPackageAndWhatTheyRequire(t *testing.T) {
+	root := tree(t, map[string]string{
+		"go.mod":           "module github.com/acme/platform\n\ngo 1.26\n\nrequire github.com/acme/engine v0.0.0-20261022155652-3203f69123a2\n\nrequire (\n\tgithub.com/jackc/pgx/v5 v5.7.6\n\tgolang.org/x/text v0.31.0 // indirect\n)\n",
+		"cmd/api/main.go":  "package main\n",
+		"web/package.json": `{"name": "@acme/web", "dependencies": {"@acme/app": "file:../../engine/web/app"}}`,
+	})
+	apps := byDir(Apps(root))
+	g := apps["."]
+	if g.Name != "platform" || g.Package != "github.com/acme/platform" || g.Prov.Line != 1 {
+		t.Errorf("go.mod: name %q, package %q at line %d", g.Name, g.Package, g.Prov.Line)
+	}
+	want := []core.Requirement{
+		{Name: "github.com/acme/engine", Version: "v0.0.0-20261022155652-3203f69123a2", Prov: core.Provenance{File: "go.mod", Line: 5}},
+		{Name: "github.com/jackc/pgx/v5", Version: "v5.7.6", Prov: core.Provenance{File: "go.mod", Line: 8}},
+	}
+	if len(g.Requires) != len(want) {
+		t.Fatalf("go.mod requires %+v, want %+v", g.Requires, want)
+	}
+	for i := range want {
+		if g.Requires[i] != want[i] {
+			t.Errorf("requirement %d: %+v, want %+v", i, g.Requires[i], want[i])
+		}
+	}
+	if w := apps["web"]; w.Package != "@acme/web" || len(w.Requires) != 1 || w.Requires[0].Version != "file:../../engine/web/app" {
+		t.Errorf("package.json: package %q, requires %+v", w.Package, w.Requires)
+	}
+}

@@ -24,7 +24,8 @@ func dependencies(m *core.Model, f *core.FactSet, componentOf map[string]string)
 	}
 	for _, a := range f.Apps {
 		container, ok := containerOf[a.Dir]
-		if !ok || len(a.Requires) == 0 {
+		// Go's requirements are read, Go's code is not: every package would read as never imported.
+		if !ok || len(a.Requires) == 0 || a.Language == "Go" {
 			continue
 		}
 		imports := map[string]int{}
@@ -60,6 +61,19 @@ func dependencies(m *core.Model, f *core.FactSet, componentOf map[string]string)
 		}
 		return a.Name < b.Name
 	})
+}
+
+// manifests records every package's name and requirements, whatever it is — a library, a tool,
+// something that runs — for what links this repository to others (platform-surface §4.6). A test
+// suite or an example names nothing another repository would require. In manifest order.
+func manifests(m *core.Model, f *core.FactSet) {
+	for _, a := range f.Apps {
+		if a.Package == "" || a.Role == core.RoleTest || a.Role == core.RoleExample {
+			continue
+		}
+		m.Manifests = append(m.Manifests, core.Manifest{Package: a.Package, Dir: a.Dir, Language: a.Language, Prov: a.Prov, Requires: a.Requires})
+	}
+	sort.SliceStable(m.Manifests, func(i, j int) bool { return m.Manifests[i].Prov.File < m.Manifests[j].Prov.File })
 }
 
 func normal(name string) string {

@@ -214,6 +214,7 @@ func Derive(f *core.FactSet) core.Model {
 	flows(&m, f.Sources, componentOf)
 	access(&m, f.Sources, componentOf)
 	dependencies(&m, f, componentOf)
+	manifests(&m, f)
 
 	return m.Normalise()
 }

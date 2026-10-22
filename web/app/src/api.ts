@@ -477,3 +477,36 @@ export function bytes(n: number): string {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
   return `${(n / 1024 / 1024).toFixed(2)} MB`
 }
+
+/** A system: several repositories, and the links between them their manifests prove (§4.6). */
+export interface SystemResponse {
+  name: string
+  repos: SystemRepo[]
+  links: SystemLink[]
+}
+
+export interface SystemRepo {
+  name: string
+  /** Where it is on this machine: its citations open there. */
+  root: string
+  version: number
+  commit: string
+  created_at: string
+  applications: number
+  /** What the repository says it is for — its root manifest's description, at its line. */
+  description?: string
+  description_provenance?: Provenance
+}
+
+/** One repository's package requiring another's: the requirement in one, the name in the other. */
+export interface SystemLink {
+  from: string
+  to: string
+  kind: 'code'
+  package: string
+  version?: string
+  uses: Provenance
+  declares: Provenance
+  /** Which of the other's code it uses: a commit or a tag, and how far the other has moved since; or the checkout beside it. */
+  pin?: { kind: 'commit' | 'tag' | 'checkout'; ref: string; ahead: number }
+}

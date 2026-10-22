@@ -38,6 +38,7 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/rules"
 	"github.com/cruzambrociogl/archdoc/internal/store"
+	"github.com/cruzambrociogl/archdoc/internal/system"
 	"github.com/cruzambrociogl/archdoc/web"
 )
 
@@ -91,7 +92,9 @@ func newServer(root, history string) *Server {
 	s.mux.HandleFunc("/api/layout", s.action(s.saveLayout))
 	s.mux.HandleFunc("/api/layout/reset", s.action(s.resetLayout))
 	s.mux.HandleFunc("/api/views/save", s.action(s.saveView))
-	s.mux.Handle("/", s.frontend())
+	// Anything else under /api is not an endpoint: an answer, not the app's page.
+	s.mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { notFound(w, "no such endpoint: "+r.URL.Path) })
+	s.mux.Handle("/", frontend())
 	return s
 }
 
@@ -99,21 +102,36 @@ func newServer(root, history string) *Server {
 // can make a browser send requests to localhost; checking the Host header is what stops that
 // page reading someone's architecture through a rebound DNS name.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	host := r.Host
-	if h, _, err := net.SplitHostPort(r.Host); err == nil {
-		host = h
-	}
-	if host != "localhost" && host != "127.0.0.1" && host != "::1" {
-		http.Error(w, "archdoc serves this machine only", http.StatusForbidden)
-		return
-	}
-	compressed(s.mux).ServeHTTP(w, r)
+	thisMachine(s.mux).ServeHTTP(w, r)
 }
 
-// ListenAndServe serves on addr until ctx ends. It binds to the loopback interface only; addr's
+func thisMachine(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host := r.Host
+		if h, _, err := net.SplitHostPort(r.Host); err == nil {
+			host = h
+		}
+		if host != "localhost" && host != "127.0.0.1" && host != "::1" {
+			http.Error(w, "archdoc serves this machine only", http.StatusForbidden)
+			return
+		}
+		compressed(h).ServeHTTP(w, r)
+	})
+}
+
+// ListenAndServe serves on addr until ctx ends — the repository at root, or, when root is a folder
+// of documented repositories, all of them as one system. It binds to the loopback interface only; addr's
 // host part is ignored so a flag cannot accidentally expose the model to the network.
 func ListenAndServe(ctx context.Context, root string, port int, ready func(url string)) error {
-	srv, err := New(root)
+	var srv http.Handler
+	var err error
+	if system.IsRepo(root) {
+		srv, err = New(root)
+	} else if _, serr := system.Read(root); serr == nil {
+		srv, err = NewSystem(root)
+	} else {
+		srv, err = New(root) // says what is missing
+	}
 	if err != nil {
 		return err
 	}
@@ -656,7 +674,7 @@ const Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-
 
 // frontend serves the built app, proxies to the development server in the dev build, or explains
 // how to build the app when neither is available — never a blank page.
-func (s *Server) frontend() http.Handler {
+func frontend() http.Handler {
 	if dev := web.DevServer(); dev != "" {
 		target, _ := url.Parse(dev)
 		return httputil.NewSingleHostReverseProxy(target)
@@ -681,9 +699,17 @@ go build -o ./archdoc ./cmd/archdoc</pre>
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Served by archdoc itself, the page cannot be framed by another site either.
 		w.Header().Set("Content-Security-Policy", Policy+"; frame-ancestors 'none'")
-		// A single-page app: any path that is not a file is the app itself.
-		if _, err := fs.Stat(assets, strings.TrimPrefix(path.Clean(r.URL.Path), "/")); err != nil {
+		// A single-page app: any path that is not a file is the app itself. Its own files are named
+		// relative to the page (./assets/…), so it works published under any path; a page at
+		// /repos/{name} asks for them under that path, and gets them.
+		p := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		if _, err := fs.Stat(assets, p); err != nil {
 			r.URL.Path = "/"
+			if i := strings.LastIndex(p, "assets/"); i > 0 {
+				if _, err := fs.Stat(assets, p[i:]); err == nil {
+					r.URL.Path = "/" + p[i:]
+				}
+			}
 		}
 		files.ServeHTTP(w, r)
 	})

@@ -480,6 +480,10 @@ One line of output means five identical runs.
 ./archdoc serve ../subjects/supabase      # http://localhost:7474 — this machine only
 ```
 
+Served on a folder that holds several documented repositories, the app opens on the **System
+map**: how they fit together — which repository requires which one's package, cited at both ends,
+and how far a pinned commit is behind — and each repository's pages under it.
+
 | Screen | What it answers |
 |---|---|
 | **Overview** | What the system is, how much of it is interpreted, what has ever left the machine, what changed |

@@ -24,6 +24,10 @@ what is different for a user.
   so and the page reconnects by itself; a version recorded from a terminal while the app is open is
   announced, never swapped in; a link to a page, version or part that is gone says where it went.
   The Overview's picture can be read as a list, and reduced motion is honoured.
+- **A folder of repositories is one system.** `archdoc serve` on a folder holding several documented
+  repositories opens the System map: how they fit together, in a sentence and a picture — each link
+  one repository's requirement of another's package, cited at both ends — and how far a pinned
+  commit or tag is behind. Each repository's pages open from it. Go modules' requirements are read.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

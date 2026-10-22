@@ -11,9 +11,9 @@ import (
 	"github.com/cruzambrociogl/archdoc/server"
 )
 
-// serveCommand starts the web app for one repository (SUR-07). The listening happens in package
-// server, so this package still never imports an HTTP client — the CI network rule stays about
-// imports, not exceptions.
+// serveCommand starts the web app for one repository (SUR-07), or for a folder of them as one
+// system (platform-surface §4.6). The listening happens in package server, so this package still
+// never imports an HTTP client — the CI network rule stays about imports, not exceptions.
 func serveCommand(e env, args []string) error {
 	fs := flags("serve")
 	port := fs.Int("port", 7474, "local `port` to serve on; only this machine can connect")

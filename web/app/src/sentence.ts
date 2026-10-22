@@ -3,13 +3,13 @@
 // only paragraph a repository gets when no one has written its purpose. Every part it names is
 // returned with it, so the screen can link each one to the Map and cite it.
 
-import type { Model, Node } from './api'
+import type { Model, Node, SystemLink, SystemResponse } from './api'
 
 /** A run of text, or a part named in it. */
 export type Piece = string | { node: Node }
 
 const counted = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve']
-const number = (n: number) => counted[n] ?? String(n)
+export const number = (n: number) => counted[n] ?? String(n)
 const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /** "a", "a and b", "a, b and c" — as pieces, each part a node. */
@@ -86,3 +86,48 @@ function uniq(nodes: Node[]): Node[] {
   return nodes.filter((n) => !seen.has(n.id) && seen.add(n.id))
 }
 
+
+/** "a", "a and b", "a, b and c". */
+const and = (items: string[]) => (items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`)
+const plural = (n: number, one: string, many: string) => `${number(n)} ${n === 1 ? one : many}`
+
+/** Which of the other's code a link uses, in words — and how far the other has moved since (§4.6, drift). */
+export function pinWords(l: SystemLink): string {
+  const p = l.pin
+  if (!p) return l.version ? ` (${l.version})` : ''
+  if (p.kind === 'checkout') return ', from the checkout beside it'
+  const ref = p.kind === 'commit' ? p.ref.slice(0, 7) : p.ref
+  if (p.ahead > 0) return ` at ${ref}, which ${l.to} is ${plural(p.ahead, 'commit', 'commits')} past`
+  if (p.ahead === 0) return ` at ${ref}, the commit ${l.to}'s docs are from`
+  return ` at ${ref}`
+}
+
+/**
+ * The system sentence (platform-surface §4.6): how many repositories, then, for each one that
+ * requires another, which of its packages and at what — written by a template from the links, each
+ * of which is cited at both ends, so it is proven. What nothing links says so.
+ */
+export function systemSentence(sys: SystemResponse): string[] {
+  const out = [`${sys.name} is ${plural(sys.repos.length, 'repository', 'repositories')}: ${and(sys.repos.map((r) => r.name))}.`]
+  const pairs = new Map<string, SystemLink[]>()
+  for (const l of sys.links) {
+    const k = `${l.from}\u0000${l.to}`
+    pairs.set(k, [...(pairs.get(k) ?? []), l])
+  }
+  for (const links of pairs.values()) {
+    const { from, to } = links[0]
+    const items = links.map((l) => l.package + pinWords(l))
+    out.push(
+      links.length === 1
+        ? `${from} requires ${to}'s ${items[0]}.`
+        : links.length <= 3
+          ? `${from} requires ${number(links.length)} of ${to}'s packages: ${items.slice(0, -1).join('; ')}; and ${items[items.length - 1]}.`
+          : `${from} requires ${number(links.length)} of ${to}'s packages.`,
+    )
+  }
+  const linked = new Set(sys.links.flatMap((l) => [l.from, l.to]))
+  const alone = sys.repos.filter((r) => !linked.has(r.name)).map((r) => r.name)
+  if (sys.links.length === 0) out.push('archdoc found nothing linking them that it could prove.')
+  else if (alone.length) out.push(`${and(alone)} ${alone.length === 1 ? 'is' : 'are'} linked to none of the others by anything archdoc could prove.`)
+  return out
+}

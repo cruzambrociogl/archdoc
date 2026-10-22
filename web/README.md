@@ -79,6 +79,11 @@ capability is true; no screen checks which place it is in.
 | `plans` — the planned placeholders | in a development build only (§4.4) | no | no |
 | `links` — where citations open | `editor`: `vscode://` at the line | `host`: the repository host at the commit, or plain text when none is known | `host` |
 
+**A system.** On a folder of documented repositories, `archdoc serve` answers `/api/system` and each
+repository's API under `/repos/{name}/`; the local Source then has `system` — read the system, open
+one repository's Source. Given it, `App` shows the System map at `/` and each repository's pages at
+`/repos/{name}`, after `#`, with the system first in the breadcrumb.
+
 **Reading on request.** The website's Source also has `runs`: ask for a repository by its link,
 follow the run, open a finished run's documentation as a Source of its own. Given it, `App` shows
 Start (`/`, `/new?repo=…`) and Generating (`/runs/{id}`) — platform-surface §5.1–5.2 — and then that
@@ -107,12 +112,14 @@ app/src/                 @archdoc/app
   theme.ts               light / dark / system, per viewer
   shell/                 TopBar (breadcrumb, status, search, Share, ⋯), Nav (the six entries and Settings),
                          Rail (the right rail; the first-visit band), Palette (⌘K), Shortcuts (?),
-                         Website (Start, then a run, by path) and WebsiteBar (their top bar), Notice (the
+                         Website (Start, then a run, by path) and WebsiteBar (their top bar), SystemSite (a
+                         system's map, then a repository, by path) and parent (the level above, for the
+                         breadcrumb), Notice (the
                          band above the page: unreachable, offline, a newer version, what a host says)
   screens/               Overview, Changes, Features (What it does), Reference, About (with Coverage), Documents,
                          Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector;
                          Start and Generating, the website's; Gone (a page, version or part a link names
-                         and this place doesn't have)
+                         and this place doesn't have); SystemMap (how a system's repositories fit together)
   screens/explorer/      Explorer, scene.ts (scene → React Flow; the draft preview; the change overlay),
                          parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView
   ui/                    Cite, TruthMark/TruthChip, markInfo (the four marks, what each means), KindTile,

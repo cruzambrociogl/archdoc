@@ -1265,3 +1265,16 @@ and every adapter rewritten now. The nine checks of `published` became named cap
 edit, runDetails, plans, links, place — so a feature asks what the place can do, never which place.
 Structure only: the §4 redesign, and TanStack Router with it, wait for the freeze to lift.
 → `web/README.md`, "Places and capabilities"; `web/app/src/source.ts`
+
+**2026-10-22 — A system: a folder of repositories, linked by what their manifests prove**
+The system level (platform-surface §4.6) starts with code links: one repository's manifest requiring
+a package another's manifest names — exact names, cited at both ends, never guessed; images, calls,
+contracts and distribution later. Every manifest's name and requirements go into the model as
+`manifests`, outside the fingerprint, so no repository gains a version for it; Go's requirements are
+read now, but kept out of the dependencies page, where unread Go code would show every package as
+never imported. A system is the documented repositories directly inside a folder, served by `archdoc
+serve` with each repository's API under `/repos/{name}/`. Drift is counted by git from a pinned
+commit or tag to the documented one — the store's second use of git. Home waits: locally it needs a
+process that knows more than one folder.
+→ `internal/system`; `internal/serve/system.go`; `web/app/src/screens/SystemMap.tsx`
+

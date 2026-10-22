@@ -11,7 +11,8 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/serve"
 )
 
-// ListenAndServe serves the app for the repository at root on a local port until ctx ends. ready is
+// ListenAndServe serves the app for the repository at root — or a folder of documented repositories,
+// as one system — on a local port until ctx ends. ready is
 // called with the app's address once it is listening.
 func ListenAndServe(ctx context.Context, root string, port int, ready func(url string)) error {
 	return serve.ListenAndServe(ctx, root, port, ready)

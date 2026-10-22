@@ -6,6 +6,7 @@
 // serve's API ('/api/model?v=3'), which every adapter answers in its own way.
 
 import { createContext, useContext } from 'react'
+import type { SystemResponse } from './api'
 
 /** What a place can do. A feature appears only where its capability is true (platform-surface §4.5). */
 export interface Capabilities {
@@ -48,6 +49,18 @@ export interface Source {
    * follows a read to its documentation (platform-surface §5.1–5.2); absent, it shows one repository.
    */
   runs?: Runs
+  /**
+   * Several repositories read together: on this machine, a folder of them (platform-surface §4.6).
+   * Given, the app opens on the system's map, and each repository's pages under its name; absent, it
+   * shows one repository.
+   */
+  system?: Systems
+}
+
+/** A system's repositories, and each one's own Source. */
+export interface Systems {
+  get(): Promise<SystemResponse>
+  open(repo: string): Source
 }
 
 /** Reading repositories on request — the website's runs. */

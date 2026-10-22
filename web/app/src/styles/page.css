@@ -1762,3 +1762,105 @@ button.runs-row:hover {
   font-size: var(--t-body);
   line-height: 1.5;
 }
+
+/* The System map (platform-surface §4.6): repositories as boxes, links as arrows, every link below
+   with the lines at both ends. */
+.system-picture {
+  margin: 24px 0 8px;
+  padding: 20px;
+  overflow-x: auto;
+  border: 1px solid var(--rule-soft);
+  background: var(--panel);
+}
+.system-canvas {
+  position: relative;
+}
+.system-arrows {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.system-arrow path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.3;
+}
+.system-arrow .system-arrow-hit {
+  stroke: transparent;
+  stroke-width: 14;
+  cursor: pointer;
+}
+.system-arrow text {
+  font: 11px var(--font-mono);
+  fill: var(--muted);
+  cursor: pointer;
+}
+.system-arrow.on path:first-child {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.system-arrow.on text {
+  fill: var(--accent);
+}
+#system-head path {
+  fill: var(--ink);
+}
+.system-box {
+  position: absolute;
+  box-sizing: border-box;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1.2px solid var(--ink);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.system-box:hover,
+.system-box:focus-visible {
+  border-color: var(--accent);
+}
+.system-box-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+.system-box-what {
+  font-size: 12.5px;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.system-box-status {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.system-links {
+  margin-top: 26px;
+}
+.system-links ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.system-links li {
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.system-links li.on {
+  background: var(--accent-soft);
+}
+.system-link-cites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin-top: 4px;
+}

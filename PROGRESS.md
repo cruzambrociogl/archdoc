@@ -31,7 +31,9 @@ reads repositories on request. The §4.8 states that apply today are built: a no
 unreachable or offline, with each failed page asked again on reconnecting; a newer version, never
 swapped in; the website's unchanged run — errors that say what still works, loading that says what
 for, links to a page, version or part that is gone, the Overview's picture as a list, reduced motion.
-**The plan across
+Stage 4 has begun with the system level: `archdoc serve` on a folder of repositories shows the
+System map — code links read from every manifest, Go's included, cited at both ends, with drift.
+Home, and the system's What changed, are next. **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
 

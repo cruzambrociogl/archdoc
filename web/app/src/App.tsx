@@ -29,17 +29,19 @@ import { About } from './screens/About'
 import { Gone } from './screens/Gone'
 import { AskDock } from './ui/Planned'
 import { Website } from './shell/Website'
+import { SystemSite } from './shell/SystemSite'
 import { NoticeBand } from './shell/Notice'
 import { useReconnect } from './connection'
 
 
 /**
  * The app: one shell for every place (platform-surface §4.1). Where repositories are read on request
- * — the website — it opens on Start and follows a read to its documentation; elsewhere it shows the
- * one repository its Source reads.
+ * — the website — it opens on Start and follows a read to its documentation; for a system, on the
+ * system's map; elsewhere it shows the one repository its Source reads.
  */
 export function App() {
-  const runs = useSource().runs
+  const { runs, system } = useSource()
+  if (system) return <SystemSite system={system} Repository={Repository} />
   return runs ? <Website runs={runs} Repository={Repository} /> : <Repository />
 }
 
