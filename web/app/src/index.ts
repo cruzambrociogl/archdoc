@@ -4,9 +4,9 @@
 // The app first, then its stylesheets: what the app's modules import themselves — React Flow's
 // base styles — must come before the app's own, which override them. Order is the cascade.
 export { App } from './App'
-export { SourceProvider } from './source'
+export { Refusal, SourceProvider } from './source'
 export { staticName } from './staticName'
-export type { Capabilities, Place, Source } from './source'
+export type { Capabilities, HostedRun, Place, Runs, Source } from './source'
 export type * from './api'
 
 import './styles/fonts.css'

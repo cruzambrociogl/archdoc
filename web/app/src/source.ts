@@ -40,6 +40,52 @@ export interface Source {
   url(path: string): string
   /** Where a file and line open, or nothing where no honest link exists (surface-spec S-3). */
   link(place: Place, file: string, line?: number): string | undefined
+  /**
+   * Where a repository is read on request: the archdoc website. Given, the app opens on Start and
+   * follows a read to its documentation (platform-surface §5.1–5.2); absent, it shows one repository.
+   */
+  runs?: Runs
+}
+
+/** Reading repositories on request — the website's runs. */
+export interface Runs {
+  /** Asks for a repository by its link; the run's number. Rejects with a Refusal. */
+  request(link: string): Promise<number>
+  /** A run as it stands. */
+  get(id: number): Promise<HostedRun>
+  /** The Source a finished run's documentation is read through. */
+  open(run: HostedRun): Source
+}
+
+/** A request turned down before anything ran, with why as a kind and in plain words. */
+export class Refusal extends Error {
+  constructor(
+    message: string,
+    readonly kind: 'not_github' | 'not_found' | 'unavailable',
+  ) {
+    super(message)
+  }
+}
+
+/** One read of one repository, as the website reports it. */
+export interface HostedRun {
+  id: number
+  /** The repository's link, its owner and name. */
+  repository: string
+  owner: string
+  name: string
+  status: 'queued' | 'running' | 'done' | 'unchanged' | 'failed'
+  /** What a running read is doing. */
+  phase: 'resolving' | 'cloning' | 'generating' | 'storing' | null
+  /** Which of the designed failures a failed read is (§5.2): missing or private, too big, out of time, interrupted, other. */
+  failure: 'not_found' | 'too_big' | 'timed_out' | 'stopped' | 'failed' | null
+  error: string | null
+  commit: string | null
+  queued_at: string
+  started_at: string | null
+  finished_at: string | null
+  /** The version its documentation is: its own, or, unchanged, the one before it. */
+  version: number | null
 }
 
 const SourceContext = createContext<Source | null>(null)

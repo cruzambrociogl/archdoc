@@ -1615,3 +1615,119 @@ button.runs-row:hover {
 .features-all {
   margin-top: 14px;
 }
+
+/* Start and Generating (platform-surface §5.1–5.2; App.dc.html, "Landing" and "Generating"): the
+   website's pages before a repository's — the claim and one box, then a read as it goes. */
+.start {
+  max-width: 720px;
+  margin: 8vh auto 0;
+}
+.start-claim {
+  font: 400 30px/1.3 var(--font-serif);
+  margin: 0 0 22px;
+  text-wrap: pretty;
+}
+.start-box {
+  display: flex;
+  gap: 8px;
+}
+.start-box input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-box);
+  background: var(--chip);
+  color: var(--ink);
+  font: 13px var(--font-mono);
+}
+.start-box input:focus {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+.start-box .btn {
+  padding: 9px 16px;
+}
+.start-box .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.start-msg {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-left: 2px solid var(--ink);
+  background: var(--panel);
+  font-size: var(--t-body);
+  line-height: 1.5;
+}
+.start-note {
+  margin: 14px 0 0;
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.gen-pill {
+  cursor: default;
+}
+.gen-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: gen-pulse 1.2s ease-in-out infinite;
+}
+@keyframes gen-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gen-dot {
+    animation: none;
+  }
+}
+.gen-lines {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--rule-soft);
+  display: grid;
+  gap: 6px;
+  font: 12.5px/1.5 var(--font-mono);
+  color: var(--muted);
+}
+.gen-lines .now {
+  color: var(--ink);
+  font-weight: 600;
+}
+.gen-error {
+  margin: 14px 0 0;
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.gen-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 24px;
+}
+.gen-foot .btn {
+  text-decoration: none;
+}
+.gen-foot .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 520px) {
+  .start-claim {
+    font-size: 24px;
+  }
+  .start-box {
+    flex-direction: column;
+  }
+}

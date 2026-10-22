@@ -8,8 +8,8 @@ import { Planned } from '../ui/Planned'
 import type { MarkKind } from '../ui/markInfo'
 import { MarkGlyph } from '../ui/markInfo'
 
-const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
-const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
+export const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
+export const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
 
 type Menu = 'status' | 'share' | 'more' | null
 

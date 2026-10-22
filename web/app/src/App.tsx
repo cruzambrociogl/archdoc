@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { RouterProvider, createHashHistory, createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router'
 import type { CoverageResponse, Session, Summary, Version, ViewsResponse } from './api'
 import { RootContext, useApi } from './api'
-import { useCapabilities } from './source'
+import { useCapabilities, useSource } from './source'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
 import { fromOldHash, parseSearch, stringifySearch, titles, useRoute } from './route'
@@ -27,13 +27,24 @@ import { Planned } from './screens/Planned'
 import { Reference } from './screens/Reference'
 import { About } from './screens/About'
 import { AskDock } from './ui/Planned'
+import { Website } from './shell/Website'
 
 
 /**
- * The app: one shell for every place (platform-surface §4.1), its address kept by a router in the
- * hash, so the same build works at any path. A link from before 22 Oct is rewritten first.
+ * The app: one shell for every place (platform-surface §4.1). Where repositories are read on request
+ * — the website — it opens on Start and follows a read to its documentation; elsewhere it shows the
+ * one repository its Source reads.
  */
 export function App() {
+  const runs = useSource().runs
+  return runs ? <Website runs={runs} Repository={Repository} /> : <Repository />
+}
+
+/**
+ * One repository's pages, their address kept by a router in the hash, so the same build works at any
+ * path. A link from before 22 Oct is rewritten first.
+ */
+function Repository() {
   const router = useMemo(() => {
     const old = fromOldHash(location.hash)
     if (old) history.replaceState(null, '', old)

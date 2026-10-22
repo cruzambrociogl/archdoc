@@ -73,11 +73,16 @@ capability is true; no screen checks which place it is in.
 |---|---|---|---|
 | Source | `host/src/adapters/local.ts` | `host/src/adapters/published.ts` | in `archdoc-platform` |
 | Data | `/api/…` from archdoc serve | `data/…` — `staticName()` (`app/src/staticName.ts`) mirrors `serve.StaticName` in Go; change one, change both | the same `data/…` files, through the platform's API |
-| `history` — versions to pick | yes | no: the latest and its baseline | yes |
-| `edit` — save views, arrange | yes | no | (decided with the platform) |
-| `runDetails` — requests as sent | yes | no: they stay on the machine that sent them | — |
-| `plans` — the planned placeholders | in a development build only (§4.4) | no | — |
+| `history` — versions to pick | yes | no: the latest and its baseline | not yet: the run's version |
+| `edit` — save views, arrange | yes | no | no: a visitor changes nothing |
+| `runDetails` — requests as sent | yes | no: they stay on the machine that sent them | no |
+| `plans` — the planned placeholders | in a development build only (§4.4) | no | no |
 | `links` — where citations open | `editor`: `vscode://` at the line | `host`: the repository host at the commit, or plain text when none is known | `host` |
+
+**Reading on request.** The website's Source also has `runs`: ask for a repository by its link,
+follow the run, open a finished run's documentation as a Source of its own. Given it, `App` shows
+Start (`/`, `/new?repo=…`) and Generating (`/runs/{id}`) — platform-surface §5.1–5.2 — and then that
+repository's pages, under the same path, after `#`. Without it, `App` is one repository's pages.
 
 `export --site` writes `<meta name="archdoc-mode" content="published">` into `index.html`;
 `host/src/main.tsx` reads it to choose the Source. A path the published site does not export simply
@@ -94,14 +99,16 @@ app/src/                 @archdoc/app
                          (`@archdoc/app/styles/*.css` also alone, for a page that should look like the app
                          without being it)
   source.ts              Source and Capabilities — the contract every place implements
-  App.tsx                the shell and which screen to show
+  App.tsx                the shell and which screen to show; the website's pages when the Source has runs
   api.ts                 the data types; useApi; citation links through the Source
   route.ts               URL state: each screen's path, title and menu section; the Map levels' plain names
   theme.ts               light / dark / system, per viewer
   shell/                 TopBar (breadcrumb, status, search, Share, ⋯), Nav (the six entries and Settings),
-                         Rail (the right rail; the first-visit band), Palette (⌘K), Shortcuts (?)
+                         Rail (the right rail; the first-visit band), Palette (⌘K), Shortcuts (?),
+                         Website (Start, then a run, by path) and WebsiteBar (their top bar)
   screens/               Overview, Changes, Features (What it does), Reference, About (with Coverage), Documents,
-                         Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector
+                         Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector;
+                         Start and Generating, the website's
   screens/explorer/      Explorer, scene.ts (scene → React Flow; the draft preview; the change overlay),
                          parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView
   ui/                    Cite, TruthMark/TruthChip, markInfo (the four marks, what each means), KindTile,
