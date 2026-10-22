@@ -5,7 +5,8 @@ import type { Route } from '../route'
 import { levelName, sectionOf, titles } from '../route'
 import type { Theme } from '../theme'
 import { Planned } from '../ui/Planned'
-import { TruthMark } from '../ui/marks'
+import type { MarkKind } from '../ui/markInfo'
+import { MarkGlyph } from '../ui/markInfo'
 
 const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
 const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
@@ -33,6 +34,8 @@ export function TopBar(props: {
   session?: Session
   /** A part's name by its id, for "Inside immich-server". */
   name: (id: string) => string
+  /** Opens the rail on a mark: what it means, and what you can do about it. */
+  onMark: (mark: MarkKind) => void
 }) {
   const can = useCapabilities()
   const { summary: s, route, go } = props
@@ -206,18 +209,18 @@ export function TopBar(props: {
             </button>
             <div className="more-legend">
               <div className="pop-q">What the marks mean</div>
-              <div className="legend-row">
-                <TruthMark state="proven" /> Proven — read from the code, with the line that shows it
-              </div>
-              <div className="legend-row">
-                <TruthMark state="interpreted" /> Written by AI — from those facts, and marked
-              </div>
-              <div className="legend-row">
-                <TruthMark state="unresolved" /> Couldn't be resolved — seen, not followed
-              </div>
-              <div className="legend-row">
-                <span className="mark mark-notread" aria-hidden="true" /> Not read — code archdoc doesn't read yet
-              </div>
+              {(
+                [
+                  ['proven', 'Proven — read from the code, with the line that shows it'],
+                  ['ai', 'Written by AI — from those facts, and marked'],
+                  ['unres', 'Couldn’t be resolved — seen, not followed'],
+                  ['notread', 'Not read — code archdoc doesn’t read yet'],
+                ] as [MarkKind, string][]
+              ).map(([k, text]) => (
+                <button key={k} className="legend-row" onClick={() => (setOpen(null), props.onMark(k))}>
+                  <MarkGlyph kind={k} /> {text}
+                </button>
+              ))}
             </div>
           </div>
         )}

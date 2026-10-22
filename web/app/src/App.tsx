@@ -11,6 +11,8 @@ import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
 import { Palette } from './shell/Palette'
 import { Shortcuts } from './shell/Shortcuts'
+import type { RailContent } from './shell/Rail'
+import { MarksBand, Rail, marksSeen } from './shell/Rail'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
 import { Features } from './screens/Features'
@@ -63,6 +65,9 @@ function Shell() {
   const [keys, setKeys] = useState(false)
   // The parts' names as the Map shows them, which the breadcrumb uses: "Inside immich-server".
   const [partNames, setPartNames] = useState<Record<string, string>>({})
+  // The right rail, open on a selection; the first-visit band, until it is dismissed.
+  const [rail, setRail] = useState<RailContent | null>(null)
+  const [bandSeen, setBandSeen] = useState(marksSeen)
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
 
   // The screen the explorer returns to.
@@ -119,7 +124,9 @@ function Shell() {
           onKeys={() => setKeys(true)}
           session={session.data}
           name={(id) => partNames[id] ?? id.replace(/^[a-z]+:/, '')}
+          onMark={(mark) => setRail({ kind: 'mark', mark })}
         />
+        {!bandSeen && <MarksBand onOpen={setRail} onDismiss={() => setBandSeen(true)} />}
         <div className="shell-body">
           <Nav summary={s} route={route} go={go} open={navOpen} coverage={coverage.data} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
@@ -143,6 +150,7 @@ function Shell() {
           </main>
           {route.screen !== 'explorer' && <AskDock go={go} />}
           </div>
+          {rail && <Rail content={rail} onOpen={setRail} onClose={() => setRail(null)} />}
         </div>
       </div>
       <Palette open={searching} onClose={() => setSearching(false)} go={go} views={views.data?.views ?? []} version={version} />
