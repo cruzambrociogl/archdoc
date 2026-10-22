@@ -148,3 +148,55 @@ export function useRoute(): [Route, Go] {
 
   return [route, go]
 }
+
+// Plain names first (platform-surface §4.1, rule 16): what the menu, the breadcrumb and the tab say.
+export const titles: Record<Screen, string> = {
+  overview: 'Overview',
+  changes: 'What changed',
+  plan: 'Did it build what I asked?',
+  explorer: 'Map',
+  features: 'What it does',
+  reference: 'Reference',
+  component: 'A component',
+  deps: 'What it relies on',
+  docs: 'Documentation',
+  about: 'About these docs',
+  runs: 'What left this machine',
+  rules: 'Settings',
+  planned: 'Not built yet',
+}
+
+/** The menu entry a screen belongs to: a component page is in Reference, what left this machine in About. */
+export function sectionOf(screen: Screen): Screen {
+  switch (screen) {
+    case 'component':
+    case 'deps':
+    case 'docs':
+      return 'reference'
+    case 'runs':
+      return 'about'
+    default:
+      return screen
+  }
+}
+
+/** A Map level by its plain name (platform-surface §4.4): "Apps and services", not containers. */
+export function levelName(level: string | undefined, name: (id: string) => string): string {
+  const [kind, id] = (level ?? 'context').split(/:(.*)/s)
+  switch (kind) {
+    case 'context':
+      return 'The outside world'
+    case 'container':
+      return 'Apps and services'
+    case 'component':
+    case 'structure':
+    case 'main':
+      return `Inside ${name(id)}`
+    case 'data':
+      return 'What it stores'
+    case 'dataflow':
+      return 'How data moves'
+    default:
+      return 'Map'
+  }
+}

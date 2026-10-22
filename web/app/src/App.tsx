@@ -5,7 +5,7 @@ import { RootContext, useApi } from './api'
 import { useCapabilities } from './source'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
-import { fromOldHash, parseSearch, stringifySearch, useRoute } from './route'
+import { fromOldHash, parseSearch, stringifySearch, titles, useRoute } from './route'
 import { useTheme } from './theme'
 import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
@@ -25,22 +25,6 @@ import { Reference } from './screens/Reference'
 import { About } from './screens/About'
 import { AskDock } from './ui/Planned'
 
-// Plain names first (platform-surface §4.1, rule 16): what the menu and the tab say.
-const titles: Record<Screen, string> = {
-  overview: 'Overview',
-  changes: 'What changed',
-  plan: 'Did it build what I asked?',
-  explorer: 'Map',
-  features: 'What it does',
-  reference: 'Reference',
-  component: 'A component',
-  deps: 'What it relies on',
-  docs: 'Documentation',
-  about: 'About these docs',
-  runs: 'What left this machine',
-  rules: 'Your corrections',
-  planned: 'Not built yet',
-}
 
 /**
  * The app: one shell for every place (platform-surface §4.1), its address kept by a router in the
@@ -126,14 +110,13 @@ function Shell() {
           versions={versions.data ?? []}
           route={route}
           go={go}
-          prev={titles[prev.current]}
-          onBack={() => go({ screen: prev.current })}
           onMenu={() => setNavOpen((o) => !o)}
           theme={theme}
           onTheme={nextTheme}
           onSearch={() => setSearching(true)}
           onKeys={() => setKeys(true)}
           session={session.data}
+          name={(id) => coverage.data?.code?.find((c) => c.container === id)?.app ?? id.replace(/^[a-z]+:/, '')}
         />
         <div className="shell-body">
           <Nav summary={s} route={route} go={go} open={navOpen} views={views.data?.views ?? []} coverage={coverage.data} />

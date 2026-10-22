@@ -21,7 +21,9 @@ function token(): Promise<string> {
 }
 
 export const local: Source = {
-  capabilities: { place: 'local', history: true, edit: true, runDetails: true, plans: true, links: 'editor' },
+  // What is designed and not built shows only while developing the app (platform-surface §4.4):
+  // the product a user runs never carries placeholders.
+  capabilities: { place: 'local', history: true, edit: true, runDetails: true, plans: import.meta.env.DEV, links: 'editor' },
   get: read,
   url: (path) => path,
   async act<T>(path: string, body?: unknown): Promise<T> {

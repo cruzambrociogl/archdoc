@@ -53,45 +53,12 @@ kbd {
   padding: 6px 8px;
   cursor: pointer;
 }
-.brand {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex: 0 0 auto;
-  font-family: var(--font-mono);
-}
 .brand-mark {
   font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.02em;
 }
-.brand-repo {
-  font-size: 12px;
-  color: var(--muted);
-}
 
-.version-pick {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 4px 0 9px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--muted);
-  flex: 0 1 auto;
-  min-width: 0;
-}
-.version-pick select {
-  border: 0;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  padding: 5px 2px;
-  cursor: pointer;
-  min-width: 0;
-}
 
 .btn {
   display: inline-flex;
@@ -135,16 +102,6 @@ kbd {
   flex: 0 0 auto;
 }
 
-.mode-badge {
-  font-weight: 600;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 4px 7px;
-  border: 1px solid var(--rule);
-  color: var(--muted);
-  flex: 0 0 auto;
-}
 
 /* ——— body ——— */
 
@@ -156,8 +113,8 @@ kbd {
 }
 
 .nav {
-  flex: 0 0 200px;
-  width: 200px;
+  flex: 0 0 215px;
+  width: 215px;
   background: var(--panel);
   border-right: 1px solid var(--rule);
   overflow: auto;
@@ -172,8 +129,8 @@ kbd {
   background: none;
   text-align: left;
   color: var(--ink);
-  font: 400 13px var(--font-sans);
-  padding: 6px 14px;
+  font: 400 13.5px var(--font-sans);
+  padding: 8px 16px;
   cursor: pointer;
 }
 .nav-item:hover {
@@ -192,7 +149,7 @@ kbd {
   font-weight: 600;
   color: var(--ink);
   background: var(--hover);
-  box-shadow: inset 2px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 .nav-header {
   cursor: default;
@@ -209,9 +166,7 @@ kbd {
 .nav-label {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
 }
 .nav-badge {
   font-family: var(--font-mono);
@@ -276,12 +231,25 @@ kbd {
     gap: 8px;
     padding: 0 8px;
   }
-  .version-pick .mono,
-  .brand-repo,
   .btn kbd,
   .btn-text,
-  .mode-badge {
+  .crumb-step:not(:last-child),
+  .crumb-sep,
+  .status-anchor {
     display: none;
+  }
+  /* On a phone the bar says the page (App.dc.html, Width · Phone): the status moves out of it, and ⋯ still says which version. */
+  .crumbs {
+    flex: 1 1 auto;
+  }
+  .crumb-step:last-child,
+  .crumb-step:last-child .crumb {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar-spacer {
+    flex: 0 0 auto;
   }
 }
 
@@ -513,73 +481,7 @@ kbd {
   padding: 0 6px;
 }
 
-.generated-from {
-  font: 11px var(--font-mono);
-  color: var(--muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-.generated-from .mono {
-  color: var(--ink);
-}
-.mode-badge.published {
-  background: var(--ink);
-  color: var(--on-ink);
-  border-color: var(--ink);
-}
 
-/* ——— the explorer card, first in the navigation (Surface Screens) ——— */
-.nav-explorer {
-  display: block;
-  width: calc(100% - 20px);
-  margin: 0 10px 12px;
-  padding: 11px 12px;
-  background: var(--paper, #fff);
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.nav-explorer:hover,
-.nav-explorer.active {
-  border-color: var(--accent);
-}
-.nav-explorer-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 600;
-}
-.nav-explorer-arrow {
-  color: var(--accent);
-}
-.nav-explorer-count {
-  display: block;
-  margin-top: 4px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--muted);
-}
-.nav-explorer-sketch {
-  display: flex;
-  gap: 3px;
-  margin-top: 9px;
-}
-.nav-explorer-sketch span {
-  flex: 1;
-  height: 12px;
-  border: 1.2px solid var(--k-slate);
-  background: var(--k-slate-fill);
-}
-.nav-explorer-sketch span.store {
-  border-color: var(--k-teal);
-  background: var(--k-teal-fill);
-}
 
 /* ——— the shortcuts button, last in the top bar ——— */
 .keys-btn {
@@ -653,8 +555,232 @@ kbd {
   font-size: 13px;
 }
 @media print {
-  .ask-dock,
-  .nav-explorer {
+  .ask-dock {
     display: none;
+  }
+}
+
+/* The top bar (platform-surface §4.3; App.dc.html): the mark, where you are, whether it is current. */
+.brand-mark {
+  flex: 0 0 auto;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 500 14px var(--font-mono);
+  letter-spacing: -0.02em;
+  padding: 0;
+  margin-right: 4px;
+  cursor: pointer;
+}
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.crumb-step {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.crumb-sep {
+  color: var(--faint);
+  font-size: 13px;
+  padding: 0 2px;
+}
+.crumb {
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 400 13px var(--font-sans);
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.crumb.mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+button.crumb:hover {
+  background: var(--hover);
+}
+.crumb.current {
+  font-weight: 600;
+  cursor: default;
+}
+
+.pop-anchor {
+  position: relative;
+  flex: 0 0 auto;
+}
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 11.5px var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.status-glyph {
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 1.2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--on-ink);
+  font: 700 8.5px var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.status-pill.older .status-glyph {
+  background: transparent;
+  color: var(--ink);
+}
+.caret {
+  font-size: 9px;
+  color: var(--muted);
+}
+
+/* A menu that opens from the top bar: a question, a sentence, then what to do. */
+.pop {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 60;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: 0 18px 40px -24px rgba(21, 32, 30, 0.55);
+  padding: 16px 18px 18px;
+  text-align: left;
+}
+.pop-q {
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pop-sentence {
+  font: 17px/1.45 var(--font-serif);
+  margin: 8px 0 0;
+  text-wrap: pretty;
+}
+.pop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  margin-top: 14px;
+}
+.pop-actions:empty {
+  display: none;
+}
+.status-pop {
+  width: 400px;
+}
+.share-pop {
+  width: 420px;
+  left: auto;
+  right: -60px;
+}
+.copy-row {
+  display: flex;
+  margin-top: 12px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+.copy-text {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.copy-row .btn {
+  border-radius: 0;
+}
+.more-pop {
+  width: 300px;
+  left: auto;
+  right: 0;
+  padding: 6px 0 8px;
+}
+.more-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+.more-item:hover {
+  background: var(--hover);
+}
+.more-label {
+  display: block;
+  font-size: 13px;
+}
+.more-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.more-right {
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.more-legend {
+  margin: 4px 16px 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule-soft);
+}
+.legend-row {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.mark-notread {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border: 1px solid var(--grey);
+  background: repeating-linear-gradient(45deg, var(--grey) 0 1px, transparent 1px 4px);
+}
+.icon-btn.on,
+.btn.on {
+  background: var(--hover);
+}
+
+@media (max-width: 760px) {
+  .status-pop,
+  .share-pop,
+  .more-pop {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    right: 8px;
+    width: auto;
   }
 }

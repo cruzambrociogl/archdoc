@@ -1,126 +1,260 @@
+import { useEffect, useRef, useState } from 'react'
 import type { Session, Summary, Version } from '../api'
 import { useCapabilities } from '../source'
 import type { Route } from '../route'
+import { levelName, sectionOf, titles } from '../route'
 import type { Theme } from '../theme'
 import { Planned } from '../ui/Planned'
+import { TruthMark } from '../ui/marks'
 
 const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
 const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
 
+type Menu = 'status' | 'share' | 'more' | null
+
+const day = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '')
+
 /**
- * The top bar. The status pill and the run, publish and settings actions (surface-spec §11) are
- * not built: each is a dashed placeholder that says so and opens the list of what is still to build.
+ * The top bar (platform-surface §4.3): where you are, whether it is current, one box to search, and
+ * what belongs to the page. Each part appears only where the place can do it (§4.5). What is designed
+ * and not built — updating from the app, publishing, this machine's settings — shows only in a
+ * development build, as a dashed placeholder.
  */
 export function TopBar(props: {
   summary: Summary
   versions: Version[]
   route: Route
   go: (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void
-  prev: string
-  onBack: () => void
   onMenu: () => void
   theme: Theme
   onTheme: () => void
   onSearch: () => void
   onKeys: () => void
   session?: Session
+  /** A part's name by its id, for "Inside immich-server". */
+  name: (id: string) => string
 }) {
   const can = useCapabilities()
   const { summary: s, route, go } = props
-  const inExplorer = route.screen === 'explorer'
+  const [open, setOpen] = useState<Menu>(null)
+  const bar = useRef<HTMLElement>(null)
+  const toggle = (m: Menu) => setOpen((o) => (o === m ? null : m))
+
+  // One menu at a time; a click outside or Esc closes it.
+  useEffect(() => {
+    if (!open) return
+    const out = (e: MouseEvent) => bar.current && !bar.current.contains(e.target as Node) && setOpen(null)
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null)
+    document.addEventListener('mousedown', out)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', out)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+  useEffect(() => setOpen(null), [route.screen])
+
+  // Which version is on screen, and when it was made.
+  const latest = props.versions.find((v) => v.id === s.latest_version)
+  const shown = route.v ? props.versions.find((v) => v.id === route.v) : latest
+  const older = !!route.v && route.v !== s.latest_version
+  const commit = (older ? shown?.commit : (props.session?.commit ?? s.commit)) ?? ''
+  const made = older ? shown?.created_at : (props.session?.generated_at ?? latest?.created_at)
+
+  // Where you are: the repository, the section, and the page or level inside it.
+  const section = sectionOf(route.screen)
+  const crumbs: { label: string; mono?: boolean; on?: () => void }[] = [
+    { label: s.name, mono: true, on: () => go({ screen: 'overview' }) },
+    { label: titles[section], on: route.screen !== section || (section === 'explorer' && route.level) ? () => go({ screen: section }) : undefined },
+    ...(route.screen !== section ? [{ label: titles[route.screen] }] : []),
+    ...(route.screen === 'explorer' && route.level ? [{ label: levelName(route.level, props.name) }] : []),
+  ]
 
   return (
-    <header className="topbar">
-      <button className="topbar-menu" onClick={props.onMenu} title="Navigation" aria-label="Navigation">
+    <header className="topbar" ref={bar}>
+      <button className="topbar-menu" onClick={props.onMenu} title="Menu" aria-label="Menu">
         ☰
       </button>
-      <div className="brand">
-        <span className="brand-mark">archdoc</span>
-        <span className="brand-repo">/ {s.name}</span>
+      <button className="brand-mark" onClick={() => go({ screen: 'overview' })}>
+        archdoc
+      </button>
+
+      <nav className="crumbs" aria-label="Where you are">
+        {crumbs.map((c, i) => (
+          <span key={i} className="crumb-step">
+            {i > 0 && <span className="crumb-sep">›</span>}
+            {c.on ? (
+              <button className={`crumb ${c.mono ? 'mono' : ''}`} onClick={c.on}>
+                {c.label}
+              </button>
+            ) : (
+              <span className={`crumb current ${c.mono ? 'mono' : ''}`} aria-current="page">
+                {c.label}
+              </span>
+            )}
+          </span>
+        ))}
+      </nav>
+
+      {/* Is this up to date? Which commit, and when; an older version says so. */}
+      <div className="pop-anchor status-anchor">
+        <button className={`status-pill ${older ? 'older' : ''}`} onClick={() => toggle('status')} aria-expanded={open === 'status'}>
+          <span className="status-glyph" aria-hidden="true">
+            {older ? '↺' : ''}
+          </span>
+          <span className="status-text">
+            {older ? `Showing v${route.v}` : 'From'} <span className="mono">{commit.slice(0, 7) || 'no commit'}</span>
+            {made && !older ? ` · ${day(made)}` : ''}
+          </span>
+          <span className="caret">▾</span>
+        </button>
+        {open === 'status' && (
+          <div className="pop status-pop">
+            <div className="pop-q">Is this up to date?</div>
+            <p className="pop-sentence">
+              {older ? (
+                <>
+                  You are looking at version {route.v}, from commit <span className="mono">{commit.slice(0, 7)}</span> on {day(made)}. The latest is version {s.latest_version}.
+                </>
+              ) : can.place === 'published' ? (
+                <>
+                  This site was built from commit <span className="mono">{commit.slice(0, 7)}</span>
+                  {made ? <> on {day(made)}</> : null}. It shows that version, and what changed since the one before it.
+                </>
+              ) : (
+                <>
+                  These docs were generated from commit <span className="mono">{commit.slice(0, 7) || '—'}</span>
+                  {made ? <> on {day(made)}</> : null}. Whether the code changed since, the app can't tell yet: <span className="mono">archdoc status</span> in a terminal says.
+                </>
+              )}
+            </p>
+            <div className="pop-actions">
+              {older && (
+                <button className="btn btn-ink" onClick={() => go({ v: undefined }, { keep: true })}>
+                  Show the latest
+                </button>
+              )}
+              {can.history && props.versions.length > 1 && (
+                <button className="link-btn" onClick={() => go({ screen: 'changes', v: route.v })}>
+                  Every version →
+                </button>
+              )}
+              <Planned id="freshness" go={go}>
+                Up to date?
+              </Planned>
+              <Planned id="run" go={go}>
+                Update
+              </Planned>
+              <Planned id="git" go={go}>
+                Uncommitted
+              </Planned>
+            </div>
+          </div>
+        )}
       </div>
 
-      {!can.history ? (
-        <span className="generated-from" title="This published site shows one version, built from the committed record">
-          Generated from <span className="mono">{(props.session?.commit ?? s.commit ?? '').slice(0, 7) || 'an uncommitted tree'}</span>
-          {props.session?.generated_at && <> on {new Date(props.session.generated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</>}
-        </span>
-      ) : (
-      <label className="version-pick" title="The version on screen">
-        <span className="mono">⌁ {s.commit ? s.commit.slice(0, 7) : 'no commit'}</span>
-        <select
-          value={route.v ?? ''}
-          onChange={(e) => go({ v: e.target.value ? Number(e.target.value) : undefined }, { keep: true })}
-        >
-          <option value="">v{s.latest_version} · latest</option>
-          {[...props.versions]
-            .sort((a, b) => b.id - a.id)
-            .filter((v) => v.id !== s.latest_version)
-            .map((v) => (
-              <option key={v.id} value={v.id}>
-                v{v.id} · {new Date(v.created_at).toLocaleDateString()}
-                {v.commit ? ` · ${v.commit.slice(0, 7)}` : ''}
-              </option>
-            ))}
-        </select>
-      </label>
-      )}
-
       <div className="topbar-spacer">
-        <button className="search-box" onClick={props.onSearch} title="Search everything (⌘K)">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <button className="search-box" onClick={props.onSearch} title="Search (⌘K)">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
             <path d="M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10z M10.5 10.5L14 14" />
           </svg>
-          <span className="search-text">Search elements, files, documents…</span>
+          <span className="search-text">Search parts, routes, tables and pages…</span>
           <kbd>⌘K</kbd>
         </button>
       </div>
 
-      {inExplorer ? (
-        <button className="btn btn-outline" onClick={props.onBack} title="Leave the explorer (Esc)">
-          ← <span className="btn-text">Back to {props.prev}</span> <kbd>Esc</kbd>
-        </button>
+      {/* Share, where showing someone works today: a published site's address. Publishing from here is designed, not built. */}
+      {can.place === 'published' ? (
+        <div className="pop-anchor">
+          <button className={`btn btn-outline ${open === 'share' ? 'on' : ''}`} onClick={() => toggle('share')} aria-expanded={open === 'share'}>
+            Share
+          </button>
+          {open === 'share' && <SharePop />}
+        </div>
       ) : (
-        <button className="btn btn-ink" onClick={() => go({ screen: 'explorer' })} title="Open the architecture explorer (E)">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M2 3h5v4H2z M9 9h5v4H9z M4.5 7v4H9" />
-          </svg>
-          <span className="btn-text">Explorer</span> <kbd>E</kbd>
-        </button>
-      )}
-
-      <div className="topbar-planned">
-        <Planned id="run" go={go}>
-          Run
-        </Planned>
         <Planned id="publish" go={go}>
-          Publish
+          Share
         </Planned>
-        <Planned id="git" go={go}>
-          Uncommitted
-        </Planned>
-        <Planned id="settings" go={go}>
-          Settings
-        </Planned>
-        <Planned id="freshness" go={go}>
-          Up to date?
-        </Planned>
-      </div>
+      )}
 
       <button className="icon-btn" onClick={props.onTheme} title={themeLabel[props.theme]} aria-label={themeLabel[props.theme]}>
         {themeGlyph[props.theme]}
       </button>
-      {can.place === 'published' ? (
-        <span className="mode-badge published" title="A static site built by archdoc export --site: one version, no controls">
-          Published
-        </span>
-      ) : (
-        <span className="mode-badge" title="Served by archdoc serve on this machine">
-          Local
-        </span>
+
+      <div className="pop-anchor">
+        <button className={`icon-btn more ${open === 'more' ? 'on' : ''}`} onClick={() => toggle('more')} aria-label="More" aria-expanded={open === 'more'}>
+          ⋯
+        </button>
+        {open === 'more' && (
+          <div className="pop more-pop">
+            <button className="more-item" onClick={() => go(can.history ? { screen: 'changes', v: route.v } : { screen: 'about' })}>
+              <span>
+                <span className="more-label">Showing · version {shown?.id ?? s.latest_version}</span>
+                <span className="more-sub">{can.history ? 'Every version, in What changed' : 'The one this site was built from'}</span>
+              </span>
+              <span className="mono more-right">{commit.slice(0, 7)}</span>
+            </button>
+            <button className="more-item" onClick={() => go({ screen: 'about' })}>
+              <span>
+                <span className="more-label">About these docs</span>
+                <span className="more-sub">What archdoc could and couldn't read</span>
+              </span>
+            </button>
+            <button className="more-item" onClick={() => (setOpen(null), props.onKeys())}>
+              <span className="more-label">Keyboard shortcuts</span>
+              <kbd>?</kbd>
+            </button>
+            <div className="more-legend">
+              <div className="pop-q">What the marks mean</div>
+              <div className="legend-row">
+                <TruthMark state="proven" /> Proven — read from the code, with the line that shows it
+              </div>
+              <div className="legend-row">
+                <TruthMark state="interpreted" /> Written by AI — from those facts, and marked
+              </div>
+              <div className="legend-row">
+                <TruthMark state="unresolved" /> Couldn't be resolved — seen, not followed
+              </div>
+              <div className="legend-row">
+                <span className="mark mark-notread" aria-hidden="true" /> Not read — code archdoc doesn't read yet
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* The "you" slot (§4.3): locally, this machine's settings — designed, not built. A published site has none. */}
+      {can.place === 'local' && (
+        <Planned id="settings" go={go}>
+          This machine
+        </Planned>
       )}
-      <button className="keys-btn" onClick={props.onKeys} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
-        ?
-      </button>
     </header>
+  )
+}
+
+/** How do I show someone? On a published site: this page's address, which opens it at this version. */
+function SharePop() {
+  const [copied, setCopied] = useState(false)
+  const href = location.href
+  return (
+    <div className="pop share-pop">
+      <div className="pop-q">How do I show someone?</div>
+      <p className="pop-sentence">Send this address. It opens this page, as it is here.</p>
+      <div className="copy-row">
+        <span className="mono copy-text">{href}</span>
+        <button
+          className="btn btn-ink"
+          onClick={() =>
+            navigator.clipboard?.writeText(href).then(
+              () => setCopied(true),
+              () => setCopied(false),
+            )
+          }
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+    </div>
   )
 }

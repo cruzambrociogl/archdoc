@@ -3,6 +3,7 @@ import { useCapabilities } from '../source'
 import { planned } from '../planned'
 import { componentLevel, dataLevel } from '../api'
 import type { Route, Screen } from '../route'
+import { sectionOf } from '../route'
 
 interface Item {
   label: string
@@ -89,18 +90,4 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
       })}
     </nav>
   )
-}
-
-/** The menu entry a screen belongs to: a component page is in Reference, what left this machine in About. */
-export function sectionOf(screen: Screen): Screen {
-  switch (screen) {
-    case 'component':
-    case 'deps':
-    case 'docs':
-      return 'reference'
-    case 'runs':
-      return 'about'
-    default:
-      return screen
-  }
 }
