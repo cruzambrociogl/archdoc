@@ -541,3 +541,71 @@ export interface HomeRepo {
   /** Its containers' kinds, in model order: what its card draws. */
   kinds?: string[]
 }
+
+/** What a question would send and cost, or the answer remembered for it (platform-surface §6.5). */
+export interface AskPreview {
+  question: string
+  facts: number
+  model: string
+  sends: string
+  bytes: number
+  estimate: Estimate
+  remembered?: AskAnswer
+  remembered_at?: string
+}
+
+export interface Estimate {
+  usd: number
+  known: boolean
+  tokens_in: number
+  tokens_out: number
+}
+
+/** A claim: one sentence the model wrote, the facts it cites, and where each is proven. */
+export interface Claim {
+  text: string
+  facts: string[] | null
+  cites: Provenance[] | null
+}
+
+export interface AskAnswer {
+  question: string
+  claims: Claim[] | null
+  /** What the facts did not settle, in the model's words. */
+  not_found?: string
+  facts: number
+  model?: string
+}
+
+/** The plan a person named, what a check would send and cost, and its check (§6.3). */
+export interface PlanResponse {
+  files: string[]
+  items: PlanItem[]
+  more?: number
+  problem?: string
+  facts?: number
+  additions?: number
+  model: string
+  sends: string
+  bytes?: number
+  estimate?: Estimate
+  /** The check for this plan and this code. */
+  check?: PlanCheck
+  /** The last check, for an earlier plan or earlier code. */
+  earlier?: PlanCheck
+  checked_at?: string
+}
+
+export interface PlanItem {
+  id: string
+  text: string
+  provenance: Provenance
+}
+
+export interface PlanCheck {
+  verdicts: { item: PlanItem; status: 'built' | 'missing' | 'unclear'; claim: Claim }[]
+  extras: Claim[] | null
+  facts: number
+  additions: number
+  model?: string
+}

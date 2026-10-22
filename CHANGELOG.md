@@ -35,6 +35,11 @@ what is different for a user.
 - **What changed across a system.** Beside its map, a system tells each repository's latest version
   in the sentence that repository's own What changed writes, the most recent first, and says which of
   the others require it.
+- **Ask, and "Did it build what I asked?"** In the local app, on your own Anthropic key. A question in
+  the search box is answered only from what archdoc read, every sentence cited; name your plan files
+  and each requirement is read against the code — looks built, looks missing, couldn't check — with
+  what was built that the plan didn't ask for. Both say what they send and roughly what it costs
+  before sending, and remember answers so asking again costs nothing.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

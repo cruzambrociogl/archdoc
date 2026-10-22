@@ -88,7 +88,8 @@ acceptance criterion.
    named in `generate.go` (package archdoc): `docs/architecture/*.generated.md`, the `.mmd`, `.svg`
    and (with `--site`) `mkdocs.yml` beside them, and `.archdoc/`. Each is overwritten wholesale. Human sections are *linked*, not
    parsed — `OUT-02` / `OUT-03`. A documentation generator that eats someone's writing gets
-   uninstalled once.
+   uninstalled once. The one thing of people's writing archdoc reads is the plan files a person
+   names for "Did it build what I asked?" (`.archdoc/plans.json`, D-9) — because they named them.
 3. **Only `internal/semantic` may make outbound network calls.** This is what makes AC-8
    provable by an import test rather than a manual audit. No other package imports an HTTP
    client for egress.
@@ -121,7 +122,7 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 | `internal/store` | Version history — SQLite, cgo-free. A local cache; git is the archive. Also the one place git is run: a repository at another commit, for `archdoc diff`; commits since a pin, for a system's drift |
 | `internal/system` | Several repositories read together: the links their manifests prove, cited at both ends (platform-surface §4.6) |
 | `internal/recent` | This machine's list of documented places, for Home — a file in the user's configuration folder, written by the CLI only |
-| `internal/semantic` | The network boundary: `--label`, `--explain`, and what each remembers |
+| `internal/semantic` | The network boundary: `--label`, `--explain`, Ask and the plan check, and what each remembers |
 | `internal/render` | Layout, SVG, Mermaid; the list of views; the documents, sized to the project |
 | `internal/arrange` | `layout.yaml`, `views.yaml` — presentation a person saves, applied over the layout |
 | `internal/serve` | Local HTTP, the action gate, the published-site export, embedded web assets |

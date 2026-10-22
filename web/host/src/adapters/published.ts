@@ -9,7 +9,7 @@ import { read } from './read'
 const url = (path: string) => (path.startsWith('/api/') ? staticName(path) : path)
 
 export const published: Source = {
-  capabilities: { place: 'published', history: false, edit: false, runDetails: false, plans: false, links: 'host' },
+  capabilities: { place: 'published', history: false, edit: false, runDetails: false, plans: false, links: 'host', ask: false },
   get: (path) => read(url(path)),
   url,
   act: () => Promise.reject(new Error('a published site is read-only')),

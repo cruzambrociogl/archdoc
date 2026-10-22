@@ -1288,3 +1288,14 @@ second command over `archdoc serve` with no path, which already means this folde
 there is no Home (§5.3): it opens that place. Generating from Home waits for updating from the app.
 → `internal/recent`; `internal/serve/home.go`; `web/app/src/screens/Home.tsx`
 
+**2026-10-22 — Ask and "Did it build what I asked?": the facts chosen locally, every request agreed to**
+Both run in the local app on the person's own key, on the model `--explain` uses, and absent on the
+website until accounts decide whose key pays. What is sent is chosen without a model: the parts,
+routes, tables and calls that share the question's or requirement's words, at most forty — and a
+question that names nothing here is answered "nothing to cite" without asking. Each request shows
+what it sends and roughly what it costs, and goes only when agreed to; answers are remembered in the
+local history by what was asked, so asking again is free. Ask runs at low effort, a plan check at
+medium — one request for the whole plan. Plans follow D-9 (b): the person names the files, in
+`.archdoc/plans.json`; hard rule 2 keeps its scope.
+→ `internal/semantic/ask.go`, `intent.go`; `internal/serve/ai.go`; `web/app/src/screens/Ask.tsx`, `PlanCheck.tsx`
+

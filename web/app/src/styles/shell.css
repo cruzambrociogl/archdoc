@@ -512,54 +512,6 @@ kbd {
   flex: 1 1 auto;
   min-height: 0;
 }
-.ask-dock {
-  flex: 0 0 auto;
-  background: var(--panel);
-  border-top: 1px solid var(--ink);
-  box-shadow: 0 -16px 40px -30px rgba(21, 32, 30, 0.6);
-  padding: 8px 14px 10px;
-}
-.ask-dock-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.ask-dock-title {
-  font-weight: 600;
-  font-size: 10.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.ask-dock-slot {
-  padding: 1px 6px;
-  border: 1px dashed var(--muted);
-  font-weight: 600;
-  font-size: 9.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.ask-dock-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.ask-dock-input {
-  flex: 1;
-  min-width: 0;
-  padding: 7px 10px;
-  border: 1px solid var(--rule);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-}
-@media print {
-  .ask-dock {
-    display: none;
-  }
-}
-
 /* The top bar (platform-surface §4.3; App.dc.html): the mark, where you are, whether it is current. */
 .brand-mark {
   flex: 0 0 auto;

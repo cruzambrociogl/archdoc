@@ -36,7 +36,10 @@ System map — code links read from every manifest, Go's included, cited at both
 Home is built too: `archdoc home` lists every place this machine remembers, with what changed in each
 since it was last opened here; and the system's What changed, each repository's latest version told,
 with who in the system requires it. Stage 4 is built but for what waits on other features —
-generating from Home, and systems and Home on the website, which need accounts. **The plan across
+generating from Home, and systems and Home on the website, which need accounts. Ask and "Did it
+build what I asked?" are built in the local app, on the person's own key: facts chosen without a
+model, the cost said before anything is sent, answers remembered so asking again is free.
+**The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
 

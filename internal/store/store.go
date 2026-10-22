@@ -99,6 +99,10 @@ func open(dsn string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("creating the run log: %w", err)
 	}
+	if _, err := db.Exec(answersSchema); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("creating the remembered answers: %w", err)
+	}
 	if err := migrate(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("upgrading history: %w", err)

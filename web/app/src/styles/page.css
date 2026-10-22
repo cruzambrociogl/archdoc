@@ -2017,3 +2017,146 @@ button.runs-row:hover {
   margin: 8px 0 0;
   font-size: var(--t-body);
 }
+
+/* Ask (platform-surface §6.5), in the right rail: the cost before sending, then an answer written by
+   AI from what archdoc read, each sentence's citations numbered. */
+.ask {
+  display: grid;
+  gap: 12px;
+}
+.ask-question {
+  margin: 0;
+  font: 18px/1.4 var(--font-serif);
+}
+.ask-confirm {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule-soft);
+  background: var(--panel);
+  font-size: var(--t-body);
+  line-height: 1.5;
+}
+.ask-confirm p {
+  margin: 0;
+}
+.ask-confirm-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+.ask-confirm-acts .btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.ask-error {
+  margin: 0;
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--accent);
+}
+.ask-ai {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+.ask-text {
+  margin: 0;
+  font: 16px/1.55 var(--font-serif);
+}
+.ask-ref {
+  font: 600 9.5px var(--font-mono);
+  color: var(--accent);
+  margin-left: 1px;
+}
+.ask-unresolved {
+  margin: 0;
+  font-size: var(--t-body);
+  line-height: 1.5;
+}
+.ask-cites {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: var(--t-small);
+}
+.ask-nothing p {
+  margin: 0 0 6px;
+  line-height: 1.5;
+}
+.ask-note {
+  margin: 0;
+}
+.ask-follow {
+  justify-self: start;
+}
+
+/* Did it build what I asked? (§6.3): the verdict, then each requirement with its reading. */
+.plan-confirm {
+  margin-top: 18px;
+}
+.plan-groups {
+  margin-top: 22px;
+  display: grid;
+  gap: 18px;
+}
+.plan-group ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.plan-group li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.plan-asked {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.plan-reading {
+  margin-top: 4px;
+  font-size: var(--t-body);
+  line-height: 1.5;
+}
+.plan-group.is-unclear .plan-reading,
+.plan-group.is-missing .plan-reading {
+  color: var(--muted);
+}
+.plan-foot {
+  margin-top: 22px;
+}
+.plan-files {
+  display: grid;
+  gap: 10px;
+  max-width: 640px;
+}
+.plan-files p {
+  margin: 0;
+}
+.plan-example {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--rule-soft);
+  font: 12.5px/1.5 var(--font-mono);
+  white-space: pre-wrap;
+}
+.plan-files-label {
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.plan-files-input {
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-box);
+  background: var(--chip);
+  color: var(--ink);
+  font-size: 13px;
+  resize: vertical;
+}

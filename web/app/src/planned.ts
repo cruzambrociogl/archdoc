@@ -104,11 +104,6 @@ export const planned: Plan[] = [
   { id: 'print', design: T, listOnly: true, area: 'Shell', title: 'Print with citations in the margin', spec: '§2 rule 6',
     what: 'A page printed without chrome, every citation written out in full in a margin column, hatching kept for unresolved.' },
 
-  // Stretch — designed as slots
-  { id: 'ask', design: S, area: 'Later', title: 'Ask the map', spec: '§5.16, F-26', waits: 'out of this phase',
-    what: 'A question in your words, answered only from the validated model, every sentence cited; "not resolved — here is what archdoc saw" as a designed answer.' },
-  { id: 'intent', design: S, area: 'Later', title: 'Intent versus actual', spec: '§5.15, F-40, F-41', waits: 'out of this phase',
-    what: 'The plan files you name, requirement by requirement: found in the code (cited), missing, and built but not asked for.' },
 ]
 
 export const plan = (id: string) => planned.find((p) => p.id === id)

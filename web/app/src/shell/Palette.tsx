@@ -8,7 +8,7 @@ import { TruthMark } from '../ui/marks'
 type Go = (r: Partial<Route>) => void
 
 interface Hit {
-  group: 'Elements' | 'Relationships' | 'Features' | 'Files' | 'Documents' | 'Saved views' | 'Screens'
+  group: 'Ask' | 'Elements' | 'Relationships' | 'Features' | 'Files' | 'Documents' | 'Saved views' | 'Screens'
   key: string
   title: string
   meta: string
@@ -43,7 +43,7 @@ const at = (p?: Provenance) => (p?.file ? `${p.file}${p.line ? `:${p.line}` : ''
  * state. Searching a file path answers "what does archdoc know about this file?" — the elements and
  * relationships it proves.
  */
-export function Palette(props: { open: boolean; onClose: () => void; go: Go; views: SavedView[]; version: number | null }) {
+export function Palette(props: { open: boolean; onClose: () => void; go: Go; views: SavedView[]; version: number | null; onAsk?: (question: string) => void }) {
   const [q, setQ] = useState('')
   const [cursor, setCursor] = useState(0)
   const input = useRef<HTMLInputElement>(null)
@@ -147,6 +147,8 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
   }, [model.data, docs.data, props.views, props.go])
 
   const query = q.trim().toLowerCase()
+  // Search and Ask are one box (platform-surface §4.3): what reads as a question offers Ask first.
+  const question = !!props.onAsk && (/\?\s*$/.test(query) || /^(what|where|how|why|which|who|when|does|do|is|are|can)\b/.test(query)) && query.split(/\s+/).length >= 3
   const results = useMemo(() => {
     if (!query) return [] as Hit[]
     const scored = index
@@ -162,14 +164,19 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
     scored.sort((a, b) => order.indexOf(a.h.group) - order.indexOf(b.h.group) || a.score - b.score || a.h.title.localeCompare(b.h.title))
     // At most eight a group, so one large group cannot hide the others.
     const per = new Map<string, number>()
-    return scored
+    const found = scored
       .filter(({ h }) => {
         const n = per.get(h.group) ?? 0
         per.set(h.group, n + 1)
         return n < 8
       })
       .map((x) => x.h)
-  }, [index, query])
+    const asked = q.trim()
+    const ask: Hit[] = question
+      ? [{ group: 'Ask', key: 'ask', title: `Ask about “${asked}”`, meta: 'an answer written by AI from what archdoc read — it shows the cost before sending', go: () => props.onAsk!(asked) }]
+      : []
+    return [...ask, ...found]
+  }, [index, query, question, q, props.onAsk])
 
   // A query that names a file exactly answers what archdoc knows about it.
   const file = results.find((h) => h.file && (h.title.toLowerCase() === query || h.title.toLowerCase().endsWith('/' + query)))?.file

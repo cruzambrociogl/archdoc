@@ -298,6 +298,14 @@ type Explanation struct {
 	Prov  Provenance `json:"provenance"` // Origin Semantic; the note names the model
 }
 
+// PlanItem is one thing a plan asks for, as the plan says it, at its line (F-40): a list item of
+// a plan file the person named. archdoc reads no plan it was not pointed at.
+type PlanItem struct {
+	ID   string     `json:"id"` // R1, R2, … in plan order
+	Text string     `json:"text"`
+	Prov Provenance `json:"provenance"`
+}
+
 // Claim is one sentence and the facts it cites. Every cite resolves to a fact archdoc gave the
 // model, each with the line that proves it; a sentence that cited nothing, or something it was
 // not given, was refused before it got here (F-36).

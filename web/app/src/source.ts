@@ -22,6 +22,8 @@ export interface Capabilities {
   plans: boolean
   /** Where a citation opens: in an editor on this machine, or on the repository's host. */
   links: 'editor' | 'host'
+  /** A model can be asked, on the person's own key: Ask, and Did it build what I asked? (§6.3, §6.5). */
+  ask: boolean
 }
 
 /** Where a citation is resolved against: the repository on disk, or its remote at a commit. */

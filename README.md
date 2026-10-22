@@ -488,6 +488,11 @@ and how far a pinned commit is behind — and each repository's pages under it.
 and what changed in each since you last opened it here. `generate` and `serve` remember the folder in
 a file in your user configuration folder — never in the repository.
 
+With `ANTHROPIC_API_KEY` set where `archdoc serve` starts, the app also **asks**: a question typed
+into the search box is answered from what archdoc read, each sentence cited, and **Did it build what
+I asked?** reads the plan files you name against the code. Each says what it sends and what it
+costs before sending; every request is in *What left this machine*.
+
 | Screen | What it answers |
 |---|---|
 | **Overview** | What the system is, how much of it is interpreted, what has ever left the machine, what changed |

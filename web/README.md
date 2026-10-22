@@ -78,6 +78,7 @@ capability is true; no screen checks which place it is in.
 | `runDetails` — requests as sent | yes | no: they stay on the machine that sent them | no |
 | `plans` — the planned placeholders | in a development build only (§4.4) | no | no |
 | `links` — where citations open | `editor`: `vscode://` at the line | `host`: the repository host at the commit, or plain text when none is known | `host` |
+| `ask` — Ask, and Did it build what I asked? | yes, on the person's own key | no | not yet: whose key pays waits for accounts |
 
 **A system.** On a folder of documented repositories, `archdoc serve` answers `/api/system` and each
 repository's API under `/repos/{name}/`; the local Source then has `system` — read the system, open
@@ -129,7 +130,8 @@ app/src/                 @archdoc/app
   screens/               Overview, Changes, Features (What it does), Reference, About (with Coverage), Documents,
                          Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector;
                          Start and Generating, the website's; Gone (a page, version or part a link names
-                         and this place doesn't have); SystemMap (how a system's repositories fit together, and the system's
+                         and this place doesn't have); Ask (the rail's answer) and PlanCheck (Did it build what
+                         I asked?); SystemMap (how a system's repositories fit together, and the system's
                          frame) and SystemChanges (what changed across it); Home
   screens/explorer/      Explorer, scene.ts (scene → React Flow; the draft preview; the change overlay),
                          parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView

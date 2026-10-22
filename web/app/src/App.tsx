@@ -27,7 +27,7 @@ import { Planned } from './screens/Planned'
 import { Reference } from './screens/Reference'
 import { About } from './screens/About'
 import { Gone } from './screens/Gone'
-import { AskDock } from './ui/Planned'
+import { PlanCheck } from './screens/PlanCheck'
 import { Website } from './shell/Website'
 import { SystemSite } from './shell/SystemSite'
 import { HomeSite } from './shell/HomeSite'
@@ -175,19 +175,18 @@ function Shell() {
                 {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
                 {route.screen === 'reference' && <Reference summary={s} coverage={coverage.data} go={go} />}
                 {route.screen === 'about' && <About summary={s} session={session.data} go={go} />}
-                {route.screen === 'plan' && <Planned route={{ ...route, focus: 'intent' }} />}
+                {route.screen === 'plan' && <PlanCheck go={go} />}
                 {route.screen === 'rules' && <Corrections />}
                 {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
                 {route.screen === 'planned' && <Planned route={route} />}
               </>
             )}
           </main>
-          {route.screen !== 'explorer' && <AskDock go={go} />}
           </div>
-          {rail && <Rail content={rail} onOpen={setRail} onClose={() => setRail(null)} version={version} go={go} />}
+          {rail && <Rail content={rail} onOpen={setRail} onClose={() => setRail(null)} version={version} go={go} onSearch={() => setSearching(true)} />}
         </div>
       </div>
-      <Palette open={searching} onClose={() => setSearching(false)} go={go} views={views.data?.views ?? []} version={version} />
+      <Palette open={searching} onClose={() => setSearching(false)} go={go} views={views.data?.views ?? []} version={version} onAsk={can.ask ? (question) => setRail({ kind: 'ask', question }) : undefined} />
       {keys && <Shortcuts onClose={() => setKeys(false)} />}
       </RailProvider>
     </RootContext.Provider>

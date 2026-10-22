@@ -29,7 +29,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
   const items: Item[] = [
     { label: 'Overview', q: 'What is this?', screen: 'overview' },
     { label: 'What changed', q: 'What just changed?', screen: 'changes' },
-    ...(can.plans ? ([{ label: 'Did it build what I asked?', q: 'Did the code do what I asked?', screen: 'plan', planned: 'intent' }] as Item[]) : []),
+    ...(can.ask ? ([{ label: 'Did it build what I asked?', q: 'Did the code do what I asked?', screen: 'plan' }] as Item[]) : []),
     { label: 'Map', q: 'How is it put together?', screen: 'explorer', divider: true },
     ...(entries ? ([{ label: 'What it does', q: 'What can it do, and how does each thing work?', screen: 'features' }] as Item[]) : []),
     { label: 'Reference', q: 'Where is the complete detail?', screen: 'reference' },

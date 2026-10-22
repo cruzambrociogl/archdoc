@@ -4,23 +4,24 @@ import type { Route } from '../route'
 import type { MarkKind } from '../ui/markInfo'
 import { MarkGlyph, markOrder, marks } from '../ui/markInfo'
 import { Impact } from '../screens/Impact'
+import { Ask } from '../screens/Ask'
 
 /** What the rail shows: a mark, or what an element touches. */
-export type RailContent = { kind: 'mark'; mark: MarkKind } | { kind: 'impact'; element: string }
+export type RailContent = { kind: 'mark'; mark: MarkKind } | { kind: 'impact'; element: string } | { kind: 'ask'; question: string }
 
 /** Opens the rail from anywhere in the app: an inspector, a component page, a search result. */
 const RailContext = createContext<(c: RailContent) => void>(() => {})
 export const RailProvider = RailContext.Provider
 export const useRail = () => useContext(RailContext)
 
-const titles: Record<RailContent['kind'], string> = { mark: 'What this mark means', impact: 'What does this touch?' }
+const titles: Record<RailContent['kind'], string> = { mark: 'What this mark means', impact: 'What does this touch?', ask: 'Ask' }
 
 /**
  * The right rail (platform-surface §4.3): opened when something is selected, closed otherwise. Beside
  * the page on a wide screen; on a phone, a sheet from the bottom over a scrim (App Findings, round 4).
  * Esc closes it.
  */
-export function Rail(props: { content: RailContent; onOpen: (c: RailContent) => void; onClose: () => void; version: number | null; go: (r: Partial<Route>) => void }) {
+export function Rail(props: { content: RailContent; onOpen: (c: RailContent) => void; onClose: () => void; version: number | null; go: (r: Partial<Route>) => void; onSearch: () => void }) {
   const can = useCapabilities()
   const { onClose } = props
   useEffect(() => {
@@ -40,7 +41,15 @@ export function Rail(props: { content: RailContent; onOpen: (c: RailContent) => 
             ✕
           </button>
         </div>
-        <div className="side-rail-body">{c.kind === 'mark' ? <MarkPanel mark={c.mark} onOpen={props.onOpen} can={can} /> : <Impact element={c.element} version={props.version} go={props.go} />}</div>
+        <div className="side-rail-body">
+          {c.kind === 'mark' ? (
+            <MarkPanel mark={c.mark} onOpen={props.onOpen} can={can} />
+          ) : c.kind === 'ask' ? (
+            <Ask key={c.question} question={c.question} go={props.go} onFollowUp={props.onSearch} />
+          ) : (
+            <Impact element={c.element} version={props.version} go={props.go} />
+          )}
+        </div>
       </aside>
     </>
   )
