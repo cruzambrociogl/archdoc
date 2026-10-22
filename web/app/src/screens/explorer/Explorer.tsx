@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, ViewportPortal, useReactFlow, useStore } from '@xyflow/react'
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
-import type { DiffResponse, Opening, SceneResponse, Version } from '../../api'
+import type { DiffResponse, Opening, SavedView, SceneResponse, Version } from '../../api'
 import { componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, overview, structureLevel, structureOf, useApi } from '../../api'
 import { useSource } from '../../source'
 import type { Route } from '../../route'
@@ -18,14 +18,6 @@ import { SaveView } from './SaveView'
 
 /** "context", "container", or "component:<container id>" — one container's components. */
 export type Level = string
-
-const levels: [string, string][] = [
-  ['context', 'Context'],
-  ['container', 'Containers'],
-  ['component', 'Components'],
-  ['data', 'Data'],
-  ['dataflow', 'Data flow'],
-]
 
 // With no level named, the explorer opens where C4 starts — the system in its context — and each
 // level opens onto the next: the system onto its containers, a container onto its components.
@@ -47,7 +39,10 @@ export function Explorer(props: {
   route: Route
   go: Go
   editable: boolean
+  views: SavedView[]
   onViewsChanged: () => void
+  /** Tells the shell each part's name as the Map shows it, for the breadcrumb. */
+  onNames?: (names: Record<string, string>) => void
 }) {
   const asked = levelOf(props.route.level)
   const [reload, setReload] = useState(0)
@@ -75,6 +70,14 @@ export function Explorer(props: {
 
   // The change overlay: the diff against the compared version, and that version's scene for ghosts.
   const current = scene.data?.version
+  const onNames = props.onNames
+  useEffect(() => {
+    const d = scene.data
+    if (!d || !onNames) return
+    const names: Record<string, string> = {}
+    for (const o of [...(d.components ?? []), ...(d.data ?? []), ...(d.main ?? []), ...(d.structure ?? [])]) names[o.id] = o.name
+    onNames(names)
+  }, [scene.data, onNames])
   const compare = props.route.from !== undefined && props.route.from !== current ? props.route.from : undefined
   const diff = useApi<DiffResponse>(compare !== undefined && current !== undefined ? `/api/diff?from=${compare}&to=${current}` : null)
   const before = useApi<SceneResponse>(compare !== undefined ? `/api/scene?view=${encodeURIComponent(useMain ? level : sceneName)}&version=${compare}` : null)
@@ -94,6 +97,7 @@ export function Explorer(props: {
         route={props.route}
         editable={editable}
         scene={scene.data}
+        views={props.views}
         onViewsChanged={props.onViewsChanged}
       />
       {scene.error && (
@@ -139,12 +143,29 @@ function Toolbar(props: {
   route: Route
   editable: boolean
   scene?: SceneResponse
+  views: SavedView[]
   onViewsChanged: () => void
 }) {
   const source = useSource()
   const q = props.version ? `&version=${props.version}` : ''
   const [saving, setSaving] = useState(false)
-  // The Components and Data tabs open the selected container when it has them, else the one on
+  const [open, setOpen] = useState<'part' | 'views' | null>(null)
+  // A menu opens toward the side with room: when the toolbar wraps, Saved views starts a row.
+  const [opensRight, setOpensRight] = useState(false)
+  const bar = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const out = (e: MouseEvent) => bar.current && !bar.current.contains(e.target as Node) && setOpen(null)
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null)
+    document.addEventListener('mousedown', out)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', out)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+
+  // Inside one part, and What it stores, open the selected part when it has them, else the one on
   // screen, else the first that does.
   const byFolder = structureOf(props.level) !== undefined
   const onMain = mainOf(props.level) !== undefined
@@ -153,43 +174,78 @@ function Toolbar(props: {
   const openings = { component: props.scene?.components ?? [], data: props.scene?.data ?? [] }
   const targetOf = (list: Opening[]) => list.find((o) => o.id === props.route.focus)?.id ?? list.find((o) => o.id === inside)?.id ?? list[0]?.id
   const target = { component: targetOf(openings.component), data: targetOf(openings.data) }
-  const tab = lens
   const hasMain = !!inside && (props.scene?.main ?? []).some((o) => o.id === inside)
   const hasFolders = !!inside && (props.scene?.structure ?? []).some((o) => o.id === inside)
   const allCount = (props.scene?.components ?? []).find((o) => o.id === inside)?.components ?? ''
   const externals = (props.scene?.model.nodes ?? []).filter((n) => n.kind === 'external').length + (props.scene?.model.folded ?? 0)
+  const insideName = openings.component.find((o) => o.id === (lens === 'component' ? inside : target.component))?.name
+
+  // Two kinds of move (App Findings, round 4, problem 1): zoom, a path from the outside world inward,
+  // whose inside step always names a part; and lenses, other questions about the same system.
+  const zoom: { id: string; plain: string; term: string; on?: () => void; picks?: boolean }[] = [
+    { id: 'context', plain: 'The outside world', term: 'context', on: () => props.go({ screen: 'explorer', level: 'context' }, { keep: true }) },
+    ...(props.scene?.tiny ? [] : [{ id: 'container', plain: 'Apps and services', term: 'containers', on: () => props.go({ screen: 'explorer', level: 'container' }, { keep: true }) }]),
+    ...(target.component
+      ? [{ id: 'component', plain: `Inside ${insideName ?? 'one part'}`, term: 'components', on: () => props.go({ screen: 'explorer', level: componentLevel(target.component!), from: props.route.from }), picks: openings.component.length > 1 }]
+      : []),
+  ]
+  const lenses: { id: string; plain: string; term: string; on: () => void }[] = [
+    ...(target.data ? [{ id: 'data', plain: 'What it stores', term: 'entities', on: () => props.go({ screen: 'explorer', level: dataLevel(target.data!), from: props.route.from }) }] : []),
+    ...(props.scene?.dataflow ? [{ id: 'dataflow', plain: 'How data moves', term: 'data flow', on: () => props.go({ screen: 'explorer', level: 'dataflow' }, { keep: true }) }] : []),
+  ]
+  const shownView = props.views.find((v) => v.level === props.level && (v.focus ?? '') === (props.route.focus ?? '') && (v.find ?? '') === (props.route.q ?? '') && !!v.dim === (props.route.dim === '1'))
+
   return (
-    <div className="explorer-toolbar">
-      <div className="segmented" role="tablist" aria-label="C4 level">
-        {levels
-          .filter(([id]) => !(id === 'container' && props.scene?.tiny) && (id !== 'dataflow' || !!props.scene?.dataflow))
-          .map(([id, label]) => (
-          <button
-            key={id}
-            role="tab"
-            aria-selected={tab === id}
-            className={tab === id ? 'on' : ''}
-            disabled={(id === 'component' || id === 'data') && !target[id]}
-            title={id === 'component' && !target.component ? 'No container’s code was read' : id === 'data' && !target.data ? 'No code declares a table' : undefined}
-            onClick={() =>
-              id === 'component' || id === 'data'
-                ? target[id] && props.go({ screen: 'explorer', level: (id === 'data' ? dataLevel : componentLevel)(target[id]!), from: props.route.from })
-                : props.go({ screen: 'explorer', level: id }, { keep: true })
-            }
-          >
-            {label}
-          </button>
+    <div className="explorer-toolbar" ref={bar}>
+      <div className="map-group" role="group" aria-label="Zoom">
+        <span className="map-group-label">Zoom</span>
+        {zoom.map((z, i) => (
+          <span key={z.id} className="zoom-step">
+            {i > 0 && <span className="crumb-sep">›</span>}
+            <button className={`zoom-btn ${lens === z.id ? 'on' : ''}`} aria-pressed={lens === z.id} onClick={() => (z.picks && lens === 'component' ? setOpen(open === 'part' ? null : 'part') : z.on?.())}>
+              <span className="zoom-plain">
+                {z.plain}
+                {z.picks && <span className="caret"> ▾</span>}
+              </span>
+              <span className="zoom-term">{z.term}</span>
+            </button>
+          </span>
         ))}
+        {open === 'part' && (
+          <div className="pop map-pop">
+            <div className="pop-q">Go inside</div>
+            {openings.component.map((o) => (
+              <button
+                key={o.id}
+                className={`more-item ${o.id === inside ? 'on' : ''}`}
+                onClick={() => (setOpen(null), props.go({ screen: 'explorer', level: componentLevel(o.id), from: props.route.from }))}
+              >
+                <span>
+                  <span className="more-label mono">{o.name}</span>
+                  <span className="more-sub">{o.components} components</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      {inside && (lens === 'component' || lens === 'data') && (
-        <ContainerPicker
-          openings={openings[lens]}
-          current={inside}
-          go={props.go}
-          route={props.route}
-          level={lens === 'data' ? dataLevel : componentLevel}
-          noun={lens === 'data' ? 'tables' : 'components'}
-        />
+      {lenses.length > 0 && (
+        <div className="map-group" role="group" aria-label="Lenses">
+          <span className="map-divider" />
+          <span className="map-group-label">Lens</span>
+          {lenses.map((l) => (
+            <button key={l.id} className={`lens-btn ${lens === l.id ? 'on' : ''}`} aria-pressed={lens === l.id} onClick={l.on}>
+              {l.plain}
+              <span className="zoom-term">{l.term}</span>
+            </button>
+          ))}
+          <Planned id="deployment" go={props.go}>
+            Where it runs
+          </Planned>
+        </div>
+      )}
+      {inside && lens === 'data' && openings.data.length > 1 && (
+        <ContainerPicker openings={openings.data} current={inside} go={props.go} route={props.route} level={dataLevel} noun="tables" />
       )}
       {inside && lens === 'component' && (hasMain || hasFolders) && (
         <div className="segmented" role="tablist" aria-label="Which components are shown" title="The same code: the few components that handle the most, every component, or its folders">
@@ -223,41 +279,73 @@ function Toolbar(props: {
           </button>
         </div>
       )}
-      <label className={`tool compare ${props.route.from !== undefined ? 'on' : ''}`} title="Mark on the diagram what changed since another version">
-        <span className="mono strong">Δ</span>
-        <select
-          value={props.route.from ?? ''}
-          onChange={(e) => props.go({ screen: 'explorer', from: e.target.value ? Number(e.target.value) : undefined }, { keep: true, replace: true })}
-        >
-          <option value="">Compare with…</option>
-          {[...props.versions]
-            .sort((a, b) => b.id - a.id)
-            .filter((v) => v.id !== props.current)
-            .map((v) => (
-              <option key={v.id} value={v.id}>
-                v{v.id} · {new Date(v.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
-                {v.commit ? ` · ${v.commit.slice(0, 7)}` : ''}
-              </option>
-            ))}
-        </select>
-      </label>
-      <Planned id="lens" go={props.go}>
-        Lens
-      </Planned>
       <div className="toolbar-gap" />
+      {/* Compare and Saved views sit apart from both groups (App Findings, round 4). */}
+      {props.versions.length > 1 && (
+        <label className={`tool compare ${props.route.from !== undefined ? 'on' : ''}`} title="Mark on the map what changed since another version">
+          <span className="strong">Compare</span>
+          <select
+            value={props.route.from ?? ''}
+            aria-label="Compare with"
+            onChange={(e) => props.go({ screen: 'explorer', from: e.target.value ? Number(e.target.value) : undefined }, { keep: true, replace: true })}
+          >
+            <option value="">with…</option>
+            {[...props.versions]
+              .sort((a, b) => b.id - a.id)
+              .filter((v) => v.id !== props.current)
+              .map((v) => (
+                <option key={v.id} value={v.id}>
+                  v{v.id} · {new Date(v.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                  {v.commit ? ` · ${v.commit.slice(0, 7)}` : ''}
+                </option>
+              ))}
+          </select>
+        </label>
+      )}
+      {(props.views.length > 0 || props.editable) && (
+        <div className="pop-anchor">
+          <button
+            className={`tool ${open === 'views' ? 'on' : ''}`}
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect()
+              const room = bar.current?.getBoundingClientRect()
+              setOpensRight(!!room && r.right - room.left < 300)
+              setOpen(open === 'views' ? null : 'views')
+            }}
+            aria-expanded={open === 'views'}
+          >
+            {shownView ? shownView.name : 'Saved views'} ▾
+          </button>
+          {open === 'views' && (
+            <div className={`pop map-pop views-pop ${opensRight ? 'opens-right' : ''}`}>
+              <div className="pop-q">Saved views</div>
+              {props.views.length === 0 && <p className="more-sub views-none">None yet: arrange the map, then save it with a name.</p>}
+              {props.views.map((v) => (
+                <button
+                  key={v.name}
+                  className={`more-item ${v === shownView ? 'on' : ''}`}
+                  onClick={() => (setOpen(null), props.go({ screen: 'explorer', level: v.level, focus: v.focus, q: v.find, dim: v.dim ? '1' : undefined }))}
+                >
+                  <span className="more-label">{v.name}</span>
+                </button>
+              ))}
+              {props.editable && (
+                <button className="more-item views-save" onClick={() => (setOpen(null), setSaving(true))}>
+                  <span className="more-label">Save this view…</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <Planned id="share-card" go={props.go}>
         Share card
       </Planned>
-      {props.editable && (
-        <button className="tool" onClick={() => setSaving(true)} title="Name this view — level, selection, search and focus — and keep it in views.yaml">
-          Save view…
-        </button>
-      )}
       <a
         className="tool"
         href={source.url(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
         download={`${props.level.replace(/^(component|data|structure|main):[^:]*:/, '$1-').replace(/[:/]/g, '-')}.svg`}
-        title="The same scene, as the committed SVG"
+        title="The same picture, as the committed SVG"
       >
         Export SVG
       </a>

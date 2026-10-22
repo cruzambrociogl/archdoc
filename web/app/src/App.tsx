@@ -61,6 +61,8 @@ function Shell() {
   const coverage = useApi<CoverageResponse>('/api/coverage')
   const session = useApi<Session>('/api/session')
   const [keys, setKeys] = useState(false)
+  // The parts' names as the Map shows them, which the breadcrumb uses: "Inside immich-server".
+  const [partNames, setPartNames] = useState<Record<string, string>>({})
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
 
   // The screen the explorer returns to.
@@ -116,16 +118,16 @@ function Shell() {
           onSearch={() => setSearching(true)}
           onKeys={() => setKeys(true)}
           session={session.data}
-          name={(id) => coverage.data?.code?.find((c) => c.container === id)?.app ?? id.replace(/^[a-z]+:/, '')}
+          name={(id) => partNames[id] ?? id.replace(/^[a-z]+:/, '')}
         />
         <div className="shell-body">
-          <Nav summary={s} route={route} go={go} open={navOpen} views={views.data?.views ?? []} coverage={coverage.data} />
+          <Nav summary={s} route={route} go={go} open={navOpen} coverage={coverage.data} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <div className="main-col">
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
             {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
             {route.screen === 'explorer' && (
-              <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} onViewsChanged={() => setViewsKey((k) => k + 1)} />
+              <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} />
             )}
             {route.screen === 'features' && <Features version={version} route={route} go={go} />}
             {route.screen === 'component' && <Component version={version} route={route} go={go} />}
