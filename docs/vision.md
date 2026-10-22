@@ -140,7 +140,13 @@ lines between them, but how the system behaves at runtime (§6), the concepts th
 under this definition: for a single React app, most of the value lies in features, flows and
 data, which the narrow sense would exclude and arc42 does not.
 
-### 2.2 Positioning — the local, verifiable alternative
+### 2.2 Positioning — verifiable, wherever it runs
+
+> **Amended 2026-10-21** — after the decision of 2026-10-19 (`docs/decisions.md`). The positioning
+> was "the local, verifiable alternative"; locality is now an option offered, not the identity.
+> archdoc runs locally, in CI, and hosted, from one engine and one app; what does not change is the
+> foundation — every element extracted and cited. Below, the original argument stands where it
+> still holds, with the two lines that changed marked.
 
 Google Code Wiki (§1.4) ships, for free and for any language, most of what §2.3 to §2.8 propose:
 code reading, architecture and sequence diagrams, module walkthroughs, chat over the result,
@@ -148,13 +154,14 @@ refreshed on every commit. **We do not compete with that team on breadth, and we
 The stance is *alternative*, not rival: offer the same usefulness on a foundation they cannot
 offer — and that foundation is the project's roots, not a departure from them.
 
-> **archdoc is the local, verifiable alternative to hosted AI code wikis.** Point it at any
-> repository and it produces the architecture documentation that repository should have had —
-> diagrams, module walkthroughs, data models, flows, and answers to questions about them. The
-> difference is the foundation: every element is extracted from the code and cites the file and
-> line that proves it, the model can never add something that does not exist, the code never has
-> to leave the machine, and the documentation lives in the repository rather than on someone
-> else's website.
+> **archdoc is verifiable architecture documentation, wherever it runs** — on your machine, in your
+> CI, or hosted. Point it at any repository and it produces the architecture documentation that
+> repository should have had — diagrams, module walkthroughs, data models, flows, and answers to
+> questions about them. The difference is the foundation: every element is extracted from the code
+> and cites the file and line that proves it, the model can never add something that does not
+> exist, run locally the code never has to leave the machine, and the documentation can live in the
+> repository rather than only on someone else's website. *(Amended 2026-10-21; it was "the local,
+> verifiable alternative to hosted AI code wikis".)*
 
 The Spanish wording for the report, and the shorter forms, are in `docs/brief.md` — one canonical
 place, so the report, the slides and the branding sheet do not drift.
@@ -189,7 +196,9 @@ Each step is what makes the next one worth having:
 
 #### Non-goals, on purpose
 
-- **Not a hosted service.** Local is the feature, not a limitation (§7's zero-service rule).
+- **Not hosted-only.** Local stays a first-class way to run it, and the engine never needs a service
+  (§7's zero-service rule). *(Amended 2026-10-21; it was "not a hosted service": a hosted place is
+  now offered, on the same engine — and it may show nothing the engine cannot cite.)*
 - **Not every language at once.** A generic baseline everywhere, depth where it pays.
 - **Not prettier than Google.** Good enough that nobody picks the alternative for its looks alone.
 

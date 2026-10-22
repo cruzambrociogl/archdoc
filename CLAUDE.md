@@ -1,14 +1,18 @@
 # archdoc
 
-Reads an existing codebase and produces the architecture documentation it should have had —
-accurate, traceable to the code, and regenerable as the system changes. Go engine, TypeScript
-web app, one static binary.
+**The engine of archdoc, and the app every place shares.** Reads an existing codebase and produces
+the architecture documentation it should have had — accurate, traceable to the code, and
+regenerable as the system changes. Go engine, TypeScript web app, one static binary — and a public
+library, package `archdoc`, which the CLI and the hosted platform both run. archdoc runs locally,
+in CI and hosted ("verifiable, wherever it runs" — `docs/vision.md` §2.2); this repository is the
+part that runs everywhere, and the only public one.
 
-**Phase:** frozen for new features since 19 Oct, while the platform's development environment is
-set up. One of three repositories, always siblings in one folder: this engine (public),
-`../archdoc-platform` and `../archdoc-website` (private). **The platform repository is the source** —
-the plan and when the freeze lifts (`../archdoc-platform/docs/platform-plan.md`), the direction, and
-the map of all three (`../archdoc-platform/WORKSPACE.md`). What the engine does today: `PROGRESS.md`, "Where this stands".
+**Phase:** frozen for new features since 19 Oct. The freeze lifts when the plan's exit criteria
+are met (`../archdoc-platform/docs/platform-plan.md` §5): what is left is this repository's licence
+and first tag (step 3) and CI enforcing in all three. One of three repositories, always siblings in
+one folder: this engine (public), `../archdoc-platform` and `../archdoc-website` (private). **The
+platform repository is the source** — the plan, the direction, and the map of all three
+(`../archdoc-platform/WORKSPACE.md`). What the engine does today: `PROGRESS.md`, "Where this stands".
 **Target:** code freeze 4 Dec 2026, delivered 11 Dec 2026.
 
 ---

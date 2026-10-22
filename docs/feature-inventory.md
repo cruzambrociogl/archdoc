@@ -16,7 +16,7 @@
 | | |
 |---|---|
 | **Audience** | Technical readers losing control of code an AI wrote. Primary, chosen 2 Oct. Vibe-coder-facing work is deprioritised, not deleted |
-| **Posture** | The local, verifiable alternative to hosted AI code wikis (`vision.md` §2.2) |
+| **Posture** | Verifiable, wherever it runs — locally, in CI or hosted (`vision.md` §2.2, amended 21 Oct; it was "the local, verifiable alternative to hosted AI code wikis") |
 | **Order** | Evidence before building: the pilot and the competitor comparison run first and may redirect this list |
 | **Veto** | A feature whose output cannot be traced to evidence does not ship, however good it looks |
 

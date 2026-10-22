@@ -5,16 +5,19 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-10-21 (the platform planned — see "Where this stands" below)
+Last updated: 2026-10-21 (the platform built through step 8 — see "Where this stands" below)
 
 ---
 
-## Where this stands — 21 Oct 2026: frozen, the platform planned
+## Where this stands — 21 Oct 2026: frozen, the platform built on it
 
 The engine is **frozen for new features since 19 Oct** and stands as described in the 9 Oct section
-below. archdoc is becoming a platform, local and hosted; the freeze lifts when the platform's
-development environment exists. **The plan across the three repositories is tracked in
-`../archdoc-platform/PROGRESS.md`** — this file tracks the engine alone.
+below. It is one part of a larger product — archdoc runs locally, in CI and hosted, "verifiable,
+wherever it runs" (`docs/vision.md` §2.2, `docs/product-definition.md` §7, both amended 21 Oct) —
+and the hosted platform now runs it end to end through the public API. The freeze lifts when the
+plan's exit criteria are met; left: step 3 here, and CI enforcing in all three. **The plan across
+the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
+engine alone.
 
 - **Three repositories**, always siblings in one folder: this engine (public), `archdoc-platform`
   and `archdoc-website` (private). Each keeps the same records; the map is
@@ -26,8 +29,10 @@ development environment exists. **The plan across the three repositories is trac
 The CLI's output on Immich and Supabase at their pinned commits is identical to before but for the
 build stamp — every command, every file written. **Step 2 is done (21 Oct):** the app is
 `@archdoc/app`, reading through a Source each place gives it, with the build the binary embeds as
-its host; every screen renders as before, live and published. **Next, in this repository:** step 3,
-the licence and the first tag.
+its host; every screen renders as before, live and published. Since, for the platform: `Fingerprint`
+in the public API, the app's stylesheets exported alone, and CI building the web app. **Next, in
+this repository:** step 3, the licence and the first tag — deferred by choice. `main` still holds
+the initial commit only; a pull request from `develop` publishes the engine.
 
 ## Where this stands — 9 Oct 2026, to resume from
 
@@ -341,7 +346,7 @@ items are ticked.
 | O-8 | Does `file:line` provenance survive the Compose merge? | — | ✓ **closed 26 Aug — no.** Extraction is two passes; a `Fact` carries one position. See `docs/decisions.md` |
 | O-6 | R1.b sequencing — analysis before clustering? | R1.b only | deferred by design, decide with a working spine |
 | O-10 | Does R1.a resolve service-to-gateway calls by matching route paths? | fuller `MDL-03` | **open for gateways; closed 9 Oct for generated API clients** (an OpenAPI document matched to a container's routes). Routes are read, but a caller's URL names one endpoint and the bridge cannot tell which. Only actors bridge today, so a service calling a gateway loses that edge. Matching `lds` route prefixes against caller URLs would close it — decide before code freeze |
-| O-11 | Where does archdoc go beyond configuration? | The roadmap after R1.a | **direction closed 2 Oct, features provisional.** Positioning: the local, verifiable alternative (`vision.md` §2.2). Audience: technical readers losing control. Evidence before building. Features scored in `docs/feature-inventory.md`, confirmed 13–17 Oct. Original note: Proposal in `docs/vision.md`: code as evidence, one model with many lenses, reference docs plus explanations. Seventeen decisions (D-1–D-17) to take or amend; the first step is a cheap comprehension pilot (D-14). Schedule unchanged until agreed |
+| O-11 | Where does archdoc go beyond configuration? | The roadmap after R1.a | **direction closed 2 Oct, features provisional.** Positioning: the local, verifiable alternative (`vision.md` §2.2) — amended 21 Oct to "verifiable, wherever it runs". Audience: technical readers losing control. Evidence before building. Features scored in `docs/feature-inventory.md`, confirmed 13–17 Oct. Original note: Proposal in `docs/vision.md`: code as evidence, one model with many lenses, reference docs plus explanations. Seventeen decisions (D-1–D-17) to take or amend; the first step is a cheap comprehension pilot (D-14). Schedule unchanged until agreed |
 | O-9 | Which acceptance criteria gate sprint 2? | Sprint 2 gate | ✓ **closed 6 Sep — §4.3 wins: AC-2, AC-4, AC-5.** The disagreement was a symptom, not a judgement call: the calendar had no rows for the validator or for rules, so nothing in it could have passed AC-4 or AC-5, and the gate had been quietly reconciled to the rows. Six missing rows added instead |
 
 ---

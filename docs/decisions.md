@@ -1191,6 +1191,9 @@ transaction. Repositories carry public or private from the first table. The `JSO
 projection tables only when a query needs them. In the engine's API, `Diff` takes two models and
 the SQLite history is optional, since the platform has no clone to diff and keeps history in `runs`.
 → `docs/platform-plan.md` steps 1, 5
+*Amended 2026-10-21: two hashes, not one — the bytes' for proof, and the engine's own fingerprint
+(`Fingerprint`, F-50) for versions, so local and hosted agree on what a version is. Recorded in
+`../archdoc-platform/docs/decisions.md`.*
 
 **2026-10-20 — A static website at the root domain; the Landing leaves the app**
 The platform needs pages for strangers — how it works, trust, pricing, docs — that search engines

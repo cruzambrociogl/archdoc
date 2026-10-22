@@ -645,12 +645,22 @@ system that already works. That also means:
 
 ## 7. Distribution and shape
 
+> **Amended 2026-10-21** — after the decision of 2026-10-19, "verifiable, wherever it runs"
+> (`docs/decisions.md`). This section describes **the engine and the local tool**, and holds for
+> them unchanged: a CLI and a foreground `serve`, no daemon, no container, the zero-service rule.
+> archdoc as a product now also runs **hosted**: a separate, closed platform runs this engine
+> through its public library API (package `archdoc`) and shows the same app. Hosting is a place
+> the engine runs, never something it needs — nothing in this repository may require a service,
+> and nothing in it may depend on the platform. Where the text below says "not a hosted service",
+> it is the engine and the local tool that are not.
+
 ### What the product physically is
 
 **A CLI-first local tool, installed as a package for whatever runtime the stack settles
 on, which can also serve a local web app as a foreground process.**
 
-Not a container. Not a daemon. Not a hosted service.
+Not a container. Not a daemon. Not a hosted service — the engine is none of these; the hosted
+place is built on it, apart (amendment above).
 
 **Why not a container.** archdoc reads arbitrary local repositories, writes into them, and
 its click-to-code feature has to open a file in *your* editor on *your* machine. From
@@ -665,13 +675,18 @@ start/stop/status, stale-process handling, and port conflicts for no benefit. If
 regenerate-on-save ever arrives, it is a file watcher *inside* `serve` — still not a
 daemon.
 
-### One engine, two thin frontends
+### One engine, two thin frontends — and a library
 
 ```
 archdoc-core     extraction → catalog → rules → model → validate → render
    ├── CLI       argument parsing over the engine
-   └── HTTP      the same engine behind a localhost API + pre-built static frontend
+   ├── HTTP      the same engine behind a localhost API + pre-built static frontend
+   └── library   package archdoc, the public API — the CLI is its first client (amended 2026-10-21)
 ```
+
+The library is the one door to the pipeline: the CLI goes through it, and so does any program of
+someone else's — the hosted platform among them. It adds no second implementation; it is the
+engine's own entry points, made public.
 
 The CLI and the web app must never become two implementations. `archdoc serve` runs a
 single process serving both the localhost API and the built frontend assets — there is no
@@ -690,7 +705,8 @@ installs and runs a server in order to draw a diagram; or archdoc spawns contain
 makes it depend on a container runtime being installed *and running*, forces it to manage
 container lifecycle and port conflicts, and turns a sub-second `archdoc scan` into a
 multi-second cold start; or it becomes a hosted service, contradicting the local-tool
-identity entirely.
+identity entirely. (Amended 2026-10-21: the rule binds the engine and the local tool. A hosted
+place has its own services, outside this repository, and the engine may never need them.)
 
 Every storage need in this project is satisfiable by an **embedded, file-based** engine —
 a library that reads a file, with no process, no port, and no install:
