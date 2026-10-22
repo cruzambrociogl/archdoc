@@ -1278,3 +1278,13 @@ commit or tag to the documented one — the store's second use of git. Home wait
 process that knows more than one folder.
 → `internal/system`; `internal/serve/system.go`; `web/app/src/screens/SystemMap.tsx`
 
+**2026-10-22 — Home on this machine: a list in the user's configuration folder**
+`archdoc home` serves every place this machine remembers, each under `/at/{id}/` as `archdoc serve`
+would serve it alone. The list is a file in the user's configuration folder, never a repository:
+what someone looked at is theirs. The command keeps it — `generate` adds a folder, `serve` and
+opening from Home record each repository's version then, which "changed since you last opened it"
+counts from — and the library never does, so the platform's worker writes nothing to its home. A
+second command over `archdoc serve` with no path, which already means this folder. With one place
+there is no Home (§5.3): it opens that place. Generating from Home waits for updating from the app.
+→ `internal/recent`; `internal/serve/home.go`; `web/app/src/screens/Home.tsx`
+

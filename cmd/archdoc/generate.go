@@ -36,5 +36,8 @@ func generate(e env, args []string) error {
 func document(e env, root string, o archdoc.GenerateOptions) error {
 	o.Log, o.History = e.out, true
 	_, err := archdoc.Generate(context.Background(), root, o)
+	if err == nil && e.remember && !o.IndexOnly {
+		archdoc.Remember(root) // Home's list; a failure to keep it is no failure of this command
+	}
 	return err
 }

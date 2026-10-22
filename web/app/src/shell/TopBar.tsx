@@ -69,7 +69,7 @@ export function TopBar(props: {
   // Where you are: the repository, the section, and the page or level inside it.
   const section = sectionOf(route.screen)
   const crumbs: { label: string; mono?: boolean; on?: () => void }[] = [
-    ...(parent ? [{ label: parent.label, mono: true, on: parent.open }] : []),
+    ...(parent?.crumbs ?? []).map((c) => ({ label: c.label, mono: true, on: c.open })),
     { label: parent?.repo ?? s.name, mono: true, on: () => go({ screen: 'overview' }) },
     { label: titles[section], on: route.screen !== section || (section === 'explorer' && route.level) ? () => go({ screen: section }) : undefined },
     ...(route.screen !== section ? [{ label: titles[route.screen] }] : []),

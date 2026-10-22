@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { SystemLink, SystemRepo, SystemResponse } from '../api'
 import { RootContext } from '../api'
 import { pinWords, systemSentence } from '../sentence'
+import type { Crumb } from '../shell/parent'
 import { WebsiteBar } from '../shell/WebsiteBar'
 import { Cite } from '../ui/Cite'
 import { Failure, Loading } from '../ui/marks'
@@ -21,7 +22,7 @@ const short = (pkg: string) => (pkg.includes('/') && !pkg.startsWith('@') ? pkg.
  * one required, drift on the arrow; and every link with the lines at both ends — which is also the
  * picture's text alternative (§4.8). A box opens that repository.
  */
-export function SystemMap(props: { sys?: SystemResponse; error?: Error; missing?: string; onOpen: (repo: string) => void; onSystem: () => void }) {
+export function SystemMap(props: { sys?: SystemResponse; error?: Error; missing?: string; above?: Crumb[]; onOpen: (repo: string) => void; onSystem: () => void }) {
   const { sys } = props
   const [chosen, setChosen] = useState<number | null>(null)
 
@@ -30,6 +31,14 @@ export function SystemMap(props: { sys?: SystemResponse; error?: Error; missing?
       <WebsiteBar onStart={props.onSystem}>
         {sys && (
           <nav className="crumbs" aria-label="Where you are">
+            {(props.above ?? []).map((c) => (
+              <span key={c.label} className="crumb-step">
+                <button className="crumb mono" onClick={c.open}>
+                  {c.label}
+                </button>
+                <span className="crumb-sep">›</span>
+              </span>
+            ))}
             <span className="crumb current mono" aria-current="page">
               {sys.name}
             </span>

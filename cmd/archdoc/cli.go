@@ -18,6 +18,9 @@ type env struct {
 	out      io.Writer
 	in       io.Reader
 	terminal bool
+	// remember keeps this machine's list of documented places, which Home shows: the real command
+	// only, so a test never writes into its user's list.
+	remember bool
 }
 
 // command is one thing archdoc does. The table below is the only list of them: the usage text, a
@@ -81,6 +84,9 @@ func init() {
 		{"serve", "<path>", "open the web app for a repository archdoc has documented, or a folder of them",
 			"Serves the app on this machine only. Ctrl-C stops it. A folder holding several documented repositories\n" +
 				"is served as one system: how they fit together, and each one's pages.", groupRead, serveCommand},
+		{"home", "", "open Home: every repository, and folder of them, this machine has documented",
+			"What changed in each since you last opened it here. The list is a file in your user configuration\n" +
+				"folder; generate and serve add to it.", groupRead, homeCommand},
 		{"label", "<path>", "ask Claude for the system's descriptions and relationship labels",
 			"One request with the names, kinds, technologies and relationships of the containers — never a path or\n" +
 				"a line of code. Says what it will send and what it should cost, and asks before sending; --dry-run\n" +

@@ -510,3 +510,34 @@ export interface SystemLink {
   /** Which of the other's code it uses: a commit or a tag, and how far the other has moved since; or the checkout beside it. */
   pin?: { kind: 'commit' | 'tag' | 'checkout'; ref: string; ahead: number }
 }
+
+/** Home: the places this machine remembers, the most recently used first (platform-surface §5.3). */
+export interface HomeResponse {
+  places: HomePlace[]
+}
+
+export interface HomePlace {
+  id: string
+  path: string
+  name: string
+  kind: 'repository' | 'system' | 'missing'
+  /** When it was last opened in the app here; absent when it never was. */
+  opened?: string
+  touched: string
+  /** What is wrong with a place that is missing. */
+  problem?: string
+  repos?: HomeRepo[]
+}
+
+export interface HomeRepo {
+  name: string
+  root: string
+  version: number
+  commit: string
+  created_at: string
+  /** Versions recorded since the place was last opened here; -1 when it never was. */
+  since: number
+  unresolved: number
+  /** Its containers' kinds, in model order: what its card draws. */
+  kinds?: string[]
+}

@@ -6,7 +6,7 @@
 // serve's API ('/api/model?v=3'), which every adapter answers in its own way.
 
 import { createContext, useContext } from 'react'
-import type { SystemResponse } from './api'
+import type { HomePlace, HomeResponse, SystemResponse } from './api'
 
 /** What a place can do. A feature appears only where its capability is true (platform-surface §4.5). */
 export interface Capabilities {
@@ -55,6 +55,18 @@ export interface Source {
    * shows one repository.
    */
   system?: Systems
+  /**
+   * The places this machine remembers (platform-surface §5.3). Given, the app opens on Home, and
+   * each place — a repository, or a system — under it.
+   */
+  home?: Homes
+}
+
+/** Home's places, each one's own Source, and remembering that one was opened. */
+export interface Homes {
+  get(): Promise<HomeResponse>
+  open(place: HomePlace): Source
+  opened(id: string): Promise<void>
 }
 
 /** A system's repositories, and each one's own Source. */

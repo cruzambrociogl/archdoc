@@ -17,3 +17,9 @@ import (
 func ListenAndServe(ctx context.Context, root string, port int, ready func(url string)) error {
 	return serve.ListenAndServe(ctx, root, port, ready)
 }
+
+// ListenAndServeHome serves Home — every repository, and folder of them, this machine remembers —
+// on a local port until ctx ends.
+func ListenAndServeHome(ctx context.Context, port int, ready func(url string)) error {
+	return serve.ListenAndServeHome(ctx, port, ready)
+}

@@ -120,12 +120,13 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 | `internal/rules` | `rules.yaml` — corrections that survive regeneration |
 | `internal/store` | Version history — SQLite, cgo-free. A local cache; git is the archive. Also the one place git is run: a repository at another commit, for `archdoc diff`; commits since a pin, for a system's drift |
 | `internal/system` | Several repositories read together: the links their manifests prove, cited at both ends (platform-surface §4.6) |
+| `internal/recent` | This machine's list of documented places, for Home — a file in the user's configuration folder, written by the CLI only |
 | `internal/semantic` | The network boundary: `--label`, `--explain`, and what each remembers |
 | `internal/render` | Layout, SVG, Mermaid; the list of views; the documents, sized to the project |
 | `internal/arrange` | `layout.yaml`, `views.yaml` — presentation a person saves, applied over the layout |
 | `internal/serve` | Local HTTP, the action gate, the published-site export, embedded web assets |
-| `archdoc` (the module root) | **The public API** — `Generate`, `Diff`/`Compare`, `Status`, `BuildSite`, `Read`, `Find`, `OpenHistory`, `Fingerprint`, `Init`; the pipeline's one door. Types are aliases of `internal/core`. Prints nothing itself: output goes to the caller's `Log` writer; paid runs ask the caller's `Consent` |
-| `server` | Serves the app for one repository, or a folder of them as a system — public, and apart from the root so the API never imports `net/http` |
+| `archdoc` (the module root) | **The public API** — `Generate`, `Diff`/`Compare`, `Status`, `BuildSite`, `Read`, `Find`, `OpenHistory`, `Fingerprint`, `Init`, `Remember`/`Opened` (Home's list); the pipeline's one door. Types are aliases of `internal/core`. Prints nothing itself: output goes to the caller's `Log` writer; paid runs ask the caller's `Consent` |
+| `server` | Serves the app for one repository, a folder of them as a system, or Home — public, and apart from the root so the API never imports `net/http` |
 | `cmd/archdoc` | CLI — flags and printing over package `archdoc`. Imports nothing from `internal/` (CI: Public API) |
 
 `output` lives as files inside the packages that use it until coupling earns it a package.

@@ -58,11 +58,25 @@ export function localAt(prefix: string): Source {
 
 export const local = localAt('')
 
-/** A folder of repositories served as one system: its map, and each repository under its name. */
-export const system: Source = {
+/** A folder of repositories served as one system, at prefix: its map, and each repository under its name. */
+function systemAt(prefix: string): Source {
+  return {
+    ...localAt(prefix),
+    system: {
+      get: () => read(`${prefix}/api/system`).then((r) => r.json()),
+      open: (repo) => localAt(`${prefix}/repos/${encodeURIComponent(repo)}`),
+    },
+  }
+}
+
+export const system = systemAt('')
+
+/** `archdoc home`: every place this machine remembers, each under /at/{id}. */
+export const home: Source = {
   ...local,
-  system: {
-    get: () => read('/api/system').then((r) => r.json()),
-    open: (repo) => localAt(`/repos/${encodeURIComponent(repo)}`),
+  home: {
+    get: () => read('/api/home').then((r) => r.json()),
+    open: (place) => (place.kind === 'system' ? systemAt : localAt)(`/at/${place.id}`),
+    opened: (id) => local.act('/api/home/open', { id }),
   },
 }

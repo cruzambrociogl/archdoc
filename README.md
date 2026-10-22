@@ -484,6 +484,10 @@ Served on a folder that holds several documented repositories, the app opens on 
 map**: how they fit together — which repository requires which one's package, cited at both ends,
 and how far a pinned commit is behind — and each repository's pages under it.
 
+`./archdoc home` opens **Home**: every repository and system this machine has documented or served,
+and what changed in each since you last opened it here. `generate` and `serve` remember the folder in
+a file in your user configuration folder — never in the repository.
+
 | Screen | What it answers |
 |---|---|
 | **Overview** | What the system is, how much of it is interpreted, what has ever left the machine, what changed |

@@ -84,6 +84,12 @@ repository's API under `/repos/{name}/`; the local Source then has `system` — 
 one repository's Source. Given it, `App` shows the System map at `/` and each repository's pages at
 `/repos/{name}`, after `#`, with the system first in the breadcrumb.
 
+**Home.** `archdoc home` answers `/api/home` and each remembered place's API under `/at/{id}/`; its
+Source has `home` — list the places, open one's Source (a repository's, or a system's), remember it
+was opened. Given it, `App` shows Home at `/` and each place at `/at/{id}`, Home first in the
+breadcrumb; with one place it opens that place. The levels above a repository move by path
+(`shell/path.ts`), and a repository's own pages stay after `#`.
+
 **Reading on request.** The website's Source also has `runs`: ask for a repository by its link,
 follow the run, open a finished run's documentation as a Source of its own. Given it, `App` shows
 Start (`/`, `/new?repo=…`) and Generating (`/runs/{id}`) — platform-surface §5.1–5.2 — and then that
@@ -113,13 +119,14 @@ app/src/                 @archdoc/app
   shell/                 TopBar (breadcrumb, status, search, Share, ⋯), Nav (the six entries and Settings),
                          Rail (the right rail; the first-visit band), Palette (⌘K), Shortcuts (?),
                          Website (Start, then a run, by path) and WebsiteBar (their top bar), SystemSite (a
-                         system's map, then a repository, by path) and parent (the level above, for the
+                         system's map, then a repository, by path), HomeSite (Home, then a place, by path),
+                         path (the path those levels share) and parent (the levels above, for the
                          breadcrumb), Notice (the
                          band above the page: unreachable, offline, a newer version, what a host says)
   screens/               Overview, Changes, Features (What it does), Reference, About (with Coverage), Documents,
                          Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector;
                          Start and Generating, the website's; Gone (a page, version or part a link names
-                         and this place doesn't have); SystemMap (how a system's repositories fit together)
+                         and this place doesn't have); SystemMap (how a system's repositories fit together); Home
   screens/explorer/      Explorer, scene.ts (scene → React Flow; the draft preview; the change overlay),
                          parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView
   ui/                    Cite, TruthMark/TruthChip, markInfo (the four marks, what each means), KindTile,

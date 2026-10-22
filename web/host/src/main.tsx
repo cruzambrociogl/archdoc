@@ -6,16 +6,20 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { Source } from '@archdoc/app'
 import { App, SourceProvider } from '@archdoc/app'
-import { local, system } from './adapters/local'
+import { home, local, system } from './adapters/local'
 import { published } from './adapters/published'
 
 const isPublished = !!document.querySelector('meta[name="archdoc-mode"][content="published"]')
 
-// archdoc serve on a folder of repositories answers /api/system; on one repository, it says there is none.
+// archdoc home answers /api/home; archdoc serve on a folder of repositories answers /api/system; on
+// one repository, it says there is neither.
 async function place(): Promise<Source> {
   if (isPublished) return published
-  const r = await fetch('/api/system').catch(() => undefined)
-  return r?.ok ? system : local
+  for (const [path, source] of [['/api/home', home], ['/api/system', system]] as const) {
+    const r = await fetch(path).catch(() => undefined)
+    if (r?.ok) return source
+  }
+  return local
 }
 
 place().then((source) =>

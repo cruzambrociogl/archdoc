@@ -12,6 +12,16 @@ import (
 // /api/system, and each repository's own API under /repos/{name}/ — the same endpoints, answered by
 // a server of its own, with its own session token for its own actions.
 func NewSystem(dir string) (http.Handler, error) {
+	mux, err := systemMux(dir)
+	if err != nil {
+		return nil, err
+	}
+	mux.Handle("/", frontend())
+	return thisMachine(mux), nil
+}
+
+// systemMux is a system's API alone — what Home mounts under a place's address too.
+func systemMux(dir string) (*http.ServeMux, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
@@ -43,8 +53,7 @@ func NewSystem(dir string) (http.Handler, error) {
 		http.StripPrefix("/repos/"+r.PathValue("name"), s.mux).ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { notFound(w, "no such endpoint: "+r.URL.Path) })
-	mux.Handle("/", frontend())
-	return thisMachine(mux), nil
+	return mux, nil
 }
 
 // systemJSON is the system as the app reads it: each repository with what its latest version

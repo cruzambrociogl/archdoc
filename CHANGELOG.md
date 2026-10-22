@@ -28,6 +28,10 @@ what is different for a user.
   repositories opens the System map: how they fit together, in a sentence and a picture — each link
   one repository's requirement of another's package, cited at both ends — and how far a pinned
   commit or tag is behind. Each repository's pages open from it. Go modules' requirements are read.
+- **Home: `archdoc home`.** Every repository, and folder of them, this machine has documented or
+  served, with what changed in each since you last opened it here, what couldn't be resolved, and
+  when it last changed. The list is a file in your user configuration folder, never in a repository;
+  `generate` and `serve` add to it. With one place there is no Home: it opens that place.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

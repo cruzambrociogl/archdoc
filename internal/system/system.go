@@ -198,3 +198,39 @@ func pin(version, fromDir, toDir string, to Repo, ahead Ahead) *Pin {
 	}
 	return nil
 }
+
+// Versions is each repository's latest version at a place: one repository, or every one of a
+// system — what Home remembers as seen when the place is opened.
+func Versions(path string) (map[string]int64, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	roots := []string{abs}
+	if !IsRepo(abs) {
+		sys, err := Read(abs)
+		if err != nil {
+			return nil, err
+		}
+		roots = roots[:0]
+		for _, r := range sys.Repos {
+			roots = append(roots, r.Root)
+		}
+	}
+	out := map[string]int64{}
+	for _, root := range roots {
+		s, err := store.Open(root)
+		if err != nil {
+			return nil, err
+		}
+		v, err := s.Latest()
+		s.Close()
+		if err != nil {
+			return nil, err
+		}
+		if v != nil {
+			out[root] = v.ID
+		}
+	}
+	return out, nil
+}

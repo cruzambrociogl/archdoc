@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	err := runIn(env{out: os.Stdout, in: os.Stdin, terminal: interactive(os.Stdin)}, os.Args[1:])
+	err := runIn(env{out: os.Stdout, in: os.Stdin, terminal: interactive(os.Stdin), remember: true}, os.Args[1:])
 	code := exitCode(err)
 	if code != 0 {
 		fmt.Fprintln(os.Stderr, "archdoc:", err)

@@ -135,6 +135,16 @@ func ListenAndServe(ctx context.Context, root string, port int, ready func(url s
 	if err != nil {
 		return err
 	}
+	return listen(ctx, srv, port, ready)
+}
+
+// ListenAndServeHome serves Home (home.go) until ctx ends: every place this machine remembers.
+func ListenAndServeHome(ctx context.Context, port int, ready func(url string)) error {
+	return listen(ctx, NewHome(), port, ready)
+}
+
+// listen serves a handler on the loopback interface only, until ctx ends.
+func listen(ctx context.Context, srv http.Handler, port int, ready func(url string)) error {
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return err

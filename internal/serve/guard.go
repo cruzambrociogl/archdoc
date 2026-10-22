@@ -45,7 +45,10 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request) {
 
 // action wraps a handler that runs or writes something, so that only this server's own page can
 // trigger it. Every action endpoint is registered through it; none is registered without it.
-func (s *Server) action(h http.HandlerFunc) http.HandlerFunc {
+func (s *Server) action(h http.HandlerFunc) http.HandlerFunc { return gated(s.token, h) }
+
+// gated is the gate itself, for a token: a repository's server, or Home's.
+func gated(token string, h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			refuse(w, http.StatusMethodNotAllowed, "actions are POST requests")
@@ -62,7 +65,7 @@ func (s *Server) action(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		got := r.Header.Get(TokenHeader)
-		if got == "" || subtle.ConstantTimeCompare([]byte(got), []byte(s.token)) != 1 {
+		if got == "" || subtle.ConstantTimeCompare([]byte(got), []byte(token)) != 1 {
 			refuse(w, http.StatusForbidden, "an action must carry this session's token")
 			return
 		}

@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/cruzambrociogl/archdoc"
 	"github.com/cruzambrociogl/archdoc/server"
 )
 
@@ -32,6 +33,9 @@ func serveCommand(e env, args []string) error {
 	defer stop()
 
 	return server.ListenAndServe(ctx, root, *port, func(url string) {
+		if e.remember {
+			archdoc.Opened(root) // Home's list: opened now, at these versions
+		}
 		fmt.Fprintf(e.out, "archdoc serving %s at %s — this machine only. Ctrl-C to stop.\n", root, url)
 		if *open {
 			if err := browse(url); err != nil {
@@ -51,4 +55,29 @@ func browse(url string) error {
 		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	}
 	return exec.Command("xdg-open", url).Start()
+}
+
+// homeCommand opens Home: every repository and folder of them this machine has documented or served
+// (platform-surface §5.3), and what changed in each since it was last opened here.
+func homeCommand(e env, args []string) error {
+	fs := flags("home")
+	port := fs.Int("port", 7474, "local `port` to serve on; only this machine can connect")
+	open := fs.Bool("open", false, "open Home in the browser once it is serving")
+	positional, err := parse(e, fs, args, nil)
+	if err != nil {
+		return err
+	}
+	if len(positional) > 0 {
+		return usagef("home takes no path: it shows every place this machine remembers")
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	return server.ListenAndServeHome(ctx, *port, func(url string) {
+		fmt.Fprintf(e.out, "archdoc Home at %s — this machine only. Ctrl-C to stop.\n", url)
+		if *open {
+			if err := browse(url); err != nil {
+				fmt.Fprintf(e.out, "could not open a browser (%v) — open %s yourself\n", err, url)
+			}
+		}
+	})
 }
