@@ -101,14 +101,18 @@ app/src/                 @archdoc/app
   source.ts              Source and Capabilities — the contract every place implements
   App.tsx                the shell and which screen to show; the website's pages when the Source has runs
   api.ts                 the data types; useApi; citation links through the Source
+  connection.ts          whether the place answers: a read nothing answered marks it down, the shell asks
+                         again, and every failed read is asked again when it answers (§4.8)
   route.ts               URL state: each screen's path, title and menu section; the Map levels' plain names
   theme.ts               light / dark / system, per viewer
   shell/                 TopBar (breadcrumb, status, search, Share, ⋯), Nav (the six entries and Settings),
                          Rail (the right rail; the first-visit band), Palette (⌘K), Shortcuts (?),
-                         Website (Start, then a run, by path) and WebsiteBar (their top bar)
+                         Website (Start, then a run, by path) and WebsiteBar (their top bar), Notice (the
+                         band above the page: unreachable, offline, a newer version, what a host says)
   screens/               Overview, Changes, Features (What it does), Reference, About (with Coverage), Documents,
                          Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector;
-                         Start and Generating, the website's
+                         Start and Generating, the website's; Gone (a page, version or part a link names
+                         and this place doesn't have)
   screens/explorer/      Explorer, scene.ts (scene → React Flow; the draft preview; the change overlay),
                          parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView
   ui/                    Cite, TruthMark/TruthChip, markInfo (the four marks, what each means), KindTile,

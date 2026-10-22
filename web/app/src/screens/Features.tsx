@@ -36,7 +36,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
   }, [m.data, find])
 
   if (m.error) return <Failure error={m.error} />
-  if (!m.data) return <Loading />
+  if (!m.data) return <Loading what="every entry point" />
   const model = m.data.model
   const entries = model.entries ?? []
   const unresolved = model.unresolved ?? []

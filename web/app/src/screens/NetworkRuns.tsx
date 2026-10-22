@@ -14,7 +14,7 @@ export function NetworkRuns(props: { route: Route; go: (r: Partial<Route>, o?: {
   const can = useCapabilities()
   const runs = useApi<Run[]>('/api/runs')
   if (runs.error) return <Failure error={runs.error} />
-  if (!runs.data) return <Loading />
+  if (!runs.data) return <Loading what="what left this machine" />
   const list = runs.data
 
   if (!list.length) {
@@ -91,7 +91,7 @@ const modes: Record<string, string> = {
 function RunDetail({ id, go }: { id: number; go: (r: Partial<Route>) => void }) {
   const run = useApi<Run & { exchanges: Exchange[] | null }>(`/api/runs/${id}`)
   if (run.error) return <Failure error={run.error} />
-  if (!run.data) return <Loading />
+  if (!run.data) return <Loading what="the run’s requests" />
   const r = run.data
   const ex = r.exchanges ?? []
 

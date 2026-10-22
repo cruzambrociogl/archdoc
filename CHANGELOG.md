@@ -20,6 +20,10 @@ what is different for a user.
   every published site's page — that allows only its own scripts.
 - **Published sites show the documents' diagrams.** An exported site now carries the SVGs its
   generated documents name; before, the documents rendered with broken images.
+- **The app says what went wrong, and what still works.** When `archdoc serve` stops, a notice says
+  so and the page reconnects by itself; a version recorded from a terminal while the app is open is
+  announced, never swapped in; a link to a page, version or part that is gone says where it went.
+  The Overview's picture can be read as a list, and reduced motion is honoured.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

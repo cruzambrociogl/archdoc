@@ -5,7 +5,7 @@ import { RootContext, useApi } from './api'
 import { useCapabilities, useSource } from './source'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
-import { fromOldHash, parseSearch, stringifySearch, titles, useRoute } from './route'
+import { fromOldHash, parseSearch, stringifySearch, titles, useRoute, useUnknownPath } from './route'
 import { useTheme } from './theme'
 import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
@@ -26,8 +26,11 @@ import { NetworkRuns } from './screens/NetworkRuns'
 import { Planned } from './screens/Planned'
 import { Reference } from './screens/Reference'
 import { About } from './screens/About'
+import { Gone } from './screens/Gone'
 import { AskDock } from './ui/Planned'
 import { Website } from './shell/Website'
+import { NoticeBand } from './shell/Notice'
+import { useReconnect } from './connection'
 
 
 /**
@@ -67,7 +70,9 @@ function Shell() {
   const summary = useApi<Summary>('/api/summary')
   const versions = useApi<Version[]>('/api/versions')
   const [route, go] = useRoute()
+  const unknownPath = useUnknownPath()
   const can = useCapabilities()
+  useReconnect(useSource())
   const [theme, nextTheme] = useTheme()
   const [navOpen, setNavOpen] = useState(false)
   const [viewsKey, setViewsKey] = useState(0)
@@ -116,10 +121,12 @@ function Shell() {
     document.title = repo ? `${titles[route.screen]} · ${repo} · archdoc` : 'archdoc'
   }, [route.screen, summary.data?.name])
 
-  if (summary.error) return <main className="boot"><Failure error={summary.error} /></main>
-  if (!summary.data) return <main className="boot"><Loading /></main>
+  if (summary.error) return <main className="boot"><Failure error={summary.error} whole /></main>
+  if (!summary.data) return <main className="boot"><Loading what="the repository" /></main>
   const s = summary.data
   const version = route.v ?? null
+  // A link to a version this place doesn't have says so, rather than showing another (§4.8).
+  const versionGone = route.v !== undefined && !!versions.data && !versions.data.some((v) => v.id === route.v)
 
   return (
     <RootContext.Provider value={{ root: s.root, remote: session.data?.remote, commit: session.data?.commit }}>
@@ -144,23 +151,32 @@ function Shell() {
           <Nav summary={s} route={route} go={go} open={navOpen} coverage={coverage.data} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <div className="main-col">
+          <NoticeBand summary={s} />
           <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
-            {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
-            {route.screen === 'explorer' && (
-              <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} />
+            {unknownPath ? (
+              <Gone kind="page" address={unknownPath} go={go} />
+            ) : versionGone ? (
+              <Gone kind="version" v={route.v!} versions={versions.data!} name={s.name} go={go} />
+            ) : (
+              <>
+                {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
+                {route.screen === 'explorer' && (
+                  <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} />
+                )}
+                {route.screen === 'features' && <WhatItDoes version={version} go={go} />}
+                {route.screen === 'entries' && <Features version={version} route={route} go={go} />}
+                {route.screen === 'component' && <Component version={version} route={route} go={go} />}
+                {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
+                {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} />}
+                {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
+                {route.screen === 'reference' && <Reference summary={s} coverage={coverage.data} go={go} />}
+                {route.screen === 'about' && <About summary={s} session={session.data} go={go} />}
+                {route.screen === 'plan' && <Planned route={{ ...route, focus: 'intent' }} />}
+                {route.screen === 'rules' && <Corrections />}
+                {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
+                {route.screen === 'planned' && <Planned route={route} />}
+              </>
             )}
-            {route.screen === 'features' && <WhatItDoes version={version} go={go} />}
-            {route.screen === 'entries' && <Features version={version} route={route} go={go} />}
-            {route.screen === 'component' && <Component version={version} route={route} go={go} />}
-            {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
-            {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} />}
-            {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
-            {route.screen === 'reference' && <Reference summary={s} coverage={coverage.data} go={go} />}
-            {route.screen === 'about' && <About summary={s} session={session.data} go={go} />}
-            {route.screen === 'plan' && <Planned route={{ ...route, focus: 'intent' }} />}
-            {route.screen === 'rules' && <Corrections />}
-            {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
-            {route.screen === 'planned' && <Planned route={route} />}
           </main>
           {route.screen !== 'explorer' && <AskDock go={go} />}
           </div>

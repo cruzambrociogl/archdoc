@@ -36,3 +36,15 @@ pre,
 .strong {
   font-weight: 600;
 }
+
+/* Reduced motion (§4.8): nothing fades, slides or pulses. Each screen may say more; this is the floor. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

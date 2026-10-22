@@ -119,6 +119,12 @@ export function fromOldHash(hash: string): string | undefined {
 
 type Go = (next: Partial<Route>, opts?: { replace?: boolean; keep?: boolean }) => void
 
+/** The address, when no page lives there — a link to a page that is gone (§4.8). */
+export function useUnknownPath(): string | undefined {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  return screenAt(pathname) || pathname === '/' ? undefined : pathname
+}
+
 /**
  * The current route, and a way to move. `go` replaces the screen-specific state unless it is
  * passed again; the version on screen (`v`) is carried across screens.

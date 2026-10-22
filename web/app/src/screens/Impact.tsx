@@ -15,7 +15,7 @@ export function Impact(props: { element: string; version: number | null; go: (r:
   const q = props.version ? `?version=${props.version}` : ''
   const m = useApi<ModelResponse>(`/api/model${q}`)
   if (m.error) return <Failure error={m.error} />
-  if (!m.data) return <Loading />
+  if (!m.data) return <Loading what="what it touches" />
   const model = m.data.model
   const nodes = new Map((model.nodes ?? []).map((n) => [n.id, n]))
   const node = nodes.get(props.element)

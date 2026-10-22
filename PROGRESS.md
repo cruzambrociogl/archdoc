@@ -27,7 +27,11 @@ and cited, and the Overview opens with the repository's own description where a 
 renders a hosted repository itself, so what a repository says is escaped and sanitised before it is
 shown, the app runs under a Content-Security-Policy, and published sites carry their documents'
 diagrams. The website's own pages are the app's too — Start and Generating, through a Source that
-reads repositories on request. **The plan across
+reads repositories on request. The §4.8 states that apply today are built: a notice band — archdoc
+unreachable or offline, with each failed page asked again on reconnecting; a newer version, never
+swapped in; the website's unchanged run — errors that say what still works, loading that says what
+for, links to a page, version or part that is gone, the Overview's picture as a list, reduced motion.
+**The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
 

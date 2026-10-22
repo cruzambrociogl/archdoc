@@ -996,3 +996,58 @@ button.legend-row:hover {
   padding: 8px 16px 10px;
   border-bottom: 1px solid var(--rule-soft);
 }
+
+/* A notice above the page (platform-surface §4.8; App.dc.html): what happened, what is still true,
+   what to do. One at a time; the page under it never changes on its own. */
+.page-notice {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px clamp(16px, 4vw, 28px) 13px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.page-notice-glyph {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  box-sizing: border-box;
+  border: 1.3px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 9px var(--font-mono);
+}
+.page-notice-glyph.glyph-warn,
+.page-notice-glyph.glyph-changed {
+  border-radius: 3px;
+}
+.page-notice-glyph.glyph-info {
+  border-radius: 50%;
+}
+.page-notice-body {
+  min-width: 0;
+  max-width: 780px;
+  display: grid;
+  gap: 2px;
+}
+.page-notice-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  align-items: baseline;
+}
+.page-notice-what {
+  font-weight: 600;
+  text-wrap: pretty;
+}
+.page-notice-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  margin-top: 8px;
+}

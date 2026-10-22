@@ -91,7 +91,7 @@ export function Changes(props: { versions: Version[]; route: Route; go: (r: Part
               </Planned>
             </div>
             <PlannedSlot id="session-summary" go={props.go} />
-            {diff.loading && <Loading />}
+            {diff.loading && <Loading what="the comparison" />}
             {diff.error && <Failure error={diff.error} />}
             {diff.data && <Diff d={diff.data} name={name} kind={kind} />}
           </>

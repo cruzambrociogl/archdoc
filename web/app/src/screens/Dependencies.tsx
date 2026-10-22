@@ -13,7 +13,7 @@ export function Dependencies(props: { version: number | null; route: Route; go: 
   const q = props.version ? `?version=${props.version}` : ''
   const m = useApi<ModelResponse>(`/api/model${q}`)
   if (m.error) return <Failure error={m.error} />
-  if (!m.data) return <Loading />
+  if (!m.data) return <Loading what="what it relies on" />
   const model = m.data.model
   const deps = model.dependencies ?? []
   const names = new Map((model.nodes ?? []).map((n) => [n.id, n.name]))

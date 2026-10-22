@@ -21,7 +21,7 @@ export function WhatItDoes(props: { version: number | null; go: (r: Partial<Rout
   const features = useMemo(() => featuresOf(m.data?.model.entries ?? []), [m.data])
 
   if (m.error) return <Failure error={m.error} />
-  if (!m.data) return <Loading />
+  if (!m.data) return <Loading q="What can it do, and how does each thing work?" what="its routes" />
   const flows = new Set((m.data.model.flows ?? []).map((f) => f.entry))
   const shown = all ? features : features.slice(0, 5)
 

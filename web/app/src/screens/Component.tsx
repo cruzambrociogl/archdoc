@@ -5,6 +5,7 @@ import { Cite } from '../ui/Cite'
 import { Planned, PlannedSlot } from '../ui/Planned'
 import { KindTile } from '../ui/KindTile'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
+import { Gone } from './Gone'
 
 /**
  * A component's page (surface-spec §5.4, F-19): what this part of the system is, where it is in
@@ -15,11 +16,14 @@ export function Component(props: { version: number | null; route: Route; go: (r:
   const q = props.version ? `?version=${props.version}` : ''
   const m = useApi<ModelResponse>(`/api/model${q}`)
   if (m.error) return <Failure error={m.error} />
-  if (!m.data) return <Loading />
+  if (!m.data) return <Loading what="the component" />
   const model = m.data.model
   const nodes = model.nodes ?? []
   const byId = new Map(nodes.map((n) => [n.id, n]))
   const node = byId.get(props.route.focus ?? '')
+  if (props.route.focus && !node) {
+    return <Gone kind="part" id={props.route.focus} shown={m.data.version} name={model.name} go={props.go} />
+  }
   if (!node || node.kind !== 'component') {
     return (
       <div className="reading">

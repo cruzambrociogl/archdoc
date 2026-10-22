@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { retryFailed } from '../connection'
 
 // The three truth states (surface-spec §0, §6.1). Each has its own form, so they survive greyscale,
 // print and colour blindness: proven is a solid square, interpreted a slate diamond, unresolved a
@@ -23,12 +24,37 @@ export function TruthChip({ state }: { state: Truth }) {
   )
 }
 
-export function Loading() {
-  return <p className="state-line">Loading…</p>
+/**
+ * Waiting, and for what (rule 11): never a spinner alone. A page passes its question, which the
+ * route already knows, so the page says what it answers before its answer arrives (§4.8).
+ */
+export function Loading({ what, q }: { what?: string; q?: string }) {
+  return (
+    <>
+      {q && <div className="page-q">{q}</div>}
+      <p className="state-line" role="status">
+        {what ? `Loading ${what}…` : 'Loading…'}
+      </p>
+    </>
+  )
 }
 
-export function Failure({ error }: { error: string }) {
-  return <p className="state-line state-error">{error}</p>
+/**
+ * A read that failed (platform-surface §4.8): what happened, what is still true, and what to do.
+ * `whole` when nothing else can be shown without it.
+ */
+export function Failure({ error, whole }: { error: string; whole?: boolean }) {
+  return (
+    <div className="failure" role="alert">
+      <p className="state-line state-error">This couldn’t be loaded: {error.replace(/\.$/, '')}.</p>
+      <p className="state-line">
+        {whole ? 'Nothing can be shown without it.' : 'The rest of the app still works.'}{' '}
+        <button className="link-btn" onClick={retryFailed}>
+          Try again
+        </button>
+      </p>
+    </div>
+  )
 }
 
 /** An eyebrow: the small uppercase label that heads a section. */

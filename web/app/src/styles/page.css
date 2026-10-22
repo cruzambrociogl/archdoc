@@ -1731,3 +1731,34 @@ button.runs-row:hover {
     flex-direction: column;
   }
 }
+
+/* A link to something not here (§4.8): what is missing, then where to go. */
+.gone-more {
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 12px 0 0;
+  text-wrap: pretty;
+}
+.gone .doors {
+  max-width: 600px;
+}
+
+/* The Overview's picture, as a list (§4.8): the text alternative, on request. */
+.picture-toggle {
+  display: block;
+  margin-top: 6px;
+}
+.parts-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--rule-soft);
+  max-width: 720px;
+}
+.parts-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: var(--t-body);
+  line-height: 1.5;
+}

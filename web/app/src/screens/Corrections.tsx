@@ -31,7 +31,7 @@ export function Corrections() {
   const r = useApi<RulesResponse>('/api/rules')
   const link = useEditorLink()
   if (r.error) return <Failure error={r.error} />
-  if (!r.data) return <Loading />
+  if (!r.data) return <Loading what="your corrections" />
   const { file, rules, findings } = r.data
   const ops = r.data.operations ?? []
 

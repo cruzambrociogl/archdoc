@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { CoverageResponse, ModelResponse, Summary, Version } from '../api'
+import type { CoverageResponse, Model, ModelResponse, Node, Summary, Version } from '../api'
 import { useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
@@ -19,9 +19,11 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
   const q = props.version ? `?version=${props.version}` : ''
   const m = useApi<ModelResponse>(`/api/model${q}`)
   const [evidence, setEvidence] = useState(false)
+  // The picture as a list (§4.8, a text alternative for every diagram): on request, and always for a screen reader.
+  const [asList, setAsList] = useState(false)
 
   if (m.error) return <Failure error={m.error} />
-  if (!m.data) return <Loading />
+  if (!m.data) return <Loading q="What is this?" what="its parts and how they connect" />
   const { model, container, context } = m.data
   const system = (context.nodes ?? []).find((n) => n.kind === 'system')
   const purpose = system?.description
@@ -100,7 +102,7 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
       )}
 
       {/* One picture: the most useful level, a way into the Map (§6.1, item 2). */}
-      {!props.summary.tiny && parts.length > 0 && (
+      {!props.summary.tiny && parts.length > 0 && !asList && (
         <button className="thumb overview-picture" onClick={() => props.go({ screen: 'explorer', level: 'container' })} aria-label="Apps and services — open the map">
           <div className="thumb-boundary">
             {parts.slice(0, 12).map((n) => (
@@ -114,6 +116,15 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
             <span className="btn btn-ink">Open the map →</span>
           </div>
         </button>
+      )}
+
+      {!props.summary.tiny && parts.length > 0 && (
+        <>
+          <button className="link-btn picture-toggle" aria-expanded={asList} onClick={() => setAsList((l) => !l)}>
+            {asList ? 'Show the picture' : 'Read the picture as a list'}
+          </button>
+          <PartsList parts={parts} graph={container} open={asList ? open : undefined} />
+        </>
       )}
 
       {/* Trust in one sentence — the one second sentence the density budget allows. It opens About these docs. */}
@@ -143,5 +154,35 @@ function Sentence({ pieces, open }: { pieces: Piece[]; open: (id: string) => voi
         ),
       )}
     </>
+  )
+}
+
+/**
+ * The picture's parts and what each calls, as a list: shown when asked for, and otherwise there
+ * for a screen reader alone, without anything to focus.
+ */
+function PartsList({ parts, graph, open }: { parts: Node[]; graph: Model; open?: (id: string) => void }) {
+  const byId = new Map((graph.nodes ?? []).map((n) => [n.id, n]))
+  const calls = (id: string) => [...new Set((graph.edges ?? []).filter((e) => e.from === id && byId.has(e.to)).map((e) => byId.get(e.to)!.name))]
+  return (
+    <ul className={open ? 'parts-list' : 'visually-hidden'} aria-label="Apps and services, as a list">
+      {parts.map((n) => {
+        const to = calls(n.id)
+        return (
+          <li key={n.id}>
+            {open ? (
+              <button className="part-link" onClick={() => open(n.id)}>
+                {n.name}
+              </button>
+            ) : (
+              n.name
+            )}{' '}
+            <span className="muted small">{kindStyle(n.kind).label}{n.technology ? ` · ${n.technology}` : ''}</span>
+            {n.description && <div>{n.description}</div>}
+            {to.length > 0 && <div className="muted">Calls {to.join(', ')}.</div>}
+          </li>
+        )
+      })}
+    </ul>
   )
 }

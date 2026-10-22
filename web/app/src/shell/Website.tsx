@@ -5,6 +5,8 @@ import { SourceProvider } from '../source'
 import { Start } from '../screens/Start'
 import { Generating } from '../screens/Generating'
 import { Loading } from '../ui/marks'
+import type { Notice } from './Notice'
+import { NoticeProvider } from './Notice'
 
 /** Where on the website: Start (`/`, `/new?repo=…`), or one read (`/runs/{id}`). After `#`, the repository's own pages. */
 type Where = { page: 'start'; repo?: string } | { page: 'run'; id: number }
@@ -68,20 +70,48 @@ function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onSta
 
   const documented = run && (run.status === 'done' || run.status === 'unchanged') ? run : undefined
   const source = useMemo(() => documented && runs.open(documented), [documented, runs])
+  const notices = useMemo(() => (documented ? unchanged(documented) : []), [documented])
 
   if (source) {
     return (
       <SourceProvider value={source}>
-        <Repository />
+        <NoticeProvider value={notices}>
+          <Repository />
+        </NoticeProvider>
       </SourceProvider>
     )
   }
   if (!run && !error) {
     return (
       <main className="boot">
-        <Loading />
+        <Loading what="the run" />
       </main>
     )
   }
   return <Generating run={run} error={error} runs={runs} onRun={props.onRun} onStart={props.onStart} />
+}
+
+const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+
+/** A run that found the architecture unchanged shows the version before it, and says so. */
+function unchanged(r: HostedRun): Notice[] {
+  if (r.status !== 'unchanged' || !r.version_commit) return []
+  return [
+    {
+      id: `unchanged-${r.id}`,
+      glyph: 'info',
+      what: (
+        <>
+          The architecture hasn’t changed since these docs were made, from commit <span className="mono">{r.version_commit.slice(0, 7)}</span>
+          {r.version_finished_at ? ` on ${day(r.version_finished_at)}` : ''}.
+        </>
+      ),
+      still: (
+        <>
+          archdoc read {r.owner}/{r.name} again{r.commit ? <> at <span className="mono">{r.commit.slice(0, 7)}</span></> : ''}
+          {r.finished_at ? ` on ${day(r.finished_at)}` : ''} and found the same parts and connections.
+        </>
+      ),
+    },
+  ]
 }

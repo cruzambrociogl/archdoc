@@ -2,8 +2,16 @@
 // nothing of its own: every value on screen is one of these, as the engine stored it.
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import type { Place } from './source'
+import type { Capabilities, Place } from './source'
 import { useSource } from './source'
+import { reached, unanswered, unreachable, useConnection } from './connection'
+
+/** What nothing answering means, in each place. */
+export const notAnswering: Record<Capabilities['place'], string> = {
+  local: 'archdoc serve isn’t answering',
+  published: 'this site isn’t answering',
+  hosted: 'archdoc isn’t answering',
+}
 
 export type { Place }
 
@@ -403,8 +411,11 @@ export interface CompletenessResponse {
 /** Fetches path whenever it changes; null fetches nothing. Stale answers are never shown. */
 export function useApi<T>(path: string | null, as: 'json' | 'text' = 'json') {
   const source = useSource()
+  const { epoch } = useConnection()
   // A path that differs only by a trailing `#n` is fetched again: that is how a screen reloads.
   const [state, setState] = useState<{ path?: string; data?: T; error?: string }>({})
+  // A read that failed is asked again when the place answers again, or on Try again.
+  const retry = state.path === path && state.error !== undefined ? epoch : 0
   useEffect(() => {
     if (!path) return
     let live = true
@@ -412,13 +423,19 @@ export function useApi<T>(path: string | null, as: 'json' | 'text' = 'json') {
       .get(path)
       .then((r) => (as === 'json' ? r.json() : r.text()))
       .then(
-        (data) => live && setState({ path, data: data as T }),
-        (e: Error) => live && setState({ path, error: e.message }),
+        (data) => {
+          reached()
+          if (live) setState({ path, data: data as T })
+        },
+        (e: Error) => {
+          if (unanswered(e)) unreachable()
+          if (live) setState({ path, error: unanswered(e) ? notAnswering[source.capabilities.place] : e.message })
+        },
       )
     return () => {
       live = false
     }
-  }, [path, as, source])
+  }, [path, as, source, retry])
   const current = state.path === path
   return {
     data: current ? state.data : undefined,

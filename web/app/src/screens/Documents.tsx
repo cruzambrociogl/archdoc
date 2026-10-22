@@ -47,7 +47,7 @@ export function Documents(props: { version: number | null; route: Route; go: (r:
 
   if (docs.error) return <Failure error={docs.error} />
   if (comp.error) return <Failure error={comp.error} />
-  if (!docs.data || !comp.data) return <Loading />
+  if (!docs.data || !comp.data) return <Loading what="the documentation" />
 
   const gen = (docs.data.generated ?? []).filter((f) => f.endsWith('.md'))
   const sections: Entry[] = [
@@ -141,7 +141,7 @@ function Generated({ entry, onOpen }: { entry: Entry; dir: string; onOpen: (f: s
   const link = useEditorLink()
   const source = useSource()
   if (doc.error) return <Failure error={doc.error} />
-  if (doc.data === undefined) return <Loading />
+  if (doc.data === undefined) return <Loading what="the document" />
 
   const text = doc.data.replace(/<!--[\s\S]*?-->/g, '')
   // Relative references point beside the document: generated files through the API (and
@@ -199,7 +199,7 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
             ) : q.error ? (
               <Failure error={q.error} />
             ) : (
-              <Loading />
+              <Loading what="the questions" />
             )}
           </>
         ) : (

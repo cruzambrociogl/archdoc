@@ -65,7 +65,7 @@ export function Coverage(props: { go: (r: Partial<Route>) => void }) {
   const c = useApi<CoverageResponse>('/api/coverage')
   const [open, setOpen] = useState<Record<string, boolean>>({})
   if (c.error) return <Failure error={c.error} />
-  if (!c.data) return <Loading />
+  if (!c.data) return <Loading what="what archdoc could and couldn’t read" />
   const r = c.data
   const gapCount = r.gaps.reduce((s, g) => s + g.gaps.length, 0)
   const toElement = (element: string) => {

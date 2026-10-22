@@ -19,6 +19,9 @@ import { SaveView } from './SaveView'
 /** "context", "container", or "component:<container id>" — one container's components. */
 export type Level = string
 
+// Zooming and fitting animate, unless the reader asked for less motion (§4.8).
+const moving = (ms: number) => (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : ms)
+
 // With no level named, the explorer opens where C4 starts — the system in its context — and each
 // level opens onto the next: the system onto its containers, a container onto its components.
 const levelOf = (raw?: string): Level => (raw === 'container' || raw === 'dataflow' || insideOf(raw) ? raw! : 'context')
@@ -107,7 +110,7 @@ export function Explorer(props: {
       )}
       {!scene.data && !scene.error && (
         <div className="explorer-state">
-          <Loading />
+          <Loading what="the map" />
         </div>
       )}
       {scene.data && (
@@ -615,7 +618,7 @@ function Canvas(props: {
     const hit = nodes.find((n) => n.type === 'element' && (n.data as ElementData).match)
     if (!hit) return
     props.onSelect(hit.id)
-    flow.fitView({ nodes: [{ id: hit.id }], padding: 1.2, duration: 200, maxZoom: 1.4 })
+    flow.fitView({ nodes: [{ id: hit.id }], padding: 1.2, duration: moving(200), maxZoom: 1.4 })
   }
 
   // Dragging a boundary moves the boxes it contained, from where they were when the drag began.
@@ -735,13 +738,13 @@ function ZoomControls({ editable }: { editable: boolean }) {
       </span>
       <div className="zoom">
         <div className="zoom-buttons">
-          <button onClick={() => flow.zoomIn({ duration: 120 })} aria-label="Zoom in">
+          <button onClick={() => flow.zoomIn({ duration: moving(120) })} aria-label="Zoom in">
             +
           </button>
-          <button onClick={() => flow.zoomOut({ duration: 120 })} aria-label="Zoom out">
+          <button onClick={() => flow.zoomOut({ duration: moving(120) })} aria-label="Zoom out">
             −
           </button>
-          <button onClick={() => flow.fitView({ padding: 0.08, duration: 160, maxZoom: 1.2 })} aria-label="Fit">
+          <button onClick={() => flow.fitView({ padding: 0.08, duration: moving(160), maxZoom: 1.2 })} aria-label="Fit">
             FIT
           </button>
         </div>

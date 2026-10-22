@@ -32,7 +32,10 @@ export interface Place {
 
 export interface Source {
   capabilities: Capabilities
-  /** Reads an API path. Rejects with the server's message when the answer is not OK. */
+  /**
+   * Reads an API path. Rejects with the server's message when the answer is not OK, and with fetch's
+   * TypeError when nothing answers — which the app tells apart (connection.ts).
+   */
   get(path: string): Promise<Response>
   /** Runs or writes something. Rejects in a place that cannot — check capabilities first. */
   act<T>(path: string, body?: unknown): Promise<T>
@@ -84,8 +87,10 @@ export interface HostedRun {
   queued_at: string
   started_at: string | null
   finished_at: string | null
-  /** The version its documentation is: its own, or, unchanged, the one before it. */
+  /** The version its documentation is: its own, or, unchanged, the one before it — and that version's commit and time. */
   version: number | null
+  version_commit?: string | null
+  version_finished_at?: string | null
 }
 
 const SourceContext = createContext<Source | null>(null)

@@ -67,7 +67,7 @@ export function WhatChanged(props: { versions: Version[]; route: Route; go: (r: 
       ) : diff.error ? (
         <Failure error={diff.error} />
       ) : !diff.data || !after.data || !before.data ? (
-        <Loading />
+        <Loading what="what changed" />
       ) : (
         <Story d={diff.data} before={before.data} after={after.data} label={label(sorted.find((v) => v.id === to))} go={props.go} base={base!} to={to!} />
       )}
