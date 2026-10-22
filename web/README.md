@@ -48,9 +48,13 @@ tables, routes, flows; for scale, generate a repository of a few hundred Compose
    provenance; mark model-written values with `<TruthMark state="interpreted">` and the
    `interpreted` class. A provenance with no file is "the element's own line": fall back to the
    element's provenance (see `cited()` in `screens/Inspector.tsx`).
-3. **Every view state lives in the URL** (`route.ts`). Screen, version, explorer level, selection,
-   search, focus, compared version, open document, open run. Copying the address reproduces the
-   view; saved views are simply named addresses. A level is `context`, `container`,
+3. **Every view state lives in the URL** (`route.ts`), as a path in the hash — `#/map?level=container`
+   — kept by TanStack Router, so one build works at any address. Each screen has a path of the
+   information architecture (`docs/platform-surface.md` §4): `/overview`, `/changes`, `/map`, `/does`,
+   `/reference/…`, `/about/…`, `/settings`; screens move with `go({ screen })` and never see the
+   router. An old `#screen=…` link opens where its screen lives now. Version, Map level, selection,
+   search, focus, compared version, open document and open run are the search. Copying the address
+   reproduces the view; saved views are simply named addresses. A level is `context`, `container`,
    `component:<container id>` or `data:<container id>` (`componentLevel`, `dataLevel` in `api.ts`);
    with none, the explorer opens on the context.
 4. **Every read and write goes through the Source.** Read with `useApi(path)`; write with
@@ -72,7 +76,7 @@ capability is true; no screen checks which place it is in.
 | `history` — versions to pick | yes | no: the latest and its baseline | yes |
 | `edit` — save views, arrange | yes | no | (decided with the platform) |
 | `runDetails` — requests as sent | yes | no: they stay on the machine that sent them | — |
-| `plans` — the planned placeholders | yes | no | — |
+| `plans` — the planned placeholders | in a development build only (§4.4) | no | — |
 | `links` — where citations open | `editor`: `vscode://` at the line | `host`: the repository host at the commit, or plain text when none is known | `host` |
 
 `export --site` writes `<meta name="archdoc-mode" content="published">` into `index.html`;
@@ -92,13 +96,16 @@ app/src/                 @archdoc/app
   source.ts              Source and Capabilities — the contract every place implements
   App.tsx                the shell and which screen to show
   api.ts                 the data types; useApi; citation links through the Source
-  route.ts               URL state
+  route.ts               URL state: each screen's path, title and menu section; the Map levels' plain names
   theme.ts               light / dark / system, per viewer
-  shell/                 TopBar, Nav, Palette (⌘K), Shortcuts (?)
-  screens/               Overview, Features, Changes, Documents, Coverage, Corrections, NetworkRuns, Inspector
+  shell/                 TopBar (breadcrumb, status, search, Share, ⋯), Nav (the six entries and Settings),
+                         Rail (the right rail; the first-visit band), Palette (⌘K), Shortcuts (?)
+  screens/               Overview, Changes, Features (What it does), Reference, About (with Coverage), Documents,
+                         Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector
   screens/explorer/      Explorer, scene.ts (scene → React Flow; the draft preview; the change overlay),
                          parts.tsx (element, table, boundary, routed edge, tags, ghosts), Legend, SaveView
-  ui/                    Cite, TruthMark/TruthChip, KindTile, kinds (icons and hues), Sequence (a flow)
+  ui/                    Cite, TruthMark/TruthChip, markInfo (the four marks, what each means), KindTile,
+                         kinds (icons and hues), Sequence (a flow)
   styles/                tokens, fonts, base, shell, ui, inspector, explorer, page
 host/                    the build the binary embeds
   index.html, vite.config.ts

@@ -15,8 +15,11 @@ The engine was **frozen for new features from 19 to 22 Oct** and stands as descr
 section below. It is one part of a larger product — archdoc runs locally, in CI and hosted, "verifiable,
 wherever it runs" (`docs/vision.md` §2.2, `docs/product-definition.md` §7, both amended 21 Oct) —
 and the hosted platform now runs it end to end through the public API. The freeze lifted on 22 Oct
-with step 3 here — the licence and first tag — still open. **Next:** the shared app's redesign,
-`docs/platform-surface.md` §4. **The plan across
+with step 3 here — the licence and first tag — still open. **The shared app's redesign** has begun
+(`docs/platform-surface.md` §4): stage 1, the shell, is built — every screen at its path, the
+six-entry menu, the top bar, the Map's zoom and lenses, the right rail and the marks introduced.
+**Next:** stage 2, the screens rebuilt around questions — Overview, What changed, What it does with
+its features, Impact. **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
 
