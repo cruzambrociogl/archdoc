@@ -18,8 +18,12 @@ and the hosted platform now runs it end to end through the public API. The freez
 with step 3 here — the licence and first tag — still open. **The shared app's redesign** has begun
 (`docs/platform-surface.md` §4): stage 1, the shell, is built — every screen at its path, the
 six-entry menu, the top bar, the Map's zoom and lenses, the right rail and the marks introduced.
-**Next:** stage 2, the screens rebuilt around questions — Overview, What changed, What it does with
-its features, Impact. **The plan across
+Stage 2, the screens rebuilt around questions, is under way: the **Overview** (a structure sentence
+written by a template, one picture, the trust sentence), **What changed** (one version told, grouped by
+meaning; the old comparison under Advanced), **What it does** (each feature a sentence from its routes;
+the old list is Reference › Every entry point) and **Impact** in the rail are built, all deterministic
+and cited. **Left in stage 2:** the purpose sentence from a manifest's description, Ask, and Did it
+build what I asked? **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
 
