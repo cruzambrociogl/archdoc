@@ -125,12 +125,12 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
             v={`${coveragePct}%`}
             pct={coveragePct}
             of={`${props.coverage.complete} of ${props.coverage.items} elements and relationships carry no gap`}
-            onClick={() => props.go({ screen: 'coverage' })}
+            onClick={() => props.go({ screen: 'about' })}
           />
         ) : (
           <Trust k="Evidence" v={model.source} pct={100} of="Every element and relationship cites the file and line that declares it." mono />
         )}
-        <Trust k="Unresolved" v={String(unresolved)} pct={0} tone="unres" of={unresolved ? 'seen and listed, not dropped' : 'every call the code makes goes somewhere it names'} onClick={() => props.go({ screen: 'coverage' })} />
+        <Trust k="Unresolved" v={String(unresolved)} pct={0} tone="unres" of={unresolved ? 'seen and listed, not dropped' : 'every call the code makes goes somewhere it names'} onClick={() => props.go({ screen: 'about' })} />
         <Trust
           k="Interpreted"
           v={`${interpretedPct}%`}
@@ -212,7 +212,7 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
         <PathCard
           t="Check the evidence"
           route={props.coverage ? `coverage · ${props.coverage.gaps.reduce((n, g) => n + g.gaps.length, 0)} gaps · ${unresolved} unresolved` : 'the documents, and what archdoc could not see'}
-          onClick={() => props.go({ screen: props.coverage ? 'coverage' : 'docs' })}
+          onClick={() => props.go({ screen: props.coverage ? 'about' : 'docs' })}
         />
       </div>
     </div>

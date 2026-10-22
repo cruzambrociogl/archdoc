@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { RouterProvider, createHashHistory, createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router'
 import type { CoverageResponse, Session, Summary, Version, ViewsResponse } from './api'
 import { RootContext, useApi } from './api'
 import { useCapabilities } from './source'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
-import { useRoute } from './route'
+import { fromOldHash, parseSearch, stringifySearch, useRoute } from './route'
 import { useTheme } from './theme'
 import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
@@ -12,7 +13,6 @@ import { Palette } from './shell/Palette'
 import { Shortcuts } from './shell/Shortcuts'
 import { Explorer } from './screens/explorer/Explorer'
 import { Overview } from './screens/Overview'
-import { Coverage } from './screens/Coverage'
 import { Features } from './screens/Features'
 import { Component } from './screens/Component'
 import { Dependencies } from './screens/Dependencies'
@@ -21,23 +21,51 @@ import { Corrections } from './screens/Corrections'
 import { Documents } from './screens/Documents'
 import { NetworkRuns } from './screens/NetworkRuns'
 import { Planned } from './screens/Planned'
+import { Reference } from './screens/Reference'
+import { About } from './screens/About'
 import { AskDock } from './ui/Planned'
 
+// Plain names first (platform-surface §4.1, rule 16): what the menu and the tab say.
 const titles: Record<Screen, string> = {
   overview: 'Overview',
-  explorer: 'Explorer',
-  features: 'Features',
-  component: 'Component',
-  deps: 'Dependencies',
-  changes: 'Changes',
-  docs: 'Documents',
-  coverage: 'Coverage',
-  rules: 'Corrections',
-  runs: 'Network runs',
+  changes: 'What changed',
+  plan: 'Did it build what I asked?',
+  explorer: 'Map',
+  features: 'What it does',
+  reference: 'Reference',
+  component: 'A component',
+  deps: 'What it relies on',
+  docs: 'Documentation',
+  about: 'About these docs',
+  runs: 'What left this machine',
+  rules: 'Your corrections',
   planned: 'Not built yet',
 }
 
+/**
+ * The app: one shell for every place (platform-surface §4.1), its address kept by a router in the
+ * hash, so the same build works at any path. A link from before 22 Oct is rewritten first.
+ */
 export function App() {
+  const router = useMemo(() => {
+    const old = fromOldHash(location.hash)
+    if (old) history.replaceState(null, '', old)
+    // An old link opened in a page already showing the app is caught here, before any route matches.
+    const root = createRootRoute({
+      component: Shell,
+      beforeLoad: () => {
+        const to = fromOldHash(window.location.hash)
+        if (to) throw redirect({ href: to.slice(1), replace: true })
+      },
+    })
+    const home = createRoute({ getParentRoute: () => root, path: '/', beforeLoad: () => { throw redirect({ to: '/overview' }) } })
+    const any = createRoute({ getParentRoute: () => root, path: '$' })
+    return createRouter({ routeTree: root.addChildren([home, any]), history: createHashHistory(), parseSearch, stringifySearch })
+  }, [])
+  return <RouterProvider router={router} />
+}
+
+function Shell() {
   const summary = useApi<Summary>('/api/summary')
   const versions = useApi<Version[]>('/api/versions')
   const [route, go] = useRoute()
@@ -121,7 +149,9 @@ export function App() {
             {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
             {route.screen === 'changes' && <Changes versions={versions.data ?? []} route={route} go={go} />}
             {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
-            {route.screen === 'coverage' && <Coverage go={go} />}
+            {route.screen === 'reference' && <Reference summary={s} coverage={coverage.data} go={go} />}
+            {route.screen === 'about' && <About summary={s} session={session.data} go={go} />}
+            {route.screen === 'plan' && <Planned route={{ ...route, focus: 'intent' }} />}
             {route.screen === 'rules' && <Corrections />}
             {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
             {route.screen === 'planned' && <Planned route={route} />}

@@ -1265,3 +1265,62 @@ button.runs-row:hover {
   border-width: 1.2px;
   border-style: solid; /* the colour is its kind's, from tile-* */
 }
+
+/* The question a page answers, above its sentence (platform-surface §4.3; App.dc.html). */
+.page-q {
+  font-weight: 600;
+  font-size: var(--t-eyebrow);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Reference: one door per kind of detail, each with what is behind it. */
+.doors {
+  display: grid;
+  margin-top: 18px;
+  border-top: 1px solid var(--rule);
+  max-width: 720px;
+}
+.door {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 14px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--rule-soft);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.door:hover {
+  background: var(--hover);
+}
+.door-title {
+  font: 400 18px/1.3 var(--font-serif);
+}
+.door-count {
+  font-family: var(--font-mono);
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+.door-what {
+  grid-column: 1 / -1;
+  font-size: var(--t-body);
+  color: var(--muted);
+}
+
+/* About these docs: which version and commit, before what archdoc could and could not read. */
+.about-head {
+  margin-bottom: 28px;
+}
+.about-facts {
+  font: 17px/1.55 var(--font-serif);
+  margin: 8px 0 6px;
+}
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 0;
+}

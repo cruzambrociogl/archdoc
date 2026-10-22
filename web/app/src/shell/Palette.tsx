@@ -19,16 +19,19 @@ interface Hit {
   file?: { path: string; proves: string[] }
 }
 
+// The pages, by their plain names (platform-surface §4.3) — and what they were called before, so an
+// old word still finds them.
 const screenNames: [Screen, string][] = [
   ['overview', 'Overview'],
-  ['explorer', 'Explorer'],
-  ['features', 'Features'],
-  ['deps', 'Dependencies'],
-  ['coverage', 'Coverage'],
-  ['changes', 'Changes'],
-  ['docs', 'Documents'],
-  ['rules', 'Corrections'],
-  ['runs', 'Network runs'],
+  ['changes', 'What changed · Changes'],
+  ['explorer', 'Map · Explorer'],
+  ['features', 'What it does · Features'],
+  ['reference', 'Reference'],
+  ['deps', 'What it relies on · Dependencies'],
+  ['docs', 'Documentation · Documents'],
+  ['about', 'About these docs · Coverage'],
+  ['rules', 'Your corrections · Settings'],
+  ['runs', 'What left this machine · Network runs'],
 ]
 
 const at = (p?: Provenance) => (p?.file ? `${p.file}${p.line ? `:${p.line}` : ''}` : undefined)
