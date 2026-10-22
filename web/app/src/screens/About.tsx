@@ -41,8 +41,8 @@ export function About(props: { summary: Summary; session?: Session; go: (r: Part
               What left this machine{s.runs ? ` · ${s.runs} ${s.runs === 1 ? 'run' : 'runs'}` : ' · nothing'}
             </button>
           )}
-          {/* On a published site there is no Settings: the corrections in force are listed here (§4.4). */}
-          {can.place === 'published' && (
+          {/* Where there is no Settings — a published site, a visitor — the corrections in force are listed here (§4.4). */}
+          {can.place !== 'local' && (
             <button className="link-btn" onClick={() => go({ screen: 'rules' })}>
               Corrections in force
             </button>

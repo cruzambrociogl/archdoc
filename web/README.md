@@ -72,7 +72,7 @@ capability is true; no screen checks which place it is in.
 | | Local | Published | Hosted (the website) |
 |---|---|---|---|
 | Source | `host/src/adapters/local.ts` | `host/src/adapters/published.ts` | in `archdoc-platform` |
-| Data | `/api/…` from archdoc serve | `data/…` — `staticName()` mirrors `serve.StaticName` in Go; change one, change both | the platform's API |
+| Data | `/api/…` from archdoc serve | `data/…` — `staticName()` (`app/src/staticName.ts`) mirrors `serve.StaticName` in Go; change one, change both | the same `data/…` files, through the platform's API |
 | `history` — versions to pick | yes | no: the latest and its baseline | yes |
 | `edit` — save views, arrange | yes | no | (decided with the platform) |
 | `runDetails` — requests as sent | yes | no: they stay on the machine that sent them | — |
@@ -137,7 +137,7 @@ that gets exported. Fonts come from Fontsource and are bundled — nothing is fe
 
 - `screens/explorer/scene.ts` `arrangeDraft()` is a port of `internal/arrange/arrange.go`
   `Apply()`: the preview while dragging must be what the engine draws after saving.
-- `host/src/adapters/published.ts` `staticName()` mirrors `internal/serve/export.go` `StaticName()`.
+- `app/src/staticName.ts` `staticName()` mirrors `internal/serve/export.go` `StaticName()`; the published and hosted adapters both use it.
 - The response types in `app/src/api.ts` mirror the handlers in `internal/serve`.
 - `screens/Features.tsx` `groupOf()` mirrors `core.Entry.Group()`: the app and
   `features.generated.md` group routes and pages alike.

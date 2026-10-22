@@ -29,7 +29,7 @@ export function marks(can: Capabilities): Record<MarkKind, MarkInfo> {
       label: 'Couldn’t be resolved',
       means: 'archdoc found evidence that something is there — a call, an address — but couldn’t tell what, because it is only known when the app runs. It is shown where it happens, and never guessed.',
       how:
-        can.place === 'published'
+        can.place !== 'local'
           ? 'The repository’s owner can name it with a correction.'
           : 'If you know what it is, name it with a correction in .archdoc/rules.yaml; Settings lists the corrections in force.',
     },

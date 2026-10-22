@@ -124,6 +124,11 @@ export function TopBar(props: {
                   This site was built from commit <span className="mono">{commit.slice(0, 7)}</span>
                   {made ? <> on {day(made)}</> : null}. It shows that version, and what changed since the one before it.
                 </>
+              ) : can.place === 'hosted' ? (
+                <>
+                  These docs were generated from commit <span className="mono">{commit.slice(0, 7)}</span>
+                  {made ? <> on {day(made)}</> : null}, when someone asked for them. A later commit is documented the next time someone asks.
+                </>
               ) : (
                 <>
                   These docs were generated from commit <span className="mono">{commit.slice(0, 7) || '—'}</span>
@@ -166,8 +171,8 @@ export function TopBar(props: {
         </button>
       </div>
 
-      {/* Share, where showing someone works today: a published site's address. Publishing from here is designed, not built. */}
-      {can.place === 'published' ? (
+      {/* Share, where showing someone works today: a published or hosted page's address. Publishing from here is designed, not built. */}
+      {can.place !== 'local' ? (
         <div className="pop-anchor">
           <button className={`btn btn-outline ${open === 'share' ? 'on' : ''}`} onClick={() => toggle('share')} aria-expanded={open === 'share'}>
             Share

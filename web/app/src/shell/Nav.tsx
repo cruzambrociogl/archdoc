@@ -33,8 +33,9 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
     { label: 'Map', q: 'How is it put together?', screen: 'explorer', divider: true },
     ...(entries ? ([{ label: 'What it does', q: 'What can it do, and how does each thing work?', screen: 'features' }] as Item[]) : []),
     { label: 'Reference', q: 'Where is the complete detail?', screen: 'reference' },
-    // Settings is the repository's own choices; a published site has none to change (§4.5).
-    ...(can.place !== 'published' ? ([{ label: 'Settings', q: 'How does this repository behave?', screen: 'rules', divider: true }] as Item[]) : []),
+    // Settings is the repository's own choices: locally, and later for a signed-in owner — a
+    // published site or a visitor has none to change (§4.5).
+    ...(can.place === 'local' ? ([{ label: 'Settings', q: 'How does this repository behave?', screen: 'rules', divider: true }] as Item[]) : []),
     // Development builds keep the list of what is designed and not built; the product never shows it (§4.4).
     ...(can.plans ? ([{ label: 'Not built yet', screen: 'planned', badge: String(planned.length), divider: true }] as Item[]) : []),
   ]

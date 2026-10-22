@@ -3,20 +3,8 @@
 // the repository's host.
 
 import type { Source } from '@archdoc/app'
+import { staticName } from '@archdoc/app'
 import { read } from './read'
-
-/** The file a published site reads an API path from. Mirrors serve.StaticName in Go. */
-export function staticName(apiPath: string): string {
-  const [p, query = ''] = apiPath.replace(/#.*$/, '').replace(/^\/api\//, '').split('?')
-  if (p.startsWith('docs/')) return `data/${p}`
-  const ext = p === 'svg' ? '.svg' : '.json'
-  const q = new URLSearchParams(query)
-  const keys = [...new Set([...q.keys()])].sort()
-  // A view name may hold an element ID ("component:app:packages/cli"): no slash or colon in a file name.
-  const safe = (v: string | null) => (v ?? '').replace(/\//g, '_').replace(/:/g, '~')
-  const tail = keys.length ? '@' + keys.map((k) => `${k}=${safe(q.get(k))}`).join(',') : ''
-  return `data/${p.replace(/\//g, '_')}${tail}${ext}`
-}
 
 const url = (path: string) => (path.startsWith('/api/') ? staticName(path) : path)
 

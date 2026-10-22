@@ -28,8 +28,8 @@ export function WhatChanged(props: { versions: Version[]; route: Route; go: (r: 
 
   const newer = seen === undefined ? 0 : sorted.filter((v) => v.id > seen).length
   const since =
-    can.place === 'published'
-      ? 'since the version it was published against'
+    can.place !== 'local'
+      ? 'since the version before it'
       : seen === undefined
         ? ''
         : newer

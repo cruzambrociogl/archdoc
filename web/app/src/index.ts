@@ -5,6 +5,7 @@
 // base styles — must come before the app's own, which override them. Order is the cascade.
 export { App } from './App'
 export { SourceProvider } from './source'
+export { staticName } from './staticName'
 export type { Capabilities, Place, Source } from './source'
 export type * from './api'
 
