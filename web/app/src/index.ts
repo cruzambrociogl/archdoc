@@ -6,7 +6,7 @@
 export { App } from './App'
 export { Refusal, SourceProvider } from './source'
 export { staticName } from './staticName'
-export type { Capabilities, Homes, HostedRun, Place, Runs, Source, Systems } from './source'
+export type { Capabilities, Homes, HostedRepository, HostedRun, Place, Runs, Source, Systems } from './source'
 export type * from './api'
 
 import './styles/fonts.css'

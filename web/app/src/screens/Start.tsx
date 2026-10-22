@@ -6,11 +6,12 @@ import { WebsiteBar, engineHome } from '../shell/WebsiteBar'
 /**
  * Start (platform-surface §5.1): the page the website's link box opens, `/new?repo=…`, which asks at
  * once — and a box of its own for anyone arriving without a link. It says what each refusal means;
- * an accepted link goes on to its run.
+ * an accepted link goes on to its run. At a repository's address no one has asked for (`suggest`),
+ * it says so, with the link ready — and waits to be asked.
  */
-export function Start(props: { repo?: string; runs: Runs; onRun: (id: number, replace: boolean) => void; onStart: () => void }) {
+export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRun: (id: number, replace: boolean) => void; onStart: () => void }) {
   const { runs, onRun } = props
-  const [link, setLink] = useState(props.repo ?? '')
+  const [link, setLink] = useState(props.repo ?? props.suggest ?? '')
   const [asking, setAsking] = useState(false)
   const [refused, setRefused] = useState<Error | null>(null)
 
@@ -42,7 +43,11 @@ export function Start(props: { repo?: string; runs: Runs; onRun: (id: number, re
       <WebsiteBar onStart={props.onStart} />
       <main className="shell-main page">
         <div className="start">
-          <h1 className="start-claim">The architecture of any repository, read from its code — every box and arrow cites the line that proves it.</h1>
+          <h1 className="start-claim">
+            {props.suggest
+              ? `archdoc hasn’t read ${props.suggest.replace('https://github.com/', '')} yet.`
+              : 'The architecture of any repository, read from its code — every box and arrow cites the line that proves it.'}
+          </h1>
           <form
             className="start-box"
             onSubmit={(e) => {

@@ -29,7 +29,7 @@ export function goTo(path: string) {
 /** Replaces the address — a level with one place goes straight to it. */
 export function replaceWith(path: string) {
   history.replaceState(null, '', path)
-  current = path
+  current = new URL(path, location.href).pathname
   emit()
 }
 

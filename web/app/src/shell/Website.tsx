@@ -1,52 +1,55 @@
 import type { ComponentType } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { HostedRun, Runs } from '../source'
+import type { HostedRepository, HostedRun, Runs } from '../source'
 import { SourceProvider } from '../source'
 import { Start } from '../screens/Start'
 import { Generating } from '../screens/Generating'
 import { Loading } from '../ui/marks'
 import type { Notice } from './Notice'
 import { NoticeProvider } from './Notice'
+import { ParentContext } from './parent'
+import { goTo, replaceWith, usePath } from './path'
 
-/** Where on the website: Start (`/`, `/new?repo=…`), or one read (`/runs/{id}`). After `#`, the repository's own pages. */
-type Where = { page: 'start'; repo?: string } | { page: 'run'; id: number }
+/**
+ * Where on the website: Start (`/`, `/new?repo=…`), one read (`/runs/{id}`), or a repository
+ * (`/{owner}/{name}`). After `#`, the repository's own pages, as in every other place.
+ */
+type Where = { page: 'start'; repo?: string } | { page: 'run'; id: number } | { page: 'repo'; owner: string; name: string }
 
-function where(): Where {
-  const run = location.pathname.match(/^\/runs\/(\d+)\/?$/)
+// First segments that are the website's own, never an owner's.
+const reserved = new Set(['new', 'runs', 'api', 'assets'])
+
+function where(path: string): Where {
+  const run = path.match(/^\/runs\/(\d+)\/?$/)
   if (run) return { page: 'run', id: Number(run[1]) }
-  const repo = location.pathname === '/new' ? (new URLSearchParams(location.search).get('repo') ?? undefined) : undefined
-  return { page: 'start', repo }
+  const repo = path.match(/^\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/?$/)
+  if (repo && !reserved.has(repo[1])) return { page: 'repo', owner: repo[1], name: repo[2] }
+  return { page: 'start', repo: path === '/new' ? (new URLSearchParams(location.search).get('repo') ?? undefined) : undefined }
 }
 
 const finished = (r: HostedRun) => r.status === 'done' || r.status === 'unchanged' || r.status === 'failed'
 
 /**
- * The website's pages before a repository's (platform-surface §5.1–5.2): Start, then a read until it
- * finishes — and then that repository's documentation, every page, through the Source the finished
- * run opens. The path says which; the repository's pages keep their own addresses after `#`, as in
- * every other place.
+ * The website's pages (platform-surface §5.1–5.2): Start; a read until it finishes; and a repository
+ * at its own address — its latest documentation, every version before it, every page — through the
+ * Source the website opens for it. A finished read goes to its repository's address.
  */
 export function Website({ runs, Repository }: { runs: Runs; Repository: ComponentType }) {
-  const [at, setAt] = useState(where)
-  useEffect(() => {
-    const back = () => setAt(where())
-    window.addEventListener('popstate', back)
-    return () => window.removeEventListener('popstate', back)
-  }, [])
-  const open = useCallback((path: string, replace = false) => {
-    history[replace ? 'replaceState' : 'pushState'](null, '', path)
-    setAt(where())
-  }, [])
-  const start = useCallback(() => open('/'), [open])
-  const toRun = useCallback((id: number, replace = false) => open(`/runs/${id}`, replace), [open])
+  const at = where(usePath())
+  const start = useCallback(() => goTo('/'), [])
+  const toRun = useCallback((id: number, replace = false) => (replace ? replaceWith : goTo)(`/runs/${id}`), [])
 
   if (at.page === 'start') return <Start key={at.repo} repo={at.repo} runs={runs} onRun={toRun} onStart={start} />
-  return <Run key={at.id} id={at.id} runs={runs} onRun={toRun} onStart={start} Repository={Repository} />
+  if (at.page === 'repo') return <RepositoryPage key={`${at.owner}/${at.name}`} owner={at.owner} name={at.name} runs={runs} onRun={toRun} onStart={start} Repository={Repository} />
+  return <Run key={at.id} id={at.id} runs={runs} onRun={toRun} onStart={start} />
 }
 
-/** One read: followed each second until it finishes, then its documentation or its failure. */
-function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onStart: () => void; Repository: ComponentType }) {
-  const { id, runs, Repository } = props
+/**
+ * One read: followed each second until it finishes; then its failure, or its repository's address —
+ * at this read's version when a later one has come since, so an old link still shows what it showed.
+ */
+function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onStart: () => void }) {
+  const { id, runs } = props
   const [run, setRun] = useState<HostedRun>()
   const [error, setError] = useState<Error>()
   useEffect(() => {
@@ -54,10 +57,18 @@ function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onSta
     let timer: ReturnType<typeof setTimeout> | undefined
     const follow = () =>
       runs.get(id).then(
-        (r) => {
+        async (r) => {
           if (stopped) return
-          setRun(r)
-          if (!finished(r)) timer = setTimeout(follow, 1000)
+          if (!finished(r)) {
+            setRun(r)
+            timer = setTimeout(follow, 1000)
+            return
+          }
+          if (r.status === 'failed' || !r.version) return setRun(r)
+          const repo = await runs.repository(r.owner, r.name).catch(() => undefined)
+          if (stopped) return
+          const latest = repo?.versions[0]?.id
+          replaceWith(`/${r.owner}/${r.name}${latest !== undefined && latest !== r.version ? `#/overview?v=${r.version}` : ''}`)
         },
         (e: Error) => !stopped && setError(e),
       )
@@ -68,19 +79,6 @@ function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onSta
     }
   }, [id, runs])
 
-  const documented = run && (run.status === 'done' || run.status === 'unchanged') ? run : undefined
-  const source = useMemo(() => documented && runs.open(documented), [documented, runs])
-  const notices = useMemo(() => (documented ? unchanged(documented) : []), [documented])
-
-  if (source) {
-    return (
-      <SourceProvider value={source}>
-        <NoticeProvider value={notices}>
-          <Repository />
-        </NoticeProvider>
-      </SourceProvider>
-    )
-  }
   if (!run && !error) {
     return (
       <main className="boot">
@@ -91,24 +89,81 @@ function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onSta
   return <Generating run={run} error={error} runs={runs} onRun={props.onRun} onStart={props.onStart} />
 }
 
+/**
+ * A repository at its address: its documentation, with what its latest read says — one on its way,
+ * or one that found nothing changed. One never asked for offers to be read; it is not read unasked.
+ */
+function RepositoryPage(props: { owner: string; name: string; runs: Runs; onRun: (id: number) => void; onStart: () => void; Repository: ComponentType }) {
+  const { owner, name, runs, Repository } = props
+  const [repo, setRepo] = useState<HostedRepository | null>()
+  const [error, setError] = useState<Error>()
+  useEffect(() => {
+    runs.repository(owner, name).then((r) => setRepo(r ?? null), (e: Error) => setError(e))
+  }, [owner, name, runs])
+
+  const versions = repo?.versions.length ?? 0
+  const running = repo?.latest_run && !finished(repo.latest_run) ? repo.latest_run : undefined
+  const source = useMemo(() => (repo && versions ? runs.openRepository(repo) : undefined), [repo, versions, runs])
+  const notices = useMemo(() => (repo ? latestRead(repo, props.onRun) : []), [repo, props.onRun])
+  const parent = useMemo(() => ({ crumbs: [], repo: `${repo?.owner ?? owner}/${repo?.name ?? name}` }), [repo, owner, name])
+
+  // Nothing documented yet, but a read on its way: follow it.
+  useEffect(() => {
+    if (repo && !versions && running) replaceWith(`/runs/${running.id}`)
+  }, [repo, versions, running])
+
+  if (error) return <Generating error={error} runs={runs} onRun={props.onRun} onStart={props.onStart} />
+  if (repo === undefined || (!versions && running)) {
+    return (
+      <main className="boot">
+        <Loading what={`${owner}/${name}`} />
+      </main>
+    )
+  }
+  if (!source) return <Start suggest={`https://github.com/${owner}/${name}`} runs={runs} onRun={props.onRun} onStart={props.onStart} />
+  return (
+    <SourceProvider value={source}>
+      <NoticeProvider value={notices}>
+        <ParentContext.Provider value={parent}>
+          <Repository />
+        </ParentContext.Provider>
+      </NoticeProvider>
+    </SourceProvider>
+  )
+}
+
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 
-/** A run that found the architecture unchanged shows the version before it, and says so. */
-function unchanged(r: HostedRun): Notice[] {
-  if (r.status !== 'unchanged' || !r.version_commit) return []
+/** What the latest read says, above the documentation: on its way, or nothing changed since. */
+function latestRead(repo: HostedRepository, onRun: (id: number) => void): Notice[] {
+  const r = repo.latest_run
+  const latest = repo.versions[0]
+  if (!r || !latest) return []
+  if (!finished(r)) {
+    return [
+      {
+        id: `reading-${r.id}`,
+        glyph: 'info',
+        what: `archdoc is reading ${repo.owner}/${repo.name} again.`,
+        still: 'These docs stay as they are until it finishes; then the newer version is here.',
+        acts: [{ label: 'Follow it', on: () => onRun(r.id), primary: true }],
+      },
+    ]
+  }
+  if (r.status !== 'unchanged' || r.version !== latest.id) return []
   return [
     {
       id: `unchanged-${r.id}`,
       glyph: 'info',
       what: (
         <>
-          The architecture hasn’t changed since these docs were made, from commit <span className="mono">{r.version_commit.slice(0, 7)}</span>
-          {r.version_finished_at ? ` on ${day(r.version_finished_at)}` : ''}.
+          The architecture hasn’t changed since these docs were made, from commit <span className="mono">{latest.commit.slice(0, 7)}</span> on{' '}
+          {day(latest.created_at)}.
         </>
       ),
       still: (
         <>
-          archdoc read {r.owner}/{r.name} again{r.commit ? <> at <span className="mono">{r.commit.slice(0, 7)}</span></> : ''}
+          archdoc read {repo.owner}/{repo.name} again{r.commit ? <> at <span className="mono">{r.commit.slice(0, 7)}</span></> : ''}
           {r.finished_at ? ` on ${day(r.finished_at)}` : ''} and found the same parts and connections.
         </>
       ),

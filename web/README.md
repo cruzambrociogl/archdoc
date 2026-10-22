@@ -73,7 +73,7 @@ capability is true; no screen checks which place it is in.
 |---|---|---|---|
 | Source | `host/src/adapters/local.ts` | `host/src/adapters/published.ts` | in `archdoc-platform` |
 | Data | `/api/…` from archdoc serve | `data/…` — `staticName()` (`app/src/staticName.ts`) mirrors `serve.StaticName` in Go; change one, change both | the same `data/…` files, through the platform's API |
-| `history` — versions to pick | yes | no: the latest and its baseline | not yet: the run's version |
+| `history` — versions to pick | yes | no: the latest and its baseline | yes: a repository's versions, from the platform |
 | `edit` — save views, arrange | yes | no | no: a visitor changes nothing |
 | `runDetails` — requests as sent | yes | no: they stay on the machine that sent them | no |
 | `plans` — the planned placeholders | in a development build only (§4.4) | no | no |
@@ -93,9 +93,10 @@ breadcrumb; with one place it opens that place. The levels above a repository mo
 (`shell/path.ts`), and a repository's own pages stay after `#`.
 
 **Reading on request.** The website's Source also has `runs`: ask for a repository by its link,
-follow the run, open a finished run's documentation as a Source of its own. Given it, `App` shows
-Start (`/`, `/new?repo=…`) and Generating (`/runs/{id}`) — platform-surface §5.1–5.2 — and then that
-repository's pages, under the same path, after `#`. Without it, `App` is one repository's pages.
+follow the run, find a repository by its address and open its documentation — every version — as a
+Source of its own. Given it, `App` shows Start (`/`, `/new?repo=…`), Generating (`/runs/{id}`) —
+platform-surface §5.1–5.2 — and a repository at `/{owner}/{name}`, its pages after `#`; a finished
+read goes to its repository's address. Without it, `App` is one repository's pages.
 
 `export --site` writes `<meta name="archdoc-mode" content="published">` into `index.html`;
 `host/src/main.tsx` reads it to choose the Source. A path the published site does not export simply

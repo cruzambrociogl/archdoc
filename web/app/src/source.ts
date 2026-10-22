@@ -6,7 +6,7 @@
 // serve's API ('/api/model?v=3'), which every adapter answers in its own way.
 
 import { createContext, useContext } from 'react'
-import type { HomePlace, HomeResponse, SystemResponse } from './api'
+import type { HomePlace, HomeResponse, SystemResponse, Version } from './api'
 
 /** What a place can do. A feature appears only where its capability is true (platform-surface §4.5). */
 export interface Capabilities {
@@ -83,8 +83,20 @@ export interface Runs {
   request(link: string): Promise<number>
   /** A run as it stands. */
   get(id: number): Promise<HostedRun>
-  /** The Source a finished run's documentation is read through. */
-  open(run: HostedRun): Source
+  /** A repository the website has been asked for, by its address; undefined when it never was. */
+  repository(owner: string, name: string): Promise<HostedRepository | undefined>
+  /** The Source of a repository's documentation: its latest version, and every one before it. */
+  openRepository(repo: HostedRepository): Source
+}
+
+/** A repository as the website addresses it, /{owner}/{name}: its versions, newest first, and its latest run. */
+export interface HostedRepository {
+  owner: string
+  name: string
+  url: string
+  versions: Version[]
+  /** The most recent read, whatever became of it: one on its way, or one that found nothing changed. */
+  latest_run?: HostedRun
 }
 
 /** A request turned down before anything ran, with why as a kind and in plain words. */
