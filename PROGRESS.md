@@ -45,7 +45,8 @@ link to a part a version lacks says where it went. Update from the app is built 
 until a security review (`../archdoc-platform/docs/decisions.md`, 22 Oct).
 A coding agent can ask archdoc too: `archdoc mcp` answers Claude Code, Cursor or any MCP client —
 what the system is, one thing with its proof, every route or table, what a change to a part or a
-class touches, what changed, whether the documentation is current — locally, read-only, cited.
+class touches, what changed, whether the documentation is current — locally, read-only, cited. A
+skill (`skills/archdoc/`) tells the agent when to ask.
 **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.

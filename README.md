@@ -63,6 +63,11 @@ Every command explains itself — `archdoc help <command>` — and exits 0 when 
 failed, 2 when used wrongly. Only `label` and `explain` use the network; every other command is
 offline, the ones that write need a path, and the ones that read write nothing.
 
+**With a coding agent.** `archdoc mcp` gives Claude Code, Cursor or any MCP client the same answers —
+`claude mcp add archdoc -- archdoc mcp /path/to/repository`. The skill in `skills/archdoc/` tells an
+agent when to ask: before changing a part, what it touches; after, what the change did to the
+architecture. Copy the folder into a repository's `.claude/skills/`, or `~/.claude/skills/` for all.
+
 On Immich, at the revision the survey pins:
 
 ```console

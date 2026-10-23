@@ -48,6 +48,8 @@ what is different for a user.
   route or table, what a change to a part or a class touches, what changed, and whether the
   documentation is current. Every answer cited; nothing written, nothing sent.
   `claude mcp add archdoc -- archdoc mcp /path/to/repository` connects it.
+  A skill, `skills/archdoc/SKILL.md`, tells the agent when to ask: what a part touches before
+  changing it, and what the change did to the architecture after.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their
