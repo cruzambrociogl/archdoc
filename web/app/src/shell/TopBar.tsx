@@ -13,7 +13,7 @@ import { useParent } from './parent'
 export const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
 export const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
 
-type Menu = 'status' | 'share' | 'more' | null
+type Menu = 'status' | 'share' | 'more' | 'line' | null
 
 /** How long the read that made a version took, on the website: "9 s", "2 min 5 s". */
 function took(v?: Version): string {
@@ -24,6 +24,9 @@ function took(v?: Version): string {
 }
 
 const day = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '')
+
+// How the line pill names a line's kind: a branch by git's branch glyph, the others in a word.
+const lineWord = { branch: '⎇', tag: 'tag', commit: 'commit' } as const
 
 /**
  * The top bar (platform-surface §4.3): where you are, whether it is current, one box to search, and
@@ -110,6 +113,34 @@ export function TopBar(props: {
           </span>
         ))}
       </nav>
+
+      {/* On the website, which branch, tag or commit: each a history of its own, at its own address. */}
+      {parent?.line && (
+        <div className="pop-anchor line-anchor">
+          <button className="status-pill line-pill" onClick={() => toggle('line')} aria-expanded={open === 'line'} title="Which branch, tag or commit">
+            <span className="line-kind">{lineWord[parent.line.kind]}</span>
+            <span className="status-text mono">{parent.line.label}</span>
+            <span className="caret">▾</span>
+          </button>
+          {open === 'line' && (
+            <div className="pop more-pop line-pop">
+              <div className="pop-q">Which branch, tag or commit?</div>
+              {parent.line.others.map((o) => (
+                <button key={o.kind + o.label} className="more-item" onClick={() => (setOpen(null), o.open())}>
+                  <span>
+                    <span className="more-label mono">{o.label}</span>
+                    <span className="more-sub">{o.kind}</span>
+                  </span>
+                </button>
+              ))}
+              <p className="line-note">
+                {parent.line.others.length ? 'Another' : 'Another branch, tag or commit'}: paste its GitHub link on the start page — …/tree/
+                <em>name</em> or …/commit/<em>hash</em>. Each has its own history.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Is this up to date? Which commit, and when; an older version says so. */}
       <div className="pop-anchor status-anchor">

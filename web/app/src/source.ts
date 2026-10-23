@@ -89,17 +89,33 @@ export interface Runs {
   request(link: string): Promise<number>
   /** A run as it stands. */
   get(id: number): Promise<HostedRun>
-  /** A repository the website has been asked for, by its address; undefined when it never was. */
-  repository(owner: string, name: string): Promise<HostedRepository | undefined>
+  /**
+   * A repository the website has been asked for, by its address, at a line — its default branch
+   * unless at names a branch, a tag or a commit; undefined when that was never read.
+   */
+  repository(owner: string, name: string, at?: At): Promise<HostedRepository | undefined>
   /** The Source of a repository's documentation: its latest version, and every one before it. */
   openRepository(repo: HostedRepository): Source
 }
 
-/** A repository as the website addresses it, /{owner}/{name}: its versions, newest first, and its latest run. */
+/** Which line of a repository: a branch or tag by name — perhaps with a path after it, as GitHub's links have — or one commit. */
+export interface At {
+  tree?: string
+  commit?: string
+}
+
+/**
+ * A repository as the website addresses it, /{owner}/{name}, at one line: its versions, newest first,
+ * and its latest run — and every line it has a version of (shell/line.ts).
+ */
 export interface HostedRepository {
   owner: string
   name: string
   url: string
+  /** The line shown: '' the default branch, 'heads/<branch>', 'tags/<tag>', 'commit/<hash>'. */
+  ref?: string
+  default_branch?: string
+  lines?: { ref: string; versions: number; latest: string }[]
   versions: Version[]
   /** The most recent read, whatever became of it: one on its way, or one that found nothing changed. */
   latest_run?: HostedRun
@@ -109,7 +125,7 @@ export interface HostedRepository {
 export class Refusal extends Error {
   constructor(
     message: string,
-    readonly kind: 'not_github' | 'not_found' | 'unavailable',
+    readonly kind: 'not_github' | 'not_found' | 'no_ref' | 'unavailable',
   ) {
     super(message)
   }
@@ -120,6 +136,8 @@ export interface HostedRun {
   id: number
   /** The repository's link, its owner and name. */
   repository: string
+  /** The line it reads: '' the default branch, 'heads/<branch>', 'tags/<tag>', 'commit/<hash>'. */
+  ref?: string
   owner: string
   name: string
   status: 'queued' | 'running' | 'done' | 'unchanged' | 'failed'

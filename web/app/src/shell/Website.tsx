@@ -9,12 +9,15 @@ import type { Notice } from './Notice'
 import { NoticeProvider } from './Notice'
 import { ParentContext } from './parent'
 import { goTo, replaceWith, usePath } from './path'
+import { address, atOf, lineKind, lineLabel } from './line'
+import type { At } from '../source'
 
 /**
  * Where on the website: Start (`/`, `/new?repo=…`), one read (`/runs/{id}`), or a repository
- * (`/{owner}/{name}`). After `#`, the repository's own pages, as in every other place.
+ * (`/{owner}/{name}`), at a branch or tag (`…/tree/{name}`) or a commit (`…/commit/{hash}`), as
+ * GitHub's own links are made. After `#`, the repository's own pages, as in every other place.
  */
-type Where = { page: 'start'; repo?: string } | { page: 'run'; id: number } | { page: 'repo'; owner: string; name: string }
+type Where = { page: 'start'; repo?: string } | { page: 'run'; id: number } | { page: 'repo'; owner: string; name: string; at?: At }
 
 // First segments that are the website's own, never an owner's.
 const reserved = new Set(['new', 'runs', 'api', 'assets'])
@@ -22,8 +25,12 @@ const reserved = new Set(['new', 'runs', 'api', 'assets'])
 function where(path: string): Where {
   const run = path.match(/^\/runs\/(\d+)\/?$/)
   if (run) return { page: 'run', id: Number(run[1]) }
-  const repo = path.match(/^\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/?$/)
-  if (repo && !reserved.has(repo[1])) return { page: 'repo', owner: repo[1], name: repo[2] }
+  const repo = path.match(/^\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)(?:\/(tree\/.+?|commit\/[0-9a-f]{40}))?\/?$/)
+  if (repo && !reserved.has(repo[1])) {
+    const [kind, rest] = (repo[3] ?? '').split(/\/(.*)/s)
+    const at = kind === 'tree' ? { tree: rest.split('/').map(decodeURIComponent).join('/') } : kind === 'commit' ? { commit: rest } : undefined
+    return { page: 'repo', owner: repo[1], name: repo[2], at }
+  }
   return { page: 'start', repo: path === '/new' ? (new URLSearchParams(location.search).get('repo') ?? undefined) : undefined }
 }
 
@@ -40,7 +47,9 @@ export function Website({ runs, Repository }: { runs: Runs; Repository: Componen
   const toRun = useCallback((id: number, replace = false) => (replace ? replaceWith : goTo)(`/runs/${id}`), [])
 
   if (at.page === 'start') return <Start key={at.repo} repo={at.repo} runs={runs} onRun={toRun} onStart={start} />
-  if (at.page === 'repo') return <RepositoryPage key={`${at.owner}/${at.name}`} owner={at.owner} name={at.name} runs={runs} onRun={toRun} onStart={start} Repository={Repository} />
+  if (at.page === 'repo') {
+    return <RepositoryPage key={address(at.owner, at.name, at.at)} owner={at.owner} name={at.name} at={at.at} runs={runs} onRun={toRun} onStart={start} Repository={Repository} />
+  }
   return <Run key={at.id} id={at.id} runs={runs} onRun={toRun} onStart={start} />
 }
 
@@ -65,10 +74,10 @@ function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onSta
             return
           }
           if (r.status === 'failed' || !r.version) return setRun(r)
-          const repo = await runs.repository(r.owner, r.name).catch(() => undefined)
+          const repo = await runs.repository(r.owner, r.name, atOf(r.ref)).catch(() => undefined)
           if (stopped) return
           const latest = repo?.versions[0]?.id
-          replaceWith(`/${r.owner}/${r.name}${latest !== undefined && latest !== r.version ? `#/overview?v=${r.version}` : ''}`)
+          replaceWith(`${address(r.owner, r.name, atOf(r.ref))}${latest !== undefined && latest !== r.version ? `#/overview?v=${r.version}` : ''}`)
         },
         (e: Error) => !stopped && setError(e),
       )
@@ -93,19 +102,31 @@ function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onSta
  * A repository at its address: its documentation, with what its latest read says — one on its way,
  * or one that found nothing changed. One never asked for offers to be read; it is not read unasked.
  */
-function RepositoryPage(props: { owner: string; name: string; runs: Runs; onRun: (id: number) => void; onStart: () => void; Repository: ComponentType }) {
-  const { owner, name, runs, Repository } = props
+function RepositoryPage(props: { owner: string; name: string; at?: At; runs: Runs; onRun: (id: number) => void; onStart: () => void; Repository: ComponentType }) {
+  const { owner, name, at, runs, Repository } = props
   const [repo, setRepo] = useState<HostedRepository | null>()
   const [error, setError] = useState<Error>()
   useEffect(() => {
-    runs.repository(owner, name).then((r) => setRepo(r ?? null), (e: Error) => setError(e))
-  }, [owner, name, runs])
+    runs.repository(owner, name, at).then((r) => setRepo(r ?? null), (e: Error) => setError(e))
+  }, [owner, name, at, runs])
 
   const versions = repo?.versions.length ?? 0
   const running = repo?.latest_run && !finished(repo.latest_run) ? repo.latest_run : undefined
   const source = useMemo(() => (repo && versions ? runs.openRepository(repo) : undefined), [repo, versions, runs])
   const notices = useMemo(() => (repo ? latestRead(repo, props.onRun) : []), [repo, props.onRun])
-  const parent = useMemo(() => ({ crumbs: [], repo: `${repo?.owner ?? owner}/${repo?.name ?? name}` }), [repo, owner, name])
+  // Which line is shown, and the others read, each at its address.
+  const parent = useMemo(() => {
+    const line = repo
+      ? {
+          label: lineLabel(repo.ref, repo.default_branch),
+          kind: lineKind(repo.ref),
+          others: (repo.lines ?? [])
+            .filter((l) => l.ref !== (repo.ref ?? ''))
+            .map((l) => ({ label: lineLabel(l.ref, repo.default_branch), kind: lineKind(l.ref), open: () => goTo(address(repo.owner, repo.name, atOf(l.ref))) })),
+        }
+      : undefined
+    return { crumbs: [], repo: `${repo?.owner ?? owner}/${repo?.name ?? name}`, line }
+  }, [repo, owner, name])
 
   // Nothing documented yet, but a read on its way: follow it.
   useEffect(() => {
@@ -120,7 +141,7 @@ function RepositoryPage(props: { owner: string; name: string; runs: Runs; onRun:
       </main>
     )
   }
-  if (!source) return <Start suggest={`https://github.com/${owner}/${name}`} runs={runs} onRun={props.onRun} onStart={props.onStart} />
+  if (!source) return <Start suggest={`https://github.com${address(owner, name, at)}`} runs={runs} onRun={props.onRun} onStart={props.onStart} />
   return (
     <SourceProvider value={source}>
       <NoticeProvider value={notices}>

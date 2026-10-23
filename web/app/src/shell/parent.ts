@@ -12,6 +12,16 @@ export interface Crumb {
  * name there, which the breadcrumb says rather than the model's own: two repositories of one system
  * may both call themselves after it.
  */
-export const ParentContext = createContext<{ crumbs: Crumb[]; repo: string } | null>(null)
+export const ParentContext = createContext<{ crumbs: Crumb[]; repo: string; line?: Line } | null>(null)
+
+/**
+ * On the website, which line of the repository is shown — its default branch, another branch, a tag
+ * or one commit (shell/line.ts) — and the others archdoc has read, each opening at its address.
+ */
+export interface Line {
+  label: string
+  kind: 'branch' | 'tag' | 'commit'
+  others: (Crumb & { kind: 'branch' | 'tag' | 'commit' })[]
+}
 
 export const useParent = () => useContext(ParentContext)

@@ -73,11 +73,13 @@ export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRu
                 ? 'That isn’t a link to a GitHub repository. It should look like github.com/immich-app/immich.'
                 : kind === 'not_found'
                   ? 'GitHub shows no public repository there. It may be private, or not exist — private repositories need an account, which the website doesn’t have yet.'
+                  : kind === 'no_ref'
+                    ? `${refused!.message}. A link to a branch, tag or commit is the one GitHub shows for it.`
                   : `archdoc couldn’t take the request: ${refused!.message}`}
             </p>
           )}
           <p className="start-note">
-            No account needed for public repositories. On your own machine archdoc has no limits and sends nothing:{' '}
+            No account needed for public repositories. A branch, tag or commit: paste its GitHub link. On your own machine archdoc has no limits and sends nothing:{' '}
             <a href={engineHome} target="_blank" rel="noopener noreferrer">{engineHome.replace('https://', '')}</a>.
           </p>
         </div>

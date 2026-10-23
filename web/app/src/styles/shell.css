@@ -238,6 +238,16 @@ kbd {
   .status-anchor {
     display: none;
   }
+  /* The branch stays — which one you are reading matters — named short. */
+  .line-kind {
+    display: none;
+  }
+  .line-pill .status-text {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   /* On a phone the bar says the page (App.dc.html, Width · Phone): the status moves out of it, and ⋯ still says which version. */
   .crumbs {
     flex: 1 1 auto;
@@ -357,6 +367,34 @@ kbd {
   font-size: 12px;
   color: var(--muted);
 }
+/* On the website, which branch, tag or commit is shown — beside the version it is at. */
+.line-anchor {
+  flex: 0 0 auto;
+}
+.line-kind {
+  font: 11px var(--font-mono);
+  color: var(--muted);
+}
+.line-pop {
+  left: 0;
+  right: auto;
+  width: 320px;
+}
+.line-pop .pop-q {
+  padding: 8px 16px 4px;
+}
+.line-note {
+  margin: 6px 16px 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.line-note em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
 /* Where AI can be asked: said in the search box and in the palette, with the interpreted mark. */
 .search-ai {
   display: inline-flex;
