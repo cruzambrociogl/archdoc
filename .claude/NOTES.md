@@ -41,6 +41,10 @@ raised, not quietly promoted over it.
 
 ## Open
 
+- [ ] The Action's pull-request comment (`comment: true`) is untested on a real pull request: CI runs
+  every other part. Needs a test repository with a PR — 2026-10-23
+- [ ] GitHub warns that checkout@v4, setup-go@v5 and setup-node@v4 run on a deprecated Node 20; move
+  CI and `action.yml` to their next majors — 2026-10-23
 - [ ] Seven of Immich's explanations are stale and never refreshed: they are for one-file components
       `--explain` no longer asks about. Hide them, or stop marking them — never decided
 - [ ] Immich's history carries versions nothing caused: 27 (a label run before memory was applied
