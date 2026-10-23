@@ -54,6 +54,9 @@ what is different for a user.
   what it changes in the architecture, on the run's summary and as one comment kept up to date;
   `check` fails when the committed documentation no longer matches the code; `site` builds the
   site for GitHub Pages. Offline, like everything but `label` and `explain`.
+- **The search box says when AI can answer.** Where Ask is available — the local app — the box reads
+  "Search, or ask a question…" with a ◇ AI mark, and opening it suggests a question to try. A
+  two-word question ending in "?" is offered to Ask too.
 - **Arrange the Map anywhere, with undo.** Drag a box, or a boundary by its name, on a published site
   too; only `archdoc serve` saves to `layout.yaml`, and elsewhere a move stays on your screen. Undo
   and redo each move (⌘Z, ⇧⌘Z, or the buttons by the zoom), and the padlock keeps every box where it

@@ -148,7 +148,9 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
 
   const query = q.trim().toLowerCase()
   // Search and Ask are one box (platform-surface §4.3): what reads as a question offers Ask first.
-  const question = !!props.onAsk && (/\?\s*$/.test(query) || /^(what|where|how|why|which|who|when|does|do|is|are|can)\b/.test(query)) && query.split(/\s+/).length >= 3
+  // A question is two words or more ending with "?", or three or more starting the way questions do.
+  const words = query.split(/\s+/).length
+  const question = !!props.onAsk && ((/\?\s*$/.test(query) && words >= 2) || (/^(what|where|how|why|which|who|when|does|do|is|are|can)\b/.test(query) && words >= 3))
   const results = useMemo(() => {
     if (!query) return [] as Hit[]
     const scored = index
@@ -198,6 +200,9 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
   const groups = [...new Set(results.map((h) => h.group))]
   const tries = index.filter((h) => h.group === 'Elements').slice(0, 2).map((h) => h.title)
   const firstFile = index.find((h) => h.group === 'Files')?.title
+  // A question worth trying, about one of this repository's applications — not its users.
+  const app = (model.data?.model.nodes ?? []).find((n) => n.kind === 'application')
+  const example = app ? `what does ${app.name} do?` : 'what does this system do?'
 
   return (
     <div className="dialog-scrim palette-scrim" onClick={props.onClose}>
@@ -209,7 +214,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
           <input
             ref={input}
             value={q}
-            placeholder="Search elements, relationships, files, documents…"
+            placeholder={props.onAsk ? 'Search, or ask a question in plain words…' : 'Search elements, relationships, files, documents…'}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Escape') props.onClose()
@@ -233,6 +238,17 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
                 {t}
               </button>
             ))}
+          </div>
+        )}
+
+        {!query && props.onAsk && (
+          <div className="palette-ai">
+            <TruthMark state="interpreted" />
+            <span>
+              Or ask a question in plain words, like{' '}
+              <button onClick={() => setQ(example)}>{example}</button> — AI answers from what archdoc read, citing it. The cost is
+              shown before anything is sent.
+            </span>
           </div>
         )}
 
@@ -274,7 +290,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
           {query && !results.length && (
             <p className="palette-none">
               Nothing in the model matches “{q}”. archdoc only knows what it extracted; the coverage report lists what it could not
-              see.
+              see.{props.onAsk && ' To ask AI instead, write it as a question — end it with “?”.'}
             </p>
           )}
         </div>

@@ -5,6 +5,7 @@ import type { Route } from '../route'
 import { levelName, sectionOf, titles } from '../route'
 import type { Theme } from '../theme'
 import { Planned } from '../ui/Planned'
+import { TruthMark } from '../ui/marks'
 import type { MarkKind } from '../ui/markInfo'
 import { MarkGlyph } from '../ui/markInfo'
 import { useParent } from './parent'
@@ -178,11 +179,18 @@ export function TopBar(props: {
       </div>
 
       <div className="topbar-spacer">
-        <button className="search-box" onClick={props.onSearch} title="Search (⌘K)">
+        {/* Where a model can be asked, the box says so — Search and Ask are one box (§4.3), and a box that
+            only says "search" hides the other half. ◇ is the mark for what a model writes, here as everywhere. */}
+        <button className="search-box" onClick={props.onSearch} title={can.ask ? 'Search, or ask a question (⌘K)' : 'Search (⌘K)'}>
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
             <path d="M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10z M10.5 10.5L14 14" />
           </svg>
-          <span className="search-text">Search parts, routes, tables and pages…</span>
+          <span className="search-text">{can.ask ? 'Search, or ask a question…' : 'Search parts, routes, tables and pages…'}</span>
+          {can.ask && (
+            <span className="search-ai" title="AI can answer a question here, from what archdoc read — the cost is shown before anything is sent">
+              <TruthMark state="interpreted" /> AI
+            </span>
+          )}
           <kbd>⌘K</kbd>
         </button>
       </div>
