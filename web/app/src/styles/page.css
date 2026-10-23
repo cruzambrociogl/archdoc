@@ -1734,6 +1734,33 @@ button.runs-row:hover {
   opacity: 0.5;
   cursor: default;
 }
+/* Which branch to read, when the repository has several — the default chosen (decisions, 23 Oct). */
+.start-branch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-small);
+  color: var(--muted);
+}
+.start-branch select {
+  max-width: 180px;
+  padding: 8px 6px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-box);
+  background: var(--chip);
+  color: var(--ink);
+  font: 12.5px var(--font-mono);
+}
+/* A branch with nothing archdoc reads: the others, one click each. */
+.gen-branches {
+  margin-top: 16px;
+}
+.gen-branch-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
 .start-msg {
   margin: 14px 0 0;
   padding: 10px 12px;

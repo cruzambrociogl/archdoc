@@ -96,6 +96,17 @@ export interface Runs {
   repository(owner: string, name: string, at?: At): Promise<HostedRepository | undefined>
   /** The Source of a repository's documentation: its latest version, and every one before it. */
   openRepository(repo: HostedRepository): Source
+  /** A repository's branches, by its link — to choose which to read. Rejects with a Refusal. */
+  branches(link: string): Promise<Branches>
+}
+
+/** A repository's branches as GitHub lists them: its default first, then the rest by name; more when there were too many to list. */
+export interface Branches {
+  owner: string
+  name: string
+  default: string
+  branches: string[]
+  more: boolean
 }
 
 /** Which line of a repository: a branch or tag by name — perhaps with a path after it, as GitHub's links have — or one commit. */
@@ -145,8 +156,8 @@ export interface HostedRun {
   phase: 'resolving' | 'cloning' | 'generating' | 'storing' | null
   /** While it reads the code: what the engine says it is doing, and what it has found so far. */
   progress?: { doing: string; found?: string[] } | null
-  /** Which of the designed failures a failed read is (§5.2): missing or private, too big, out of time, interrupted, other. */
-  failure: 'not_found' | 'too_big' | 'timed_out' | 'stopped' | 'failed' | null
+  /** Which of the designed failures a failed read is (§5.2): missing or private, too big, out of time, interrupted, nothing archdoc reads, other. */
+  failure: 'not_found' | 'too_big' | 'timed_out' | 'stopped' | 'nothing' | 'failed' | null
   error: string | null
   commit: string | null
   queued_at: string

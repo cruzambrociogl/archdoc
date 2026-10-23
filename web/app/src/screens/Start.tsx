@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Runs } from '../source'
+import type { Branches, Runs } from '../source'
 import { Refusal } from '../source'
 import { WebsiteBar, engineHome } from '../shell/WebsiteBar'
 
@@ -7,13 +7,18 @@ import { WebsiteBar, engineHome } from '../shell/WebsiteBar'
  * Start (platform-surface §5.1): the page the website's link box opens, `/new?repo=…`, which asks at
  * once — and a box of its own for anyone arriving without a link. It says what each refusal means;
  * an accepted link goes on to its run. At a repository's address no one has asked for (`suggest`),
- * it says so, with the link ready — and waits to be asked.
+ * it says so, with the link ready — and waits to be asked. A pasted link to a repository is looked up
+ * at once, and when it has several branches the box offers them, the default chosen: one click still
+ * reads the default (decisions, 23 Oct).
  */
 export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRun: (id: number, replace: boolean) => void; onStart: () => void }) {
   const { runs, onRun } = props
   const [link, setLink] = useState(props.repo ?? props.suggest ?? '')
   const [asking, setAsking] = useState(false)
   const [refused, setRefused] = useState<Error | null>(null)
+  const choice = useBranches(runs, link)
+  const [branch, setBranch] = useState('')
+  useEffect(() => setBranch(choice?.default ?? ''), [choice])
 
   // Arriving with a link asks once, as if it had been pasted here; the run then takes this address's place.
   const ask = useCallback(
@@ -52,7 +57,9 @@ export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRu
             className="start-box"
             onSubmit={(e) => {
               e.preventDefault()
-              if (link.trim()) void ask(link.trim(), false)
+              if (!link.trim()) return
+              // Another branch than the default is read by its own link, as GitHub makes it.
+              void ask(choice && branch && branch !== choice.default ? `https://github.com/${choice.owner}/${choice.name}/tree/${branch}` : link.trim(), false)
             }}
           >
             <input
@@ -63,6 +70,19 @@ export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRu
               autoFocus
               spellCheck={false}
             />
+            {choice && choice.branches.length > 1 && (
+              <label className="start-branch">
+                <span>Branch</span>
+                <select value={branch} onChange={(e) => setBranch(e.target.value)}>
+                  {choice.branches.map((b) => (
+                    <option key={b} value={b}>
+                      {b === choice.default ? `${b} (default)` : b}
+                    </option>
+                  ))}
+                  {choice.more && <option disabled>More: paste the branch’s own link</option>}
+                </select>
+              </label>
+            )}
             <button className="btn btn-ink" type="submit" disabled={asking || !link.trim()}>
               {asking ? 'Asking GitHub…' : 'Show its architecture'}
             </button>
@@ -86,4 +106,28 @@ export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRu
       </main>
     </div>
   )
+}
+
+// A link to a repository itself — not to a branch, a tag or a commit, which name what to read.
+const bareRepository = /^(https?:\/\/)?(www\.)?github\.com\/[A-Za-z0-9-]+\/[A-Za-z0-9._-]+?(\.git)?\/?$/i
+
+/** The branches of the repository a link names, once typing stops; none for anything else, or when GitHub does not say. */
+function useBranches(runs: Runs, link: string): Branches | null {
+  const [found, setFound] = useState<{ link: string; branches: Branches } | null>(null)
+  const l = link.trim()
+  useEffect(() => {
+    if (!bareRepository.test(l)) return
+    let stale = false
+    const t = setTimeout(() => {
+      runs.branches(l).then(
+        (b) => !stale && setFound({ link: l, branches: b }),
+        () => !stale && setFound(null),
+      )
+    }, 400)
+    return () => {
+      stale = true
+      clearTimeout(t)
+    }
+  }, [runs, l])
+  return found?.link === l ? found.branches : null
 }

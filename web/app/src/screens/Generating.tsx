@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { HostedRun, Runs } from '../source'
+import type { Branches, HostedRun, Runs } from '../source'
 import { WebsiteBar, engineHome } from '../shell/WebsiteBar'
 
 type Phase = NonNullable<HostedRun['phase']>
@@ -76,6 +76,10 @@ export function Generating(props: { run?: HostedRun; error?: Error; runs: Runs; 
   } else if (r.failure === 'timed_out') {
     sentence = `The read stopped at the time limit${r.phase ? ` while ${doing(r.phase)}` : ''}. Nothing was kept.`
     act = tryAgain(`or run it on your machine, where there is no limit`)
+  } else if (r.failure === 'nothing') {
+    q = 'Can archdoc read this?'
+    sentence = `archdoc found nothing it reads in ${repo} ${where(r.ref)}: no Compose file, no application manifest, and no Python, JavaScript or HTML files.`
+    act = another
   } else if (r.failure === 'stopped') {
     sentence = `The read was interrupted partway: the reader stopped, and nothing was wrong with ${repo}. Nothing was kept.`
     act = tryAgain()
@@ -114,7 +118,8 @@ export function Generating(props: { run?: HostedRun; error?: Error; runs: Runs; 
               ))}
             </ol>
           )}
-          {failed && r.error && <p className="gen-error mono">{r.error}</p>}
+          {failed && r.error && r.failure !== 'nothing' && <p className="gen-error mono">{r.error}</p>}
+          {r?.failure === 'nothing' && <OtherBranches run={r} runs={props.runs} onRun={props.onRun} />}
           <div className="gen-foot">
             {act &&
               (act.href ? (
@@ -132,6 +137,55 @@ export function Generating(props: { run?: HostedRun; error?: Error; runs: Runs; 
           {again.error && <p className="gen-error">{again.error}</p>}
         </div>
       </main>
+    </div>
+  )
+}
+
+// Where a read was: on a branch — the default, or another — or at a tag or a commit.
+function where(ref = '') {
+  if (ref.startsWith('commit/')) return `at commit ${ref.slice(7, 14)}`
+  if (ref.startsWith('tags/')) return `at tag ${ref.slice(5)}`
+  if (ref.startsWith('heads/')) return `on branch ${ref.slice(6)}`
+  return 'on its default branch'
+}
+
+// How many other branches are offered as buttons; the rest are read by their own links.
+const offered = 8
+
+/** The repository's other branches, each read with one click — for a branch that held nothing archdoc reads. */
+function OtherBranches(props: { run: HostedRun; runs: Runs; onRun: (id: number) => void }) {
+  const { run, runs, onRun } = props
+  const [found, setFound] = useState<Branches | null>()
+  const [asking, setAsking] = useState<string>()
+  const [error, setError] = useState<string>()
+  useEffect(() => {
+    runs.branches(run.repository).then(setFound, () => setFound(null))
+  }, [runs, run.repository])
+  if (found === undefined) return null
+  const here = run.ref?.startsWith('heads/') ? run.ref.slice(6) : run.ref ? undefined : found?.default
+  const others = (found?.branches ?? []).filter((b) => b !== here)
+  const read = (b: string) => {
+    setAsking(b)
+    runs.request(`${run.repository}/tree/${b}`).then(onRun, (e: Error) => (setAsking(undefined), setError(e.message)))
+  }
+  return (
+    <div className="gen-branches">
+      {others.length ? (
+        <>
+          <p className="muted small">Read another branch:</p>
+          <div className="gen-branch-list">
+            {others.slice(0, offered).map((b) => (
+              <button key={b} className="btn btn-outline mono" onClick={() => read(b)} disabled={!!asking}>
+                {asking === b ? 'Asking…' : b}
+              </button>
+            ))}
+          </div>
+          {(others.length > offered || found?.more) && <p className="muted small">Another branch, or a tag: paste its GitHub link on the start page.</p>}
+        </>
+      ) : (
+        <p className="muted small">{found ? `${run.owner}/${run.name} has no other branch.` : 'GitHub didn’t say which other branches there are.'}</p>
+      )}
+      {error && <p className="gen-error">{error}</p>}
     </div>
   )
 }
