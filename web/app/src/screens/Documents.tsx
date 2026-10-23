@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { safeMarkdown } from '../ui/safeMarkdown'
 import type { CompletenessResponse, DocsResponse } from '../api'
-import { useApi, useEditorLink, when } from '../api'
+import { useApi, useEditorLink, useLinkTarget, when } from '../api'
 import { useCapabilities, useSource } from '../source'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
@@ -181,6 +181,7 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
   )
   const [copied, setCopied] = useState(false)
   const link = useEditorLink()(`docs/architecture/${entry.file}`)
+  const target = useLinkTarget()
   const can = useCapabilities()
 
   return (
@@ -240,7 +241,7 @@ function Yours({ entry, changed, version }: { entry: Entry; dir: string; changed
         <div className="yours-actions">
           {entry.state !== 'missing' &&
             (link ? (
-              <a className="btn btn-ink" href={link}>
+              <a className="btn btn-ink" href={link} {...target}>
                 {can.links === 'host' ? 'View on the repository host' : 'Open in editor'}
               </a>
             ) : (

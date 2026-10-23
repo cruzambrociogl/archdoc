@@ -18,7 +18,10 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
         ['Frame the first match', ['↵']],
         ['Clear the search', ['Esc']],
         ['Pan', ['drag the canvas']],
-        ['Arrange', ['drag a box or a boundary']],
+        ['Arrange', ['drag a box, or a boundary by its name']],
+        ['Undo a move', ['⌘', 'Z']],
+        ['Redo it', ['⇧', '⌘', 'Z']],
+        ['Lock the arrangement', ['the padlock, by the zoom']],
       ],
     ],
     [

@@ -69,8 +69,10 @@ export function Explorer(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outside])
   const scene = useMain ? main : tryMain && !main.data ? { data: undefined, error: undefined } : full
-  // Only the latest version can be arranged: an arrangement is for the architecture as it is now.
+  // A diagram can be arranged anywhere, but only the latest version's arrangement is saved, and only
+  // where the place can write: an arrangement is for the architecture as it is now.
   const editable = props.editable && props.version === null
+  const unsaved = editable ? undefined : props.editable ? 'only the latest version’s arrangement is saved' : 'an arrangement is saved from archdoc serve, on your machine'
 
   // The change overlay: the diff against the compared version, and that version's scene for ghosts.
   const current = scene.data?.version
@@ -131,6 +133,7 @@ export function Explorer(props: {
             selected={selected}
             onSelect={select}
             editable={editable}
+            unsaved={unsaved}
             delta={delta}
             reload={() => setReload((n) => n + 1)}
             open={(id) =>
@@ -392,6 +395,36 @@ function ContainerPicker(props: { openings: Opening[]; current: string; go: Go; 
   )
 }
 
+// The draft's history: each drag, and each discard, is one step to undo and to redo.
+type History = { past: Draft[]; draft: Draft; future: Draft[] }
+const fresh: History = { past: [], draft: {}, future: [] }
+const back = (h: History): History => (h.past.length ? { past: h.past.slice(0, -1), draft: h.past[h.past.length - 1], future: [h.draft, ...h.future] } : h)
+const forward = (h: History): History => (h.future.length ? { past: [...h.past, h.draft], draft: h.future[0], future: h.future.slice(1) } : h)
+
+// Locking the arrangement keeps every box where it is: a per-viewer choice, kept in browser storage
+// when it can be, and guarded, because storage can be missing or blocked.
+const lockKey = 'archdoc.arrangement-locked'
+function useLocked(): [boolean, () => void] {
+  const [locked, setLocked] = useState(() => {
+    try {
+      return localStorage.getItem(lockKey) === '1'
+    } catch {
+      return false
+    }
+  })
+  const toggle = () =>
+    setLocked((l) => {
+      try {
+        if (l) localStorage.removeItem(lockKey)
+        else localStorage.setItem(lockKey, '1')
+      } catch {
+        /* not persisted; the lock still holds for this page */
+      }
+      return !l
+    })
+  return [locked, toggle]
+}
+
 /** The arrangement bar, the canvas and the inspector, sharing one draft. */
 function Arranged(props: {
   scene: SceneResponse
@@ -399,7 +432,10 @@ function Arranged(props: {
   go: Go
   selected: string | null
   onSelect: (id: string | null) => void
+  /** The arrangement can be saved here. */
   editable: boolean
+  /** Why it cannot, when it cannot: what was moved stays on this screen. */
+  unsaved?: string
   delta?: Delta
   reload: () => void
   open: (container: string) => void
@@ -413,10 +449,34 @@ function Arranged(props: {
     return m
   }, [scene])
   const holds = useMemo(() => new Map((scene.data ?? []).map((o) => [o.id, o.components])), [scene.data])
-  const [draft, setDraft] = useState<Draft>({})
+  const [history, setHistory] = useState<History>(fresh)
+  const draft = history.draft
+  // A drag changes the draft as it goes, and becomes one step when it ends.
+  const setDraft = (d: Draft | ((d: Draft) => Draft)) => setHistory((h) => ({ ...h, draft: typeof d === 'function' ? d(h.draft) : d }))
+  const dragFrom = useRef<Draft | null>(null)
+  const dragged = () => {
+    const from = dragFrom.current
+    dragFrom.current = null
+    if (from) setHistory((h) => (h.draft === from ? h : { past: [...h.past, from], draft: h.draft, future: [] }))
+  }
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<{ text: string; conflict: boolean } | null>(null)
+  const [locked, toggleLock] = useLocked()
   const moved = Object.keys(draft)
+
+  // ⌘Z undoes a move, ⇧⌘Z or ⌘Y redoes it — never while typing, nor while the arrangement is locked.
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if (locked || !(e.metaKey || e.ctrlKey) || e.altKey || (e.target as HTMLElement).closest('input, select, textarea, [contenteditable]')) return
+      const k = e.key.toLowerCase()
+      const redo = (k === 'z' && e.shiftKey) || (k === 'y' && !e.shiftKey)
+      if (k !== 'z' && !redo) return
+      e.preventDefault()
+      if (!dragFrom.current) setHistory(redo ? forward : back)
+    }
+    window.addEventListener('keydown', on)
+    return () => window.removeEventListener('keydown', on)
+  }, [locked])
 
   const layout = useMemo(() => arrangeDraft(scene.layout, draft), [scene.layout, draft])
   // The corner mark shows what was moved and not yet saved; once saved, every box of an arranged
@@ -432,7 +492,7 @@ function Arranged(props: {
     setProblem(null)
     try {
       await source.act(path, body)
-      setDraft({})
+      setHistory(fresh)
       props.reload()
     } catch (e) {
       const text = (e as Error).message
@@ -448,16 +508,19 @@ function Arranged(props: {
         scene={scene}
         moved={moved.length}
         editable={props.editable}
+        unsaved={props.unsaved}
+        locked={locked}
         busy={busy}
         problem={problem}
         onSave={() => run('/api/layout', { view: scene.view, positions: draft, base: scene.arrangement.hash })}
         onDiscard={() => {
-          setDraft({})
+          // Undoable, like a move.
+          setHistory((h) => (Object.keys(h.draft).length ? { past: [...h.past, h.draft], draft: {}, future: [] } : h))
           setProblem(null)
         }}
         onReset={() => run('/api/layout/reset', { view: scene.view, base: scene.arrangement.hash })}
         onReload={() => {
-          setDraft({})
+          setHistory(fresh)
           setProblem(null)
           props.reload()
         }}
@@ -473,8 +536,15 @@ function Arranged(props: {
             go={props.go}
             selected={props.selected}
             onSelect={props.onSelect}
-            editable={props.editable}
             setDraft={setDraft}
+            onDragStart={() => (dragFrom.current = draft)}
+            onDragEnd={dragged}
+            locked={locked}
+            onLock={toggleLock}
+            canUndo={!busy && history.past.length > 0}
+            canRedo={!busy && history.future.length > 0}
+            onUndo={() => setHistory(back)}
+            onRedo={() => setHistory(forward)}
             delta={props.delta}
             opens={opens}
             open={props.open}
@@ -503,6 +573,8 @@ function ArrangementBar(props: {
   scene: SceneResponse
   moved: number
   editable: boolean
+  unsaved?: string
+  locked: boolean
   busy: boolean
   problem: { text: string; conflict: boolean } | null
   onSave: () => void
@@ -515,12 +587,12 @@ function ArrangementBar(props: {
   const dirty = props.moved > 0
   const title = dirty ? 'Arrangement changed' : saved ? `Arrangement · ${a.file}` : 'Automatic layout'
   const detail = dirty
-    ? `${props.moved} ${props.moved === 1 ? 'box' : 'boxes'} moved · not saved`
+    ? `${props.moved} ${props.moved === 1 ? 'box' : 'boxes'} moved · ${props.unsaved ? `on this screen only: ${props.unsaved}` : 'not saved'}`
     : saved
       ? `${a.placed.length} ${a.placed.length === 1 ? 'position' : 'positions'} kept${a.new.length ? ` · ${a.new.length} new since, placed automatically` : ''}`
-      : props.editable
-        ? 'positions from the engine · drag a box or a boundary to arrange'
-        : 'positions from the engine'
+      : props.locked
+        ? 'positions from the engine · arrangement locked'
+        : 'positions from the engine · drag a box, or a boundary by its name, to arrange'
 
   return (
     <div className={`arrangement-bar ${dirty ? 'dirty' : ''}`}>
@@ -550,9 +622,11 @@ function ArrangementBar(props: {
             <button className="tool" onClick={props.onDiscard} disabled={props.busy}>
               Discard
             </button>
-            <button className="tool on" onClick={props.onSave} disabled={props.busy} title="Writes .archdoc/layout.yaml — commit it to share the arrangement">
-              Save to layout.yaml
-            </button>
+            {props.editable && (
+              <button className="tool on" onClick={props.onSave} disabled={props.busy} title="Writes .archdoc/layout.yaml — commit it to share the arrangement">
+                Save to layout.yaml
+              </button>
+            )}
           </>
         )}
         {props.editable && saved && (
@@ -576,8 +650,16 @@ function Canvas(props: {
   go: Go
   selected: string | null
   onSelect: (id: string | null) => void
-  editable: boolean
   setDraft: (d: Draft | ((d: Draft) => Draft)) => void
+  onDragStart: () => void
+  onDragEnd: () => void
+  /** Boxes and boundaries stay where they are: the canvas only pans and zooms. */
+  locked: boolean
+  onLock: () => void
+  canUndo: boolean
+  canRedo: boolean
+  onUndo: () => void
+  onRedo: () => void
   delta?: Delta
   opens: Map<string, number>
   open: (container: string) => void
@@ -591,8 +673,8 @@ function Canvas(props: {
   const dragStart = useRef<DragStart | null>(null)
 
   const { nodes, edges } = useMemo(
-    () => toFlow(scene, props.layout, { selected, focus, find, placed: props.placed, isNew: props.isNew, editable: props.editable, delta: props.delta, opens: props.opens }),
-    [scene, props.layout, selected, focus, find, props.placed, props.isNew, props.editable, props.delta, props.opens],
+    () => toFlow(scene, props.layout, { selected, focus, find, placed: props.placed, isNew: props.isNew, delta: props.delta, opens: props.opens }),
+    [scene, props.layout, selected, focus, find, props.placed, props.isNew, props.delta, props.opens],
   )
 
   const setRoute = (patch: Partial<Route>) =>
@@ -631,6 +713,7 @@ function Canvas(props: {
 
   // Dragging a boundary moves the boxes it contained, from where they were when the drag began.
   const startDrag = (n: FlowNode) => {
+    props.onDragStart()
     if (n.type !== 'boundary') return
     const members = membersOf(scene.layout, n.id.slice('boundary:'.length))
     const base: DragStart['base'] = {}
@@ -701,8 +784,9 @@ function Canvas(props: {
         onNodeDrag={(_, n) => drag(n)}
         onNodeDragStop={() => {
           dragStart.current = null
+          props.onDragEnd()
         }}
-        nodesDraggable={props.editable}
+        nodesDraggable={!props.locked}
         nodesConnectable={false}
         elementsSelectable
         minZoom={0.1}
@@ -725,7 +809,7 @@ function Canvas(props: {
           style={{ right: 58, bottom: 14, margin: 0, width: 150, height: 84 }}
           ariaLabel="Overview of the whole diagram"
         />
-        <ZoomControls editable={props.editable} />
+        <ZoomControls locked={props.locked} onLock={props.onLock} canUndo={props.canUndo} canRedo={props.canRedo} onUndo={props.onUndo} onRedo={props.onRedo} />
       </ReactFlow>
 
       <button className="legend-toggle" onClick={() => setLegend((l) => !l)}>
@@ -736,15 +820,45 @@ function Canvas(props: {
   )
 }
 
-function ZoomControls({ editable }: { editable: boolean }) {
+// The canvas's own icons: the app's fonts have no arrows or padlocks.
+const icons = {
+  undo: 'M5.5 3.5L2.5 6.5l3 3M2.5 6.5h7a4 4 0 010 8h-3',
+  redo: 'M10.5 3.5l3 3-3 3M13.5 6.5h-7a4 4 0 000 8h3',
+  locked: 'M3.5 7.5h9v6.5h-9zM5.5 7.5V5a2.5 2.5 0 015 0v2.5',
+  unlocked: 'M3.5 7.5h9v6.5h-9zM5.5 7.5V5a2.5 2.5 0 014.9-.7',
+}
+const Icon = ({ d }: { d: string }) => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+)
+
+function ZoomControls(props: { locked: boolean; onLock: () => void; canUndo: boolean; canRedo: boolean; onUndo: () => void; onRedo: () => void }) {
   const flow = useReactFlow()
   const zoom = useStore((s) => s.transform[2])
   return (
     <>
       <span className="zoom-readout">
-        {Math.round(zoom * 100)}% · {editable ? 'drag the canvas to pan, a box to arrange' : 'drag to pan'}
+        {Math.round(zoom * 100)}% · {props.locked ? 'drag to pan · arrangement locked' : 'drag the canvas to pan, a box to arrange'}
       </span>
       <div className="zoom">
+        <div className="zoom-buttons arrange-buttons" role="group" aria-label="Arrangement">
+          <button onClick={props.onUndo} disabled={props.locked || !props.canUndo} aria-label="Undo" title="Undo the last move (⌘Z)">
+            <Icon d={icons.undo} />
+          </button>
+          <button onClick={props.onRedo} disabled={props.locked || !props.canRedo} aria-label="Redo" title="Redo (⇧⌘Z)">
+            <Icon d={icons.redo} />
+          </button>
+          <button
+            className={props.locked ? 'on' : ''}
+            onClick={props.onLock}
+            aria-pressed={props.locked}
+            aria-label="Lock the arrangement"
+            title={props.locked ? 'Unlock: drag boxes to arrange again' : 'Lock: keep every box where it is'}
+          >
+            <Icon d={props.locked ? icons.locked : icons.unlocked} />
+          </button>
+        </div>
         <div className="zoom-buttons">
           <button onClick={() => flow.zoomIn({ duration: moving(120) })} aria-label="Zoom in">
             +

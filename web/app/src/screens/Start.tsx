@@ -78,7 +78,7 @@ export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRu
           )}
           <p className="start-note">
             No account needed for public repositories. On your own machine archdoc has no limits and sends nothing:{' '}
-            <a href={engineHome}>{engineHome.replace('https://', '')}</a>.
+            <a href={engineHome} target="_blank" rel="noopener noreferrer">{engineHome.replace('https://', '')}</a>.
           </p>
         </div>
       </main>

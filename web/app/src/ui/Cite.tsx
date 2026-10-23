@@ -1,5 +1,5 @@
 import type { Origin, Provenance } from '../api'
-import { useEditorLink } from '../api'
+import { useEditorLink, useLinkTarget } from '../api'
 
 const origins: Record<Origin, { title: string }> = {
   extraction: { title: 'Read from a file in the repository' },
@@ -16,10 +16,11 @@ export function OriginGlyph({ origin }: { origin: Origin }) {
 /**
  * A citation (surface-spec §6.2): the origin glyph, then the file and line in the link colour.
  * The directory is muted and long paths truncate from the left, so the file and line always show.
- * Live, a click opens the editor at the line.
+ * Live, a click opens the editor at the line; elsewhere, the repository host at the commit, in a new tab.
  */
 export function Cite({ p, compact }: { p?: Provenance; compact?: boolean }) {
   const link = useEditorLink()
+  const target = useLinkTarget()
   if (!p || (!p.file && !p.note)) {
     return <span className="cite cite-missing">no source recorded</span>
   }
@@ -42,7 +43,7 @@ export function Cite({ p, compact }: { p?: Provenance; compact?: boolean }) {
 
   const href = p.file ? link(p.file, p.line) : undefined
   return href ? (
-    <a className="cite" href={href} title={`${title}\n${p.file}${p.line ? `:${p.line}` : ''} — open at the line`}>
+    <a className="cite" href={href} {...target} title={`${title}\n${p.file}${p.line ? `:${p.line}` : ''} — open at the line`}>
       <OriginGlyph origin={origin} />
       {body}
     </a>

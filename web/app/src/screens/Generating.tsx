@@ -118,7 +118,7 @@ export function Generating(props: { run?: HostedRun; error?: Error; runs: Runs; 
           <div className="gen-foot">
             {act &&
               (act.href ? (
-                <a className="btn btn-ink" href={act.href}>
+                <a className="btn btn-ink" href={act.href} target="_blank" rel="noopener noreferrer">
                   {act.label}
                 </a>
               ) : (

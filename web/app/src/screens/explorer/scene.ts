@@ -123,7 +123,7 @@ export const edgeKey = (e: { from: string; to: string }) => `${e.from}>${e.to}`
 export function toFlow(
   sc: SceneResponse,
   layout: Layout,
-  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; editable: boolean; delta?: Delta; opens?: Map<string, number> },
+  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; delta?: Delta; opens?: Map<string, number> },
 ) {
   const nodes = sc.model.nodes ?? []
   const edges = sc.model.edges ?? []
@@ -151,6 +151,8 @@ export function toFlow(
   const flowNodes: FlowNode[] = []
 
   // Boundaries first and underneath; largest first, so a network sits above the system around it.
+  // A boundary is picked up by its label only: the system's covers nearly the whole canvas, and a
+  // body that caught the pointer would turn every drag across it into a move instead of a pan.
   const groups = [...(layout.groups ?? [])].sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h)
   groups.forEach((g, i) => {
     flowNodes.push({
@@ -161,7 +163,8 @@ export function toFlow(
       height: g.rect.h,
       data: { label: g.label || g.name, system: !!g.system, internal: !!g.internal, stage: !!g.stage } satisfies BoundaryData,
       selectable: false,
-      draggable: opts.editable,
+      dragHandle: '.boundary-label',
+      style: { pointerEvents: 'none' },
       focusable: false,
       zIndex: -100 + i,
     })
@@ -178,7 +181,6 @@ export function toFlow(
       height: b.rect.h,
       data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id), opens: opts.opens?.get(n.id), unresolved: loose.get(n.id) } satisfies ElementData,
       selected: opts.selected === n.id,
-      draggable: opts.editable,
     })
   }
 

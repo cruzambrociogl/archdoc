@@ -1320,3 +1320,13 @@ there are releases (not before the presentation) it builds archdoc from its own 
 app only for a site. Its work is a script (`action/run.sh`) that runs locally too; CI runs the Action
 itself on a fixture. Never `label` or `explain`: a key in CI is the owner's decision, later.
 → `action.yml`, `action/run.sh`; `.github/workflows/ci.yml` (Action); hosted-proposal B
+
+**2026-10-23 — Arranging anywhere, saving where the app can write; links leave in a new tab**
+S-6 made arranging the live app's alone. Reading a crowded diagram needs it everywhere, so a box, or
+a boundary by its name, can be dragged on a published site and on an older version too; only the
+latest version in `archdoc serve` writes `layout.yaml`, and elsewhere a move stays on that screen.
+Each move can be undone and redone, and a padlock (a per-viewer choice, in browser storage) keeps
+every box in place. A boundary is held by its name only: draggable whole, the system's covered the
+canvas and turned every pan into a move. A link to the repository host — a citation, a document's
+link — opens in a new tab, so the docs stay open; the editor's link opens where it is.
+→ `web/app/src/screens/explorer/Explorer.tsx`, `scene.ts`; `ui/Cite.tsx`, `ui/safeMarkdown.ts`; surface-spec S-6, §11.2

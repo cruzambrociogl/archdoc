@@ -331,9 +331,20 @@
   cursor: grabbing;
   box-shadow: 0 10px 24px -14px rgba(21, 32, 30, 0.5);
 }
-.boundary-draggable {
+/* A boundary is moved by its name: the rest of it lets the canvas pan. */
+.boundary-draggable .boundary-label {
   pointer-events: all;
   cursor: grab;
+  margin: -3px -5px;
+  padding: 3px 5px;
+  border-radius: 3px;
+}
+.boundary-draggable .boundary-label:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+}
+.react-flow__node.dragging .boundary-label {
+  cursor: grabbing;
 }
 .el-head {
   display: flex;
@@ -519,8 +530,9 @@
   bottom: 14px;
   z-index: 5;
   display: flex;
+  flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 8px;
 }
 .zoom-readout {
   position: absolute;
@@ -550,7 +562,22 @@
   font-size: 15px;
   cursor: pointer;
 }
-.zoom-buttons button:last-child {
+.zoom-buttons button:disabled {
+  color: #b4bcba;
+  cursor: default;
+}
+.zoom-buttons button svg {
+  display: block;
+  margin: 0 auto;
+}
+.arrange-buttons button:last-child {
+  border-bottom: 0;
+}
+.arrange-buttons button.on {
+  background: #15201e;
+  color: #fbfcfc;
+}
+.zoom-buttons:not(.arrange-buttons) button:last-child {
   border-bottom: 0;
   font-family: var(--font-mono);
   font-size: 9.5px;

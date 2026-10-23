@@ -1,5 +1,5 @@
 import type { Op, RulesResponse } from '../api'
-import { useApi, useEditorLink } from '../api'
+import { useApi, useEditorLink, useLinkTarget } from '../api'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
 
 type Rule = RulesResponse['rules'][number]
@@ -30,6 +30,7 @@ const opText = (o: Op) => `${o.kind.replace(/_/g, ' ')}${o.to ? ` → ${o.to}` :
 export function Corrections() {
   const r = useApi<RulesResponse>('/api/rules')
   const link = useEditorLink()
+  const target = useLinkTarget()
   if (r.error) return <Failure error={r.error} />
   if (!r.data) return <Loading what="your corrections" />
   const { file, rules, findings } = r.data
@@ -56,7 +57,7 @@ export function Corrections() {
   return (
     <div className="reading wide">
       <Eyebrow>
-        Corrections · {link(file) ? <a href={link(file)}>{file}</a> : file} · {rules.length} {rules.length === 1 ? 'rule' : 'rules'}
+        Corrections · {link(file) ? <a href={link(file)} {...target}>{file}</a> : file} · {rules.length} {rules.length === 1 ? 'rule' : 'rules'}
       </Eyebrow>
       <div className="page-title-row">
         <h1 className="page-title small">What a person corrected</h1>
@@ -83,7 +84,7 @@ export function Corrections() {
                     <span className={`owner-chip ${f.severity === 'error' ? '' : 'dashed-chip'}`}>{f.severity}</span>
                     <span className="mono small muted">{f.rule}</span>
                     {at ? (
-                      <a className="cite" href={link(file, Number(at[1]))}>
+                      <a className="cite" href={link(file, Number(at[1]))} {...target}>
                         <span className="glyph glyph-rules" />
                         <span className="cite-ref">
                           <bdi>
@@ -117,7 +118,7 @@ export function Corrections() {
           return (
             <div key={rule.line} className="rules-row">
               <div>
-                <a className="cite" href={link(file, rule.line)} title="Asserted by a person in rules.yaml — open at the line">
+                <a className="cite" href={link(file, rule.line)} {...target} title="Asserted by a person in rules.yaml — open at the line">
                   <span className="glyph glyph-rules" />
                   <span className="cite-ref">
                     <bdi>

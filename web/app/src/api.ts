@@ -459,6 +459,11 @@ export function useEditorLink() {
   return (file: string, line?: number) => source.link(place, file, line)
 }
 
+/** A citation on the repository host opens in a new tab, so the docs stay open; the editor opens where it is. */
+export function useLinkTarget(): { target?: string; rel?: string } {
+  return useSource().capabilities.links === 'host' ? { target: '_blank', rel: 'noopener noreferrer' } : {}
+}
+
 export interface Session {
   mode: 'local' | 'published'
   remote?: string

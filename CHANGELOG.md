@@ -54,6 +54,13 @@ what is different for a user.
   what it changes in the architecture, on the run's summary and as one comment kept up to date;
   `check` fails when the committed documentation no longer matches the code; `site` builds the
   site for GitHub Pages. Offline, like everything but `label` and `explain`.
+- **Arrange the Map anywhere, with undo.** Drag a box, or a boundary by its name, on a published site
+  too; only `archdoc serve` saves to `layout.yaml`, and elsewhere a move stays on your screen. Undo
+  and redo each move (⌘Z, ⇧⌘Z, or the buttons by the zoom), and the padlock keeps every box where it
+  is. Dragging the empty canvas inside a boundary pans again, instead of moving the boundary.
+- **Links to the repository open in a new tab.** A citation on a published site opens the file at
+  its line on GitHub without leaving the docs — and so does every link out of the app, in the
+  documents too.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

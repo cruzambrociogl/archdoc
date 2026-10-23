@@ -4,7 +4,8 @@
 // a repository must never run (decisions, 22 Oct: the app renders hosted repositories itself).
 // Two layers: raw HTML in the Markdown is shown as text, never interpreted; and what Marked builds
 // is then sanitised by DOMPurify — no scripts, no event handlers, no javascript: links, no forms or
-// frames — which also covers what the first cannot, a link's target.
+// frames — which also covers what the first cannot, a link's target. A link that leaves the app is
+// then given one of ours: a new tab, with no way back into this page (noopener).
 
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
@@ -13,6 +14,13 @@ const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').rep
 marked.use({ renderer: { html: (token) => escape(token.text) } })
 
 const forbid = ['style', 'form', 'input', 'button', 'textarea', 'select', 'iframe', 'object', 'embed', 'base', 'meta', 'link']
+
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A' && /^https?:/i.test(node.getAttribute('href') ?? '')) {
+    node.setAttribute('target', '_blank')
+    node.setAttribute('rel', 'noopener noreferrer')
+  }
+})
 
 /** Sanitises HTML that was built from a repository's text. data-* attributes the app adds survive. */
 export function safeHtml(html: string): string {

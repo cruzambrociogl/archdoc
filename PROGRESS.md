@@ -186,7 +186,7 @@ designed in Claude Design. Built on `develop`, every screen driven in a browser.
 | F-55 clickable relationships | ✓ arrows selectable, with their own passport |
 | F-22 publishable site | ✓ `archdoc export --site` — the same app, published mode, citations on the repository host |
 | F-24 coverage report | ✓ also as `.archdoc/coverage.json` and a screen |
-| S-6, S-7 | ✓ arrangements in `layout.yaml` applied to app and SVG; saved views in `views.yaml` |
+| S-6, S-7 | ✓ arrangements in `layout.yaml` applied to app and SVG; saved views in `views.yaml`; dragging everywhere, with undo, redo and a lock — saving only from `archdoc serve` (23 Oct) |
 | §5.12 change lens | ✓ comparison screen and overlay on the diagram |
 | §5.17 search | ✓ ⌘K over elements, relationships, files, documents, views |
 | §11.5 action gate | ✓ Origin + session token on every action |
