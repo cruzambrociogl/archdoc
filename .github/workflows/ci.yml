@@ -150,3 +150,60 @@ jobs:
 
       - name: Typecheck and build
         run: npm run build
+
+  # The GitHub Action (action.yml), run as a workflow runs it, on a repository whose second commit
+  # adds a service: the comparison finds it, the site builds, current documentation passes the
+  # check, and documentation the code has moved past fails it.
+  action:
+    name: Action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: A repository whose second commit adds a service
+        run: |
+          r="$RUNNER_TEMP/repo"
+          cp -R testdata/gateway "$r"
+          cd "$r"
+          git init -q
+          git add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -qm one
+          printf '  cache:\n    image: redis:7\n' >> docker-compose.yml
+          git -c user.name=ci -c user.email=ci@example.com commit -qam two
+
+      - id: compare
+        uses: ./
+        with:
+          path: ${{ runner.temp }}/repo
+          base: HEAD~1
+          site: "true"
+
+      - name: The comparison found the service, and the site was built
+        env:
+          CHANGES: ${{ steps.compare.outputs.changes }}
+          SITE: ${{ steps.compare.outputs.site }}
+        run: |
+          test "$CHANGES" = 1 || { echo "changes: '$CHANGES', want 1"; exit 1; }
+          test -f "$SITE/index.html" || { echo "no site at '$SITE'"; exit 1; }
+
+      - name: Current documentation passes the check
+        uses: ./
+        with:
+          path: ${{ runner.temp }}/repo
+          check: "true"
+
+      - name: The code moves past the documentation
+        run: |
+          printf '  queue:\n    image: rabbitmq:3\n' >> "$RUNNER_TEMP/repo/docker-compose.yml"
+
+      - id: stale
+        uses: ./
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/repo
+          check: "true"
+
+      - name: Documentation the code has moved past fails the check
+        env:
+          OUTCOME: ${{ steps.stale.outcome }}
+        run: test "$OUTCOME" = failure || { echo "the check passed out-of-date documentation"; exit 1; }

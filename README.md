@@ -538,7 +538,10 @@ The published site is the same app with no controls: one version, what changed s
 one (`--since <version>` to choose), citations opening on GitHub at the commit when the repository
 has a GitHub, GitLab, Codeberg or Bitbucket origin. It needs a host — browsers will not load it from
 a `file://` page. It builds from the committed `.archdoc/model.json` when there is no history, so CI
-needs no key and regenerates nothing. A GitHub Pages workflow, in the documented repository:
+needs no key and regenerates nothing.
+
+**In CI, the archdoc Action.** A GitHub Pages workflow, in the documented repository — the Action
+builds archdoc, generates the documentation and builds the site:
 
 ```yaml
 name: Architecture site
@@ -550,20 +553,33 @@ jobs:
     environment: { name: github-pages, url: "${{ steps.deploy.outputs.page_url }}" }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with: { repository: cruzambrociogl/archdoc, path: .archdoc-tool }
-      - uses: actions/setup-go@v5
-        with: { go-version-file: .archdoc-tool/go.mod }
-      - uses: actions/setup-node@v4
-        with: { node-version: 24 }
-      - run: cd .archdoc-tool/web && npm ci && npm run build
-      - run: cd .archdoc-tool && go build -o "$RUNNER_TEMP/archdoc" ./cmd/archdoc
-      - run: '"$RUNNER_TEMP/archdoc" export --site .'
+      - id: archdoc
+        uses: cruzambrociogl/archdoc@develop
+        with: { site: "true" }
       - uses: actions/upload-pages-artifact@v3
-        with: { path: .archdoc/site }
+        with: { path: "${{ steps.archdoc.outputs.site }}" }
       - id: deploy
         uses: actions/deploy-pages@v4
 ```
+
+On every pull request, what it changes in the architecture — on the run's summary, and as one
+comment kept up to date — and a failure when the committed documentation no longer matches the code:
+
+```yaml
+name: Architecture
+on: pull_request
+permissions: { contents: read, pull-requests: write }
+jobs:
+  archdoc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cruzambrociogl/archdoc@develop
+        with: { comment: "true", check: "true" }
+```
+
+The Action builds archdoc from its own source at the version named — `@develop` until the first
+release — so a first run takes a few minutes. It never calls a model; `action.yml` lists its inputs.
 
 ### What each subject shows
 

@@ -1310,3 +1310,13 @@ server needs four methods, and the SDKs carry HTTP transports that would put an 
 An agent names classes, which the model holds only as flows' participants, so `show` and `impact`
 answer for a class too.
 → `cmd/archdoc/mcp.go`, `mcp_tools.go`; platform-surface §5.7
+
+**2026-10-23 — The GitHub Action: built from its own source, one comment, offline**
+`action.yml` at the root, so a workflow names `cruzambrociogl/archdoc@<version>`: on a pull request,
+what merging would change in the architecture (base against the merge commit checked out), on the
+run's summary and — when asked — as one comment, edited as later pushes change it; `check` fails
+when the committed model no longer matches the code; `site` generates and builds the site. Until
+there are releases (not before the presentation) it builds archdoc from its own checkout, the web
+app only for a site. Its work is a script (`action/run.sh`) that runs locally too; CI runs the Action
+itself on a fixture. Never `label` or `explain`: a key in CI is the owner's decision, later.
+→ `action.yml`, `action/run.sh`; `.github/workflows/ci.yml` (Action); hosted-proposal B

@@ -47,6 +47,8 @@ A coding agent can ask archdoc too: `archdoc mcp` answers Claude Code, Cursor or
 what the system is, one thing with its proof, every route or table, what a change to a part or a
 class touches, what changed, whether the documentation is current — locally, read-only, cited. A
 skill (`skills/archdoc/`) tells the agent when to ask.
+In CI, the archdoc Action (`action.yml`): what a pull request changes in the architecture, on the
+run's summary and as one comment; a check that the committed documentation is current; the site.
 **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.

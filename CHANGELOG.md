@@ -50,6 +50,10 @@ what is different for a user.
   `claude mcp add archdoc -- archdoc mcp /path/to/repository` connects it.
   A skill, `skills/archdoc/SKILL.md`, tells the agent when to ask: what a part touches before
   changing it, and what the change did to the architecture after.
+- **The archdoc Action.** `uses: cruzambrociogl/archdoc@develop` in a workflow: on a pull request,
+  what it changes in the architecture, on the run's summary and as one comment kept up to date;
+  `check` fails when the committed documentation no longer matches the code; `site` builds the
+  site for GitHub Pages. Offline, like everything but `label` and `explain`.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

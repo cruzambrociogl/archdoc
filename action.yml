@@ -1,0 +1,93 @@
+name: archdoc
+description: >-
+  What a pull request changes in the architecture, whether the committed architecture documentation
+  is current, and the documentation as a site — read from the code, every fact cited. Offline: it
+  never calls a model.
+
+inputs:
+  path:
+    description: The repository to read, or a folder of it.
+    default: .
+  base:
+    description: >-
+      The commit to compare from. On a pull request, its base; empty elsewhere, which compares
+      nothing.
+    default: ${{ github.event.pull_request.base.sha }}
+  head:
+    description: >-
+      The commit to compare to. On a pull request, the merge commit it checks out — so what is
+      compared is what merging would change.
+    default: HEAD
+  comment:
+    description: >-
+      Also post what changed on the pull request, as one comment kept up to date. Needs
+      `pull-requests: write`.
+    default: "false"
+  check:
+    description: >-
+      Fail when the committed documentation (.archdoc/model.json) no longer matches the code —
+      someone changed the architecture and did not run archdoc generate.
+    default: "false"
+  site:
+    description: >-
+      Generate the documentation and build it as a site into <path>/.archdoc/site, for GitHub Pages
+      or any static host.
+    default: "false"
+  token:
+    description: The token that comments with.
+    default: ${{ github.token }}
+
+outputs:
+  changes:
+    description: How many changes to the structure the comparison found; empty when nothing was compared.
+    value: ${{ steps.run.outputs.changes }}
+  site:
+    description: The folder the site was built into, when site is true.
+    value: ${{ steps.run.outputs.site }}
+
+runs:
+  using: composite
+  steps:
+    # archdoc is built from this action's own source, at the version the workflow names. The web app
+    # is built only for a site: comparing and checking do not need it.
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: ${{ github.action_path }}/go.mod
+        cache-dependency-path: ${{ github.action_path }}/go.sum
+    - if: inputs.site == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: npm
+        cache-dependency-path: ${{ github.action_path }}/web/package-lock.json
+    - name: Build archdoc
+      shell: bash
+      env:
+        SITE: ${{ inputs.site }}
+      run: |
+        set -euo pipefail
+        bin="$RUNNER_TEMP/archdoc-action"
+        mkdir -p "$bin"
+        # Built once per job: a second step reuses it, unless it now needs the web app the first did not.
+        if [ -x "$bin/archdoc" ] && { [ "$SITE" != "true" ] || [ -e "$bin/with-site" ]; }; then
+          exit 0
+        fi
+        cd "$GITHUB_ACTION_PATH"
+        if [ "$SITE" = "true" ]; then
+          (cd web && npm ci --no-audit --no-fund && npm run build)
+          touch "$bin/with-site"
+        fi
+        go build -o "$bin/archdoc" ./cmd/archdoc
+    - id: run
+      name: Run archdoc
+      shell: bash
+      env:
+        ARCHDOC: ${{ runner.temp }}/archdoc-action/archdoc
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_HEAD: ${{ inputs.head }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_CHECK: ${{ inputs.check }}
+        INPUT_SITE: ${{ inputs.site }}
+        GH_TOKEN: ${{ inputs.token }}
+      run: bash "$GITHUB_ACTION_PATH/action/run.sh"
