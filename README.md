@@ -52,6 +52,7 @@ What it does now:
 | `archdoc label` | The other: asks a model for descriptions and relationship labels, never structure — one request, about two cents on Immich. `--model` chooses the model |
 | `archdoc status` | Whether the documentation still matches the code — the code is read again and compared by structure — and what is open: stale explanations, gaps, what the network has cost |
 | `archdoc show <path> <thing>` | One element, route or file in the terminal, every line cited: a route with its flow as numbered steps, a component with what it uses and the tables it queries, a file with the component it is in |
+| `archdoc mcp [<path>]` | The same answers for a coding agent, over MCP: Claude Code, Cursor or any client asks what the system is, one thing with its proof, what a change to a part or a class touches, what changed, whether the documentation is current. Read-only and offline — `claude mcp add archdoc -- archdoc mcp /path/to/repository` |
 | `archdoc scan` | What `generate` would find, written nowhere |
 | `archdoc diff <path> <commit> [<commit>]` | What changed in the architecture between two commits, or since one, said as a reader would — "cache renamed to store"; `--detail` lists every change under its class: added, removed, renamed, re-bounded, protocol-changed, changed. Needs git |
 | `archdoc init` | A `.archdoc/rules.yaml` to correct the model in, every line a comment until you write one |

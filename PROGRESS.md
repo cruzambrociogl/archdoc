@@ -43,6 +43,9 @@ One update runs at a time: `generate` holds the repository while it writes, a se
 says for whom, and the app says an update is running in the terminal, with what it is doing. A Map
 link to a part a version lacks says where it went. Update from the app is built and switched off
 until a security review (`../archdoc-platform/docs/decisions.md`, 22 Oct).
+A coding agent can ask archdoc too: `archdoc mcp` answers Claude Code, Cursor or any MCP client —
+what the system is, one thing with its proof, every route or table, what a change to a part or a
+class touches, what changed, whether the documentation is current — locally, read-only, cited.
 **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.

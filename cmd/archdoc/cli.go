@@ -87,6 +87,12 @@ func init() {
 		{"home", "", "open Home: every repository, and folder of them, this machine has documented",
 			"What changed in each since you last opened it here. The list is a file in your user configuration\n" +
 				"folder; generate and serve add to it.", groupRead, homeCommand},
+		{"mcp", "[<path>]", "answer a coding agent's questions about the architecture, over MCP",
+			"Speaks the Model Context Protocol on stdin and stdout, for Claude Code, Cursor or any MCP client, which\n" +
+				"starts it in the repository it works in. The agent asks what show, status and the app's Impact answer —\n" +
+				"every fact cited, read from .archdoc/model.json, so generate first. Writes nothing, sends nothing.\n" +
+				"Claude Code: claude mcp add archdoc -- archdoc mcp /path/to/repository",
+			groupRead, mcpCommand},
 		{"label", "<path>", "ask Claude for the system's descriptions and relationship labels",
 			"One request with the names, kinds, technologies and relationships of the containers — never a path or\n" +
 				"a line of code. Says what it will send and what it should cost, and asks before sending; --dry-run\n" +

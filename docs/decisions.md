@@ -1299,3 +1299,14 @@ medium — one request for the whole plan. Plans follow D-9 (b): the person name
 `.archdoc/plans.json`; hard rule 2 keeps its scope.
 → `internal/semantic/ask.go`, `intent.go`; `internal/serve/ai.go`; `web/app/src/screens/Ask.tsx`, `PlanCheck.tsx`
 
+
+**2026-10-23 — `archdoc mcp`: the agent's questions answered locally, the protocol written by hand**
+A coding agent asks what a person asks `show`, `status` and the app's Impact — so `archdoc mcp`
+offers exactly those, as six read-only tools that print what the CLI prints, read from the committed
+model: nothing written, no model asked, no connection. One repository per server, started by the
+agent where it works. The protocol is written by hand rather than with an SDK: an agent's stdio
+server needs four methods, and the SDKs carry HTTP transports that would put an HTTP client outside
+`internal/semantic` (hard rule 3) — a library has to spare us something hard (stack-decision §2.3).
+An agent names classes, which the model holds only as flows' participants, so `show` and `impact`
+answer for a class too.
+→ `cmd/archdoc/mcp.go`, `mcp_tools.go`; platform-surface §5.7

@@ -43,6 +43,11 @@ what is different for a user.
 - **One update at a time.** `archdoc generate` holds the repository while it writes: a second run
   waits and says for whom, and the app says an update is running in the terminal, with what it is
   doing. A Map link to a part a later version removed says where it went.
+- **Your coding agent can ask archdoc.** `archdoc mcp` answers Claude Code, Cursor or any MCP client
+  from the documentation: what the system is, one element, route or file with its proof, every
+  route or table, what a change to a part or a class touches, what changed, and whether the
+  documentation is current. Every answer cited; nothing written, nothing sent.
+  `claude mcp add archdoc -- archdoc mcp /path/to/repository` connects it.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their
