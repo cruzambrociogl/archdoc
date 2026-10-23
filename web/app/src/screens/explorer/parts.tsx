@@ -82,7 +82,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
       )}
       <div className="el-body">
         <div className="el-head">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true">
             <path d={k.icon} />
           </svg>
           <span className="el-name">{n.name}</span>

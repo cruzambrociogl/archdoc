@@ -740,7 +740,10 @@ In order, nothing else above the fold:
 1. **The system in one paragraph**, plain words: "A photo app. A web front end and a mobile app talk
    to one server, which keeps its data in Postgres and hands heavy work to a machine-learning
    service." Each clause cited (6.15).
-2. **One diagram** — the most useful level, clickable into the Map.
+2. **One diagram** — how the parts fit: in columns by who calls whom (what people use, what they
+   call, where data is kept), each part opening on the Map. Proven like the paragraph: a heading
+   says only what the graph shows, and an arrow joins two columns only where a call between them
+   is. Since 23 Oct; before, a grid of the containers' names said nothing the paragraph didn't.
 3. **What it does** — the main features as sentences, each linking to its flow.
 4. **Trust in one sentence** — the one second sentence the density budget allows (rule 15): "Every part and connection here is proven from your code; the plain
    sentences are written by AI on top of them. 11 things couldn't be resolved." Links to Coverage.

@@ -64,6 +64,14 @@ what is different for a user.
 - **Links to the repository open in a new tab.** A citation on a published site opens the file at
   its line on GitHub without leaving the docs — and so does every link out of the app, in the
   documents too.
+- **The Overview shows how the parts fit.** Its picture puts the parts in columns by who calls whom
+  — what people use, what they call, where data is kept — each opening on the Map, with an arrow only
+  where a call between two columns is proven. Before, it was a grid of names.
+- **The Map's boxes say their kind at a glance.** Each icon sits on a tile of its kind's colour. The
+  count of calls archdoc couldn't resolve, in a box's corner, no longer changes with the theme: the
+  diagram is the same drawing in light and dark.
+- **The archdoc wordmark goes home**: to Home, a system's map, or the website's start — wherever is
+  above the repository you are reading.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

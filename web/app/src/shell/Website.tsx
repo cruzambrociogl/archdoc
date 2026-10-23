@@ -125,8 +125,8 @@ function RepositoryPage(props: { owner: string; name: string; at?: At; runs: Run
             .map((l) => ({ label: lineLabel(l.ref, repo.default_branch), kind: lineKind(l.ref), open: () => goTo(address(repo.owner, repo.name, atOf(l.ref))) })),
         }
       : undefined
-    return { crumbs: [], repo: `${repo?.owner ?? owner}/${repo?.name ?? name}`, line }
-  }, [repo, owner, name])
+    return { crumbs: [], repo: `${repo?.owner ?? owner}/${repo?.name ?? name}`, line, home: props.onStart }
+  }, [repo, owner, name, props.onStart])
 
   // Nothing documented yet, but a read on its way: follow it.
   useEffect(() => {

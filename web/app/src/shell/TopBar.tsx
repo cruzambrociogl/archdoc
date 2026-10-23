@@ -93,7 +93,9 @@ export function TopBar(props: {
       <button className="topbar-menu" onClick={props.onMenu} title="Menu" aria-label="Menu">
         ☰
       </button>
-      <button className="brand-mark" onClick={() => go({ screen: 'overview' })}>
+      {/* The wordmark goes home: the outermost level above — Start on the website, Home, a system's
+          map — or, for a repository alone, its Overview. */}
+      <button className="brand-mark" onClick={parent?.home ?? parent?.crumbs[0]?.open ?? (() => go({ screen: 'overview' }))}>
         archdoc
       </button>
 

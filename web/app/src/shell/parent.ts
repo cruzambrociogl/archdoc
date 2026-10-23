@@ -10,9 +10,10 @@ export interface Crumb {
  * The levels above a repository, where there are any — Home, its system (platform-surface §4.3,
  * "the breadcrumb carries every level"). The top bar puts them first. `repo` is the repository's
  * name there, which the breadcrumb says rather than the model's own: two repositories of one system
- * may both call themselves after it.
+ * may both call themselves after it. `home` is where the wordmark goes when no crumb is above: on
+ * the website, Start.
  */
-export const ParentContext = createContext<{ crumbs: Crumb[]; repo: string; line?: Line } | null>(null)
+export const ParentContext = createContext<{ crumbs: Crumb[]; repo: string; line?: Line; home?: () => void } | null>(null)
 
 /**
  * On the website, which line of the repository is shown — its default branch, another branch, a tag

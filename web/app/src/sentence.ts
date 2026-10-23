@@ -76,6 +76,51 @@ export function structureSentence(name: string, view: Model): Piece[][] {
   return sentences
 }
 
+/** A column of the structure picture: what its parts have in common, in words, and the parts. */
+export interface Column {
+  title: string
+  parts: Node[]
+}
+
+/**
+ * The structure sentence as a picture (platform-surface §6.1, the Overview's one picture): the parts
+ * in columns by who calls whom — the applications no other one calls, then the ones they call, then
+ * where data is kept — and the outside services counted. Proven like the sentence: a title says only
+ * what the graph shows, and `arrows[i]` is true only when a part in column i calls one in column i+1.
+ */
+export function structureColumns(view: Model): { columns: Column[]; arrows: boolean[]; outside: number } {
+  const nodes = view.nodes ?? []
+  const edges = (view.edges ?? []).filter((e) => e.from !== e.to)
+  const by = new Map(nodes.map((n) => [n.id, n]))
+  const apps = nodes.filter((n) => n.kind === 'application')
+  const stores = nodes.filter((n) => n.kind === 'datastore')
+  const queues = nodes.filter((n) => n.kind === 'queue')
+  const calledByApp = new Set(edges.filter((e) => by.get(e.from)?.kind === 'application').map((e) => e.to))
+  const usedByPerson = new Set(edges.filter((e) => by.get(e.from)?.kind === 'actor').map((e) => e.to))
+
+  // Applications that call each other in a ring have no first one: then they are one column.
+  let first = apps.filter((n) => !calledByApp.has(n.id))
+  // The most called first: the hub the sentence follows heads its column.
+  const callers = (id: string) => edges.filter((e) => e.to === id && by.get(e.from)?.kind === 'application').length
+  let called = apps.filter((n) => calledByApp.has(n.id)).sort((a, b) => callers(b.id) - callers(a.id))
+  if (!first.length) [first, called] = [called, []]
+
+  const columns: Column[] = []
+  if (first.length)
+    columns.push({ title: first.every((n) => usedByPerson.has(n.id)) ? 'What people use' : called.length ? 'Calls the others' : 'Its applications', parts: first })
+  if (called.length) columns.push({ title: 'What they call', parts: called })
+  const kept = [...stores, ...queues]
+  if (kept.length) columns.push({ title: queues.length ? (stores.length ? 'Where data and work are kept' : 'Where work is queued') : 'Where data is kept', parts: kept })
+
+  const calls = (a: Column, b: Column) => {
+    const from = new Set(a.parts.map((n) => n.id))
+    const to = new Set(b.parts.map((n) => n.id))
+    return edges.some((e) => from.has(e.from) && to.has(e.to))
+  }
+  const arrows = columns.slice(1).map((c, i) => calls(columns[i], c))
+  return { columns, arrows, outside: nodes.filter((n) => n.kind === 'external').length }
+}
+
 /** Every part a sentence names, once, in order — what the Evidence list cites. */
 export function namedIn(sentences: Piece[][]): Node[] {
   return uniq(sentences.flat().flatMap((p) => (typeof p === 'string' ? [] : [p.node])))

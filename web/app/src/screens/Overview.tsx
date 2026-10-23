@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import type { CoverageResponse, Model, ModelResponse, Node, Summary, Version } from '../api'
 import { useApi } from '../api'
 import type { Route } from '../route'
@@ -6,7 +6,7 @@ import { Cite } from '../ui/Cite'
 import { kindStyle } from '../ui/kinds'
 import { Failure, Loading, TruthMark } from '../ui/marks'
 import type { Piece } from '../sentence'
-import { namedIn, structureSentence } from '../sentence'
+import { namedIn, number, structureColumns, structureSentence } from '../sentence'
 
 /**
  * The Overview (platform-surface §6.1): what is this system? One paragraph in plain words, one
@@ -101,22 +101,8 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
         </>
       )}
 
-      {/* One picture: the most useful level, a way into the Map (§6.1, item 2). */}
-      {!props.summary.tiny && parts.length > 0 && !asList && (
-        <button className="thumb overview-picture" onClick={() => props.go({ screen: 'explorer', level: 'container' })} aria-label="Apps and services — open the map">
-          <div className="thumb-boundary">
-            {parts.slice(0, 12).map((n) => (
-              <div key={n.id} className={`thumb-box tile-${kindStyle(n.kind).hue}`}>
-                {n.name}
-              </div>
-            ))}
-          </div>
-          <div className="thumb-foot">
-            <span className="mono muted small">apps and services{parts.length > 12 ? ` · ${parts.length - 12} more on the map` : ''}</span>
-            <span className="btn btn-ink">Open the map →</span>
-          </div>
-        </button>
-      )}
+      {/* One picture: how the parts fit, a way into the Map (§6.1, item 2). */}
+      {!props.summary.tiny && parts.length > 0 && !asList && <HowItFits graph={container} open={open} openMap={() => props.go({ screen: 'explorer', level: 'container' })} />}
 
       {!props.summary.tiny && parts.length > 0 && (
         <>
@@ -136,6 +122,52 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
           <span className="trust-more"> About these docs →</span>
         </span>
       </button>
+    </div>
+  )
+}
+
+// A column shows this many parts, and counts the rest; the Map has every one.
+const SHOWN = 6
+
+/** The parts in columns by who calls whom, each one a way onto the Map. Seen, not read: the list below is its text. */
+function HowItFits({ graph, open, openMap }: { graph: Model; open: (id: string) => void; openMap: () => void }) {
+  const { columns, arrows, outside } = structureColumns(graph)
+  return (
+    <div className="fit overview-picture">
+      <div className="fit-cols" aria-hidden="true" style={{ gridTemplateColumns: columns.map(() => 'minmax(0, 1fr)').join(' 28px ') }}>
+        {/* The titles are a row of their own, so they line up whatever each column holds. */}
+        {columns.map((c, i) => (
+          <Fragment key={c.title}>
+            {i > 0 && <span />}
+            <div className="fit-title">{c.title}</div>
+          </Fragment>
+        ))}
+        {columns.map((c, i) => (
+          <Fragment key={c.title}>
+            {i > 0 && <span className={`fit-arrow ${arrows[i - 1] ? '' : 'fit-arrow-none'}`} />}
+            <div className="fit-col" data-title={c.title}>
+              {c.parts.slice(0, SHOWN).map((n) => {
+                const k = kindStyle(n.kind)
+                return (
+                  <button key={n.id} className={`fit-box tile-${k.hue}`} tabIndex={-1} onClick={() => open(n.id)} title={`${n.name} · ${n.technology || k.label} — open on the map`}>
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round">
+                      <path d={k.icon} />
+                    </svg>
+                    <span>{n.name}</span>
+                  </button>
+                )
+              })}
+              {c.parts.length > SHOWN && <div className="fit-more">+ {c.parts.length - SHOWN} more on the map</div>}
+            </div>
+          </Fragment>
+        ))}
+      </div>
+      <div className="fit-foot">
+        <span>{outside > 0 && `It reaches ${number(outside)} outside ${outside === 1 ? 'service' : 'services'}.`}</span>
+        <button className="btn btn-ink" onClick={openMap}>
+          Open the map →
+        </button>
+      </div>
     </div>
   )
 }
