@@ -57,9 +57,9 @@ runs:
     - if: inputs.site == 'true'
       uses: actions/setup-node@v4
       with:
+        # No npm cache: its path pattern refuses the action's own path when a workflow names the
+        # action as ./ — which the engine's CI does.
         node-version: 24
-        cache: npm
-        cache-dependency-path: ${{ github.action_path }}/web/package-lock.json
     - name: Build archdoc
       shell: bash
       env:
