@@ -15,8 +15,9 @@
 /web/host/dist/*
 !/web/host/dist/.gitkeep
 
-# archdoc's own output, if it is ever pointed at this repository
+# archdoc's own output, when it is pointed at this repository — not kept until it reads well
 /.archdoc/
+/docs/architecture/
 
 # Local
 .DS_Store
