@@ -56,7 +56,7 @@ What it does now:
 | `archdoc scan` | What `generate` would find, written nowhere |
 | `archdoc diff <path> <commit> [<commit>]` | What changed in the architecture between two commits, or since one, said as a reader would — "cache renamed to store"; `--detail` lists every change under its class: added, removed, renamed, re-bounded, protocol-changed, changed. Needs git |
 | `archdoc init` | A `.archdoc/rules.yaml` to correct the model in, every line a comment until you write one |
-| `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see |
+| `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see. Its status menu updates the documentation — free, as `generate` does, or with AI after saying what it would send and cost |
 | `archdoc export --site` | The same app as a static site a team opens without archdoc — GitHub Pages, any static host |
 
 Every command explains itself — `archdoc help <command>` — and exits 0 when done, 1 when something

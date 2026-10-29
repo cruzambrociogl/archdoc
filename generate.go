@@ -55,6 +55,10 @@ type GenerateOptions struct {
 	// agrees. Nil is never.
 	Label   *LabelOptions
 	Explain *ExplainOptions
+	// DryRun puts every paid run's requests to its Consent — label's, then explain's — and stops
+	// with ErrStopped: nothing sent, nothing written, and the repository not held, so a screen can
+	// say what an update with AI would send and cost while another run updates it.
+	DryRun bool
 	// Progress is told what the run is doing as it goes — the applications found, each one as its
 	// code is read, the diagrams drawn — for a screen to show while a large repository is read.
 	// Nil is no one.
@@ -107,7 +111,7 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 	// documented is held only once there is something in it to document.
 	var lock *store.Lock
 	hold := func() error {
-		if o.IndexOnly || lock != nil {
+		if o.IndexOnly || o.DryRun || lock != nil {
 			return nil
 		}
 		by := o.By
@@ -196,6 +200,8 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 		if err := o.Label.Consent.ask("label", o.Label.Model, labelSends, []Plan{plan}, labelAnswer(plan)); err != nil {
 			return nil, err
 		}
+	}
+	if o.Label != nil && !o.DryRun {
 		rec := &semantic.Recorder{}
 		started := time.Now()
 		labelled, rep, err := semantic.Label(ctx, semantic.Claude(o.Label.Model, rec), o.Label.Model, m)
@@ -258,9 +264,15 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 			if err := x.Consent.ask("explain", semantic.ExplainModel, explainSends, plans, explainAnswer*int64(len(plans))); err != nil {
 				return nil, err
 			}
-			rec = &semantic.Recorder{}
-			asker = semantic.ClaudeWith(semantic.ExplainModel, semantic.ExplainSchema(), semantic.ExplainMaxTokens, "low", rec)
+			if !o.DryRun {
+				rec = &semantic.Recorder{}
+				asker = semantic.ClaudeWith(semantic.ExplainModel, semantic.ExplainSchema(), semantic.ExplainMaxTokens, "low", rec)
+			}
 		}
+	}
+	if o.DryRun {
+		fmt.Fprintln(out, "dry run — nothing sent, nothing written.")
+		return nil, ErrStopped
 	}
 	started := time.Now()
 	explained, remembered, xrep, err := semantic.ExplainSome(ctx, asker, semantic.ExplainModel, m, memory, only, limit)

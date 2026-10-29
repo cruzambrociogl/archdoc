@@ -11,8 +11,8 @@ import (
 // NewSystem serves a folder of documented repositories (platform-surface §4.6): the system at
 // /api/system, and each repository's own API under /repos/{name}/ — the same endpoints, answered by
 // a server of its own, with its own session token for its own actions.
-func NewSystem(dir string) (http.Handler, error) {
-	mux, err := systemMux(dir)
+func NewSystem(dir string, up Updater) (http.Handler, error) {
+	mux, err := systemMux(dir, up)
 	if err != nil {
 		return nil, err
 	}
@@ -21,7 +21,7 @@ func NewSystem(dir string) (http.Handler, error) {
 }
 
 // systemMux is a system's API alone — what Home mounts under a place's address too.
-func systemMux(dir string) (*http.ServeMux, error) {
+func systemMux(dir string, up Updater) (*http.ServeMux, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func systemMux(dir string) (*http.ServeMux, error) {
 	mux := http.NewServeMux()
 	repos := map[string]*Server{}
 	for _, r := range sys.Repos {
-		repos[r.Name] = newServer(r.Root, r.Root)
+		repos[r.Name] = newServer(r.Root, r.Root, up)
 	}
 	mux.HandleFunc("GET /api/system", func(w http.ResponseWriter, r *http.Request) {
 		// Read again on every request: a repository documented since answers with its new version.

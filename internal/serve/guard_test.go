@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 // guarded is a server with one stand-in action behind the gate, and the token its page would get.
 func guarded(t *testing.T) (*httptest.Server, string) {
 	t.Helper()
-	s, err := New(repo(t))
+	s, err := New(repo(t), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,6 +73,28 @@ func TestActionsOnlyFromTheAppItself(t *testing.T) {
 	for _, c := range cases {
 		if got := act(t, ts, c.method, c.origin, c.token); got != c.want {
 			t.Errorf("%s: got %d, want %d", c.name, got, c.want)
+		}
+	}
+}
+
+// No page on another origin can read the token: nothing answers with a CORS header, even when
+// asked from another site.
+func TestTheTokenIsReadableOnlyByTheAppItself(t *testing.T) {
+	ts, _ := guarded(t)
+	for _, method := range []string{"GET", "OPTIONS"} {
+		req, _ := http.NewRequest(method, ts.URL+"/api/session", nil)
+		req.Host = "localhost"
+		req.Header.Set("Origin", "https://evil.example")
+		req.Header.Set("Access-Control-Request-Method", "GET")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		for name := range resp.Header {
+			if strings.HasPrefix(strings.ToLower(name), "access-control-") {
+				t.Errorf("%s /api/session answers another site with %s", method, name)
+			}
 		}
 	}
 }

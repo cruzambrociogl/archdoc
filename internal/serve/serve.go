@@ -53,14 +53,16 @@ type Server struct {
 	token   string // this run's session token; see guard.go
 	// completer makes the client Ask and the plan check go through (ai.go); nil is the real one.
 	completer completer
-	// update runs generate for the app (update.go). Nil — as it is everywhere today — is updating
-	// from the app switched off.
-	update func(ctx context.Context) error
+	// update runs generate for the app (update.go); nil — a published site's — is updating
+	// switched off. app is the runs it started.
+	update Updater
+	app    updates
 }
 
-// New prepares a server for the repository at root. It needs history to exist: the app displays
-// what generate stored, so a repository archdoc has never documented has nothing to show yet.
-func New(root string) (*Server, error) {
+// New prepares a server for the repository at root, updated through up — or not, when it is nil.
+// It needs history to exist: the app displays what generate stored, so a repository archdoc has
+// never documented has nothing to show yet.
+func New(root string, up Updater) (*Server, error) {
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return nil, err
@@ -68,14 +70,14 @@ func New(root string) (*Server, error) {
 	if _, err := os.Stat(filepath.Join(abs, store.File)); err != nil {
 		return nil, fmt.Errorf("no archdoc history in %s — run 'archdoc generate %s' first", abs, root)
 	}
-	return newServer(abs, abs), nil
+	return newServer(abs, abs, up), nil
 }
 
 // newServer answers for the repository at root, reading version history from history's
 // .archdoc/history.db — the repository itself, except when export seeds history from model.json.
-func newServer(root, history string) *Server {
+func newServer(root, history string, up Updater) *Server {
 	abs := root
-	s := &Server{root: abs, history: history, mux: http.NewServeMux(), token: newToken()}
+	s := &Server{root: abs, history: history, mux: http.NewServeMux(), token: newToken(), update: up}
 	s.mux.HandleFunc("GET /api/session", s.session)
 	s.mux.HandleFunc("GET /api/summary", s.summary)
 	s.mux.HandleFunc("GET /api/versions", s.versions)
@@ -127,17 +129,18 @@ func thisMachine(h http.Handler) http.Handler {
 }
 
 // ListenAndServe serves on addr until ctx ends — the repository at root, or, when root is a folder
-// of documented repositories, all of them as one system. It binds to the loopback interface only; addr's
-// host part is ignored so a flag cannot accidentally expose the model to the network.
-func ListenAndServe(ctx context.Context, root string, port int, ready func(url string)) error {
+// of documented repositories, all of them as one system — each repository updated through up. It
+// binds to the loopback interface only; addr's host part is ignored so a flag cannot accidentally
+// expose the model to the network.
+func ListenAndServe(ctx context.Context, root string, port int, up Updater, ready func(url string)) error {
 	var srv http.Handler
 	var err error
 	if system.IsRepo(root) {
-		srv, err = New(root)
+		srv, err = New(root, up)
 	} else if _, serr := system.Read(root); serr == nil {
-		srv, err = NewSystem(root)
+		srv, err = NewSystem(root, up)
 	} else {
-		srv, err = New(root) // says what is missing
+		srv, err = New(root, up) // says what is missing
 	}
 	if err != nil {
 		return err
@@ -145,9 +148,10 @@ func ListenAndServe(ctx context.Context, root string, port int, ready func(url s
 	return listen(ctx, srv, port, ready)
 }
 
-// ListenAndServeHome serves Home (home.go) until ctx ends: every place this machine remembers.
-func ListenAndServeHome(ctx context.Context, port int, ready func(url string)) error {
-	return listen(ctx, NewHome(), port, ready)
+// ListenAndServeHome serves Home (home.go) until ctx ends: every place this machine remembers, each
+// repository updated through up.
+func ListenAndServeHome(ctx context.Context, port int, up Updater, ready func(url string)) error {
+	return listen(ctx, NewHome(up), port, ready)
 }
 
 // listen serves a handler on the loopback interface only, until ctx ends.
@@ -236,6 +240,8 @@ func (s *Server) summary(w http.ResponseWriter, r *http.Request) {
 	out := map[string]any{
 		"name": latest.Model.Name, "root": s.root, "source": latest.Source,
 		"commit": latest.Commit, "latest_version": latest.ID,
+		// The commit checked out now: when it is not the version's, the code has moved on since.
+		"head":     render.Commit(s.root),
 		"versions": len(versions), "runs": len(runs),
 		"frontend_built": built || web.DevServer() != "",
 	}

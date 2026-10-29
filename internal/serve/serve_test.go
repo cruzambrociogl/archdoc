@@ -84,7 +84,7 @@ func repo(t *testing.T) string {
 func server(t *testing.T) (*httptest.Server, string) {
 	t.Helper()
 	root := repo(t)
-	s, err := New(root)
+	s, err := New(root, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestOnlyThisMachineIsServed(t *testing.T) {
 }
 
 func TestNoHistoryIsAClearError(t *testing.T) {
-	if _, err := New(t.TempDir()); err == nil || !strings.Contains(err.Error(), "archdoc generate") {
+	if _, err := New(t.TempDir(), nil); err == nil || !strings.Contains(err.Error(), "archdoc generate") {
 		t.Errorf("got %v", err)
 	}
 }

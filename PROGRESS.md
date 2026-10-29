@@ -41,8 +41,11 @@ build what I asked?" are built in the local app, on the person's own key: facts 
 model, the cost said before anything is sent, answers remembered so asking again is free.
 One update runs at a time: `generate` holds the repository while it writes, a second run waits and
 says for whom, and the app says an update is running in the terminal, with what it is doing. A Map
-link to a part a version lacks says where it went. Update from the app is built and switched off
-until a security review (`../archdoc-platform/docs/decisions.md`, 22 Oct).
+link to a part a version lacks says where it went. Locally, the app updates the documentation itself
+(`../archdoc-platform/docs/decisions.md`, 23 Oct): the top bar says Out of date when another commit
+is checked out, and so does Home; Update is free and offline, and Update with AI first shows what label
+and explain would send and cost — a dry run of the same pipeline — and never sends more than was
+agreed to. On the platform it stays off until the security analysis.
 A coding agent can ask archdoc too: `archdoc mcp` answers Claude Code, Cursor or any MCP client —
 what the system is, one thing with its proof, every route or table, what a change to a part or a
 class touches, what changed, whether the documentation is current — locally, read-only, cited. A

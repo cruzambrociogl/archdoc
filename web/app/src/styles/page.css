@@ -2081,6 +2081,9 @@ button.runs-row:hover {
 .home-line.is-changed {
   font-weight: 600;
 }
+.home-line.is-stale .home-glyph {
+  color: var(--accent);
+}
 .home-glyph {
   flex: 0 0 12px;
   font: 700 11px var(--font-mono);

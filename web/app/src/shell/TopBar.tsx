@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Session, Summary, Version } from '../api'
+import { movedOn } from '../api'
 import { useCapabilities, useSource } from '../source'
 import type { Route } from '../route'
 import { levelName, sectionOf, titles } from '../route'
@@ -9,6 +10,8 @@ import { TruthMark } from '../ui/marks'
 import type { MarkKind } from '../ui/markInfo'
 import { MarkGlyph } from '../ui/markInfo'
 import { useParent } from './parent'
+import { UpdateButton, UpdateWithAI } from './Update'
+import { loadedAt, useUpdating } from './updating'
 
 export const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
 export const themeGlyph: Record<Theme, string> = { system: '◐', light: '○', dark: '●' }
@@ -31,8 +34,8 @@ const lineWord = { branch: '⎇', tag: 'tag', commit: 'commit' } as const
 /**
  * The top bar (platform-surface §4.3): where you are, whether it is current, one box to search, and
  * what belongs to the page. Each part appears only where the place can do it (§4.5). What is designed
- * and not built — updating from the app, publishing, this machine's settings — shows only in a
- * development build, as a dashed placeholder.
+ * and not built — publishing, this machine's settings — shows only in a development build, as a
+ * dashed placeholder.
  */
 export function TopBar(props: {
   summary: Summary
@@ -77,6 +80,14 @@ export function TopBar(props: {
   const older = !!route.v && route.v !== s.latest_version
   const commit = (older ? shown?.commit : (props.session?.commit ?? s.commit)) ?? ''
   const made = older ? shown?.created_at : (props.session?.generated_at ?? latest?.created_at)
+  // On this machine: is an update running, and has the code moved on since the latest version?
+  const updating = useUpdating()
+  const busy = !!updating?.running
+  // Updated since this page loaded: what it shows is behind until the reader chooses to see it.
+  const updated = !busy && !!updating?.last && !updating.last.error && Date.parse(updating.last.finished) > loadedAt
+  const stale = can.place === 'local' && !older && !updated && movedOn(s.commit, s.head)
+  const [withAI, setWithAI] = useState(false)
+  useEffect(() => setWithAI(false), [open])
 
   // Where you are: the repository, the section, and the page or level inside it.
   const section = sectionOf(route.screen)
@@ -146,13 +157,27 @@ export function TopBar(props: {
 
       {/* Is this up to date? Which commit, and when; an older version says so. */}
       <div className="pop-anchor status-anchor">
-        <button className={`status-pill ${older ? 'older' : ''}`} onClick={() => toggle('status')} aria-expanded={open === 'status'}>
+        <button className={`status-pill ${older ? 'older' : ''} ${busy && !older ? 'busy' : stale ? 'stale' : ''}`} onClick={() => toggle('status')} aria-expanded={open === 'status'}>
           <span className="status-glyph" aria-hidden="true">
-            {older ? '↺' : ''}
+            {older ? '↺' : busy ? '' : stale ? '!' : ''}
           </span>
           <span className="status-text">
-            {older ? `Showing v${route.v}` : 'From'} <span className="mono">{commit.slice(0, 7) || 'no commit'}</span>
-            {made && !older ? ` · ${day(made)}` : ''}
+            {older ? (
+              <>
+                Showing v{route.v} <span className="mono">{commit.slice(0, 7)}</span>
+              </>
+            ) : busy ? (
+              'Updating…'
+            ) : updated ? (
+              'Updated'
+            ) : stale ? (
+              'Out of date'
+            ) : (
+              <>
+                From <span className="mono">{commit.slice(0, 7) || 'no commit'}</span>
+                {made ? ` · ${day(made)}` : ''}
+              </>
+            )}
           </span>
           <span className="caret">▾</span>
         </button>
@@ -178,35 +203,56 @@ export function TopBar(props: {
               ) : (
                 <>
                   These docs were generated from commit <span className="mono">{commit.slice(0, 7) || '—'}</span>
-                  {made ? <> on {day(made)}</> : null}. Whether the code changed since, the app can't tell yet: <span className="mono">archdoc status</span> in a terminal says.
+                  {made ? <> on {day(made)}</> : null}
+                  {busy ? (
+                    <>. An update is running{updating?.doing ? ` — ${updating.doing}` : ''}; the band above follows it.</>
+                  ) : updated ? (
+                    <>. They have been updated since this page loaded: Show it, in the band above, loads them.</>
+                  ) : stale ? (
+                    <>
+                      . The code has moved on since: <span className="mono">{s.head?.slice(0, 7)}</span> is checked out now. Update reads it again — free, offline, nothing sent.
+                    </>
+                  ) : s.head ? (
+                    <>, the commit checked out now. Changes not yet committed aren’t compared.</>
+                  ) : (
+                    '.'
+                  )}
                 </>
               )}
             </p>
-            <div className="pop-actions">
-              {older && (
-                <button className="btn btn-ink" onClick={() => go({ v: undefined }, { keep: true })}>
-                  Show the latest
-                </button>
-              )}
-              {can.history && props.versions.length > 1 && (
-                <button className="link-btn" onClick={() => go({ screen: 'changes', v: route.v })}>
-                  Every version →
-                </button>
-              )}
-              <Planned id="freshness" go={go}>
-                Up to date?
-              </Planned>
-              {can.update ? (
-                <UpdateButton />
-              ) : (
-                <Planned id="run" go={go}>
-                  Update
+            {can.update && !older && withAI ? (
+              <UpdateWithAI busy={busy} go={go} onStarted={() => setOpen(null)} />
+            ) : (
+              <div className="pop-actions">
+                {older && (
+                  <button className="btn btn-ink" onClick={() => go({ v: undefined }, { keep: true })}>
+                    Show the latest
+                  </button>
+                )}
+                {can.update && !older ? (
+                  <>
+                    <UpdateButton busy={busy} />
+                    <button className="btn btn-outline" disabled={busy} onClick={() => setWithAI(true)}>
+                      <TruthMark state="interpreted" /> Update with AI…
+                    </button>
+                  </>
+                ) : (
+                  !can.update && (
+                    <Planned id="run" go={go}>
+                      Update
+                    </Planned>
+                  )
+                )}
+                {can.history && props.versions.length > 1 && (
+                  <button className="link-btn" onClick={() => go({ screen: 'changes', v: route.v })}>
+                    Every version →
+                  </button>
+                )}
+                <Planned id="git" go={go}>
+                  Uncommitted
                 </Planned>
-              )}
-              <Planned id="git" go={go}>
-                Uncommitted
-              </Planned>
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -323,33 +369,3 @@ function SharePop() {
     </div>
   )
 }
-
-/**
- * Update (§4.3): regenerate this repository's documentation, free and offline — where the place can
- * (capabilities.update, false everywhere today). The run is followed in the notice band.
- */
-function UpdateButton() {
-  const source = useSource()
-  const [state, setState] = useState<{ asking?: boolean; error?: string; started?: boolean }>({})
-  return (
-    <>
-      <button
-        className="btn btn-ink"
-        disabled={state.asking || state.started}
-        onClick={async () => {
-          setState({ asking: true })
-          try {
-            await source.act('/api/update')
-            setState({ started: true })
-          } catch (e) {
-            setState({ error: e instanceof Error ? e.message : String(e) })
-          }
-        }}
-      >
-        {state.started ? 'Updating…' : 'Update'}
-      </button>
-      {state.error && <span className="pop-sentence">{state.error}</span>}
-    </>
-  )
-}
-

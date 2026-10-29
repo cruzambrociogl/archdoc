@@ -806,7 +806,7 @@ the focus view and delta overlay are straightforward to build on it.
 | **Read** | Browse, inspect, search, compare stored versions | Yes | One version, plus the chosen baseline | — | ✅ |
 | **Freshness** | "The code changed since this was generated" — compares the version's commit with HEAD and the working tree | Status pill in the top bar | "Generated from commit … on …" | `archdoc status` (new) | ◐ |
 | **Run** (C-1) | `scan` — free, offline, seconds | One click | — | `scan` | ◐ |
-| | `generate` without the model — free, offline, deterministic | One click | — | `generate` | ◐ |
+| | `generate` without the model — free, offline, deterministic | One click | — | `generate` | ✅ |
 | | `generate` with the model — sends structure, costs money | After a confirmation: egress mode, model, items, estimated bytes, tokens and cost. Logged in Network runs like any run | — | `generate --label` | ◐ |
 | | Progress | Stages streamed live; cancel; one run at a time | — | — | ◐ |
 | | Watch mode — regenerate on save (F-29) | A toggle. Deterministic only: **never calls the model on its own** | — | `serve --watch` | ○ |

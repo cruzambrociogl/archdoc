@@ -123,6 +123,8 @@ export interface Summary {
   root: string
   source: string
   commit: string
+  /** On this machine, the commit checked out now: when it isn't the version's, the code has moved on since. */
+  head?: string
   latest_version: number
   versions: number
   runs: number
@@ -541,6 +543,8 @@ export interface HomeRepo {
   root: string
   version: number
   commit: string
+  /** The commit checked out now: when it isn't the version's, the code has moved on since. */
+  head?: string
   created_at: string
   /** Versions recorded since the place was last opened here; -1 when it never was. */
   since: number
@@ -560,6 +564,37 @@ export interface AskPreview {
   remembered?: AskAnswer
   remembered_at?: string
 }
+
+/** What one paid run of an update with AI would send, from a dry run of the pipeline. */
+export interface UpdateAsk {
+  what: 'label' | 'explain'
+  model: string
+  sends: string
+  requests: number
+  bytes: number
+  usd: number
+  known: boolean
+}
+
+/** What an update with AI would send and cost; key is whether the person's key is set where archdoc serve started. */
+export interface UpdatePreview {
+  asks: UpdateAsk[]
+  key: boolean
+}
+
+/** The last update the app ran, as it ended. */
+export interface UpdateEnd {
+  ai: boolean
+  started: string
+  finished: string
+  error?: string
+  version?: number
+  changed: boolean
+  log?: string
+}
+
+/** Whether the code has moved on since a version: its commit is not the one checked out now. */
+export const movedOn = (commit?: string, head?: string) => !!commit && !!head && commit !== head
 
 export interface Estimate {
   usd: number

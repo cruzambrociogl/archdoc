@@ -79,7 +79,7 @@ capability is true; no screen checks which place it is in.
 | `plans` — the planned placeholders | in a development build only (§4.4) | no | no |
 | `links` — where citations open | `editor`: `vscode://` at the line | `host`: the repository host at the commit, or plain text when none is known | `host` |
 | `ask` — Ask, and Did it build what I asked? | yes, on the person's own key | no | not yet: whose key pays waits for accounts |
-| `update` — Update from the status menu | built, switched off until a security review | no | no |
+| `update` — Update, and Update with AI, from the status menu | yes: free, or with AI after a dry run says what it would send and cost (`/api/update/preview`, `/api/update`, followed through `/api/updating`) | no | not yet: off until the platform's security analysis |
 
 **A system.** On a folder of documented repositories, `archdoc serve` answers `/api/system` and each
 repository's API under `/repos/{name}/`; the local Source then has `system` — read the system, open
@@ -128,7 +128,10 @@ app/src/                 @archdoc/app
                          system's map, then a repository, by path), HomeSite (Home, then a place, by path),
                          path (the path those levels share) and parent (the levels above, for the
                          breadcrumb), Notice (the
-                         band above the page: unreachable, offline, a newer version, what a host says)
+                         band above the page: unreachable, offline, an update running or ended, a newer
+                         version, what a host says), Update (Update, and Update with AI's choice and
+                         cost) and updating (one watch of the repository's updates, which the status pill
+                         and the band share)
   screens/               Overview, Changes, Features (What it does), Reference, About (with Coverage), Documents,
                          Dependencies, Component, Corrections (Settings), NetworkRuns, Inspector;
                          Start and Generating, the website's; Gone (a page, version or part a link names

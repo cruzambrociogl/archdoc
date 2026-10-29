@@ -19,7 +19,7 @@ export function aiFailure(error: string, what: string): string {
 }
 
 /** A cost, roughly: "about $0.003", or "under a cent" said plainly when it is. */
-export function dollars(e?: Estimate): string {
+export function dollars(e?: Pick<Estimate, 'usd' | 'known'>): string {
   if (!e?.known) return 'a cost archdoc can’t estimate for this model'
   if (e.usd < 0.001) return 'about a tenth of a cent'
   return `about $${e.usd < 0.01 ? e.usd.toFixed(3) : e.usd.toFixed(2)}`

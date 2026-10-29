@@ -72,6 +72,16 @@ what is different for a user.
   diagram is the same drawing in light and dark.
 - **The archdoc wordmark goes home**: to Home, a system's map, or the website's start — wherever is
   above the repository you are reading.
+- **Update from the app, with or without AI.** On this machine the top bar says *Out of date* when
+  another commit is checked out than the documentation was made from — Home says it on each card too
+  — and its menu updates it: **Update**, free and offline, as `archdoc generate` does; and **Update
+  with AI**, which first says what labels and explanations would send and roughly cost, each to tick
+  or not, and then sends no more requests, and costs no more than a little over, what you agreed to.
+  It needs `ANTHROPIC_API_KEY` in the shell `archdoc serve` started from. One update runs at a time,
+  from here or a terminal; a band above the page follows it and says how it ended.
+- **`GenerateOptions.DryRun`**, in the library: every paid run's requests — label's, then explain's,
+  from one reading — are put to its Consent, and the run stops: nothing sent, nothing written, and the
+  repository not held.
 - **archdoc is a Go library as well as a command.** `import "github.com/cruzambrociogl/archdoc"`:
   `Generate` documents a repository, `Compare` and `Diff` say what changed — between two stored
   models or two commits — `Status`, `BuildSite`, `Read`, `Find` and `OpenHistory` do what their

@@ -671,6 +671,77 @@ button.crumb:hover {
   background: transparent;
   color: var(--ink);
 }
+/* Out of date: the code has moved on since these docs. */
+.status-pill.stale {
+  border-color: var(--accent-line);
+}
+.status-pill.stale .status-glyph {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+/* Updating: a ring, turning. */
+.status-pill.busy .status-glyph {
+  background: transparent;
+  border-color: var(--rule);
+  border-top-color: var(--ink);
+  animation: status-turn 0.9s linear infinite;
+}
+@keyframes status-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-pill.busy .status-glyph {
+    animation: none;
+  }
+}
+.pop-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+/* Update with AI: what each paid run would send and cost, chosen before anything is sent. */
+.update-ai {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.update-ai p {
+  margin: 0;
+}
+.update-ai-run {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-soft);
+  background: var(--panel);
+  cursor: pointer;
+}
+.update-ai-run input {
+  margin-top: 3px;
+}
+.update-ai-title {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+}
+.update-ai-sub {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.update-ai .pop-actions {
+  margin-top: 2px;
+}
+.pop-actions .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .caret {
   font-size: 9px;
   color: var(--muted);

@@ -40,7 +40,7 @@ func folder(t *testing.T) string {
 // The system answers at /api/system; each repository answers its own API under /repos/{name}/;
 // anything else under /api is an error, never the app's page.
 func TestASystemServesEachRepositoryUnderItsName(t *testing.T) {
-	h, err := NewSystem(folder(t))
+	h, err := NewSystem(folder(t), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestASystemServesEachRepositoryUnderItsName(t *testing.T) {
 
 // One repository's server has no system: the app asks, and is told so rather than given its page.
 func TestARepositoryIsNotASystem(t *testing.T) {
-	s, err := New(repo(t))
+	s, err := New(repo(t), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

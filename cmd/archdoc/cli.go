@@ -83,7 +83,8 @@ func init() {
 		{"runs", "<path>", "every run that used the network, what it sent and what it cost", "", groupRead, runs},
 		{"serve", "<path>", "open the web app for a repository archdoc has documented, or a folder of them",
 			"Serves the app on this machine only. Ctrl-C stops it. A folder holding several documented repositories\n" +
-				"is served as one system: how they fit together, and each one's pages.", groupRead, serveCommand},
+				"is served as one system: how they fit together, and each one's pages. The app can update the\n" +
+				"documentation as generate does; with AI only after showing what it sends and costs, on ANTHROPIC_API_KEY.", groupRead, serveCommand},
 		{"home", "", "open Home: every repository, and folder of them, this machine has documented",
 			"What changed in each since you last opened it here. The list is a file in your user configuration\n" +
 				"folder; generate and serve add to it.", groupRead, homeCommand},

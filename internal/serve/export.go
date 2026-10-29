@@ -73,7 +73,7 @@ func StaticName(apiPath string) string {
 var svgRef = regexp.MustCompile(`([A-Za-z0-9_.-]+\.svg)\b`)
 
 func Export(root string, since int64) (map[string][]byte, error) {
-	s, err := New(root)
+	s, err := New(root, nil) // a published site never updates
 	if err != nil {
 		abs, _ := filepath.Abs(root)
 		seed, cleanup, serr := seedHistory(abs)
@@ -81,7 +81,7 @@ func Export(root string, since int64) (map[string][]byte, error) {
 			return nil, fmt.Errorf("%v; and no committed .archdoc/model.json to build from instead: %v", err, serr)
 		}
 		defer cleanup()
-		s = newServer(abs, seed)
+		s = newServer(abs, seed, nil)
 	}
 	latest, err := s.latest()
 	if err != nil {

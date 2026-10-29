@@ -28,7 +28,7 @@ func TestHomeServesEveryRememberedPlace(t *testing.T) {
 	if err := recent.Touch(sys, at.Add(time.Second)); err != nil { // generated, never opened
 		t.Fatal(err)
 	}
-	h := NewHome()
+	h := NewHome(nil)
 	do := func(method, path, body string, header map[string]string) *httptest.ResponseRecorder {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(method, path, strings.NewReader(body))

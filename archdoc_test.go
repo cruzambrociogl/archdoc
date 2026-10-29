@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -132,6 +133,45 @@ func TestPaidRunsNeedConsent(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, archdoc.DocsDir)); !os.IsNotExist(err) {
 		t.Error("a refused run wrote the documentation")
+	}
+}
+
+// A dry run shows every paid run's requests — label's and explain's, from one reading — and stops:
+// nothing sent, nothing written, and the repository not held, so it can be asked while another run
+// updates it.
+func TestADryRunAsksEveryConsentAndWritesNothing(t *testing.T) {
+	dir := shop(t)
+	var asked []archdoc.Request
+	agree := func(r archdoc.Request) error { asked = append(asked, r); return nil }
+	_, err := archdoc.Generate(context.Background(), dir, archdoc.GenerateOptions{DryRun: true, History: true,
+		Label:   &archdoc.LabelOptions{Model: archdoc.LabelModel, Consent: agree},
+		Explain: &archdoc.ExplainOptions{Consent: agree}})
+	if !errors.Is(err, archdoc.ErrStopped) {
+		t.Fatalf("a dry run came back as %v", err)
+	}
+	if len(asked) != 2 || asked[0].What != "label" || asked[1].What != "explain" || len(asked[1].Plans) == 0 {
+		t.Fatalf("asked %d time(s): %+v", len(asked), asked)
+	}
+	for _, p := range []string{archdoc.DocsDir, ".archdoc"} {
+		if _, err := os.Stat(filepath.Join(dir, p)); !os.IsNotExist(err) {
+			t.Errorf("a dry run wrote %s", p)
+		}
+	}
+
+	// Documented, and held by another run: a dry run still answers, and leaves the hold alone.
+	if _, err := archdoc.Generate(context.Background(), dir, archdoc.GenerateOptions{History: true}); err != nil {
+		t.Fatal(err)
+	}
+	busy := filepath.Join(dir, ".archdoc", "updating.json")
+	if err := os.WriteFile(busy, []byte(`{"pid":`+strconv.Itoa(os.Getpid())+`,"by":"archdoc generate"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	asked = nil
+	if _, err := archdoc.Generate(context.Background(), dir, archdoc.GenerateOptions{DryRun: true, Label: &archdoc.LabelOptions{Model: archdoc.LabelModel, Consent: agree}}); !errors.Is(err, archdoc.ErrStopped) || len(asked) != 1 {
+		t.Errorf("held elsewhere: %v, asked %d", err, len(asked))
+	}
+	if _, err := os.Stat(busy); err != nil {
+		t.Error("a dry run released another run's hold")
 	}
 }
 

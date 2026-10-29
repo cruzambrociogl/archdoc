@@ -28,9 +28,9 @@ const T = 'Surface Themes'
 export const planned: Plan[] = [
   // Control — §11
   { id: 'freshness', design: C, area: 'Control', title: 'Freshness pill', spec: '§11.2, §11.7',
-    what: 'Says in the top bar whether the code changed since this version was generated: Up to date, Code changed, Running…, Failed.' },
+    what: 'Locally the pill says Out of date when another commit is checked out, and Updating… while a run goes. Still to come: changes not yet committed, and a Failed state.' },
   { id: 'run', design: C, area: 'Control', title: 'Run from the app', spec: '§11.2 (C-1), §11.7',
-    what: 'scan and generate with one click; generate with the model only after a dialog showing egress mode, model, items, bytes and estimated cost. Progress drawer with stages and cancel; one run at a time.' },
+    what: 'Update and Update with AI are built locally, one run at a time. Still to come: scan with one click, a progress drawer with stages, and cancel.' },
   { id: 'publish', design: C, area: 'Control', title: 'Publish dialog', spec: '§11.2, §11.7',
     what: 'Builds the site into .archdoc/site and shows the CI workflow to copy. Never deploys.' },
   { id: 'git', design: C, area: 'Control', title: 'Uncommitted files card', spec: '§11.2 (C-4), §11.7',

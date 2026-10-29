@@ -17,7 +17,7 @@ import (
 func aiServer(t *testing.T, replies ...string) (*Server, *int, func(method, path, body string) *httptest.ResponseRecorder) {
 	t.Helper()
 	root := repo(t)
-	s, err := New(root)
+	s, err := New(root, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

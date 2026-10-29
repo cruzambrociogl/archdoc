@@ -25,9 +25,9 @@ export interface Capabilities {
   /** A model can be asked, on the person's own key: Ask, and Did it build what I asked? (§6.3, §6.5). */
   ask: boolean
   /**
-   * The app can update the repository's documentation (§4.3, the status menu's Update). Built, and
-   * false in every place: a page that makes archdoc write into a repository waits for a security
-   * review (platform decisions, 22 Oct).
+   * The app can update the repository's documentation (§4.3, the status menu's Update, and Update
+   * with AI): on this machine only (platform decisions, 23 Oct). On the platform it waits for the
+   * security analysis of 22 Oct; a published site never updates.
    */
   update: boolean
 }

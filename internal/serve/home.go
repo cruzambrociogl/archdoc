@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cruzambrociogl/archdoc/internal/recent"
+	"github.com/cruzambrociogl/archdoc/internal/render"
 	"github.com/cruzambrociogl/archdoc/internal/store"
 	"github.com/cruzambrociogl/archdoc/internal/system"
 )
@@ -18,7 +19,7 @@ import (
 // and folders of them — at /api/home, and each one's own API under /at/{id}/, as `archdoc serve`
 // would serve it alone. Opening a place from Home is an action: it remembers each repository's
 // version then, which is what "changed since you last looked" counts from.
-func NewHome() http.Handler {
+func NewHome(up Updater) http.Handler {
 	token := newToken()
 	mux := http.NewServeMux()
 	var mu sync.Mutex
@@ -67,7 +68,7 @@ func NewHome() http.Handler {
 		h, ok := places[id]
 		if !ok {
 			if p, known := placeOf(id); known {
-				if h, ok = placeHandler(p.Path); ok {
+				if h, ok = placeHandler(p.Path, up); ok {
 					places[id] = h
 				}
 			}
@@ -99,11 +100,11 @@ func placeOf(id string) (recent.Place, bool) {
 }
 
 // placeHandler is a place's API, as `archdoc serve` would answer for it, with its page the app's.
-func placeHandler(path string) (http.Handler, bool) {
+func placeHandler(path string, up Updater) (http.Handler, bool) {
 	var api *http.ServeMux
 	if system.IsRepo(path) {
-		api = newServer(path, path).mux
-	} else if mux, err := systemMux(path); err == nil {
+		api = newServer(path, path, up).mux
+	} else if mux, err := systemMux(path, up); err == nil {
 		api = mux
 	} else {
 		return nil, false
@@ -182,7 +183,7 @@ func homeRepo(root string, p recent.Place) map[string]any {
 		}
 	}
 	return map[string]any{
-		"name": filepath.Base(root), "root": root, "version": latest.ID, "commit": latest.Commit,
+		"name": filepath.Base(root), "root": root, "version": latest.ID, "commit": latest.Commit, "head": render.Commit(root),
 		"created_at": latest.CreatedAt, "since": since, "unresolved": len(latest.Model.Unresolved), "kinds": kinds,
 	}
 }

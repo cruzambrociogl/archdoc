@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { HomePlace, HomeRepo, HomeResponse } from '../api'
+import { movedOn } from '../api'
 import { number } from '../sentence'
 import { WebsiteBar } from '../shell/WebsiteBar'
 import { kindStyle } from '../ui/kinds'
@@ -9,12 +10,14 @@ const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 
 const and = (items: string[]) => (items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`)
 const times = (n: number) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${number(n)} times`)
 const changed = (p: HomePlace) => (p.repos ?? []).some((r) => r.since > 0)
+const stale = (p: HomePlace) => (p.repos ?? []).some((r) => movedOn(r.commit, r.head))
 
 /**
  * Home, on this machine (platform-surface §5.3): did anything change since I last looked? One
  * sentence across every place this machine remembers, then a card for each — a repository, or a
  * system of them — with a status line per repository: what changed since it was last opened here,
- * what couldn't be resolved, and when it last changed. A card opens its place.
+ * whether the code has moved on since its docs, what couldn't be resolved, and when it last changed.
+ * A card opens its place, where it is updated.
  */
 export function Home(props: { data?: HomeResponse; error?: Error; missing?: boolean; onOpen: (p: HomePlace) => void; onHome: () => void }) {
   const [adding, setAdding] = useState(false)
@@ -70,6 +73,8 @@ function homeSentence(places: HomePlace[]): string {
   if (moved.length) out.push(`${and(moved)} changed the architecture since you last opened ${moved.length === 1 ? 'it' : 'them'}.`)
   else if (there.length > never.length) out.push(`Nothing changed the architecture since you last opened ${there.length - never.length === 1 ? 'it' : 'each one'}.`)
   if (never.length) out.push(`${and(never)} ${never.length === 1 ? 'hasn’t' : 'haven’t'} been opened here yet.`)
+  const behind = there.filter(stale).map((p) => p.name)
+  if (behind.length) out.push(`${and(behind)} ${behind.length === 1 ? 'has' : 'have'} new commits since ${behind.length === 1 ? 'its' : 'their'} docs — open ${behind.length === 1 ? 'it' : 'one'} to update.`)
   if (gone.length) out.push(`${and(gone)} ${gone.length === 1 ? 'isn’t where it was' : 'aren’t where they were'}.`)
   return out.join(' ')
 }
@@ -153,6 +158,17 @@ function Lines({ r, system }: { r: HomeRepo; system: boolean }) {
             ? 'unchanged since you last opened it'
             : 'not opened here yet'}
       </div>
+      {movedOn(r.commit, r.head) && (
+        <div className="home-line is-stale">
+          <span className="home-glyph" aria-hidden="true">
+            !
+          </span>
+          <span>
+            {who}out of date — <span className="mono">{r.head?.slice(0, 7)}</span> is checked out; these docs are from{' '}
+            <span className="mono">{r.commit.slice(0, 7)}</span>
+          </span>
+        </div>
+      )}
       {r.unresolved > 0 && (
         <div className="home-line">
           <TruthMark state="unresolved" /> {who}

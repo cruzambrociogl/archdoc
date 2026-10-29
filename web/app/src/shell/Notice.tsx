@@ -3,7 +3,9 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { Summary, Version } from '../api'
 import { notAnswering } from '../api'
 import { retryFailed, useConnection } from '../connection'
+import { aiFailure } from '../screens/Ask'
 import { useCapabilities, useSource } from '../source'
+import { loadedAt, useUpdating } from './updating'
 
 /**
  * A notice above the page (platform-surface §4.8; App.dc.html): what happened, in one sentence;
@@ -36,7 +38,11 @@ export function NoticeBand({ summary }: { summary: Summary }) {
   const can = useCapabilities()
   const { down } = useConnection()
   const given = useContext(NoticeContext)
-  const busy = useUpdating()
+  const updating = useUpdating()
+  const busy = updating?.running ? updating : undefined
+  // An update started here that ended since this page loaded — and changed nothing, or stopped: a
+  // new version has a notice of its own.
+  const end = !busy && updating?.last && Date.parse(updating.last.finished) > loadedAt ? updating.last : undefined
   const newer = useNewer(summary, busy?.since)
   const [dismissed, setDismissed] = useState<string[]>([])
   const dismiss = (id: string) => () => setDismissed((d) => [...d, id])
@@ -67,11 +73,38 @@ export function NoticeBand({ summary }: { summary: Summary }) {
     notices.push({
       id: `updating-${busy.since}`,
       glyph: 'info',
-      what: `An update ${busy.by === 'the app' ? 'started here' : 'started in the terminal'} is running: ${busy.by}, since ${time(Date.parse(busy.since))}.`,
+      what: busy.mine
+        ? `An update${busy.ai ? ' with AI' : ''} started here is running, since ${time(Date.parse(busy.since ?? ''))}.`
+        : `An update ${busy.by === 'the app' ? 'started in the app' : 'started in the terminal'} is running: ${busy.by}, since ${time(Date.parse(busy.since ?? ''))}.`,
       still: busy.doing ? `Now ${busy.doing}${busy.found?.length ? ` — ${busy.found.join(', ')} so far` : ''}.` : undefined,
       todo: 'These docs stay as they are until it ends; then this page says what changed.',
       acts: [],
     })
+  }
+  if (end && (end.error || !end.changed) && !dismissed.includes(`ended-${end.finished}`)) {
+    const id = `ended-${end.finished}`
+    notices.push(
+      end.error
+        ? {
+            id,
+            glyph: 'warn',
+            what: end.ai ? aiFailure(end.error, 'The update with AI') : `The update stopped: ${end.error.replace(/\.$/, '')}.`,
+            still: 'These docs are as they were.',
+            acts: [{ label: 'Got it', on: dismiss(id), primary: true }],
+          }
+        : {
+            id,
+            glyph: 'info',
+            what: end.ai
+              ? `Updated with AI: what it wrote is in, and the architecture is as it was in version ${end.version}.`
+              : `Updated: the architecture is as it was in version ${end.version}.`,
+            still: 'This page shows what it loaded until you choose.',
+            acts: [
+              { label: 'Show it', on: () => location.reload(), primary: true },
+              { label: 'Later', on: dismiss(id) },
+            ],
+          },
+    )
   }
   if (newer && !dismissed.includes(`newer-${newer.id}`)) {
     notices.push({
@@ -160,38 +193,4 @@ function useNewer(summary: Summary, updatingSince?: string): Version | undefined
     }
   }, [can.history, source, summary.latest_version, updatingSince])
   return newer
-}
-
-interface Busy {
-  by: string
-  since: string
-  doing?: string
-  found?: string[]
-}
-
-/** A run updating the repository now — from the terminal, on this machine — asked every few seconds. */
-function useUpdating(): Busy | undefined {
-  const source = useSource()
-  const can = useCapabilities()
-  const [busy, setBusy] = useState<Busy>()
-  useEffect(() => {
-    if (can.place !== 'local') return
-    let live = true
-    const look = async () => {
-      if (document.hidden) return
-      try {
-        const b = await (await source.get('/api/updating')).json()
-        if (live) setBusy(b.running ? b : undefined)
-      } catch {
-        /* the connection's notice says so */
-      }
-    }
-    void look()
-    const t = setInterval(look, 4000)
-    return () => {
-      live = false
-      clearInterval(t)
-    }
-  }, [can.place, source])
-  return busy
 }
