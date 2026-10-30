@@ -102,6 +102,20 @@ raised, not quietly promoted over it.
   component made only of re-exports should not count as a user — 2026-10-30
 - [ ] The mobile app's Dart packages are not among Immich's dependencies: `drift` (`mobile/pubspec.yaml:22`)
   is missing, though `pubspec.yaml` is read to find the app — 2026-10-30
+- [ ] A call whose address comes from discovery is dropped silently: petclinic's genai-service calls
+  customers-service on every owner question through `discoveryClient.getInstances("customers-service")`
+  (`AIDataProvider.java:89-90`), and archdoc shows no arrow and no unresolved call. A service name
+  passed to discovery names the target; anything still computed should be listed as unresolved —
+  2026-10-30
+- [ ] An edge proven at a line may not run: petclinic's genai → vets-service (`VectorStoreController.java:66`)
+  runs only when `vectorstore.json`, which ships with the service, is missing. Calls inside a branch
+  could carry their condition (always / conditional / fallback) — 2026-10-30
+- [ ] Not read yet, found on petclinic and small-script: Vue Router pages (`router.js`); Compose
+  `depends_on … service_healthy` start order and memory limits; a script's `sys.argv`, the files it
+  opens, the CSV columns it reads, what it prints; whether an HTTP call has a timeout — 2026-10-30
+- [ ] Petclinic's model has one "User" who reaches all eleven containers from their ports. Known
+  platform images (Zipkin, Grafana, Prometheus, Eureka, Spring Boot Admin) are operators' consoles,
+  not the product's front door — 2026-10-30
 - [ ] Immich's sync stream (`sync.service.ts:138`) traces to three components and two tables, though
   it reads almost every table the phone mirrors: its queries sit past where the flow is cut —
   2026-10-30
