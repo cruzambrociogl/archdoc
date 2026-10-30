@@ -93,6 +93,18 @@ raised, not quietly promoted over it.
   stop after phase 2 for a review. Recommended: class, with Simple mode folding; all three phases.
 - [ ] Long external names overflow their box in every SVG ("Telemetry collector (OpenTelemetry)",
   seen on the data-flow view): the name is not wrapped or clipped as descriptions are.
+- [ ] Kysely common table expressions are read as tables: `.with('cte', …)` then `selectFrom('cte')`
+  gives flows a `table:cte` participant (Immich: `duplicate.repository.ts:197`; also `shared`,
+  `mapping` in `person.repository.ts:515`, `:531`). A name a `.with(…)` declares in the same query
+  is not a table — 2026-10-30
+- [ ] Folder-named components on Immich's server (`controllers`, `services`, `repositories`, `dtos`) are
+  barrel `index.ts` files: their imports make every domain component look "used" by them. A
+  component made only of re-exports should not count as a user — 2026-10-30
+- [ ] The mobile app's Dart packages are not among Immich's dependencies: `drift` (`mobile/pubspec.yaml:22`)
+  is missing, though `pubspec.yaml` is read to find the app — 2026-10-30
+- [ ] Immich's sync stream (`sync.service.ts:138`) traces to three components and two tables, though
+  it reads almost every table the phone mirrors: its queries sit past where the flow is cut —
+  2026-10-30
 
 ## Recently resolved
 
