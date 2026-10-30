@@ -23,6 +23,8 @@ type facts struct {
 	pages   []core.Literal
 	cmds    []core.Command
 	main    *core.Provenance // where a Python file says it is run directly
+	// registry is where a file's export lists what it imports, when that is all the file does.
+	registry *core.Provenance
 	// C#: the types a file names, the types it declares, and the namespaces it declares them in.
 	refs       []rawImport
 	declares   []string
@@ -292,6 +294,7 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 				}
 			}
 		})
+		out.registry = registryOf(root, l, src, at)
 	})
 	out.calls = resolveNamed(out.calls, byName, held, out.hosts, called)
 	for i := range out.hosts {
@@ -519,6 +522,7 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provena
 		}
 		return nil
 	}
+	ctes := commonTables(m, l, src)
 	walk(m, func(n *ts.Node) {
 		if n.Type(l) == "pair" && n.NamedChildCount() == 2 && n.NamedChild(0).Text(src) == "name" {
 			// { name: JobName.AssetDelete, data: … } — in the body, not in a decorator above it.
@@ -566,7 +570,9 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provena
 			if args := n.Child(1); args.NamedChildCount() > 0 {
 				if t, ok := literal(args.NamedChild(0), l, src); ok {
 					t, _, _ = strings.Cut(t, " as ") // 'album_user as au': the alias is the query's, not the table's
-					queries = append(queries, core.Query{Table: strings.TrimSpace(t), Op: op, Prov: at(n)})
+					if t = strings.TrimSpace(t); !ctes.names(t, n) {
+						queries = append(queries, core.Query{Table: t, Op: op, Prov: at(n)})
+					}
 				}
 			}
 			return
@@ -580,6 +586,141 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provena
 		}
 	})
 	return invokes, queries, named
+}
+
+// registryOf reports a file whose top level only lists what it imports: imports, and exports whose
+// values are arrays or objects of imported names alone — NestJS's export const services =
+// [ActivityService, AlbumService, …]. It cites the export. A re-exporting index is not one: through
+// it, its importers do use what it re-exports, and that chain is kept.
+func registryOf(root *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provenance) *core.Provenance {
+	imported := map[string]bool{}
+	var listed *ts.Node
+	// names reports whether a value is a collection made of imported names and nothing else.
+	names := func(v *ts.Node) bool {
+		for v != nil && (v.Type(l) == "as_expression" || v.Type(l) == "satisfies_expression") && v.NamedChildCount() > 0 {
+			v = v.NamedChild(0)
+		}
+		if v == nil || (v.Type(l) != "array" && v.Type(l) != "object") || v.NamedChildCount() == 0 {
+			return false
+		}
+		for i := 0; i < v.NamedChildCount(); i++ {
+			e := v.NamedChild(i)
+			switch e.Type(l) {
+			case "comment":
+				continue
+			case "spread_element", "pair":
+				e = e.NamedChild(e.NamedChildCount() - 1)
+			}
+			if t := e.Type(l); (t != "identifier" && t != "shorthand_property_identifier") || !imported[e.Text(src)] {
+				return false
+			}
+		}
+		return true
+	}
+	for i := 0; i < root.NamedChildCount(); i++ {
+		n := root.NamedChild(i)
+		switch n.Type(l) {
+		case "comment":
+		case "import_statement":
+			walk(n, func(c *ts.Node) {
+				if c.Type(l) == "identifier" {
+					imported[c.Text(src)] = true
+				}
+			})
+		case "export_statement":
+			decl := n.ChildByFieldName("declaration", l)
+			if decl == nil || decl.Type(l) != "lexical_declaration" {
+				return nil
+			}
+			for j := 0; j < decl.NamedChildCount(); j++ {
+				d := decl.NamedChild(j)
+				if d.Type(l) != "variable_declarator" || !names(d.ChildByFieldName("value", l)) {
+					return nil
+				}
+			}
+			listed = n
+		default:
+			return nil
+		}
+	}
+	if listed == nil {
+		return nil
+	}
+	p := at(listed)
+	return &p
+}
+
+// cte is a common table expression a query declares: .with('cte', (qb) => …).
+type cte struct {
+	name      string
+	def       *ts.Node // its definition, where the name still means a table of the database
+	recursive bool     // .withRecursive: the name means the CTE inside its own definition too
+}
+
+type ctes []cte
+
+// commonTables finds the CTEs a method's queries declare, in both of Kysely's forms: a name —
+// .with('cte', …), with or without a column list — or a callback that names it —
+// .with((cte) => cte('mapping').materialized(), …).
+func commonTables(m *ts.Node, l *ts.Language, src []byte) ctes {
+	var out ctes
+	walk(m, func(n *ts.Node) {
+		if n.Type(l) != "call_expression" || n.ChildCount() < 2 {
+			return
+		}
+		fn, args := n.Child(0), n.Child(1)
+		if fn.Type(l) != "member_expression" || fn.NamedChildCount() < 2 || args.Type(l) != "arguments" || args.NamedChildCount() < 2 {
+			return
+		}
+		method := fn.NamedChild(fn.NamedChildCount() - 1).Text(src)
+		if method != "with" && method != "withRecursive" {
+			return
+		}
+		first, def := args.NamedChild(0), args.NamedChild(1)
+		var names []string
+		if v, ok := literal(first, l, src); ok {
+			v, _, _ = strings.Cut(v, "(") // 'cte(id, name)': the columns are the CTE's, not its name
+			names = append(names, strings.TrimSpace(v))
+		} else if first.Type(l) == "arrow_function" {
+			param := ""
+			if p := first.Child(0); p != nil && p.Type(l) == "identifier" {
+				param = p.Text(src)
+			} else if ps := first.ChildByFieldName("parameters", l); ps != nil && ps.NamedChildCount() > 0 {
+				param = ps.NamedChild(0).Text(src)
+			}
+			walk(first, func(c *ts.Node) {
+				if param == "" || c.Type(l) != "call_expression" || c.ChildCount() < 2 || c.Child(0).Text(src) != param {
+					return
+				}
+				if a := c.Child(1); a.NamedChildCount() > 0 {
+					if v, ok := literal(a.NamedChild(0), l, src); ok {
+						names = append(names, strings.TrimSpace(v))
+					}
+				}
+			})
+		}
+		for _, name := range names {
+			out = append(out, cte{name: name, def: def, recursive: method == "withRecursive"})
+		}
+	})
+	return out
+}
+
+// names reports whether a query's table at n is a CTE rather than a table. A CTE may share a
+// table's name — .with('album_user', (qb) => qb.selectFrom('album_user')…) — and inside its own
+// definition the name is still the table: that read is real, and kept.
+func (cs ctes) names(table string, n *ts.Node) bool {
+	found := false
+	for _, c := range cs {
+		if c.name != table {
+			continue
+		}
+		found = true
+		if !c.recursive && n.StartByte() >= c.def.StartByte() && n.EndByte() <= c.def.EndByte() {
+			return false
+		}
+	}
+	return found
 }
 
 // misreadGenericCall recognises a call with type arguments that the parser read as two

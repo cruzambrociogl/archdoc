@@ -109,6 +109,27 @@ func TestADominantDirectoryIsSplit(t *testing.T) {
 	}
 }
 
+// A registry — Immich's services/index.ts, listing every service for the module — is not a part
+// that uses them all: its imports draw no edge, and a real import beside it still does.
+func TestARegistryDoesNotUseWhatItLists(t *testing.T) {
+	files := []string{"server/src/services/index.ts", "server/src/album/album.service.ts",
+		"server/src/asset/asset.service.ts", "server/src/main.ts"}
+	f := codeFacts("server", "server/src", files, map[string][]string{
+		"server/src/services/index.ts": {"server/src/album/album.service.ts", "server/src/asset/asset.service.ts"},
+		"server/src/main.ts":           {"server/src/album/album.service.ts"},
+	})
+	f.Sources[0].Files[0].Registry = &core.Provenance{File: "server/src/services/index.ts", Line: 3}
+	var uses []string
+	for _, e := range Derive(f).Edges {
+		if e.Label == "uses" {
+			uses = append(uses, e.From+" → "+e.To)
+		}
+	}
+	if fmt.Sprint(uses) != "[cmp:server/. → cmp:server/album]" {
+		t.Errorf("uses %v, want only main's import of album", uses)
+	}
+}
+
 // An application with no directories is its files.
 func TestAFlatApplicationIsItsFiles(t *testing.T) {
 	files := []string{"streaming/index.js", "streaming/redis.js", "streaming/utils.js"}

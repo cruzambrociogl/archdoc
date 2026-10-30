@@ -222,7 +222,7 @@ func Read(repo string, app core.App, nested []string) (src core.Source, ok bool)
 		}
 		f.Classes, f.Hosts, f.Calls, f.Prefix, f.Constants = g.classes, g.hosts, g.calls, g.prefix, g.consts
 		f.Routers, f.Includes, f.Exports, f.Pages, f.Commands = g.routers, g.incs, g.exports, g.pages, g.cmds
-		f.Main = g.main
+		f.Main, f.Registry = g.main, g.registry
 		src.Files = append(src.Files, f)
 	}
 	return src, true

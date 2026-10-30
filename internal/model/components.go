@@ -416,6 +416,10 @@ func emit(m *core.Model, src core.Source, parent string, kind core.Kind, prefix 
 	}
 	links := map[[2]string]*link{}
 	for _, f := range src.Files {
+		if f.Registry != nil {
+			// A registry lists what it imports for the framework to wire; it does not use any of it.
+			continue
+		}
 		from := group[f.Path]
 		for _, imp := range f.Imports {
 			to, ok := group[imp.Target]

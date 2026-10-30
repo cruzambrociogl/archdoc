@@ -1,6 +1,7 @@
 package code
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -447,6 +448,76 @@ func TestMethodBodies(t *testing.T) {
 	}
 	if len(m.Queries) != 1 || m.Queries[0].Table != "album" || m.Queries[0].Op != "reads" || m.Queries[0].Prov.Line != 6 {
 		t.Errorf("queries %+v", m.Queries)
+	}
+}
+
+// Kysely's common table expressions, in the forms Immich writes them: a CTE is not a table, but
+// inside its own definition its name still means the table it is named after.
+func TestCommonTableExpressionsAreNotTables(t *testing.T) {
+	root := tree(t, map[string]string{
+		"server/src/album.repository.ts": "export class AlbumRepository {\n" +
+			"  getAll() {\n" +
+			"    return this.db\n" +
+			"      .with('album_user', (qb) => qb.selectFrom('album_user').selectAll())\n" + // 4: the table, kept
+			"      .with('cte', (qb) => qb.selectFrom('asset').select('id'))\n" + // 5: asset
+			"      .with('agg', (qb) => qb.selectFrom('cte').select('id'))\n" + // 6: a CTE inside another
+			"      .with((m) => m('mapping').materialized(), (db) => db.selectFrom('person'))\n" + // 7: person
+			"      .with('totals(id, n)', (qb) => qb.selectFrom('stack'))\n" + // 8: stack
+			"      .selectFrom('album_user')\n" + // 9: the CTE
+			"      .innerJoin('album', 'album.id', 'album_user.albumId')\n" +
+			"      .selectFrom('mapping')\n" + // 11: the CTE
+			"      .selectFrom('totals')\n" + // 12: the CTE
+			"      .execute();\n" +
+			"  }\n" +
+			"  create(album) {\n" +
+			"    return this.db.with('album', (db) => db.insertInto('album').values(album)).selectFrom('album').execute();\n" + // 16
+			"  }\n" +
+			"  tree() {\n" +
+			"    return this.db.withRecursive('up', (qb) => qb.selectFrom('tag').union(qb.selectFrom('up'))).selectFrom('up').execute();\n" + // 19
+			"  }\n" +
+			"}\n",
+	})
+	src, _ := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
+	var got []string
+	for _, m := range src.Files[0].Classes[0].Methods {
+		for _, q := range m.Queries {
+			got = append(got, fmt.Sprintf("%d %s %s", q.Prov.Line, q.Op, q.Table))
+		}
+	}
+	want := []string{"4 reads album_user", "5 reads asset", "7 reads person", "8 reads stack", "16 writes album", "19 reads tag"}
+	if strings.Join(got, ", ") != strings.Join(want, ", ") {
+		t.Errorf("queries\n got %v\nwant %v", got, want)
+	}
+}
+
+// A registry lists what it imports for a framework to wire, as Immich's services/index.ts does. A
+// re-exporting index is not one — its importers use what it re-exports — and neither is a file that
+// does anything else, or lists anything it did not import.
+func TestRegistriesAreRecognised(t *testing.T) {
+	root := tree(t, map[string]string{
+		"server/src/services/index.ts": "import { AlbumService } from 'src/services/album.service';\n" +
+			"import { AssetService } from 'src/services/asset.service';\n\n" +
+			"// every service, for the module to provide\n" +
+			"export const services = [\n  AlbumService,\n  AssetService,\n];\n",
+		"server/src/repositories/index.ts": "import { A } from './a';\nimport { B as Bee } from './b';\n" +
+			"export const repositories = { A, b: Bee } as const;\n",
+		"server/src/lib/index.ts":              "export * from './album';\nexport { Asset } from './asset';\n",
+		"server/src/mixed.ts":                  "import { A } from './a';\nexport const all = [A];\nconsole.log(all);\n",
+		"server/src/literal.ts":                "import { A } from './a';\nexport const all = [A, 'b'];\n",
+		"server/src/function.ts":               "import { A } from './a';\nexport function make() { return new A(); }\n",
+		"server/src/album.service.ts":          "export class AlbumService {}\n",
+		"server/src/services/asset.service.ts": "export class AssetService {}\n",
+	})
+	src, _ := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
+	got := map[string]int{}
+	for _, f := range src.Files {
+		if f.Registry != nil {
+			got[strings.TrimPrefix(f.Path, "server/src/")] = f.Registry.Line
+		}
+	}
+	want := map[string]int{"services/index.ts": 5, "repositories/index.ts": 3}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Errorf("registries %v, want %v", got, want)
 	}
 }
 

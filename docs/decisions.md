@@ -1330,3 +1330,21 @@ every box in place. A boundary is held by its name only: draggable whole, the sy
 canvas and turned every pan into a move. A link to the repository host — a citation, a document's
 link — opens in a new tab, so the docs stay open; the editor's link opens where it is.
 → `web/app/src/screens/explorer/Explorer.tsx`, `scene.ts`; `ui/Cite.tsx`, `ui/safeMarkdown.ts`; surface-spec S-6, §11.2
+
+**2026-10-30 — A common table expression is not a table**
+Kysely's `.with('cte', (qb) => …)` names a query that later calls read as if it were a table, so
+Immich's flows and accesses held tables that do not exist: `cte`, `agg`, `mapping`, `shared`, `res`,
+`today`, `duplicates` — 16 queries. A name a method's `.with` or `.withRecursive` declares, by string
+or by callback, is the CTE's everywhere in that method except inside its own definition, where it
+still means the table it shares a name with: `.with('album', (db) => db.insertInto('album'))` keeps
+the write. Inside a recursive CTE the name is always the CTE. Nothing else changed on any subject.
+→ `internal/code/script.go` (`commonTables`); `TestCommonTableExpressionsAreNotTables`
+
+**2026-10-30 — A registry lists what it imports; it does not use it**
+Immich's `services/index.ts` imports every service to export one array for NestJS to provide; its
+repositories, controllers and commands are listed the same way. Counted as imports, those four files
+"used" almost every component: 133 of the server's 1,694 uses. A file whose top level is only imports
+and exports made of imported names is a registry, cited at its export, and its imports draw no uses.
+A re-exporting index is not one: its importers do use what it re-exports, and the chain is kept until
+imports can be resolved through it. Only Immich changed among the subjects.
+→ `internal/code/script.go` (`registryOf`), `core.SourceFile.Registry`, `internal/model/components.go`

@@ -303,6 +303,10 @@ type SourceFile struct {
 	Partial bool `json:"partial,omitempty"`
 	// Main is set where a Python file says it is run directly: if __name__ == "__main__".
 	Main *Provenance `json:"main,omitempty"`
+	// Registry is set where a file only lists what it imports: imports, and exports made of imported
+	// names alone — NestJS's export const services = [AlbumService, …]. Such a file wires the program
+	// together, so its imports are not one part using another.
+	Registry *Provenance `json:"registry,omitempty"`
 }
 
 // Resolution is how an import was tied to what it names (vision D-4: the provenance of a link
