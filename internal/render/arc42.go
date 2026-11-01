@@ -381,14 +381,15 @@ const shownFlows = 8
 // not a judgement — and where to find the rest.
 func runtimeFromCode(m core.Model) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Read from the code: %d routes followed from their handler into the classes they are given,\n", len(m.Flows))
-	b.WriteString("down to the tables their queries name and the calls that leave the container — each step at\n")
-	b.WriteString("its line, resolved by the declared type of the field it calls through.\n\n")
-	fmt.Fprintf(&b, "Below are the %d flows that reach the most participants; every route's flow is on the\n", min(shownFlows, len(m.Flows)))
+	fmt.Fprintf(&b, "Read from the code: %d flows. A route, a job or a command is followed from its handler into the\n", len(m.Flows))
+	b.WriteString("classes it is given, down to the tables their queries name and the calls that leave the\n")
+	b.WriteString("container — each step at its line, resolved by the declared type of the field it calls through.\n")
+	b.WriteString("A page's flow is the routes it calls through a generated client, matched by operationId.\n\n")
+	fmt.Fprintf(&b, "Below are the %d flows that reach the most participants; every flow is on the\n", min(shownFlows, len(m.Flows)))
 	b.WriteString("Features screen of `archdoc serve` and in `.archdoc/model.json`. An event is followed, by\n")
-	b.WriteString("name, into the methods that listen for it; a job put on a queue is a step to that job, whose\n")
-	b.WriteString("handler has a flow of its own. What a flow cannot see — failure handling, a call whose\n")
-	b.WriteString("target only a run decides — is not drawn.\n")
+	b.WriteString("name, into the methods that listen for it; a job put on a queue is a step to that job, and a\n")
+	b.WriteString("route a page calls a step to that route, each with a flow of its own. What a flow cannot see —\n")
+	b.WriteString("failure handling, a call whose target only a run decides — is not drawn.\n")
 
 	flows := append([]core.Flow(nil), m.Flows...)
 	sort.SliceStable(flows, func(i, j int) bool {
@@ -410,7 +411,11 @@ func runtimeFromCode(m core.Model) string {
 		if e.Summary != "" {
 			fmt.Fprintf(&b, "%s. ", cited(e.Summary, e.SummaryProv))
 		}
-		fmt.Fprintf(&b, "Handled by `%s`, `%s`.\n\n", e.Handler, e.Prov)
+		if e.Kind == "page" {
+			fmt.Fprintf(&b, "The page `%s`.\n\n", e.Prov)
+		} else {
+			fmt.Fprintf(&b, "Handled by `%s`, `%s`.\n\n", e.Handler, e.Prov)
+		}
 		b.WriteString(fence(FlowMermaid(f)))
 		if f.Cut {
 			b.WriteString("\nCut at four calls deep or forty steps.\n")
@@ -433,6 +438,8 @@ func FlowMermaid(f core.Flow) string {
 			name = p.Name + " (table)"
 		case "job":
 			name = p.Name + " (queued job)"
+		case "route":
+			name = p.Name + " (route)"
 		case "unresolved":
 			name = "address computed at run time"
 		}

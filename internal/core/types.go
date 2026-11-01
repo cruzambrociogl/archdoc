@@ -229,10 +229,13 @@ type API struct {
 	Prov       Provenance  `json:"provenance"`
 }
 
-// Operation is one method on one path of an API.
+// Operation is one method on one path of an API. ID is its operationId, the name a generated client
+// gives the function that calls it, cited at its line.
 type Operation struct {
-	Method string `json:"method"`
-	Path   string `json:"path"`
+	Method string     `json:"method"`
+	Path   string     `json:"path"`
+	ID     string     `json:"id,omitempty"`
+	Prov   Provenance `json:"provenance,omitzero"`
 }
 
 // APIClient is code that calls an API: a package whose source is made of the API's paths, or a
@@ -515,11 +518,14 @@ type Call struct {
 
 // Import is one thing a file imports, at the line that imports it.
 type Import struct {
-	Spec    string     `json:"spec"`              // as written: "./album.service", "src/utils/misc", ".core"
-	Target  string     `json:"target,omitempty"`  // the repository file it resolves to
-	Package string     `json:"package,omitempty"` // for ByPackage: "@nestjs/common", "fastapi"
-	How     Resolution `json:"how"`
-	Prov    Provenance `json:"provenance"`
+	Spec    string `json:"spec"`              // as written: "./album.service", "src/utils/misc", ".core"
+	Target  string `json:"target,omitempty"`  // the repository file it resolves to
+	Package string `json:"package,omitempty"` // for ByPackage: "@nestjs/common", "fastapi"
+	// Names are what a TypeScript import brings in, as the module exports them: import { getAllAlbums }
+	// from '@immich/sdk'. A type-only name runs nothing and is left out.
+	Names []string   `json:"names,omitempty"`
+	How   Resolution `json:"how"`
+	Prov  Provenance `json:"provenance"`
 }
 
 // AppRole is what a manifest's package is, judged from what it depends on and declares.

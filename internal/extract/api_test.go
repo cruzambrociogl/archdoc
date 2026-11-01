@@ -10,7 +10,7 @@ import (
 const openapiDoc = `{
   "openapi": "3.0.0",
   "paths": {
-    "/albums": {"get": {}, "post": {}},
+    "/albums": {"get": {"operationId": "getAllAlbums"}, "post": {}},
     "/albums/{id}": {"get": {}, "delete": {}, "parameters": []},
     "/assets": {"get": {}},
     "/assets/{id}/thumbnail": {"get": {}},
@@ -41,6 +41,13 @@ func TestAPIDocumentsAndTheirClients(t *testing.T) {
 	}
 	if op := apis[0].Operations[0]; op.Method != "GET" || op.Path != "/albums" {
 		t.Errorf("first operation %+v — they are sorted by path, then method", op)
+	}
+	// The name a generated client gives the function that calls it, at its line.
+	if op := apis[0].Operations[0]; op.ID != "getAllAlbums" || op.Prov.File != "open-api/specs-openapi.json" || op.Prov.Line != 4 {
+		t.Errorf("operationId %q at %v", op.ID, op.Prov)
+	}
+	if op := apis[0].Operations[1]; op.ID != "" || op.Prov.Known() {
+		t.Errorf("an operation with no operationId has one: %+v", op)
 	}
 	clients := map[string]core.APIClient{}
 	for _, c := range apis[0].Clients {

@@ -1348,3 +1348,15 @@ and exports made of imported names is a registry, cited at its export, and its i
 A re-exporting index is not one: its importers do use what it re-exports, and the chain is kept until
 imports can be resolved through it. Only Immich changed among the subjects.
 → `internal/code/script.go` (`registryOf`), `core.SourceFile.Registry`, `internal/model/components.go`
+
+**2026-11-01 — A command is followed; a page calls the routes its generated client names**
+A command a class runs is followed from its run method, as a route is from its handler: Immich's 13
+server commands now reach the tables they change, through `CliService`. One a builder declares
+(`program.command('upload')`) names no method and has no flow. A page has no handler, but a client
+generated from an OpenAPI document names each function after an operation's `operationId`, and the
+operation is a route the code declares: a page whose own files import `getAllAlbums` from the client
+calls `GET /api/albums`. Each step cites the call where a function makes it, the import otherwise, and
+names the operation's line. The components a page uses are not read: pages share them. Immich: 31 of
+55 pages, through `@immich/sdk`. Facts now hold the names a TypeScript import brings in (types left
+out) and each operation's `operationId` at its line. No other subject changed.
+→ `internal/model/flows.go`, `internal/model/api.go` (`pageCalls`), `internal/code/script.go` (`importedNames`), `internal/extract/api.go`; `TestFlowsFollowCommands`, `TestPagesCallRoutesThroughAGeneratedClient`

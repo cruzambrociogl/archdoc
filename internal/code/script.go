@@ -93,7 +93,11 @@ func scriptFacts(src []byte, file, lang string, offset int) (out facts, partial 
 					switch c.Type(l) {
 					case "string":
 						p := at(c)
-						out.imports = append(out.imports, rawImport{spec: unquote(text(c)), line: p.Line, column: p.Column})
+						imp := rawImport{spec: unquote(text(c)), line: p.Line, column: p.Column}
+						if n.Type(l) == "import_statement" {
+							imp.names = importedNames(n, l, src)
+						}
+						out.imports = append(out.imports, imp)
 					case "function_declaration", "generator_function_declaration":
 						if c.NamedChildCount() > 0 {
 							out.exports = append(out.exports, core.Literal{Value: text(c.NamedChild(0)), Prov: at(c)})
@@ -442,6 +446,34 @@ func injected(ctor *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.
 				}
 			}
 		}
+	}
+	return out
+}
+
+// importedNames are the names an import brings in, as the module exports them: import { a, b as c }
+// brings a and b. `import type` and `type X` bring in nothing that runs, so they are left out; so are a
+// default import and a namespace, which name nothing the module exports by that name.
+func importedNames(n *ts.Node, l *ts.Language, src []byte) []string {
+	var out []string
+	for i := 0; i < n.ChildCount(); i++ {
+		clause := n.Child(i)
+		if clause.Type(l) == "type" {
+			return nil
+		}
+		if clause.Type(l) != "import_clause" {
+			continue
+		}
+		walk(clause, func(s *ts.Node) {
+			if s.Type(l) != "import_specifier" || s.NamedChildCount() == 0 {
+				return
+			}
+			for j := 0; j < s.ChildCount(); j++ {
+				if s.Child(j).Type(l) == "type" {
+					return
+				}
+			}
+			out = append(out, s.NamedChild(0).Text(src))
+		})
 	}
 	return out
 }

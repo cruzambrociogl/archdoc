@@ -43,6 +43,7 @@ var (
 	generatorCmd = regexp.MustCompile(`openapi-generator(?:-cli)?\b.*\bgenerate\b`)
 	generatorIn  = regexp.MustCompile(`(?:^|\s)(?:-i|--input-spec)[\s=]+("[^"]+"|'[^']+'|\S+)`)
 	generatorOut = regexp.MustCompile(`(?:^|\s)(?:-o|--output)[\s=]+("[^"]+"|'[^']+'|\S+)`)
+	operationID  = regexp.MustCompile(`["']?operationId["']?\s*:\s*["']?([A-Za-z0-9_.-]+)`)
 	clientSource = map[string]bool{".ts": true, ".js": true, ".mjs": true, ".dart": true, ".py": true, ".go": true, ".kt": true, ".swift": true, ".java": true, ".cs": true, ".rb": true}
 	commandFile  = map[string]bool{".sh": true, ".bash": true, ".yml": true, ".yaml": true, ".json": true, ".mk": true, "": true}
 )
@@ -140,11 +141,28 @@ func apiDocument(root, rel string) (core.API, bool) {
 		return core.API{}, false
 	}
 	api := core.API{File: rel, Prov: core.Provenance{File: rel, Line: max(lineOf(content, "paths"), 1)}}
+	// Where each operationId is written, in one pass: a document holds hundreds.
+	idLine := map[string]int{}
+	line, last := 1, 0
+	for _, at := range operationID.FindAllSubmatchIndex(content, -1) {
+		line += bytes.Count(content[last:at[0]], []byte("\n"))
+		last = at[0]
+		if id := string(content[at[2]:at[3]]); idLine[id] == 0 {
+			idLine[id] = line
+		}
+	}
 	for p, methods := range doc.Paths {
-		for m := range methods {
-			if httpMethods[strings.ToLower(m)] {
-				api.Operations = append(api.Operations, core.Operation{Method: strings.ToUpper(m), Path: p})
+		for m, op := range methods {
+			if !httpMethods[strings.ToLower(m)] {
+				continue
 			}
+			o := core.Operation{Method: strings.ToUpper(m), Path: p}
+			if fields, ok := op.(map[string]any); ok {
+				if id, ok := fields["operationId"].(string); ok && idLine[id] > 0 {
+					o.ID, o.Prov = id, core.Provenance{File: rel, Line: idLine[id]}
+				}
+			}
+			api.Operations = append(api.Operations, o)
 		}
 	}
 	sort.Slice(api.Operations, func(i, j int) bool {

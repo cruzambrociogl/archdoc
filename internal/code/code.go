@@ -274,7 +274,7 @@ func schemas(repo, dir string) []core.SourceFile {
 // rawImport is an import as the parser found it, before resolution.
 type rawImport struct {
 	spec         string
-	names        []string // Python's `from x import a, b`: a and b may be modules themselves
+	names        []string // Python's `from x import a, b`: a and b may be modules themselves; TypeScript's import { a, b }
 	line, column int
 }
 

@@ -29,9 +29,13 @@ export function Sequence({
   // A step names its participants by ID; a reader wants the class, the module's name, the table.
   const names = new Map(flow.participants.map((p) => [p.id, p.kind === 'table' ? `table ${p.name}` : p.kind === 'job' ? `job ${p.name}` : p.kind === 'unresolved' ? 'a computed address' : p.name]))
   const label = (id: string) => names.get(id) ?? id
-  // A table opens in the data view; a queued job opens its own flow.
+  // A table opens in the data view; a queued job, and a route a page calls, open their own flow.
   const open = (p: Flow['participants'][number]) =>
-    p.element && p.kind === 'table' && onTable ? () => onTable(p.element!) : p.element && p.kind === 'job' && onJob ? () => onJob(p.element!) : undefined
+    p.element && p.kind === 'table' && onTable
+      ? () => onTable(p.element!)
+      : p.element && (p.kind === 'job' || p.kind === 'route') && onJob
+        ? () => onJob(p.element!)
+        : undefined
   const width = PAD * 2 + flow.participants.length * COL
   const height = HEAD + 16 + flow.steps.length * ROW + 12
 

@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -23,6 +24,41 @@ var pathParam = regexp.MustCompile(`\{[^}]*\}|:[A-Za-z_][A-Za-z0-9_]*`)
 // samePath normalises a path so /albums/{id} and /albums/:albumId are the same.
 func samePath(p string) string {
 	return strings.TrimSuffix(pathParam.ReplaceAllString(p, "{}"), "/")
+}
+
+// routeMatches reports whether a route ("METHOD path", normalised) is an operation of a document. A
+// route may sit under a prefix the document leaves out (/api), so it matches when it ends with the
+// operation's path.
+func routeMatches(r string, op core.Operation) bool {
+	want, suffix := op.Method+" ", samePath(op.Path)
+	return strings.HasPrefix(r, want) && strings.HasSuffix(r, suffix) &&
+		(len(r) == len(want)+len(suffix) || r[len(r)-len(suffix)-1] != '{' && strings.HasPrefix(suffix, "/"))
+}
+
+// provider is the container whose routes a document's operations are, and how many of them match.
+func provider(m *core.Model, api core.API) (string, int) {
+	routes := map[string][]string{} // container → "METHOD path"
+	for _, e := range m.Entries {
+		if e.Kind == "http" {
+			routes[e.Container] = append(routes[e.Container], e.Method+" "+samePath(e.Path))
+		}
+	}
+	best, matched := "", 0
+	for _, c := range sortedKeys(routes) {
+		n := 0
+		for _, op := range api.Operations {
+			for _, r := range routes[c] {
+				if routeMatches(r, op) {
+					n++
+					break
+				}
+			}
+		}
+		if n > matched {
+			best, matched = c, n
+		}
+	}
+	return best, matched
 }
 
 func apiCalls(m *core.Model, f *core.FactSet) {
@@ -69,32 +105,7 @@ func apiCalls(m *core.Model, f *core.FactSet) {
 	}
 
 	for _, api := range f.APIs {
-		// The container whose routes these operations are. A route may sit under a prefix the
-		// document leaves out (/api), so a route matches when it ends with the operation's path.
-		routes := map[string][]string{} // container → "METHOD path"
-		for _, e := range m.Entries {
-			if e.Kind == "http" {
-				routes[e.Container] = append(routes[e.Container], e.Method+" "+samePath(e.Path))
-			}
-		}
-		provider, matched := "", 0
-		for _, c := range sortedKeys(routes) {
-			n := 0
-			for _, op := range api.Operations {
-				want := op.Method + " "
-				suffix := samePath(op.Path)
-				for _, r := range routes[c] {
-					if strings.HasPrefix(r, want) && strings.HasSuffix(r, suffix) &&
-						(len(r) == len(want)+len(suffix) || r[len(r)-len(suffix)-1] != '{' && strings.HasPrefix(suffix, "/")) {
-						n++
-						break
-					}
-				}
-			}
-			if n > matched {
-				provider, matched = c, n
-			}
-		}
+		provider, matched := provider(m, api)
 		if provider == "" || matched*2 < len(api.Operations) {
 			continue // it describes something whose routes archdoc did not read
 		}
@@ -144,6 +155,178 @@ func apiCalls(m *core.Model, f *core.FactSet) {
 			}
 		}
 	}
+}
+
+// pageCalls (F-12): what a page calls, where its code imports a generated client's functions. A client
+// generated from an OpenAPI document names each function after an operation's operationId, and the
+// operation is a route a container declares: a page whose code imports getAllAlbums from @immich/sdk
+// calls GET /api/albums. Each link is a line: the import (or the call, where the code makes it in a
+// function), the operationId, the route. A page's own files are read, the page and the +page load
+// SvelteKit keeps beside it, not the components it uses, which pages share. The flow is the page's: a
+// step to each route it calls, whose handler has a flow of its own.
+func pageCalls(m *core.Model, f *core.FactSet, componentOf map[string]string) {
+	if len(f.APIs) == 0 {
+		return
+	}
+	files := map[string]core.SourceFile{}
+	inDir := map[string][]string{}
+	for _, src := range f.Sources {
+		for _, file := range src.Files {
+			files[file.Path] = file
+			inDir[path.Dir(file.Path)] = append(inDir[path.Dir(file.Path)], file.Path)
+		}
+	}
+	appAt := map[string]core.App{}
+	for _, a := range f.Apps {
+		appAt[a.Dir] = a
+	}
+	calls := map[string]bool{} // the containers apiCalls found calling another's API
+	for _, e := range m.Edges {
+		if e.Label == "calls the API of" {
+			calls[e.From+"\x00"+e.To] = true
+		}
+	}
+	// A page's own files: the page, and beside a SvelteKit +page.svelte the +page load files.
+	own := func(file string) []string {
+		out := []string{file}
+		if strings.HasPrefix(path.Base(file), "+page.") {
+			for _, p := range inDir[path.Dir(file)] {
+				if p != file && strings.HasPrefix(path.Base(p), "+page.") {
+					out = append(out, p)
+				}
+			}
+		}
+		sort.Strings(out[1:])
+		return out
+	}
+	// where a file calls a function by name, in one of its functions.
+	callAt := func(file, name string) (core.Provenance, bool) {
+		for _, c := range files[file].Classes {
+			for _, meth := range c.Methods {
+				for _, inv := range meth.Invokes {
+					if inv.Free && inv.Method == name {
+						return inv.Prov, true
+					}
+				}
+			}
+		}
+		return core.Provenance{}, false
+	}
+	// A client's function is the operationId, as the generator spells it: get_all_albums or getAllAlbums.
+	key := func(s string) string {
+		return strings.Map(func(r rune) rune {
+			switch {
+			case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+				return r
+			case r >= 'A' && r <= 'Z':
+				return r + 'a' - 'A'
+			}
+			return -1
+		}, s)
+	}
+
+	type call struct {
+		route core.Entry
+		step  core.Step
+	}
+	byPage := map[string][]call{}
+	seen := map[string]bool{}
+	for _, api := range f.APIs {
+		prov, matched := provider(m, api)
+		if prov == "" || matched*2 < len(api.Operations) {
+			continue
+		}
+		served := prov
+		if n, ok := m.Node(prov); ok {
+			served = n.Name
+		}
+		// The route each operation is: of the routes that end with its path, the shortest.
+		route := map[string]core.Entry{}
+		op := map[string]core.Operation{}
+		for _, o := range api.Operations {
+			if o.ID == "" {
+				continue
+			}
+			var best core.Entry
+			for _, e := range m.Entries {
+				if e.Kind == "http" && e.Container == prov && routeMatches(e.Method+" "+samePath(e.Path), o) &&
+					(best.ID == "" || len(e.Path) < len(best.Path)) {
+					best = e
+				}
+			}
+			if best.ID != "" {
+				route[key(o.ID)], op[key(o.ID)] = best, o
+			}
+		}
+		for _, c := range api.Clients {
+			holder := appAt[c.App]
+			via := holder.Name
+			if via == "" {
+				via = c.Dir
+			}
+			for _, e := range m.Entries {
+				if e.Kind != "page" || !calls[e.Container+"\x00"+prov] {
+					continue
+				}
+				for _, file := range own(e.Prov.File) {
+					for _, imp := range files[file].Imports {
+						fromClient := imp.How == core.ByPackage && holder.Name != "" && imp.Package == holder.Name ||
+							imp.Target != "" && strings.HasPrefix(imp.Target, c.Dir+"/")
+						if !fromClient {
+							continue
+						}
+						for _, name := range imp.Names {
+							r, ok := route[key(name)]
+							if !ok || seen[e.ID+"\x00"+r.ID+"\x00"+name] {
+								continue
+							}
+							seen[e.ID+"\x00"+r.ID+"\x00"+name] = true
+							o := op[key(name)]
+							at, called := callAt(file, name)
+							how := "called through " + via
+							if !called {
+								at, how = imp.Prov, "imported here from "+via
+							}
+							byPage[e.ID] = append(byPage[e.ID], call{r, core.Step{From: e.Prov.File, To: r.ID, Call: name,
+								Note: fmt.Sprintf("%s: operation %s at %s:%d, a route of %s with a flow of its own",
+									how, o.ID, o.Prov.File, o.Prov.Line, served), Prov: at}})
+						}
+					}
+				}
+			}
+		}
+	}
+	for _, e := range m.Entries {
+		cs := byPage[e.ID]
+		if len(cs) == 0 {
+			continue
+		}
+		sort.SliceStable(cs, func(i, j int) bool {
+			a, b := cs[i].step.Prov, cs[j].step.Prov
+			if a.File != b.File {
+				return a.File < b.File
+			}
+			if a.Line != b.Line {
+				return a.Line < b.Line
+			}
+			return cs[i].step.Call < cs[j].step.Call
+		})
+		flow := core.Flow{Entry: e.ID, Participants: []core.Participant{{ID: e.Prov.File, Name: e.Path, Kind: "module", Component: componentOf[e.Prov.File]}}}
+		met := map[string]bool{}
+		for _, c := range cs {
+			if len(flow.Steps) == flowSteps {
+				flow.Cut = true
+				break
+			}
+			if !met[c.route.ID] {
+				met[c.route.ID] = true
+				flow.Participants = append(flow.Participants, core.Participant{ID: c.route.ID, Name: c.route.Method + " " + c.route.Path, Kind: "route", Element: c.route.ID})
+			}
+			flow.Steps = append(flow.Steps, c.step)
+		}
+		m.Flows = append(m.Flows, flow)
+	}
+	sort.SliceStable(m.Flows, func(i, j int) bool { return m.Flows[i].Entry < m.Flows[j].Entry })
 }
 
 // firstPage is where a container's code first declares a page, in entry order.

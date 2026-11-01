@@ -1085,6 +1085,11 @@ button.runs-row:hover {
   fill: var(--k-violet-fill);
   stroke: var(--k-violet);
 }
+/* A route a page calls, in the container that serves it. */
+.seq-route rect {
+  fill: var(--k-green-fill);
+  stroke: var(--k-green);
+}
 .seq-unresolved rect,
 .seq-part.seq-unresolved rect {
   fill: var(--unres-fill);

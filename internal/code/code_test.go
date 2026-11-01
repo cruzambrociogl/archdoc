@@ -106,7 +106,7 @@ func TestSvelteComponent(t *testing.T) {
 		"web/src/lib/state.svelte.ts": "export const s = $state(0);\n",
 		"web/src/lib/Thing.svelte":    "<p>x</p>\n",
 		"web/src/routes/+page.svelte": "<script lang=\"ts\">\n" +
-			"  import { get } from '$lib/api';\n" +
+			"  import { get, type Options, put as update } from '$lib/api';\n" +
 			"  import { goto } from '$app/navigation';\n" +
 			"  import type { PageData } from './$types';\n" +
 			"  import { s } from '$lib/state.svelte';\n" +
@@ -127,6 +127,17 @@ func TestSvelteComponent(t *testing.T) {
 	} {
 		if g := got[key]; g.How != w.How || g.Target != w.Target || g.Package != w.Package {
 			t.Errorf("%s: %+v, want %+v", key, g, w)
+		}
+	}
+	// The names an import brings in, as the module exports them; a type runs nothing, a default
+	// import names no export.
+	for key, want := range map[string]string{
+		"web/src/routes/+page.svelte:2 $lib/api":          "get put",
+		"web/src/routes/+page.svelte:4 ./$types":          "",
+		"web/src/routes/+page.svelte:6 $lib/Thing.svelte": "",
+	} {
+		if g := strings.Join(got[key].Names, " "); g != want {
+			t.Errorf("%s brings in %q, want %q", key, g, want)
 		}
 	}
 }

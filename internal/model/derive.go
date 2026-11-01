@@ -212,6 +212,7 @@ func Derive(f *core.FactSet) core.Model {
 	apiCalls(&m, f)
 	people(&m, f)
 	flows(&m, f.Sources, componentOf)
+	pageCalls(&m, f, componentOf)
 	access(&m, f.Sources, componentOf)
 	dependencies(&m, f, componentOf)
 	manifests(&m, f)

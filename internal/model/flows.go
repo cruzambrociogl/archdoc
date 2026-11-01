@@ -18,7 +18,9 @@ import (
 // unresolved participant. What happens out of line is followed by name too: emit('AlbumInvite')
 // continues in the methods @OnEvent({ name: 'AlbumInvite' }) marks, and an object named after a
 // job — { name: JobName.AssetDelete } — is a step to that job, which has a flow of its own.
-// It stops at a fixed depth and length, and says when it did.
+// It stops at a fixed depth and length, and says when it did. A command a class runs is followed the
+// same way, from its run method. A page has no handler method: its flow is what it calls through a
+// generated client (pageCalls, api.go).
 
 const (
 	flowDepth = 4
@@ -85,9 +87,9 @@ func flows(m *core.Model, sources []core.Source, componentOf map[string]string) 
 			}
 		}
 		for _, e := range m.Entries {
-			// A route, and a job a class handles, are followed; a page or a command has no handler
-			// method to start from.
-			if e.Container != container || (e.Kind != "http" && e.Kind != "job") {
+			// A route, a job a class handles and a command a class runs are followed; a page has no
+			// handler method to start from.
+			if e.Container != container || (e.Kind != "http" && e.Kind != "job" && e.Kind != "command") {
 				continue
 			}
 			var f core.Flow

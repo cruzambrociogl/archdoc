@@ -49,7 +49,7 @@ func newTSResolver(repo string, app core.App, known map[string]bool) *tsResolver
 
 func (r *tsResolver) resolve(file string, imp rawImport) []core.Import {
 	spec := imp.spec
-	out := core.Import{Spec: spec}
+	out := core.Import{Spec: spec, Names: imp.names}
 	if i := strings.IndexByte(spec, '?'); i >= 0 {
 		spec = spec[:i] // a bundler's query — "?url", "?raw" — is not part of the path
 	}

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -344,6 +345,99 @@ func TestAPIClientsCallTheContainerTheDocumentDescribes(t *testing.T) {
 		if e.Label == "calls the API of" {
 			t.Errorf("an API nobody here serves drew %s → %s", e.From, e.To)
 		}
+	}
+}
+
+// A command a class runs is followed from its run method, as a route is from its handler; one a
+// builder declares names no method, and has no flow.
+func TestFlowsFollowCommands(t *testing.T) {
+	cmd, cli, repo, main := "srv/src/commands/reset.ts", "srv/src/services/cli.service.ts", "srv/src/repositories/user.repository.ts", "srv/src/cli.ts"
+	fs := &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: core.RoleService, Prov: cite("srv/package.json", 1)}},
+		Sources: []core.Source{{App: "srv", Root: "srv/src", Files: []core.SourceFile{
+			{Path: cmd, Language: "TypeScript", Lines: 12, Classes: []core.Class{{Name: "ResetCommand", Prov: cite(cmd, 5),
+				Decorators: []core.Decorator{{Name: "Command", Options: map[string]string{"name": "reset-password"}, Prov: cite(cmd, 4)}},
+				Params:     []core.Param{{Name: "service", Type: "CliService"}},
+				Methods: []core.Method{{Name: "run", Prov: cite(cmd, 8), EndLine: 10,
+					Invokes: []core.Invocation{{Object: "service", Method: "resetPassword", Prov: cite(cmd, 9)}}}}}}},
+			{Path: cli, Language: "TypeScript", Lines: 12, Classes: []core.Class{{Name: "CliService",
+				Params: []core.Param{{Name: "userRepository", Type: "UserRepository"}},
+				Methods: []core.Method{{Name: "resetPassword", Prov: cite(cli, 5), EndLine: 7,
+					Invokes: []core.Invocation{{Object: "userRepository", Method: "update", Prov: cite(cli, 6)}}}}}}},
+			{Path: repo, Language: "TypeScript", Lines: 12, Classes: []core.Class{{Name: "UserRepository",
+				Methods: []core.Method{{Name: "update", Prov: cite(repo, 3), EndLine: 5,
+					Queries: []core.Query{{Table: "user", Op: "updates", Prov: cite(repo, 4)}}}}}}},
+			{Path: main, Language: "TypeScript", Lines: 9, Commands: []core.Command{{Name: "upload", Prov: cite(main, 3)}}},
+		}}},
+	}
+	m := Derive(fs)
+	if len(m.Flows) != 1 || m.Flows[0].Entry != "command:srv reset-password" {
+		t.Fatalf("flows %+v, want the class command's alone", m.Flows)
+	}
+	var got []string
+	for _, s := range m.Flows[0].Steps {
+		got = append(got, s.From+">"+s.To+":"+s.Call)
+	}
+	if want := "ResetCommand>CliService:resetPassword CliService>UserRepository:update UserRepository>table:user:updates"; strings.Join(got, " ") != want {
+		t.Errorf("steps %v, want %s", got, want)
+	}
+}
+
+// A page calls the routes whose operations it imports from a generated client: the client names each
+// function after an operationId, and the operation is a route the server declares. Called in a
+// function, the step cites the call; imported only, the import. A name that is no operation, and a
+// component the page uses, add nothing.
+func TestPagesCallRoutesThroughAGeneratedClient(t *testing.T) {
+	ctl := "server/src/controllers/album.controller.ts"
+	page, load, comp := "web/src/routes/albums/+page.svelte", "web/src/routes/albums/+page.ts", "web/src/lib/AlbumCard.svelte"
+	fs := immichLike()
+	fs.Sources[0].Files[1].Classes[0].Methods = append(fs.Sources[0].Files[1].Classes[0].Methods,
+		core.Method{Name: "create", Prov: cite(ctl, 12), Decorators: []core.Decorator{{Name: "Post", Prov: cite(ctl, 11)}}})
+	fs.Apps = append(fs.Apps,
+		core.App{Name: "web", Dir: "web", Manifest: "web/package.json", Role: core.RoleWeb, Framework: "SvelteKit", Language: "TypeScript",
+			FrameworkProv: cite("web/package.json", 4), Prov: cite("web/package.json", 1),
+			Requires: []core.Requirement{{Name: "@x/sdk", Prov: cite("web/package.json", 6)}}},
+		core.App{Name: "@x/sdk", Dir: "packages/sdk", Manifest: "packages/sdk/package.json", Role: core.RoleLibrary, Prov: cite("packages/sdk/package.json", 1)})
+	fs.APIs = []core.API{{File: "open-api/spec.json", Prov: cite("open-api/spec.json", 3),
+		Operations: []core.Operation{
+			{Method: "GET", Path: "/albums", ID: "getAllAlbums", Prov: cite("open-api/spec.json", 7)},
+			{Method: "POST", Path: "/albums", ID: "createAlbum", Prov: cite("open-api/spec.json", 12)},
+			{Method: "DELETE", Path: "/albums/{id}", ID: "deleteAlbum", Prov: cite("open-api/spec.json", 20)}},
+		Clients: []core.APIClient{{App: "packages/sdk", Dir: "packages/sdk/src", How: "its code names 2 of the 2 paths", Prov: cite("packages/sdk/src/client.ts", 1)}}}}
+	sdk := func(file string, line int, names ...string) core.Import {
+		return core.Import{Spec: "@x/sdk", Package: "@x/sdk", How: core.ByPackage, Names: names, Prov: cite(file, line)}
+	}
+	fs.Sources = append(fs.Sources, core.Source{App: "web", Root: "web/src", Framework: "SvelteKit", Files: []core.SourceFile{
+		{Path: comp, Language: "TypeScript", Lines: 9, Imports: []core.Import{sdk(comp, 2, "deleteAlbum")}},
+		{Path: page, Language: "TypeScript", Lines: 30,
+			Imports: []core.Import{sdk(page, 2, "createAlbum", "AlbumResponseDto"), {Spec: "$lib/AlbumCard.svelte", Target: comp, How: core.ByAlias, Prov: cite(page, 3)}},
+			Classes: []core.Class{{Methods: []core.Method{{Name: "add", Prov: cite(page, 8), EndLine: 10,
+				Invokes: []core.Invocation{{Method: "createAlbum", Free: true, Prov: cite(page, 9)}}}}}}},
+		{Path: load, Language: "TypeScript", Lines: 9, Imports: []core.Import{sdk(load, 1, "getAllAlbums")}},
+	}})
+	m := Derive(fs)
+	var flow core.Flow
+	for _, f := range m.Flows {
+		if f.Entry == "page:web /albums" {
+			flow = f
+		}
+	}
+	var got []string
+	for _, s := range flow.Steps {
+		got = append(got, fmt.Sprintf("%s>%s:%s@%s", s.From, s.To, s.Call, s.Prov))
+	}
+	want := []string{
+		page + ">route:server POST /api/albums:createAlbum@" + page + ":9",
+		page + ">route:server GET /api/albums:getAllAlbums@" + load + ":1",
+	}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("steps %v, want %v", got, want)
+	}
+	if n := flow.Steps[1].Note; !strings.HasPrefix(n, "imported here from @x/sdk") || !strings.Contains(n, "open-api/spec.json:7") {
+		t.Errorf("an imported call's note %q", n)
+	}
+	if p := flow.Participants; len(p) != 3 || p[0].Name != "/albums" || p[1].Kind != "route" || p[1].Element != "route:server POST /api/albums" {
+		t.Errorf("participants %+v", p)
 	}
 }
 
