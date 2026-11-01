@@ -692,6 +692,18 @@ func TestEventsAndQueuedJobsAreRead(t *testing.T) {
 			"    await this.jobRepository.queue({ name: JobName.FileDelete, data: { files } });\n" +
 			"    jobs.push({ name: 'SidecarWrite', data: { id } });\n" +
 			"  }\n" +
+			"  private async onDone(item: JobItem) {\n" +
+			"    switch (item.name) {\n" +
+			"      case JobName.SidecarCheck:\n" +
+			"      case 'SidecarWrite': {\n" +
+			"        await this.jobRepository.queue({ name: JobName.AssetExtractMetadata, data: item.data });\n" +
+			"        break;\n" +
+			"      }\n" +
+			"      case JobName.SmartSearch:\n" +
+			"        log();\n" +
+			"        jobs.push({ name: JobName.AssetDetectDuplicates });\n" +
+			"    }\n" +
+			"  }\n" +
 			"}\n",
 	})
 	src, _ := Read(root, core.App{Dir: "server", Language: "TypeScript"}, nil)
@@ -702,6 +714,15 @@ func TestEventsAndQueuedJobsAreRead(t *testing.T) {
 	}
 	if len(m.Named) != 2 || m.Named[0].Expr != "JobName.FileDelete" || m.Named[0].Prov.Line != 6 || m.Named[1].Value != "SidecarWrite" {
 		t.Errorf("named %+v", m.Named)
+	}
+	if len(m.Named[0].Case) != 0 {
+		t.Errorf("a job queued outside a switch has a case: %v", m.Named[0].Case)
+	}
+	// A job queued in a switch case says which case: its label, and the empty one that falls into it.
+	done := src.Files[0].Classes[0].Methods[1].Named
+	if len(done) != 2 || strings.Join(done[0].Case, " ") != "JobName.SidecarCheck SidecarWrite" ||
+		strings.Join(done[1].Case, " ") != "JobName.SmartSearch" || done[1].Expr != "JobName.AssetDetectDuplicates" {
+		t.Errorf("named in a switch %+v", done)
 	}
 }
 

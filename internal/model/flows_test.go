@@ -10,10 +10,12 @@ import (
 )
 
 // A route followed through the code: the handler's service, the repository the service's base
-// class was given, the table its query names, and an HTTP call to a computed address.
+// class was given, the table its query names, and an HTTP call to a computed address. A call the
+// service makes on itself is kept when it leads to another class, and left out when it only shapes data.
 func TestFlowsFollowTheCode(t *testing.T) {
 	ctl, svc, base, repo := "server/src/controllers/album.controller.ts", "server/src/services/album.service.ts",
 		"server/src/services/base.service.ts", "server/src/repositories/album.repository.ts"
+	access := "server/src/repositories/access.repository.ts"
 	inv := func(obj, m, file string, line int) core.Invocation {
 		return core.Invocation{Object: obj, Method: m, Prov: cite(file, line)}
 	}
@@ -28,8 +30,12 @@ func TestFlowsFollowTheCode(t *testing.T) {
 				Invokes:    []core.Invocation{inv("service", "getAll", ctl, 9)}}},
 		}}},
 		{Path: base, Language: "TypeScript", Lines: 10, Classes: []core.Class{{
-			Name: "BaseService", Params: []core.Param{{Name: "albumRepository", Type: "AlbumRepository"}},
-			Methods: []core.Method{{Name: "requireAccess", Prov: cite(base, 5), EndLine: 6}},
+			Name: "BaseService", Params: []core.Param{{Name: "albumRepository", Type: "AlbumRepository"}, {Name: "accessRepository", Type: "AccessRepository"}},
+			Methods: []core.Method{{Name: "requireAccess", Prov: cite(base, 5), EndLine: 7,
+				Invokes: []core.Invocation{inv("accessRepository", "check", base, 6)}}},
+		}}},
+		{Path: access, Language: "TypeScript", Lines: 10, Classes: []core.Class{{
+			Name: "AccessRepository", Methods: []core.Method{{Name: "check", Prov: cite(access, 3), EndLine: 5}},
 		}}},
 		{Path: svc, Language: "TypeScript", Lines: 30, Classes: []core.Class{{
 			Name: "AlbumService", Extends: []string{"BaseService"},
@@ -39,7 +45,8 @@ func TestFlowsFollowTheCode(t *testing.T) {
 				inv("albumRepository", "getAll", svc, 13),
 				inv("albumRepository", "getAll", svc, 14),
 				inv("cache", "get", svc, 15),
-			}}},
+				inv("", "format", svc, 16),
+			}}, {Name: "format", Prov: cite(svc, 22), EndLine: 24}},
 		}}},
 		{Path: repo, Language: "TypeScript", Lines: 30, Calls: []core.Call{{Callee: "fetch", Target: "url", Prov: cite(repo, 7)}},
 			Classes: []core.Class{{Name: "AlbumRepository", Methods: []core.Method{{Name: "getAll", Prov: cite(repo, 5), EndLine: 9,
@@ -56,19 +63,20 @@ func TestFlowsFollowTheCode(t *testing.T) {
 	want := []string{
 		"AlbumController>AlbumService:getAll",
 		"AlbumService>AlbumService:requireAccess",
+		"AlbumService>AccessRepository:check",
 		"AlbumService>AlbumRepository:getAll",
 		"AlbumRepository>table:album:reads",
 		"AlbumRepository>unresolved:fetch",
 	}
 	if len(got) != len(want) {
-		t.Fatalf("steps %v, want %v (logging, a repeat and an unknown field are left out)", got, want)
+		t.Fatalf("steps %v, want %v (logging, a repeat, an unknown field and a helper that leads nowhere are left out)", got, want)
 	}
 	for i := range want {
 		if got[i] != want[i] {
 			t.Errorf("step %d: %s, want %s", i, got[i], want[i])
 		}
 	}
-	if s := m.Flows[0].Steps[2]; s.Depth != 1 || s.Prov.Line != 13 {
+	if s := m.Flows[0].Steps[3]; s.Depth != 1 || s.Prov.Line != 13 {
 		t.Errorf("service → repository at depth %d, line %d", s.Depth, s.Prov.Line)
 	}
 }
@@ -345,6 +353,154 @@ func TestAPIClientsCallTheContainerTheDocumentDescribes(t *testing.T) {
 		if e.Label == "calls the API of" {
 			t.Errorf("an API nobody here serves drew %s → %s", e.From, e.To)
 		}
+	}
+}
+
+// What a job leads to when it is done: a switch on job names whose case for a job queues another ends
+// that job's flow, even when the job's handler queues nothing itself. A case for something that is not a
+// job, and a job that is not one of this code's, add nothing.
+func TestJobsQueuedWhenAJobIsDone(t *testing.T) {
+	enum, media, jobs := "srv/src/enum.ts", "srv/src/services/media.service.ts", "srv/src/services/job.service.ts"
+	onJob := func(name string, line int) []core.Decorator {
+		return []core.Decorator{{Name: "OnJob", Exprs: map[string]string{"name": "JobName." + name}, Prov: cite(media, line)}}
+	}
+	fs := &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: core.RoleService, Prov: cite("srv/package.json", 1)}},
+		Sources: []core.Source{{App: "srv", Root: "srv/src", Files: []core.SourceFile{
+			{Path: enum, Language: "TypeScript", Lines: 5, Constants: []core.Constant{
+				{Name: "JobName.Thumbnails", Value: "Thumbnails", Prov: cite(enum, 2)},
+				{Name: "JobName.FaceDetect", Value: "FaceDetect", Prov: cite(enum, 3)},
+				{Name: "JobName.SmartSearch", Value: "SmartSearch", Prov: cite(enum, 4)}}},
+			{Path: media, Language: "TypeScript", Lines: 30, Classes: []core.Class{{Name: "MediaService", Methods: []core.Method{
+				{Name: "thumbnails", Prov: cite(media, 6), EndLine: 8, Decorators: onJob("Thumbnails", 5)},
+				{Name: "faces", Prov: cite(media, 11), EndLine: 13, Decorators: onJob("FaceDetect", 10),
+					Queries: []core.Query{{Table: "face", Op: "writes", Prov: cite(media, 12)}}},
+				{Name: "search", Prov: cite(media, 16), EndLine: 18, Decorators: onJob("SmartSearch", 15)}}}}},
+			{Path: jobs, Language: "TypeScript", Lines: 30, Classes: []core.Class{{Name: "JobService", Methods: []core.Method{
+				{Name: "onDone", Prov: cite(jobs, 10), EndLine: 25, Named: []core.Mention{
+					{Expr: "JobName.FaceDetect", Case: []string{"JobName.Thumbnails"}, Prov: cite(jobs, 13)},
+					{Expr: "JobName.SmartSearch", Case: []string{"JobName.Thumbnails"}, Prov: cite(jobs, 14)},
+					{Expr: "JobName.FaceDetect", Case: []string{"JobName.Thumbnails"}, Prov: cite(jobs, 15)},
+					{Expr: "JobName.Thumbnails", Case: []string{"Upload"}, Prov: cite(jobs, 18)},
+					{Value: "Elsewhere", Case: []string{"JobName.SmartSearch"}, Prov: cite(jobs, 21)}}}}}}},
+		}}},
+	}
+	m := Derive(fs)
+	flows := map[string]core.Flow{}
+	for _, f := range m.Flows {
+		flows[f.Entry] = f
+	}
+	thumbs, ok := flows["job:srv Thumbnails"]
+	if !ok {
+		t.Fatalf("a job whose handler queues nothing has no flow, though its case queues two: %v", keysOfFlows(flows))
+	}
+	var got []string
+	for _, s := range thumbs.Steps {
+		got = append(got, fmt.Sprintf("%s>%s:%s@%d", s.From, s.To, s.Call, s.Prov.Line))
+	}
+	if want := "JobService>job:FaceDetect:queues@13 JobService>job:SmartSearch:queues@14"; strings.Join(got, " ") != want {
+		t.Errorf("steps %v, want %s (each job once)", got, want)
+	}
+	if n := thumbs.Steps[0].Note; !strings.Contains(n, "case for JobName.Thumbnails of JobService.onDone") || !strings.Contains(n, "MediaService.faces") {
+		t.Errorf("note %q", n)
+	}
+	if _, ok := flows["job:srv SmartSearch"]; ok {
+		t.Error("a job that is not this code's was queued after SmartSearch")
+	}
+}
+
+func keysOfFlows(m map[string]core.Flow) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// A flow cut for length still shows where it leads: the event its handler emits last, and the job the
+// listener queues, are kept past the cut. A call too deep to follow that plainly leads nowhere — a class
+// parsing a number for itself — is not drawn, and does not cut the flow.
+func TestCutFlowsKeepWhereTheyLead(t *testing.T) {
+	enum, svc, repo, store := "srv/src/enum.ts", "srv/src/services/metadata.service.ts", "srv/src/repositories/asset.repository.ts", "srv/src/services/storage.service.ts"
+	var calls []core.Invocation
+	var methods []core.Method
+	for i := 0; i < 45; i++ {
+		name := fmt.Sprintf("step%d", i)
+		calls = append(calls, core.Invocation{Object: "assetRepository", Method: name, Prov: cite(svc, 10+i)})
+		methods = append(methods, core.Method{Name: name, Prov: cite(repo, 10+i), EndLine: 10 + i})
+	}
+	calls = append(calls, core.Invocation{Object: "eventRepository", Method: "emit", Args: []string{"MetadataExtracted"}, Prov: cite(svc, 60)})
+	fs := &core.FactSet{Name: "x",
+		Apps: []core.App{{Name: "srv", Dir: "srv", Manifest: "srv/package.json", Role: core.RoleService, Prov: cite("srv/package.json", 1)}},
+		Sources: []core.Source{{App: "srv", Root: "srv/src", Files: []core.SourceFile{
+			{Path: enum, Language: "TypeScript", Lines: 5, Constants: []core.Constant{
+				{Name: "JobName.Extract", Value: "Extract", Prov: cite(enum, 2)}, {Name: "JobName.Move", Value: "Move", Prov: cite(enum, 3)}}},
+			{Path: svc, Language: "TypeScript", Lines: 70, Classes: []core.Class{{Name: "MetadataService",
+				Params: []core.Param{{Name: "assetRepository", Type: "AssetRepository"}, {Name: "eventRepository", Type: "EventRepository"}},
+				Methods: []core.Method{{Name: "extract", Prov: cite(svc, 9), EndLine: 61, Invokes: calls,
+					Decorators: []core.Decorator{{Name: "OnJob", Exprs: map[string]string{"name": "JobName.Extract"}, Prov: cite(svc, 8)}}}}}}},
+			{Path: repo, Language: "TypeScript", Lines: 70, Classes: []core.Class{{Name: "AssetRepository", Methods: methods}}},
+			{Path: store, Language: "TypeScript", Lines: 30, Classes: []core.Class{{Name: "StorageService", Methods: []core.Method{
+				{Name: "onExtracted", Prov: cite(store, 6), EndLine: 8, Named: []core.Mention{{Expr: "JobName.Move", Prov: cite(store, 7)}},
+					Decorators: []core.Decorator{{Name: "OnEvent", Options: map[string]string{"name": "MetadataExtracted"}, Prov: cite(store, 5)}}},
+				{Name: "move", Prov: cite(store, 11), EndLine: 13,
+					Decorators: []core.Decorator{{Name: "OnJob", Exprs: map[string]string{"name": "JobName.Move"}, Prov: cite(store, 10)}}}}}}},
+		}}},
+	}
+	var extract core.Flow
+	for _, f := range Derive(fs).Flows {
+		if f.Entry == "job:srv Extract" {
+			extract = f
+		}
+	}
+	n := len(extract.Steps)
+	if !extract.Cut || n < 2 {
+		t.Fatalf("a flow of 45 calls and an event: cut %v, %d steps", extract.Cut, n)
+	}
+	tail := extract.Steps[n-2].From + ">" + extract.Steps[n-2].To + ":" + extract.Steps[n-2].Call + " " +
+		extract.Steps[n-1].From + ">" + extract.Steps[n-1].To + ":" + extract.Steps[n-1].Call
+	if tail != "MetadataService>StorageService:onExtracted StorageService>job:Move:queues" || !strings.Contains(extract.Steps[n-1].Note, "past the cut") {
+		t.Errorf("the cut flow ends %s (%q)", tail, extract.Steps[n-1].Note)
+	}
+
+	// Four calls deep, a class calls itself: a parser that calls nothing of this code is left out.
+	chain := []core.SourceFile{}
+	for i, c := range []string{"A", "B", "C", "D"} {
+		file := fmt.Sprintf("srv/src/%s.ts", strings.ToLower(c))
+		meth := core.Method{Name: "run", Prov: cite(file, 3), EndLine: 6}
+		params := []core.Param{}
+		if i < 3 {
+			next := []string{"B", "C", "D"}[i]
+			params = append(params, core.Param{Name: "next", Type: next})
+			meth.Invokes = []core.Invocation{{Object: "next", Method: "run", Prov: cite(file, 4)}}
+		} else {
+			meth.Invokes = []core.Invocation{{Method: "parseRate", Prov: cite(file, 4)}, {Method: "save", Prov: cite(file, 5)}}
+		}
+		cls := core.Class{Name: c, Params: params, Methods: []core.Method{meth}}
+		if c == "D" {
+			cls.Methods = append(cls.Methods,
+				core.Method{Name: "parseRate", Prov: cite(file, 8), EndLine: 9, Invokes: []core.Invocation{{Method: "parseInt", Free: true, Prov: cite(file, 9)}}},
+				core.Method{Name: "save", Prov: cite(file, 11), EndLine: 12, Queries: []core.Query{{Table: "rate", Op: "writes", Prov: cite(file, 12)}}})
+		}
+		if c == "A" {
+			cls.Methods[0].Decorators = []core.Decorator{{Name: "OnJob", Exprs: map[string]string{"name": "JobName.Move"}, Prov: cite(file, 2)}}
+		}
+		chain = append(chain, core.SourceFile{Path: file, Language: "TypeScript", Lines: 12, Classes: []core.Class{cls}})
+	}
+	fs.Sources[0].Files = append([]core.SourceFile{fs.Sources[0].Files[0]}, chain...)
+	var got []string
+	var cut bool
+	for _, f := range Derive(fs).Flows {
+		if f.Entry == "job:srv Move" {
+			cut = f.Cut
+			for _, s := range f.Steps {
+				got = append(got, s.From+">"+s.To+":"+s.Call)
+			}
+		}
+	}
+	if want := "A>B:run B>C:run C>D:run D>D:save"; strings.Join(got, " ") != want || !cut {
+		t.Errorf("steps %v (cut %v), want %s, cut by the call too deep to tell", got, cut, want)
 	}
 }
 

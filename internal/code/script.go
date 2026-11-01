@@ -565,9 +565,9 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provena
 			}
 			value := n.NamedChild(1)
 			if v, ok := literal(value, l, src); ok {
-				named = append(named, core.Mention{Value: v, Prov: at(n)})
+				named = append(named, core.Mention{Value: v, Case: caseOf(n, m, l, src), Prov: at(n)})
 			} else if value.Type(l) == "member_expression" {
-				named = append(named, core.Mention{Expr: value.Text(src), Prov: at(n)})
+				named = append(named, core.Mention{Expr: value.Text(src), Case: caseOf(n, m, l, src), Prov: at(n)})
 			}
 			return
 		}
@@ -618,6 +618,38 @@ func body(m *ts.Node, l *ts.Language, src []byte, at func(*ts.Node) core.Provena
 		}
 	})
 	return invokes, queries, named
+}
+
+// caseOf is the labels of the switch case a node is written in, within a method: its own, and those of
+// the empty cases just before it, which fall into it. A literal label is its value; any other, as written.
+func caseOf(n, m *ts.Node, l *ts.Language, src []byte) []string {
+	var c *ts.Node
+	for p := n.Parent(); p != nil && p != m; p = p.Parent() {
+		if p.Type(l) == "switch_case" {
+			c = p
+			break
+		}
+	}
+	if c == nil || c.NamedChildCount() == 0 {
+		return nil
+	}
+	label := func(c *ts.Node) string {
+		if v, ok := literal(c.NamedChild(0), l, src); ok {
+			return v
+		}
+		return c.NamedChild(0).Text(src)
+	}
+	out := []string{label(c)}
+	for p := c.PrevSibling(); p != nil; p = p.PrevSibling() {
+		if p.Type(l) == "comment" {
+			continue
+		}
+		if p.Type(l) != "switch_case" || p.NamedChildCount() != 1 {
+			break
+		}
+		out = append([]string{label(p)}, out...)
+	}
+	return out
 }
 
 // registryOf reports a file whose top level only lists what it imports: imports, and exports whose

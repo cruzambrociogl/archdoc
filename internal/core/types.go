@@ -440,10 +440,13 @@ type Invocation struct {
 	Prov Provenance `json:"provenance"`
 }
 
-// Mention is a name an object literal carries: a literal, or an expression as written.
+// Mention is a name an object literal carries: a literal, or an expression as written. Case is the
+// labels of the switch case it is written in, as written — case JobName.SidecarCheck: — with those of
+// the empty cases that fall into it.
 type Mention struct {
 	Value string     `json:"value,omitempty"`
 	Expr  string     `json:"expr,omitempty"`
+	Case  []string   `json:"case,omitempty"`
 	Prov  Provenance `json:"provenance"`
 }
 

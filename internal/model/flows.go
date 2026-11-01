@@ -18,6 +18,11 @@ import (
 // unresolved participant. What happens out of line is followed by name too: emit('AlbumInvite')
 // continues in the methods @OnEvent({ name: 'AlbumInvite' }) marks, and an object named after a
 // job — { name: JobName.AssetDelete } — is a step to that job, which has a flow of its own.
+// What is queued when a job is done is followed by name as well: a switch on job names whose case for
+// a job queues another — JobService.onDone's case JobName.SidecarCheck queues AssetExtractMetadata — ends
+// that job's flow with the step, past any cut; so are the jobs a cut flow's handler queues, and the events
+// it emits with what their listeners queue. A call a class makes on itself is kept, as a function's
+// is, only if it leads somewhere: to another class, a table, a job, a call that leaves.
 // It stops at a fixed depth and length, and says when it did. A command a class runs is followed the
 // same way, from its run method. A page has no handler method: its flow is what it calls through a
 // generated client (pageCalls, api.go).
@@ -86,6 +91,7 @@ func flows(m *core.Model, sources []core.Source, componentOf map[string]string) 
 				out.jobs[e.Path] = e
 			}
 		}
+		after := queuedAfter(src, out)
 		for _, e := range m.Entries {
 			// A route, a job a class handles and a command a class runs are followed; a page has no
 			// handler method to start from.
@@ -97,6 +103,9 @@ func flows(m *core.Model, sources []core.Source, componentOf map[string]string) 
 				f = followPython(e, classes, files, componentOf, table)
 			} else {
 				f = follow(e, classes, files, componentOf, table, out, impl)
+			}
+			if e.Kind == "job" {
+				f = whenDone(f, after[e.Path], classes, componentOf)
 			}
 			if len(f.Steps) > 0 {
 				m.Flows = append(m.Flows, f)
@@ -114,6 +123,72 @@ type outOfLine struct {
 }
 
 type handler struct{ event, class, method string }
+
+// queued is a job a switch case queues: in the case for another job, in a method of a class.
+type queued struct {
+	class, method, label, name string
+	job                        core.Entry
+	prov                       core.Provenance
+}
+
+// queuedAfter is what a switch on job names queues in each job's case, by the job the case is for.
+func queuedAfter(src core.Source, out outOfLine) map[string][]queued {
+	after := map[string][]queued{}
+	for _, f := range src.Files {
+		for _, c := range f.Classes {
+			for _, meth := range c.Methods {
+				for _, n := range meth.Named {
+					name := n.Value
+					if name == "" {
+						name = out.constants[n.Expr]
+					}
+					job, ok := out.jobs[name]
+					if !ok || c.Name == "" {
+						continue
+					}
+					for _, label := range n.Case {
+						done := label
+						if v, ok := out.constants[label]; ok {
+							done = v
+						}
+						if _, ok := out.jobs[done]; ok {
+							after[done] = append(after[done], queued{c.Name, meth.Name, label, name, job, n.Prov})
+						}
+					}
+				}
+			}
+		}
+	}
+	return after
+}
+
+// whenDone ends a job's flow with what a switch case queues for it, each job once, past any cut: what a
+// job leads to matters more than the steps it takes to get there.
+func whenDone(f core.Flow, qs []queued, classes map[string]classAt, componentOf map[string]string) core.Flow {
+	met := map[string]bool{}
+	for _, p := range f.Participants {
+		met[p.ID] = true
+	}
+	drawn := map[string]bool{}
+	for _, q := range qs {
+		if drawn[q.name] {
+			continue
+		}
+		drawn[q.name] = true
+		if !met[q.class] {
+			met[q.class] = true
+			f.Participants = append(f.Participants, core.Participant{ID: q.class, Name: q.class, Kind: "class", Component: componentOf[classes[q.class].file]})
+		}
+		if !met["job:"+q.name] {
+			met["job:"+q.name] = true
+			f.Participants = append(f.Participants, core.Participant{ID: "job:" + q.name, Name: q.name, Kind: "job", Element: q.job.ID})
+		}
+		f.Steps = append(f.Steps, core.Step{From: q.class, To: "job:" + q.name, Call: "queues",
+			Note: "in the case for " + q.label + " of " + q.class + "." + q.method + ", matched by name; handled later by " +
+				q.job.Handler + ", a flow of its own", Prov: q.prov})
+	}
+	return f
+}
 
 // listeners are the methods a call reaches by the event it names. Only a call that says it emits —
 // emit, emitAsync, publish, dispatch — is read so: the same word handed to another method
@@ -226,6 +301,53 @@ func follow(e core.Entry, classes map[string]classAt, files map[string]core.Sour
 		return "", core.Method{}, false
 	}
 
+	// leaf reports a method that can lead nowhere: it names no table and no job, makes no call that
+	// leaves, emits nothing, and calls nothing of this code. cls is the class it is called on.
+	leaf := func(cls string, at classAt, m core.Method) bool {
+		if len(m.Queries) > 0 {
+			return false
+		}
+		for _, n := range m.Named {
+			name := n.Value
+			if name == "" {
+				name = out.constants[n.Expr]
+			}
+			if _, ok := out.jobs[name]; ok {
+				return false
+			}
+		}
+		for _, c := range files[at.file].Calls {
+			if c.Prov.Line >= m.Prov.Line && c.Prov.Line <= m.EndLine {
+				return false
+			}
+		}
+		for _, inv := range m.Invokes {
+			if quiet[inv.Method] {
+				continue
+			}
+			if inv.Free {
+				if _, _, ok := function(at.file, inv.Method); ok {
+					return false
+				}
+				continue
+			}
+			if len(out.listeners(inv)) > 0 {
+				return false
+			}
+			target := cls
+			if inv.Object != "" {
+				target = typeOf(cls, inv.Object, 0)
+				if i, ok := impl[target]; ok {
+					target = i
+				}
+			}
+			if _, _, ok := method(target, inv.Method, 0); ok {
+				return false
+			}
+		}
+		return true
+	}
+
 	// visit follows one method or function. self is the participant doing the calling — a class,
 	// or a module's file — cls the class whose fields and methods this.… means, file where the
 	// code is.
@@ -310,14 +432,29 @@ func follow(e core.Entry, classes map[string]classAt, files map[string]core.Sour
 					return true // a library's method, or a field whose type is not in this code
 				}
 				meet(class(target))
+				mark, was := len(flow.Steps), flow.Cut
 				if !step(core.Step{From: self, To: to, Call: inv.Method, Depth: depth, Prov: inv.Prov}) {
 					return false
 				}
-				if depth+1 < flowDepth {
-					return visit(to, target, found.file, next, depth+1)
+				if depth+1 >= flowDepth {
+					if inv.Object == "" && leaf(target, found, next) {
+						// Too deep to follow, and plainly leading nowhere: not a step, and no cut.
+						delete(repeated, core.Step{From: self, To: to, Call: inv.Method, Depth: depth})
+						flow.Steps, flow.Cut = flow.Steps[:mark], was
+						return true
+					}
+					flow.Cut = true
+					return true
 				}
-				flow.Cut = true
-				return true
+				more := visit(to, target, found.file, next, depth+1)
+				if more && inv.Object == "" && len(flow.Steps) > mark && !leadsOut(flow.Steps[mark+1:], to) {
+					// A call on itself that only shapes data — this.parseFloat(…) — is not a step.
+					for _, s := range flow.Steps[mark:] {
+						delete(repeated, core.Step{From: s.From, To: s.To, Call: s.Call, Depth: s.Depth})
+					}
+					flow.Steps, flow.Cut = flow.Steps[:mark], was
+				}
+				return more
 			}})
 		}
 		for _, q := range m.Queries {
@@ -365,6 +502,57 @@ func follow(e core.Entry, classes map[string]classAt, files map[string]core.Sour
 		return true
 	}
 
+	// handOffs keeps what a cut flow's handler hands on, past the cut: the jobs it queues, and the events it
+	// emits with the jobs their listeners queue. Where a flow leads matters more than the steps on the way.
+	handOffs := func(self string, m core.Method) {
+		queues := func(from string, n core.Mention, depth int) []core.Step {
+			name := n.Value
+			if name == "" {
+				name = out.constants[n.Expr]
+			}
+			job, ok := out.jobs[name]
+			if !ok {
+				return nil
+			}
+			meet(core.Participant{ID: "job:" + name, Name: name, Kind: "job", Element: job.ID})
+			return []core.Step{{From: from, To: "job:" + name, Call: "queues", Depth: depth,
+				Note: "kept past the cut; handled later by " + job.Handler + ", a flow of its own", Prov: n.Prov}}
+		}
+		// In the handler's order: each event with what its listeners queue after it.
+		type handOff struct {
+			line  int
+			steps []core.Step
+		}
+		var hs []handOff
+		for _, n := range m.Named {
+			hs = append(hs, handOff{n.Prov.Line, queues(self, n, 0)})
+		}
+		for _, inv := range m.Invokes {
+			for _, h := range out.listeners(inv) {
+				_, next, ok := method(h.class, h.method, 0)
+				if !ok {
+					continue
+				}
+				meet(class(h.class))
+				steps := []core.Step{{From: self, To: h.class, Call: h.method,
+					Note: "kept past the cut; on the event " + h.event + ", matched by name", Prov: inv.Prov}}
+				for _, n := range next.Named {
+					steps = append(steps, queues(h.class, n, 1)...)
+				}
+				hs = append(hs, handOff{inv.Prov.Line, steps})
+			}
+		}
+		sort.SliceStable(hs, func(i, j int) bool { return hs[i].line < hs[j].line })
+		for _, h := range hs {
+			for _, s := range h.steps {
+				if key := (core.Step{From: s.From, To: s.To, Call: s.Call, Depth: s.Depth}); !repeated[key] {
+					repeated[key] = true
+					flow.Steps = append(flow.Steps, s)
+				}
+			}
+		}
+	}
+
 	handlerClass, handlerMethod := splitHandler(e.Handler)
 	at, m, ok := method(handlerClass, handlerMethod, 0)
 	if !ok {
@@ -372,6 +560,9 @@ func follow(e core.Entry, classes map[string]classAt, files map[string]core.Sour
 	}
 	meet(class(handlerClass))
 	visit(handlerClass, handlerClass, at.file, m, 0)
+	if flow.Cut {
+		handOffs(handlerClass, m)
+	}
 
 	// The lifelines are the participants the kept steps name, in the order they first appear.
 	seen := map[string]bool{}
@@ -394,6 +585,17 @@ func follow(e core.Entry, classes map[string]classAt, files map[string]core.Sour
 func leads(steps []core.Step, known map[string]core.Participant) bool {
 	for _, s := range steps {
 		if k := known[s.To].Kind; k == "table" || k == "unresolved" || k == "class" || k == "job" {
+			return true
+		}
+	}
+	return false
+}
+
+// leadsOut reports whether steps reach beyond the participant making them: another class or module, a
+// table, a job, a call that leaves.
+func leadsOut(steps []core.Step, self string) bool {
+	for _, s := range steps {
+		if s.To != self {
 			return true
 		}
 	}

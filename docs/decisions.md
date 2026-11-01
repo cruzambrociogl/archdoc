@@ -1360,3 +1360,17 @@ names the operation's line. The components a page uses are not read: pages share
 55 pages, through `@immich/sdk`. Facts now hold the names a TypeScript import brings in (types left
 out) and each operation's `operationId` at its line. No other subject changed.
 → `internal/model/flows.go`, `internal/model/api.go` (`pageCalls`), `internal/code/script.go` (`importedNames`), `internal/extract/api.go`; `TestFlowsFollowCommands`, `TestPagesCallRoutesThroughAGeneratedClient`
+
+**2026-11-01 — What a job leads to is followed**
+Immich's processing pipeline was missing from its flows. `JobService.onDone` queues the next job in a
+switch on the finished job's name: after thumbnails, faces, smart search, OCR and video encoding. The
+metadata job's flow also ran out of steps before the event that queues the file move. Now a job
+queued in a switch case records the case, and the job that case is for ends its flow with the step,
+matched by name. A cut flow keeps what its handler hands on: the jobs it queues, and the events it
+emits with what their listeners queue. A call a class makes on itself is kept only if it leads
+somewhere, as a function's already was; at the depth limit, one that plainly cannot is dropped
+instead of cutting the flow. Immich: upload → metadata → file move → thumbnails → faces, video, OCR,
+smart search → duplicates, in the facts; 492 fewer steps, cut flows 69 → 44, no flow lost a table or
+job, 18 more reached. eShopOnWeb's eight one-arrow flows, an endpoint calling its own `HandleAsync`,
+are gone; petclinic loses a validation helper.
+→ `internal/code/script.go` (`caseOf`), `core.Mention.Case`, `internal/model/flows.go` (`queuedAfter`, `whenDone`, `handOffs`, `leaf`, `leadsOut`); `TestJobsQueuedWhenAJobIsDone`, `TestCutFlowsKeepWhereTheyLead`
