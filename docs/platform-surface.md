@@ -19,9 +19,9 @@ place, a density budget, plain names, and related repositories — the informati
 what changed is listed in §12. **Revision 4, 2026-10-20**, after round 3 (`App.dc.html`, `App Findings`):
 corrections, not a redesign — listed in §13. **Revision 5, 2026-10-20**: the Landing leaves the app
 for a static website at the root domain — §14. **Revision 6, 2026-10-21**: every page in the app —
-§15. **Nothing here is built**: the code is
-> frozen until the platform's development environment exists (`platform-plan.md`); designing is not
-> building, and is the right work now. Direction: `hosted-proposal.md` §8.
+§15. **Revision 7, 2026-11-02**: the views that explain — C4 at its standard, features, scenarios,
+> how it's used, the review — §16. Revisions 1–6 are largely built (the engine's `PROGRESS.md` says
+> what waits); revision 7 is not built yet. Direction: `hosted-proposal.md` §8.
 >
 > **`platform-plan.md` and `hosted-proposal.md`**, cited throughout, moved on 2026-10-21 to the
 > private `archdoc-platform` repository, beside this one. What a design round needs from them is
@@ -47,6 +47,7 @@ for a static website at the root domain — §14. **Revision 6, 2026-10-21**: ev
 | What revision 4 changed | §13 |
 | What revision 5 changed — the website, and its pages for its design round | §14 |
 | What revision 6 changed — every page in the app | §15 |
+| What revision 7 changed — the views that explain, C4 at its standard, and their design round | §16 |
 
 ### Pieces
 
@@ -158,6 +159,22 @@ The rules of `surface-spec.md` §2, one by one:
     No sentence on screen explains a rule of this document ("named in a fixed order… never
     chosen").
 22. **One vocabulary** (§4.7), the same in the legend, the marks, the sentences and the notifications.
+23. **C4 at its standard, checked** (revision 7). Every C4 diagram has:
+    - a title naming its type and scope;
+    - a key for every colour, shape, border, line and arrowhead it uses (6.23);
+    - a type and a technology on every box, and a line on what the box does;
+    - on every arrow, a label of what it does, with its technology between containers — never a bare
+      "uses".
+
+    CI checks every diagram the engine draws against C4's own review checklist. One that fails does
+    not ship.
+24. **A claim worked out by a rule takes the weakest mark of what it rests on** (revision 7). An arrow
+    counted from proven imports, between two areas the AI named, is Written by AI. A count over proven
+    facts alone is Proven. There is no fifth mark; the citation shows what the claim was worked out
+    from.
+25. **Every diagram has a walkthrough** (revision 7, 6.22). First, what it shows: from a template, and
+    proven. Then, under the picture, what to notice: from the AI, and marked by the block. Without AI,
+    the first part alone.
 
 Rule 7's reversal applies to the **local app too**: it is the same app (§4.1), and the first user
 meets it there as often as on the platform.
@@ -330,11 +347,11 @@ site have only the repository level.
 
 | Entry | Plain question | Holds |
 |---|---|---|
-| **Overview** | What is this? | §6.1 |
+| **Overview** | What is this? | §6.1, and the Review (§6.10) |
 | **What changed** | What just changed? | §6.2; the timeline and comparing commits under Advanced |
 | **Did it build what I asked?** | Did the code do what I asked? | §6.3 |
-| **Map** | How is it put together? | The explorer, with its levels as a control on the canvas (§4.4) |
-| **What it does** | What can it do, and how does each thing work? | Features, each opening onto its flows |
+| **Map** | How is it put together? | The explorer, with its levels as a control on the canvas (§4.4): C4 at its standard, and what it stores (§6.6) |
+| **What it does** | What can it do, and how does each thing work? | Features, scenarios and how it's used, then every flow (§6.7–§6.9) |
 | **Reference** | Where is the complete detail? | The documentation, every component, every table, everything it relies on |
 | **Settings** | How does this repository behave? | Per place (§4.5) |
 
@@ -387,6 +404,27 @@ now lives. *Moved* means reached from a new place; nothing below is cut unless m
 | Ask the map §5.16 | Ask | In the search box, where it exists (§4.5) | Promoted and merged with search (§6.5) |
 | Global search §5.17 | Search | Top bar, one box with Ask | Merged |
 | "Not built yet" | — | — | **Removed from the product**; shown in development builds only |
+
+**The views that explain (revision 7, §16)**
+
+| Feature | Plain name (technical) | Lives in | Change |
+|---|---|---|---|
+| The thesis | No label: the Overview's paragraph, when AI ran | Overview | Reworked (§6.1) |
+| The containers with a point of view | The Overview's diagram, its columns grouped by the thesis | Overview | Reworked (§6.1) |
+| Purpose slices | **Features** *(systems)* | What it does; the Overview's first five | **New** (§6.7). Replace the route sentences when AI ran |
+| One feature in depth | *Its name* — "How does Face and people recognition work?" | What it does › the feature | **New** (§6.7) |
+| Areas | Inside *the part*, by area *(components)* | Map level | Reworked (§6.6): areas first, then one area's components |
+| The dynamic diagram | A scenario on Apps and services *(dynamic)* | Map, from a scenario's "Show on the map" | **New** (§6.6) |
+| The deployment diagram | Where it runs *(deployment)* | Map level | Drawn now, from Compose (§6.6) |
+| The system landscape | System map *(landscape)* | System level | C4's notation (§6.6) |
+| Concepts, as a conceptual ERD | What it stores *(entities)* | Map level | Reworked (§6.6): concepts above tables |
+| Lifecycles | What *an asset* goes through *(lifecycle)* | What it stores › a concept | **New** (§6.6) |
+| Key scenarios | **Scenarios** | What it does; each feature's own | **New** (§6.8) |
+| Every flow | Every flow *(flows)* | What it does, last; still under each feature | Unchanged; the same set as Reference › Every entry point |
+| The user's view | **How it's used** — Screens · API · Command line · Running it · Library · Background | What it does | **New** (§6.9) |
+| The review | **Review** — "What would an architect point out?" | Overview › Review; and in place: a feature's page, the right rail | **New** (§6.10) |
+| Classic C4 | Classic C4 | A switch on the Map's C4 levels, and in export | **New** (§6.6) |
+| Views the evidence does not support | Not drawn | About these docs, each with its reason | **New** (§6.6) |
 
 **About these docs** is one page, reached from the trust sentence and from the ⋯ menu: what archdoc
 could and could not read, which commit and version this is, how it was generated (with or without
@@ -520,8 +558,25 @@ One word per idea, everywhere — the legend, the marks, the sentences, the noti
 | When something happened | a date, a push, a commit — and the short commit when two pushes share a day: "the 18 Oct push · 9c3e7d1" | v14 (only under Advanced, rule 20) |
 | Who made a change, in a change story | **This push added…** · **This pull request adds…** (before the merge) · **This session added…** (after an agent session, pushed or not) | — |
 
+**Revision 7 adds** (§16):
+
+| Idea | Say | Not |
+|---|---|---|
+| A slice of the program by purpose: the pages, routes, commands, jobs and tables that serve it | **Feature** — made by the AI step; without it, the routes' features of §6.6 | system, capability, subsystem, domain |
+| One of the few stories, chosen and told in 6–12 steps, that explain how it works across flows and background jobs | **Scenario** | key flow, use case, journey |
+| The exact steps one entry point takes, read from the code | **Flow** | path, trace |
+| A readable group of components inside a part | **Area** | module, layer, cluster |
+| An area nearly every other one uses | **Used everywhere** | band, cross-cutting, shared |
+| What an architect would point out about the whole | **Review**, each a **review point** | findings, issues, warnings, risks |
+| What one change brought that you would want to know — a new outside call, a public route without a guard | **Surprise** — designed with What changed, later | alert, violation |
+| How the thing is used, by whoever uses it | **How it's used**, in faces: **Screens**, **API**, **Command line**, **Running it**, **Library**, **Background** | user view, interfaces |
+| C4's usual blue-and-grey look | **Classic C4** | Structurizr style |
+| A view the evidence does not support | **Not drawn**, with the reason | missing, unavailable, empty |
+
 **The marks are four**, each its own form: Proven; Written by AI; **Couldn't be resolved — ochre,
-and only it**; **Not read — a neutral grey hatch**. The legend lists all four.
+and only it**; **Not read — a neutral grey hatch**. The legend lists all four. A claim archdoc works
+out by a rule — a count, an arrow between areas, coverage — takes the weakest mark of what it rests
+on (rule 24). There is no fifth mark.
 
 The truth states keep their technical names in this document and in `surface-spec.md`; on screen,
 the left column is never shown — only "Say".
@@ -769,6 +824,22 @@ beside What changed in the menu.
 **States:** nothing could be read (6.18); no AI used — the structure sentence alone, "What it does"
 only if a manifest describes it.
 
+**Revision 7 — when the AI step ran** (§16):
+
+- **The paragraph is the thesis**, marked by the block: the system and its point of view, in two to
+  four sentences. Immich: "…Requests do the quick work and hand the rest to chains of background
+  jobs, such as metadata, thumbnails, faces, OCR, smart search and duplicates." Without AI, the
+  structure sentence stays.
+- **The diagram gains its point of view.** The same proven columns, grouped by what the thesis says:
+  for Immich, *answers now* and *later, in the background*. The grouping is the AI's and marked; every
+  arrow stays proven (rule 24).
+- **What it does shows features:** the first five by purpose, each a card (6.26), then the coverage
+  sentence (§6.7).
+- **What would an architect point out?** The review's first three points, then **See the whole
+  review** (§6.10).
+- **The trust sentence stays last.** The first view is still the paragraph and the diagram (rule 15).
+  Features and the review come below them, each a list of five at most.
+
 ### 6.2 What changed — reworks `surface-spec.md` §5.12
 
 **Answers:** what just changed in the architecture?
@@ -851,6 +922,159 @@ deletes assets" — cited to the routes they come from. Where that is not possib
 absent rather than a list of numbers (rule 17). Each gains the three-layer opening of 6.15 where it does not already start with a
 sentence.
 
+**Revision 7 — the Map at C4's standard** (§16, rule 23):
+
+- **Each zoom level is a C4 diagram.** It is titled with its type and scope under its plain name:
+  - *The outside world* is "System context diagram for Immich";
+  - *Apps and services* is "Container diagram for Immich";
+  - *Inside immich-server* is "Component diagram for immich-server".
+
+  Each carries its key (6.23). Today one legend, the same for every diagram, sits a click away, and
+  the exported diagrams carry none.
+- **Every box** has its type, its technology, and a line on what it does:
+  - from the code where it says (a manifest's description, a README's first line);
+  - from the AI, marked, where it does not;
+  - "no description" without AI.
+- **Every arrow** says what it does, with its technology between containers. Today's arrows say
+  "uses", "depends on", "connects to". The new labels are mostly made by rule from the facts: a query
+  is "Reads from and writes to [SQL]", a queued job "Queues jobs on [Redis]", a call "Calls [HTTPS]".
+  The AI writes one only where the code does not say.
+- **Inside a part, areas come first.** There are 6–12 areas, named by the AI, each opening onto its
+  components. An area nearly every other one uses is drawn once, as **Used everywhere**: a band, with
+  its arrows counted on it rather than drawn one by one. Without AI, the components are grouped as
+  today.
+- **A scenario on the map.** From a scenario's "Show on the map", Apps and services shows its steps
+  as numbered arrows: C4's dynamic diagram.
+- **Where it runs is drawn:** deployment nodes from Compose, each container instance inside its
+  node.
+- **What it stores** shows concepts above tables (Asset, Person, Album), drawn as a conceptual ERD in
+  crow's-foot notation. Each concept opens onto its tables. A concept with states also opens onto
+  **What it goes through**: a state diagram, from the enum's values and where they are assigned.
+- **Classic C4** is a switch on the canvas, beside the levels. It keeps the same diagram, layout and
+  rules, in C4's usual blue and grey.
+  - The marks stay: Written by AI becomes a tag on the box, Couldn't be resolved keeps its ochre, and
+    the key lists both.
+  - The choice is remembered for each viewer, and an export follows it.
+  - archdoc's look is the default everywhere, including the files written to disk.
+- **Selecting a box** shows, in the right rail with the inspector: the features that use it, the
+  scenarios that pass through it, and the review points about it.
+- **Not drawn.** A view the evidence does not support is absent from the Map (rule 17). About these
+  docs lists each one with its reason, such as a script's "no containers: it runs as one process".
+- **Exports** add Structurizr DSL and C4-PlantUML. Those tools draw them in their own style.
+
+### 6.7 Features — what it does, by purpose (revision 7)
+
+**Answers:** what is it made of, by purpose?
+
+The program's slices by purpose. Each feature is made of the pages, routes, commands, jobs and tables
+that serve it. Features cross the code's structure and overlap: they share parts and never nest. They
+are made by the AI step from archdoc's facts, grouped by rule and then named and merged by the model.
+So the list is marked by the block (rule 13), while what each feature contains is proven.
+
+In order:
+
+1. **One sentence**, marked: what the features are about, by purpose before number (rule 18).
+2. **The features**, five then "see all", each a card (6.26): its name, what it is for in a line, and
+   what it spans in a sentence. *Face and people recognition*: "the people pages, two dozen routes,
+   four kinds of job and the machine-learning service; its own tables, and the asset and user tables
+   it borrows."
+3. **Coverage, in a sentence:** "Every page, route, command and job is in a feature but *n*", opening
+   the list **Not in a feature**. Never a percentage or a bar (rule 14).
+
+**A feature's page**, such as "How does Face and people recognition work?":
+
+1. **The walkthrough's first part, and the feature's slice:** its parts on one picture, in three bands
+   — **its own**, **borrowed** from other features, **used everywhere**.
+2. **One step away, each on a page of its own:**
+   - its **scenarios**;
+   - **what it stores**: the concepts it owns and borrows;
+   - its **screens** and **API** (How it's used, for this feature);
+   - its **review points**;
+   - its **flows**, one per entry point.
+3. **What it sets off in other features,** linked: "Uploads and sync sets off Search and map's
+   indexing."
+
+**Without AI** (the step off, or failed): What it does shows the routes' features of §6.6, verb
+templates cited to their routes, under the same name. A feature's page then has no slice picture, only
+its flows.
+
+### 6.8 Scenarios — what happens when… (revision 7)
+
+**Answers:** what happens when someone does the things that matter?
+
+A few stories, chosen by the AI step, each told in 6–12 steps, from the request into the background
+jobs it sets off. A scenario joins several flows: Immich's upload is the route's flow and eleven job
+flows. So it has its own word (§4.7), and a **flow** stays the exact steps of one entry point.
+
+**The list:** three to eight for the whole, each a question and a line, such as "What happens when you
+upload a photo?". Each feature lists its own.
+
+**A scenario's page:**
+
+1. **The walkthrough's first part, then the sequence diagram.** It is UML sequence, its participants
+   the containers and areas it crosses, its steps numbered.
+   - What runs later is drawn as such: asynchronous arrows, grouped under **In the background**.
+   - A fallback or a failure path is drawn where the facts show one.
+2. **Each step opens onto what it stands for** (6.24): "steps 1–13 of the upload's flow", "three job
+   flows". The proven steps are one click away.
+3. **Show on the map:** the same steps as numbered arrows on Apps and services, which is C4's dynamic
+   diagram (§6.6).
+4. **The walkthrough's second part**, marked: what to notice.
+
+**Without AI:** no scenarios. The entry is absent (rule 17), and What it does shows the features and
+every flow.
+
+### 6.9 How it's used (revision 7)
+
+**Answers:** how is it used, and what does each kind of user see?
+
+How the thing is used, as whoever uses it sees it. Its faces follow the entry points the code has:
+
+| Face | When the code has | Each entry says |
+|---|---|---|
+| **Screens** | Pages | What the screen is for, what you can do there, where it leads, the routes it calls |
+| **API** | Routes, an OpenAPI document | What a client can do, by feature; what it sends and gets back; the usual order of calls |
+| **Command line** | Commands | What each command does, its inputs, what it prints or changes |
+| **Running it** | A script's entry point | What you give it (arguments, settings, files), what you get back, what it touches |
+| **Library** | An exported API | The few calls that matter, and how they combine |
+| **Background** | Scheduled or queued jobs | What starts it, what it does, what it produces |
+
+**The first view** is one sentence naming the faces: "Immich is used four ways: on screens, through
+its API, and from two command lines — one on the server for admins, one for uploading." Each face is
+then a page of its own, all on one layout: a list of what you can do, each opening onto what it
+touches.
+
+**What the facts reach today:**
+
+- the pages, and the routes each calls through a generated client;
+- the routes, and the OpenAPI document;
+- the commands, and what they change;
+- a script's entry point.
+
+What a screen *shows* needs its markup read, which archdoc does not do yet. Until then, a screen's
+description is written by the AI from its name and its calls, and marked. A small script has only
+**Running it**, and for a script that is most of its documentation.
+
+### 6.10 The Review — what would an architect point out? (revision 7)
+
+**Answers:** what would an architect point out?
+
+Five to eight points about the whole: tangles, long chains, assumptions, places where a failure would
+leave things half done.
+
+- **Who writes them:** the AI step, from the facts. Each point is cited, and the review is marked by
+  the block.
+- **Two kinds of point.** Most are **observations**. A point is a **question** when the facts cannot
+  settle it: "Failures partway through could leave partial state, and the facts do not show how this
+  is handled."
+- **The Overview** shows the first three, then **See the whole review**: one page, `Overview ›
+  Review`.
+- **In place:** each point also appears where it applies. That is its feature's page, and the right
+  rail when its box is selected on the Map ("2 review points about immich-server").
+- **A reading, not a measurement:** no score, no severity colour, no count of problems (rule 14).
+- **Surprises** are What changed's: what one change brought, designed with it later. The two keep their
+  two names.
+
 ---
 
 ## 7. New shared components
@@ -866,6 +1090,11 @@ Numbered on from `surface-spec.md` §6, so the design system stays one list.
 | 6.19 | **Repository card** | Name, status line, last change, thumbnail. Home, the System map, the gallery. A **system card** holds its repositories' status lines together |
 | 6.20 | **Change story** | A push or session as a sentence, its grouped changes beneath, in **six** groups always in this order: new capability, new outside service, data changes, changed (renamed, rewired, new technology), removed, wording only. The diagram is not part of the story; it is the Map's Compare mode. Wording only uses `~`. **Grouped by the engine** (§10, question 2), so every channel and the local app agree. The template has a **tense and subject slot**: "this push added" once pushed, "this pull request adds" before the merge |
 | 6.21 | **Notifications** | The same change story in three places: an email, a pull-request comment, a message the agent receives. Designed together so they say the same thing. **The agent is the default channel** for the first user (§10, question 4): the session is where the work happens, and the plan check is something it can act on at once. Email for pushes that did not come from an agent; pull-request comments when work arrives as pull requests |
+| 6.22 | **Walkthrough** | Two parts around every diagram of revision 7 (rule 25). **What it shows** comes from a template and is proven: it is the screen's sentence. Then, under the picture, **what to notice**, from the AI and marked by the block. Without AI, the first part alone. The two are never blended into one paragraph |
+| 6.23 | **C4 key** | The key every C4 diagram carries (rule 23): exactly the shapes, colours, borders, lines and arrowheads that diagram uses, and the marks it shows. Drawn in both looks, archdoc's and Classic C4 |
+| 6.24 | **Scenario step** | A numbered step in a sentence, with what it stands for ("steps 1–13 of the upload's flow", "three job flows"), opening onto those proven steps |
+| 6.25 | **Review point** | One or two sentences, its kind (observation or question), and its citations. Shown in the Review, on the Overview, on a feature's page and in the right rail. No severity colour |
+| 6.26 | **Feature card** | A feature's name, what it is for in a line, and what it spans in a sentence. Used for the Overview's five, in What it does, and in a box's rail |
 
 ---
 
@@ -885,6 +1114,13 @@ All of it is platform API, except where marked L (the local app's `serve`).
 | Gallery | The website's home and gallery pages | A curated list of repositories, generated by the engine at pinned commits when the website is built — no platform needed |
 | Settings, sharing, tokens | Settings, Share, Connect your agent | Platform tables |
 | Systems and their links | System map, Home | Which repositories a system holds; links between them with both citations; pinned versions for drift; suggestions kept apart from groupings — multi-repository composition in the engine (§4.6) |
+| The interpretation: the thesis, features with what each owns and borrows, areas, scenarios, review points, descriptions, the Overview's grouping | Overview, Map, What it does, the Review (revision 7) | The engine's AI step, over the model alone. Its result is stored beside the model, with a mark per claim; the previous version's is taken in, so features stay stable between versions |
+| Arrow intent and technology | Every C4 level (rule 23) | By rule from the facts (queries, queued jobs, calls); the AI only where the code does not say |
+| Coverage of features | Features | The entry points in no feature: a count by rule over the interpretation |
+| Deployment nodes | Where it runs | From Compose, read today; the drawing is new |
+| Concepts and lifecycles | What it stores | Concepts from the AI step. Lifecycles need the enum's values and where they are assigned: fact work |
+| Pages and the routes they call | How it's used › Screens | Built: pages call routes through a generated client. What a screen shows needs its markup: fact work |
+| The C4 checklist | Every C4 diagram | A test over the engine's diagrams, in CI |
 
 ---
 
@@ -915,6 +1151,33 @@ content) and §6 (the design system).
 7. Start, Generating, Connect a repository, Share, Connect your agent, Account — updated to the
    shell, and the notifications. The Landing is now the website (§5.1, revision 5), designed in a
    round of its own.
+
+**Round 7 — the views that explain** (revision 7, §16). **Give it** §16, §4.7, §6.1 and §6.6–§6.10,
+and the design as round 6 left it. **Ask for, in this order:**
+
+1. **The Overview** with the thesis, the diagram grouped by its point of view, the five features and
+   the review's first points.
+2. **The Map at C4's standard**, each level with its title and key (6.23): The outside world, Apps
+   and services, and Inside immich-server by area. Then the same three in **Classic C4**, so both
+   looks are seen.
+3. **A feature in depth:** *Face and people recognition*.
+4. **A scenario as a sequence:** *Uploading a photo*, its steps opening onto their flows, and Show on
+   the map.
+5. **What it stores** as a conceptual ERD, and one lifecycle: an asset's.
+6. **How it's used:** its four faces on Immich.
+7. **The Review**, and a review point in the right rail.
+8. **Where it runs**, the dynamic diagram, and how data moves.
+9. **A 21-line script:** what it shows, and what is Not drawn, in About these docs.
+
+**And their states:**
+
+- no AI, on every screen of this round;
+- the AI step failed;
+- a partial read.
+
+**Content:** §16.2 holds Immich's thesis, features, areas, scenarios and review, from a real run.
+Hand-made pages for Immich, eleven Spring services and the 21-line script exist as references, and
+can be handed over with this brief.
 
 **Use realistic content.** Immich as in `surface-spec.md` §8; Supabase for the large case; Mastodon
 for the small case. For What changed and Did it build what I asked?, the album-comments push
@@ -955,6 +1218,15 @@ Still open:
 8. **Systems on C** — can a public organisation's repositories form a system without an account?
    Not in this revision; the slot stays.
 9. **The plain names** of §4.4 — first wording, to be tested on the first user before they settle.
+10. **Classic C4 as a team's default** for the files archdoc writes, or only a viewer's switch
+    (revision 7).
+11. **Used everywhere** — which areas are drawn as the band. A rule finds the candidates (used by most
+    of the others), and the AI's classification decides. The threshold is open.
+12. **Conditions on arrows** — whether a call carries *always*, *conditional* or *fallback*, and
+    whether a conditional one is drawn by default.
+13. **Features across repositories** — in a system of several repositories, whether a feature can
+    span them.
+14. **What a screen shows** — reading a page's markup, for How it's used › Screens.
 
 ---
 
@@ -1188,3 +1460,85 @@ far-right "you" slot, Share with link, embed and badge, corrections as pull requ
 viewer, and the §4.8 states. So the app holds every page and its routing, and what appears is
 decided by the place's capabilities (§4.5), as the design already draws it: one file, one app, a
 review bar that changes only the place. Nothing about the screens changes.
+
+## 16. Revision 7 — the views that explain
+
+Settled 2026-11-02. The app shows what archdoc proves: parts, connections, flows, tables. Revision 7
+adds what it means and brings archdoc's C4 to the standard a professional expects.
+
+- **What it means** is written by an AI step over those facts, every claim cited and marked.
+- **How it was tested:** first drawn by hand on three projects (Immich, eleven Spring services, a
+  21-line script). Then the interpretation was measured on Immich from facts alone. Only after that
+  were these names and places chosen.
+
+### 16.1 What changed
+
+| Was | Now |
+|---|---|
+| One legend for every diagram, a click away; none on an exported diagram. Arrows that say "uses", "depends on" | Every C4 diagram at C4's standard, with its own key (6.23) and arrows that say what they do; checked in CI (rule 23) |
+| Inside a part: every component, 122 in Immich's server | Areas first, then one area's components (§6.6) |
+| Deployment read, not drawn; dynamic only as one sequence per route | Where it runs drawn; a scenario shown on the map, as C4's dynamic diagram (§6.6) |
+| What it stores: tables, clustered by name | Concepts above tables, a conceptual ERD; lifecycles (§6.6) |
+| What it does: features as sentences from routes | **Features** by purpose, with coverage (§6.7). The route sentences stay, as the version without AI |
+| — | **Scenarios** (§6.8), **How it's used** (§6.9), the **Review** (§6.10) |
+| The Overview's paragraph: structure, and purpose from the manifest | The thesis, when AI ran; the diagram grouped by its point of view (§6.1) |
+| A sentence above each diagram | A walkthrough around every diagram: what it shows (template), what to notice (AI) — rule 25, 6.22 |
+| One look | archdoc's look by default; **Classic C4** as a switch (§6.6) |
+
+**Decided with it:**
+
+- **Names:** *Feature* and *Scenario* (§4.7).
+- **Marks:** a worked-out claim takes the weakest mark (rule 24).
+- **Placement:** the Review on the Overview and in place; the menu keeps its six entries; How it's used
+  covers every kind of user.
+
+### 16.2 Real content for the design — Immich, from one run over the facts
+
+**The thesis:** "Immich is a self-hosted photo and video platform built around one NestJS server
+(immich-server) that web, mobile and CLI clients all call over an API. The server keeps state in
+PostgreSQL and Redis and delegates image understanding to a separate Python machine-learning service.
+Requests do the quick work and hand the rest to chains of background jobs, such as metadata,
+thumbnails, faces, OCR, smart search and duplicates. Nearly every feature area also depends on one
+large shared-platform area."
+
+**Features, 17:** Photo library · Sharing with people · Accounts and sign-in · Face and people
+recognition · Search and map · Memories · Tags and stacks · Administration console · External libraries
+· Background processing · Notifications · Backups and integrity · Video playback · Automation · Server
+administration commands · App setup · Uploads and sync. Two with their lines:
+
+- *Face and people recognition:* "The app finds faces, groups them into people and lets users name
+  and correct them."
+- *Sharing with people:* "Users share albums, photos and links with other people, including those
+  without an account."
+
+**Areas of immich-server, 11:** Shared platform (used everywhere) · Accounts and access · Photo library
+· Albums and sharing · Search and recognition · Organising · Notifications and email · Settings and
+admin · Background jobs · Command line · Automation.
+
+**Scenario, *Uploading a photo*:**
+
+1. The upload controller passes the file to AssetMediaService, which writes the asset, its metadata,
+   file records and EXIF data.
+2. It queues metadata extraction, and adds the asset to a shared link or album if the upload targets
+   one.
+3. It updates the user's storage usage and starts any workflows set to run on new photos.
+4. In the background, metadata extraction leads to the storage-template move, then thumbnails.
+5. Thumbnails fan out into face detection, then recognition, plus video encoding, OCR and smart
+   search, which queues duplicate detection.
+6. The album notification queues an email to the people involved.
+
+There are also *Signing in with OAuth* (four steps) and *An admin deletes a user* (two).
+
+**Review, three of its eight points:**
+
+- The processing pipeline is a deep chain of queued jobs, up to about eight levels from library sync to
+  person thumbnails. It is flexible, but the end-to-end behaviour, retries and failure handling are
+  hard to follow from any one place.
+- Upload is a wide synchronous flow. One request writes many tables, handles shared links and albums,
+  sends notifications, updates usage and triggers workflows. Failures partway through could leave
+  partial state, and the facts do not show how this is handled. *(a question)*
+- Thumbnail generation is queued after the storage-template move, which itself follows metadata
+  extraction. That ties thumbnails, and everything after them, to the storage-template step.
+
+The names are the model's from one run. A design should expect names of this length and kind, not
+these exact ones.
