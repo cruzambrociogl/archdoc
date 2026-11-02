@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-10-22 (the redesign's stages 1–3 — see "Where this stands" below)
+Last updated: 2026-11-02 (the facts since 29 Oct — see "Where this stands" below)
 
 ---
 
@@ -52,6 +52,15 @@ class touches, what changed, whether the documentation is current — locally, r
 skill (`skills/archdoc/`) tells the agent when to ask.
 In CI, the archdoc Action (`action.yml`): what a pull request changes in the architecture, on the
 run's summary and as one comment; a check that the committed documentation is current; the site.
+Since 29 Oct, the facts, from reading Immich closely (`docs/decisions.md`, 30 Oct and 1 Nov):
+
+- **`aa0712e`:** a common table expression is no longer taken for a table, and a registry that lists
+  every service no longer counts as using them.
+- **`b47360b`:** a command is followed from its run method, and a page calls the routes its generated
+  API client names.
+- **`b1ecca4`:** what a job leads to is followed. Immich's processing pipeline is now in the facts:
+  upload, metadata, thumbnails, faces, OCR, smart search and duplicates.
+
 **The plan across
 the three repositories is tracked in `../archdoc-platform/PROGRESS.md`** — this file tracks the
 engine alone.
