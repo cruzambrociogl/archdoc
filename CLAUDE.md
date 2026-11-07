@@ -9,7 +9,8 @@ part that runs everywhere, and the only public one.
 
 **Phase:** the freeze of 19 Oct lifted on 22 Oct; this repository's licence and first tag (step 3)
 are still open. The shared app's redesign (`docs/platform-surface.md` §4) is built but for what waits
-on accounts. Next: the first slice of `../archdoc-platform/docs/platform-plan.md` §9.6. One of three
+on accounts; its revision 7 (§16) waits on its design round. Next: that round, then the first slice
+of `../archdoc-platform/docs/platform-plan.md` §9.6. One of three
 repositories, always siblings in one folder: this engine (public), `../archdoc-platform` and `../archdoc-website` (private). **The
 platform repository is the source** — the plan, the direction, and the map of all three
 (`../archdoc-platform/WORKSPACE.md`). What the engine does today: `PROGRESS.md`, "Where this stands".

@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-11-02 (the facts since 29 Oct — see "Where this stands" below)
+Last updated: 2026-11-06 (the surface's revision 7; the facts since 29 Oct — see "Where this stands" below)
 
 ---
 
@@ -69,7 +69,9 @@ engine alone.
   and `archdoc-website` (private). Each keeps the same records; the map is
   `../archdoc-platform/WORKSPACE.md`.
 - **The surface** — one app for every place — is designed and done enough to build from
-  (`docs/platform-surface.md` §13, after round 5). The app ships every page (§15).
+  (`docs/platform-surface.md` §13, after round 5). The app ships every page (§15). **Revision 7**
+  (2 Nov, §16) adds the views that explain: Features, Scenarios, How it's used, the Review, and the
+  Map at C4's standard. None is built; its design round comes first.
 
 **Step 1 is done (21 Oct):** the engine's public API at the module root, the CLI its only client.
 The CLI's output on Immich and Supabase at their pinned commits is identical to before but for the
