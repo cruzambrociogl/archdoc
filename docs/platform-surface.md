@@ -138,7 +138,8 @@ The rules of `surface-spec.md` §2, one by one:
 15. **The density budget.** The first view of a screen holds one question, one sentence, one picture
     and at most one primary action. Lists stop at five, with "see all". More is a deliberate step
     away — another page or a panel the user opens — never an expanded section of the same page. No
-    menu holds more than seven entries at any level (§4.1). **Two exceptions:** the Overview's trust
+    menu group holds more than three entries, and no menu more than four groups (§4.1; reworded
+    17 Nov from "seven entries at any level", §17.9). **Two exceptions:** the Overview's trust
     sentence is its one allowed second sentence, because it states the guarantee; and the limit of
     five is for lists, not sequences — a flow shows every step, grouped into at most five stages
     when it is longer.
@@ -277,7 +278,8 @@ slot.
 2. **Density budget** (rule 15). The first view of any screen holds one question, one sentence, one
    picture and at most one primary action. Lists stop at five, with "see all". Anything more is a
    deliberate step away — another page, or a panel the user opens — never an expanded section on the
-   same page. No menu holds more than seven entries at any level.
+   same page. No menu group holds more than three entries, and no menu more than four groups
+   (reworded 17 Nov, §17.9).
 3. **Plain names** (rule 16). Every menu entry, level and heading is named in plain words first; the
    technical term (C4, arc42, archdoc's own) follows it, smaller, where it helps someone who knows
    it — "Apps and services" over *containers*.
@@ -1764,20 +1766,23 @@ to notice); features, scenarios and their names; the Classic C4 look itself.
   calls and commands; the suggested questions. The thesis, features, upload steps and review points
   are §16.2's.
 
-### 17.9 To settle before building
+### 17.9 Settled before building — 17 Nov
 
-1. **Nine entries against rule 15's seven.** The groups hold at most three each; the rule needs
-   rewording, or the menu an exception.
-2. **The plan strip on the return visit uses an ochre edge.** Ochre is only for *Couldn't be
-   resolved*; it needs another treatment.
-3. **Home's first visit is long** — four parts and a closing block, against the density budget. The
-   tour strip is the mitigation; whether it is enough is untested.
-4. **Three outcomes for "what breaks"** — *Stops*, *Still works, with something late or missing*, *Not
-   affected* — while the tags say *stops*, *degrades*, *not affected*. One wording is needed.
-5. **"What breaks" is worked out, not measured.** By rule 24 it takes the weakest mark of what it
-   rests on; the design does not yet show a mark on it.
-6. **The Classic C4 switch's other half still says "archdoc"**, a product name, not a look.
-7. **Two tabs named "Command line"** in Usage, told apart by the tool's name beneath.
-8. **A word for a view:** whether "an archdoc view" is the on-screen term.
-9. **The link's shapes** (§17.6) are a proposal.
-10. **Where the Review's own page lives,** now that Overview is Home.
+The ten points this revision left open, settled:
+
+1. **Nine entries against rule 15's seven:** rule 15 is reworded — no menu group holds more than three
+   entries, and no menu more than four groups.
+2. **The plan strip on the return visit:** a dark ink edge, like the band. Ochre stays only for
+   *Couldn't be resolved*.
+3. **Home's first visit is long:** kept, with the tour strip; judged on real repositories once the
+   views that explain are built.
+4. **"What breaks":** one set of words — *Stops* · *Degrades* · *Not affected*. The *Degrades*
+   group's heading says "still works, with something late or missing".
+5. **Its mark:** *Proven* — a rule applied to proven facts (rule 24) — with its "Worked out from…"
+   line, and a line that whether a call always runs is not known.
+6. **The Classic C4 switch:** "archdoc's look" · "Classic C4".
+7. **Two tabs named "Command line"** in Usage: kept, the tool's name beneath.
+8. **"An archdoc view"** is the on-screen term.
+9. **The link's shapes** (§17.6) are the app's route scheme.
+10. **The Review's own page** lives at Home › What an architect would point out: no menu entry, like
+    the honesty map; reached from the tour's last part and from a box's panel.
