@@ -20,8 +20,10 @@ what changed is listed in §12. **Revision 4, 2026-10-20**, after round 3 (`App.
 corrections, not a redesign — listed in §13. **Revision 5, 2026-10-20**: the Landing leaves the app
 for a static website at the root domain — §14. **Revision 6, 2026-10-21**: every page in the app —
 §15. **Revision 7, 2026-11-02**: the views that explain — C4 at its standard, features, scenarios,
-> how it's used, the review — §16. Revisions 1–6 are largely built (the engine's `PROGRESS.md` says
-> what waits); revision 7 is not built yet. Direction: `hosted-proposal.md` §8.
+> how it's used, the review — §16. **Revision 8, 2026-11-17**: the app after round 7 — nine sections,
+> C4 kept apart from archdoc's own views, the playhead and the highlight — §17; where it disagrees
+> with an earlier section, §17 wins. Revisions 1–6 are largely built (the engine's `PROGRESS.md` says
+> what waits); revisions 7 and 8 are not built yet. Direction: `hosted-proposal.md` §8.
 >
 > **`platform-plan.md` and `hosted-proposal.md`**, cited throughout, moved on 2026-10-21 to the
 > private `archdoc-platform` repository, beside this one. What a design round needs from them is
@@ -48,6 +50,7 @@ for a static website at the root domain — §14. **Revision 6, 2026-10-21**: ev
 | What revision 5 changed — the website, and its pages for its design round | §14 |
 | What revision 6 changed — every page in the app | §15 |
 | What revision 7 changed — the views that explain, C4 at its standard, and their design round | §16 |
+| **What revision 8 changed — the app after round 7: nine sections, C4 apart, the playhead and the highlight** | **§17** |
 
 ### Pieces
 
@@ -294,6 +297,9 @@ repository in no system sits directly under Home. A single public repository (C)
 site have only the repository level.
 
 ### 4.3 The shell
+
+> **Revision 8:** the menu below is replaced by nine entries in four groups, and the top bar gains
+> **Copy link** — §17.3. The rest of the shell stands.
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
@@ -788,6 +794,8 @@ Kept for the record; Home holds all of it now.
 
 ### 6.1 Overview — replaces `surface-spec.md` §5.1
 
+> **Revision 8:** the Overview becomes **Home**, which changes with the visit — §17.3, §17.7.
+
 **Answers:** what is this system?
 
 In order, nothing else above the fold:
@@ -889,6 +897,9 @@ Top-level because it is the most direct answer to the problem archdoc exists for
 
 ### 6.4 Impact — new
 
+> **Revision 8:** replaced by **the one-part view** — what a part touches, what depends on it, what
+> breaks without it, on the diagram — §17.3, §17.5.
+
 **Answers:** what does this touch?
 
 A panel, opened from any element — in a diagram, a search result, an Ask answer:
@@ -910,6 +921,10 @@ saw" is a designed answer. **Ask uses the model, so it says so** (rule 19): once
 what a question costs — locally on the user's key, on the website within the AI cap.
 
 ### 6.6 Map, What it does, Reference — formerly Explore
+
+> **Revision 8:** the Map splits into **Architecture** (C4 only) and **Data**; What it does into
+> **Features**, **Scenarios** and **Usage**, an entry each — §17.3, §17.4. The C4 content of this
+> section stands.
 
 `surface-spec.md` §5.2–§5.11, §5.13, §5.17 — redistributed in revision 3 (§4.4): the explorer and
 its levels into **Map**, features and flows into **What it does**, component pages, tables,
@@ -1542,3 +1557,227 @@ There are also *Signing in with OAuth* (four steps) and *An admin deletes a user
 
 The names are the model's from one run. A design should expect names of this length and kind, not
 these exact ones.
+
+## 17. Revision 8 — the app after round 7
+
+Settled 7–16 November 2026, from round 7 of the design and the decisions after it. **A design, not
+code: nothing here is built.** Where this section and an earlier one disagree, this section wins; the
+sections it replaces carry a pointer here. Everything this revision does not mention stays as the
+earlier revisions have it — Settings, the status pill and Update, the "you" slot, the breadcrumb
+switcher, the system level, Generating, sign-in and accounts, notifications, the states of §4.8, the
+phone width, the dark theme, and the states without AI or with a partial read.
+
+### 17.1 What the product is, as the design reads it
+
+**In one sentence:** archdoc explains a codebase the way its architect would, at any size, and proves
+every sentence.
+
+C4 answers one question. A person who understands a project can answer about nine, and the features
+now cover all of them:
+
+| The reader's question | What archdoc offers | Where it comes from |
+|---|---|---|
+| What is it? | The thesis | archdoc's own |
+| What is it for? | Features, with coverage | archdoc's own |
+| What is it made of? | C4: context, containers, areas, components, landscape | C4 |
+| What happens when…? | Scenarios, sequences, every flow | C4's dynamic diagram, and a catalogue of diagram forms |
+| What does it keep? | What it stores, lifecycles, how data moves | A catalogue of diagram forms |
+| How is it used? | Screens, API, command line, running it | archdoc's own |
+| Where does it run? | Deployment | C4 |
+| What should I know that nobody told me? | The review; what was not read; what is not drawn | archdoc's own |
+| What changed, and is it what I asked? | What changed, the plan check, impact | archdoc's own |
+
+Three consequences for the design:
+
+1. **AI-built code stays the design target**, though the product serves any project. An ordinary
+   project needs explaining once; an AI-built one needs explaining, then keeping up, then checking
+   against what was asked. Designed for the harder case, the general one follows.
+2. **Diagram forms do not organise the product.** A catalogue of forms is a toolbox: the reader must
+   already know which diagram they want. The questions organise the app, and a diagram is how one
+   answer is drawn.
+3. **The strongest parts are archdoc's own** — features with coverage, the review, the honesty about
+   what was not read, the plan check. "C4 plus new diagrams" undersells it.
+
+### 17.2 Principles
+
+1. **Questions organise; views plug in.** Every section is named for one question, and a view is one
+   answer placed under it. A new kind of view becomes a new answer in an existing place, never a new
+   menu entry — diagram types will change as AI improves; the reader's questions will not.
+2. **The story is the spine.** Thesis, then features, then scenarios, then what an architect would
+   point out, in reading order. The default path on a first visit, never the only one.
+3. **C4 is kept pure and kept apart** (§17.4).
+4. **Two mechanisms, reused everywhere:** the playhead and the highlight (§17.5). The product gains
+   views without the reader learning a new interaction, and it does not become a gallery.
+5. **Useful in thirty seconds, on every visit.** People return when something is new or they have
+   something to do, so Home changes with the visit: the story the first time, what changed after.
+6. **A short menu of single words, each with an icon.** Nothing is more than one click from the menu.
+7. **Every view leads onward.** A feature names its scenario; a scenario names its feature and its C4
+   form; a change names where it landed — shown as *One step away*.
+8. **Honest about what it knows.** What archdoc could not read or resolve is drawn on the system
+   itself, not only listed on a page.
+9. **Kept as they were:** the design system (tokens, the three typefaces, the shapes); the four marks
+   and their colours; plain names first; one question per screen; a sentence before a picture; a
+   judgement never shown as a score (rules 9–25).
+
+### 17.3 Navigation
+
+**The side menu: nine entries in four groups.** Single words, an icon each; hovering an entry gives its
+question. The menu narrows to its icons, and the group labels become separators.
+
+| Group | Entry | Its question | Holds |
+|---|---|---|---|
+| — | **Home** | What is this, and what is new? | The story on a first visit; what changed on a return visit |
+| How it's built | **Architecture** | How is it put together? | The C4 diagrams, and nothing else (§17.4) |
+| | **Data** | What does it store, and how does data move? | What it stores; how data moves. Not C4, so kept apart |
+| What it does | **Features** | What is it for? | All the features; each opens its own view |
+| | **Scenarios** | What happens when…? | The chosen stories; each read three ways |
+| | **Usage** | How is it used? | Screens, API and the command lines, on one layout |
+| Keeping up | **Changes** | What changed since you last looked? | Each change, and where it landed. A count sits on the entry on a return visit |
+| | **Plan** | Did it build what you asked? | The plan check, as a checker; the question stays as the page's title |
+| In detail | **Reference** | Where is the complete detail? | Every part, route, table and flow |
+
+Settings stays as §5.5 and §5.9 have it.
+
+**The top bar:** the wordmark; the repository, its branch and when it was read; one box to **search or
+ask** (⌘K); **Copy link** (§17.6); **Share**. The status pill, the breadcrumb switcher, the theme and
+the "you" slot stay as §4.3 has them.
+
+**Five views have no menu entry.** Each opens with a breadcrumb back to where it belongs, and the menu
+keeps that entry lit.
+
+| View | Reached from | Breadcrumb |
+|---|---|---|
+| One feature | Features; Home; a box's panel; a change; an entry in Usage | Features › *its name* |
+| One scenario | Scenarios; Home; a box's panel; a feature; an entry in Usage | Scenarios › *its name* |
+| One change | Changes; Home on a return visit | Changes › *its name* |
+| One part, and three questions about it | A selected box in Architecture; a suggested question on Home | Architecture › *its name* |
+| What archdoc knows — the honesty map | Home, beside the thesis and at the end of the tour | Home › What archdoc knows |
+
+### 17.4 Two kinds of diagram
+
+| | **C4**, in Architecture | **An archdoc view** |
+|---|---|---|
+| Which | Context, containers, components (areas), deployment, dynamic | A feature's slice; a scenario playing; a change where it landed; one part's reach; what breaks; the honesty map |
+| Drawn over | Never. Only selecting a box, which outlines it | Dimmed, numbered, tagged, hatched or animated, as the view needs |
+| Title and key | Always: its type and scope, and a key for every style it uses (rule 23) | A band above it: what kind of view it is, its question, one sentence |
+| Says what it is | "Container diagram for Immich" | "… · an archdoc view", in the band |
+| Classic C4 switch | Yes, on all five | No — it means nothing on a diagram that is not C4 |
+| Download | SVG, PNG, Mermaid, Structurizr DSL, C4-PlantUML | Not offered |
+| Its boxes | Selectable; a panel opens | Not selectable, except in the one-part view, where selecting a box changes the subject |
+
+- **The same boxes, in the same places.** An archdoc view is drawn on the layout of *Apps and
+  services*, so the reader recognises the system they saw in Architecture.
+- **A scenario exists in both kinds, linked both ways.** In Architecture it is C4's dynamic diagram:
+  only the parts it crosses, its arrows numbered, nothing moving, ready to export — its own tab, with a
+  scenario picker. In Scenarios it is played.
+- **Data is neither.** What it stores and how data moves use their own notations — a conceptual ERD, a
+  data-flow picture — with a title and a key, and no Classic C4 look.
+
+### 17.5 Two mechanisms
+
+**The playhead.** One position in an ordered story, with one set of controls: play or pause, previous
+and next, a dot per step that can be picked, and a chip saying whether the step happens *while you
+wait* or *in the background*. Steps that run later are drawn dashed, in the dots and in the pictures.
+A scenario is read three ways — played on the parts, as a sequence, as steps — and **one playhead
+drives all three**, so switching the way of reading keeps the place. Meant later for a lifecycle's
+states, the job chain, and the architecture's history.
+
+**The highlight.** One thing shown on the system: what belongs to it stays lit, the rest dims to about
+a fifth, and a small tag can sit on a box.
+
+| What is highlighted | Where | Tags |
+|---|---|---|
+| A feature's parts | Its own view; the small maps on Home and in Usage | — |
+| A scenario's steps so far | The scenario, played | The step's number on each arrow |
+| Where a change landed | The change's view | What changed, on the box: *New route*, *Now Valkey 9* |
+| What a part touches, or what depends on it | The one-part view | *through immich-server* on parts reached indirectly |
+| What breaks if a part is down | The one-part view | *Down* on the part, hatched; *depends on it* on its callers |
+| What archdoc knows | The honesty map | *Partly read*, hatched; a count of what couldn't be resolved |
+| A part found by name | Any diagram (§17.6) | — |
+
+### 17.6 The same on every screen
+
+- **Search and ask** — one box, ⌘K. It finds diagrams, features, scenarios, flows and tables as you
+  type; when the text is not a name, it offers to ask, and the answer comes as one page: the
+  conclusion first, each claim cited, with the diagrams it needs. Home suggests three questions on a
+  first visit and two on a return visit.
+- **Copy link** — in the top bar on every page. The link carries the view, the selected part and the
+  step a scenario is on, and the message says the view in words: "Link copied · Scenarios › Uploading
+  a photo › step 4 of 6". Proposed shapes, not a decided scheme: `/architecture/containers?part=…`,
+  `/architecture/dynamic/upload`, `/architecture/part/machine-learning/down`, `/data/dataflow`,
+  `/features/<name>`, `/scenarios/upload/seq?step=4`, `/usage/screens/<name>`, `/changes/14-oct`,
+  `/about/what-was-read`.
+- **Find a part** — a small box in every diagram's toolbar; `/` moves to it. Matching boxes stay lit
+  and the rest dim, with a count. Enter selects the first match where boxes can be selected; Esc
+  clears it.
+- **Keys** — ⌘K / Ctrl K search and ask; Esc closes; `/` find a part; Space plays and pauses a scenario
+  (a focused button keeps its own Space); ← → previous and next step. No key works while typing in a
+  box; the player shows its keys.
+- **Marks, colour and motion** — magenta only for links, selection and the current step or part;
+  ochre only for *Couldn't be resolved*; a grey hatch only for *Not read*, *Partly read* and a part
+  switched off as *Down*; the diamond and *Written by AI* on a block the model wrote; dashed means
+  later — a step in the background, an answer coming back, a call that could not be followed (in
+  ochre). The current step's arrow moves along its length; with reduced motion it stays still, and
+  nothing else moves.
+
+### 17.7 What changed
+
+Against revision 7 and the App design of rounds 3–7:
+
+| Was | Now |
+|---|---|
+| Six menu entries | **Nine entries in four groups**, single words with icons (§17.3) |
+| *Overview* (§6.1) | **Home**, which changes with the visit — reversing revision 4's "no 'since you last looked' here" for return visits |
+| *What changed* (§6.2) | **Changes** |
+| *Did it build what I asked?* (§6.3) | **Plan**; the question stays as the page's title, and it stays a checker |
+| *Map* (§6.6): C4, the data lenses, a scenario on the map, Compare, saved views | **Architecture**: C4 only. **Data** apart |
+| *What it does*: Features, Scenarios, How it's used, every flow | **Features**, **Scenarios** and **Usage**, an entry each; every flow is in Reference |
+| The Classic C4 switch on the Map's canvas | Only in Architecture, on the five C4 diagrams |
+| The dynamic diagram reached only from a scenario's "Show on the map" | Its own tab in Architecture, with a scenario picker, linked both ways with the played scenario |
+| A scenario's page: the sequence and the steps together | **One story, three ways, one playhead** (§17.5) |
+| A feature's slice in three bands | A feature's parts lit on *Apps and services* — the highlight. The three bands are not drawn |
+| Impact: a panel listing what an element touches (§6.4) | **The one-part view**: what it touches, what depends on it, what breaks without it — on the diagram, with the reason for each |
+| Coverage as a page, *About these docs* | Also **the honesty map**: the same picture, by what archdoc knows |
+| The trust sentence at the foot of the Overview | A link beside the thesis, "How much can you trust it?", and one at the end of the tour — opening the honesty map |
+| Lists and tabs only | **Keys** for the player, **a link** to the exact view, **finding a part** by name |
+| The Review on the Overview, as a page, and in place (§6.10) | Three points as part 4 of Home's tour; a count in a box's panel. Its own page and its points in place are not redrawn |
+
+**Unchanged:** the design system; the marks; the walkthrough around a diagram (what it shows, then what
+to notice); features, scenarios and their names; the Classic C4 look itself.
+
+### 17.8 What round 7 drew
+
+- **Drawn and working in the prototype:** the nine-entry menu and its narrow form; Home's first-visit
+  tour and its return visit; Architecture's five C4 diagrams with the Classic C4 look, Download and a
+  box's panel; Scenarios, played, as a sequence and as steps; Features and a feature's view; Changes
+  and a change where it landed; Usage's four faces; the one-part view's three questions; the honesty
+  map's two tabs; search, the link, finding a part, the keys.
+- **Placeholders, carried over:** Data (the two existing diagrams — no lifecycle yet, and *how data
+  moves* still the upload numbered again); Plan and Reference as simple pages; Ask's one-page answer;
+  twelve of the seventeen features without a line; the return visit's "Yours", one sentence.
+- **Not redrawn — the earlier revisions hold:** everything listed at the head of this section, and also
+  *Not drawn* in About these docs, the Review's own page, a feature's coverage list, Compare and saved
+  views, every flow's own page, and the component, table and document pages.
+- **Invented for the drawing, not from a run:** the steps of *Signing in with OAuth* and *An admin
+  deletes a user*; every sequence diagram's messages; which parts each feature uses and where each
+  change landed; for each part, what stops and what degrades; the honesty map's gaps; Usage's screens,
+  calls and commands; the suggested questions. The thesis, features, upload steps and review points
+  are §16.2's.
+
+### 17.9 To settle before building
+
+1. **Nine entries against rule 15's seven.** The groups hold at most three each; the rule needs
+   rewording, or the menu an exception.
+2. **The plan strip on the return visit uses an ochre edge.** Ochre is only for *Couldn't be
+   resolved*; it needs another treatment.
+3. **Home's first visit is long** — four parts and a closing block, against the density budget. The
+   tour strip is the mitigation; whether it is enough is untested.
+4. **Three outcomes for "what breaks"** — *Stops*, *Still works, with something late or missing*, *Not
+   affected* — while the tags say *stops*, *degrades*, *not affected*. One wording is needed.
+5. **"What breaks" is worked out, not measured.** By rule 24 it takes the weakest mark of what it
+   rests on; the design does not yet show a mark on it.
+6. **The Classic C4 switch's other half still says "archdoc"**, a product name, not a look.
+7. **Two tabs named "Command line"** in Usage, told apart by the tool's name beneath.
+8. **A word for a view:** whether "an archdoc view" is the on-screen term.
+9. **The link's shapes** (§17.6) are a proposal.
+10. **Where the Review's own page lives,** now that Overview is Home.
