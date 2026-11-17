@@ -9,8 +9,8 @@ part that runs everywhere, and the only public one.
 
 **Phase:** the freeze of 19 Oct lifted on 22 Oct; this repository's licence and first tag (step 3)
 are still open. The shared app's redesign (`docs/platform-surface.md` §4) is built but for what waits
-on accounts; its revision 7 (§16) waits on its design round. Next: that round, then the first slice
-of `../archdoc-platform/docs/platform-plan.md` §9.6. One of three
+on accounts. Its revision 7 (§16) was drawn in round 7, and the design after it is revision 8 (§17)
+— designed, not built. Next: the first slice of `../archdoc-platform/docs/platform-plan.md` §9.6. One of three
 repositories, always siblings in one folder: this engine (public), `../archdoc-platform` and `../archdoc-website` (private). **The
 platform repository is the source** — the plan, the direction, and the map of all three
 (`../archdoc-platform/WORKSPACE.md`). What the engine does today: `PROGRESS.md`, "Where this stands".
@@ -66,7 +66,7 @@ section for the task at hand and nothing else.
 | `docs/survey-test-subjects.md` §1–2 | Writing or fixing a parser — real dialects, real failures |
 | `docs/how-it-works.md` | Orienting — the pipeline on one screen, and which stage lives in which package |
 | `../archdoc-platform/docs/platform-plan.md` | Planning or scoping — what comes next. The old delivery schedule (`../archdoc-platform/docs/academic/`) no longer drives it |
-| `docs/surface-spec.md` | Working on the web app or the published site — screens, design system, modes, what the app may do. Design: Claude Design project (memory). The information architecture of the whole app — one app for local, hosted and published; where every screen lives; related repositories — plus the platform's flows and screens: `docs/platform-surface.md` §4, which supersedes surface-spec §4.1 and reverses rule 7 |
+| `docs/surface-spec.md` | Working on the web app or the published site — screens, design system, modes, what the app may do. Design: Claude Design project (memory). The whole app's information architecture and screens: `docs/platform-surface.md` — §4 (supersedes surface-spec §4.1), and §17, revision 8, the latest: where it disagrees with an earlier section, it wins |
 | `docs/vision.md` | Discussing scope beyond configuration — code as evidence, lenses, explanations. **A proposal:** until a decision there is recorded in `decisions.md`, the definition wins |
 | `PROGRESS.md` | Starting work — what is done, what gate is next |
 | `docs/testing.md` | Running or writing tests — the commands, the gates, the test data |
