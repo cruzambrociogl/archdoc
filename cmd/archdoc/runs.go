@@ -38,7 +38,7 @@ func runs(e env, args []string) error {
 		if *asJSON {
 			return printJSON(out, []any{})
 		}
-		fmt.Fprintln(out, "No run has used the network. Only 'archdoc label' and 'archdoc explain' send anything.")
+		fmt.Fprintln(out, "No run has used the network. Only 'archdoc label', 'archdoc explain' and 'archdoc interpret' send anything.")
 		return nil
 	}
 	defer h.Close()
@@ -65,7 +65,7 @@ func runs(e env, args []string) error {
 		return printJSON(out, rows)
 	}
 	if len(list) == 0 {
-		fmt.Fprintln(out, "No run has used the network. Only 'archdoc label' and 'archdoc explain' send anything.")
+		fmt.Fprintln(out, "No run has used the network. Only 'archdoc label', 'archdoc explain' and 'archdoc interpret' send anything.")
 		return nil
 	}
 

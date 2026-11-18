@@ -9,9 +9,10 @@ import (
 	"github.com/cruzambrociogl/archdoc"
 )
 
-// The two commands that send anything anywhere. Each says what it will send and what that should
-// cost before sending, asks unless told not to, and can show the requests instead (--dry-run) —
-// built by the same functions the real requests are, so what is shown is what would go.
+// The commands that send anything anywhere — label, explain and interpret. Each says what it will
+// send and what that should cost before sending, asks unless told not to, and can show the requests
+// instead (--dry-run) — built by the same functions the real requests are, so what is shown is what
+// would go.
 
 // consent is how a paid run may go ahead: asked at a terminal, or told to with --yes; never with no
 // one to ask. dry prints the requests and stops.

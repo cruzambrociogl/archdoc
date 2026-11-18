@@ -355,12 +355,12 @@ func (s *seeding) summary(g grouping) (string, map[string][]givenStep) {
 				}
 			}
 		}
-		for _, c := range g.Concepts {
+		for i, c := range g.Concepts {
 			var ts []string
 			for _, t := range s.expand("concepts", c.Seeds) {
 				ts = append(ts, "[table:"+t+"]")
 			}
-			line := fmt.Sprintf("- %s: %s Tables: %s", c.Name, c.Says, strings.Join(ts, ", "))
+			line := fmt.Sprintf("[concept:%d] %s: %s Tables: %s", i+1, c.Name, c.Says, strings.Join(ts, ", "))
 			if to := sortedKeys(links[c.Name]); len(to) > 0 {
 				line += ". References " + strings.Join(to, ", ") + "."
 			}
@@ -371,14 +371,14 @@ func (s *seeding) summary(g grouping) (string, map[string][]givenStep) {
 	if len(g.Areas) > 0 {
 		out = append(out, fmt.Sprintf("\n## Areas of %s (archdoc's grouping of its components, named by a model)", short(s.areaOf)))
 		areaOf := map[string]string{}
-		for _, a := range g.Areas {
+		for i, a := range g.Areas {
 			cs := s.expand("areas", a.Seeds)
 			var ids []string
 			for _, x := range cs {
 				areaOf[x] = a.Name
 				ids = append(ids, "["+x+"]")
 			}
-			out = append(out, fmt.Sprintf("- %s: %s Components: %s", a.Name, a.Says, strings.Join(ids, ", ")))
+			out = append(out, fmt.Sprintf("[area:%d] %s: %s Components: %s", i+1, a.Name, a.Says, strings.Join(ids, ", ")))
 		}
 		between := newTally()
 		var fanOrder []string
@@ -411,7 +411,7 @@ func (s *seeding) summary(g grouping) (string, map[string][]givenStep) {
 
 	out = append(out, "\n## Systems (archdoc's grouping of the entry points, named by a model; what their flows reach)")
 	order := g.largestFirst(s)
-	for _, f := range order {
+	for i, f := range order {
 		es := s.expand("systems", f.Seeds)
 		kinds := newTally()
 		for _, x := range es {
@@ -434,8 +434,8 @@ func (s *seeding) summary(g grouping) (string, map[string][]givenStep) {
 		if reach == "" {
 			reach = "Flows reach no tables or jobs."
 		}
-		out = append(out, fmt.Sprintf("- %s: %s %d entry points (%s). For example: %s. %s",
-			f.Name, f.Says, len(es), strings.Join(ks, ", "), strings.Join(exs, "; "), reach))
+		out = append(out, fmt.Sprintf("[system:%d] %s: %s %d entry points (%s). For example: %s. %s",
+			i+1, f.Name, f.Says, len(es), strings.Join(ks, ", "), strings.Join(exs, "; "), reach))
 	}
 	if len(s.chain) > 0 {
 		out = append(out, "\n## Background work: what each job queues next (from the jobs' own flows)")

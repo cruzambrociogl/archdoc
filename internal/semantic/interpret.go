@@ -311,7 +311,9 @@ func Interpret(ctx context.Context, group Completer, groupModel string, write Co
 			return out, ErrNotUsable
 		}
 	}
-	thesis, scenarios, review, notes, fixes2 := fixWriting(a2, citable(m), given, diagramNames(m))
+	ids := citable(m)
+	names := s.groupNames(g, ids)
+	thesis, scenarios, review, notes, fixes2 := fixWriting(a2, ids, given, diagramNames(m), names)
 	merge(out.Fixes, fixes2)
 	out.Thesis, out.Scenarios, out.Review, out.Notes = thesis, scenarios, review, notes
 	out.Features, out.Concepts, out.Areas = s.features(g), s.concepts(g), s.areaGroups(g)
@@ -340,9 +342,11 @@ func mark(g rawGroup) string {
 	return WrittenByAI
 }
 
+// features are the systems in the order the summary numbered them, largest first, so feature:N in a
+// citation is the Nth.
 func (s *seeding) features(g grouping) []Group {
 	var out []Group
-	for _, f := range g.Systems {
+	for _, f := range g.largestFirst(s) {
 		members := s.expand("systems", f.Seeds)
 		parts := map[string]bool{}
 		for _, x := range members {

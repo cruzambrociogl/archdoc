@@ -6,7 +6,7 @@ import (
 	"github.com/cruzambrociogl/archdoc/internal/semantic"
 )
 
-// The two runs that send anything anywhere — label and explain. Each says what it will send and
+// The runs that send anything anywhere — label, explain and interpret. Each says what it will send and
 // what that should cost before sending, through the caller's Consent, built by the same functions
 // the real requests are, so what is shown is what would go.
 

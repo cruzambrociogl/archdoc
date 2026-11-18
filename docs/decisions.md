@@ -1467,3 +1467,16 @@ how much Haiku varies between runs is not measured.
   back empty; the notes fell to one to three a run, and one run of three had many unresolved citations.
 → `generate.go`, `interpret.go`, `cmd/archdoc/paid.go`; `internal/semantic/interpret*.go`
 
+**2026-11-18 — The explanation's citations: groups get IDs, and four more slips repaired**
+Raw answers from Immich (kept by `archdoc interpret`'s run log) showed what still failed after the
+earlier repairs: Haiku cites archdoc's own groups by name — "area:Shared foundation", "system:Albums",
+"Photo and video library" — since the summary gave them none to cite. Each concept, area and system
+in the summary now carries an ID (`concept:N`, `area:N`, `system:N`, a feature in the result as
+`feature:N`), and a group cited by a name no other group shares is taken for its ID. Also repaired:
+a diagram's name cited for the part it draws (`component:svc:immich-server`), a seed's whole line
+copied for its ID ("asset (with asset_audit)"), and a flow's ID with words after it ("…, then
+background jobs"). Three runs through `archdoc interpret` on a copy of Immich (3.2¢): one citation
+dropped in all, every review point and note kept; replayed with the last two repairs, every concept
+placed and two or three scenarios of three kept — the rest dropped for steps that go backwards.
+→ `internal/semantic/interpret_fix.go`, `interpret_input.go`
+

@@ -164,16 +164,17 @@ func canned(t *testing.T) *answers {
 	for _, id := range s.seedIDs {
 		systems = append(systems, `"`+id+`"`)
 	}
-	group := `{"concepts":[{"name":"Photos","meaning":"The pictures kept.","seeds":["[table:asset]"]}],
+	group := `{"concepts":[{"name":"Photos","meaning":"The pictures kept.","seeds":["table:asset (with asset_audit)"]}],
 		"areas":[{"name":"Everything","responsibility":"All of it.","seeds":[` + strings.Join(areas, ",") + `]}],
 		"systems":[{"name":"Library","purpose":"Keeping and finding photos.","seeds":[` + strings.Join(systems, ",") + `,"e99"]}]}`
 	write := `{"thesis":{"text":"A NestJS server keeps photos in PostgreSQL and hands thumbnails to jobs.","cites":["svc:server","AssetThumbnail","svc:nowhere"]},
 		"scenarios":[
-			{"title":"Uploading a photo","flow":"route:POST /api/assets","steps":[{"text":"The upload arrives.","from":1},{"text":"It is written.","from":1},{"text":"Thumbnails, then faces, in the background.","from":4}]},
+			{"title":"Uploading a photo","flow":"route:server POST /api/assets, then background jobs","steps":[{"text":"The upload arrives.","from":1},{"text":"It is written.","from":1},{"text":"Thumbnails, then faces, in the background.","from":4}]},
 			{"title":"Backwards","flow":"route:server POST /api/assets","steps":[{"text":"b","from":2},{"text":"a","from":1}]}],
 		"review":[{"text":"Upload queues the thumbnail job.","kind":"observation","cites":["route:server POST /api/assets","job:server AssetThumbnail"]},
 			{"text":"Unfounded.","kind":"question","cites":["nothing:here"]},
-			{"text":"Shortened.","kind":"observation","cites":["route:POST /api/assets","job:FaceDetect","server/asset","web>server","area:library"]}],
+			{"text":"Shortened.","kind":"observation","cites":["route:POST /api/assets","job:FaceDetect","server/asset","web>server","area:library"]},
+			{"text":"On the groups.","kind":"observation","cites":["system:1","Library","area:Everything","concept:Photos","component:svc:server"]}],
 		"notes":[{"diagram":"container","text":"The web app reaches the database only through the server.","cites":["app:web>svc:server"]},
 			{"diagram":"container","text":"Twice.","cites":["svc:server"]},
 			{"diagram":"[context]","text":"Nothing to cite.","cites":["area:x"]},
@@ -194,8 +195,11 @@ func TestInterpretChecksEveryClaimAndPlacesEverySeed(t *testing.T) {
 	if cites := strings.Join(got.Thesis.Cites, ","); cites != "svc:server,job:server AssetThumbnail" {
 		t.Errorf("thesis cites %s: the bare job name made its id, the unknown dropped", cites)
 	}
-	if len(got.Review) != 2 {
+	if len(got.Review) != 3 {
 		t.Fatalf("%d review points: the one citing nothing that resolves is dropped", len(got.Review))
+	}
+	if cites := strings.Join(got.Review[2].Cites, ","); cites != "feature:1,area:1,concept:1,svc:server" {
+		t.Errorf("groups cited by ID and by name, a diagram by its name: %s", cites)
 	}
 	if cites := strings.Join(got.Review[1].Cites, ","); cites != "route:server POST /api/assets,job:server FaceDetect,cmp:server/asset,app:web>svc:server" {
 		t.Errorf("shortened IDs made whole, an area's name dropped: %s", cites)
@@ -238,9 +242,9 @@ func TestInterpretChecksEveryClaimAndPlacesEverySeed(t *testing.T) {
 		t.Error("no area is used everywhere: the plumbing's area is")
 	}
 	for _, want := range []string{"systems: unknown id dropped", "concepts: id normalised", "areas: left out, placed by the rule",
-		"thesis: a job's bare name made its ID", "thesis: unresolved citation dropped", "review: a shortened ID made whole", "review: point dropped, nothing it cites resolves",
+		"thesis: a job's bare name made its ID", "thesis: unresolved citation dropped", "review: a shortened ID made whole", "review: a group's name made its ID", "review: point dropped, nothing it cites resolves",
 		"scenarios: dropped, its step numbers do not rise from 1 within the flow", "scenarios: steps starting at the same flow step merged",
-		"notes: a second for one diagram dropped", "notes: a diagram's title made its name", "scenarios: a shortened flow made whole", "notes: dropped, nothing it cites resolves", "notes: dropped, no such diagram"} {
+		"notes: a second for one diagram dropped", "notes: a diagram's title made its name", "scenarios: words after the flow's ID set aside", "notes: dropped, nothing it cites resolves", "notes: dropped, no such diagram"} {
 		if got.Fixes[want] == 0 {
 			t.Errorf("fixes %v lack %q", got.Fixes, want)
 		}

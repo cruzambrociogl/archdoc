@@ -71,6 +71,9 @@ func (s *seeding) fixGroups(a stage1Answer) (grouping, map[string]int) {
 		switch kind {
 		case "concepts":
 			x = strings.TrimPrefix(x, "table:")
+			if before, _, ok := strings.Cut(x, " (with "); ok { // the seed's line, copied: "asset (with asset_audit)"
+				x = strings.Trim(before, "[]")
+			}
 			if _, ok := s.tables[x]; ok {
 				return x, true
 			}
@@ -262,6 +265,13 @@ func shortened(ids map[string]bool) func(string) (string, bool) {
 		}
 		put(rest, id) // a node by its name alone: "app:shop" as "shop"
 	}
+	for id := range ids {
+		if !strings.Contains(id, ">") {
+			for _, view := range []string{"component:", "data:", "main:", "structure:"} {
+				put(view+id, id) // a diagram's name, for the part it draws
+			}
+		}
+	}
 	node := func(x string) (string, bool) {
 		if ids[x] {
 			return x, true
@@ -281,6 +291,73 @@ func shortened(ids map[string]bool) func(string) (string, bool) {
 		id, ok := alias[c]
 		return id, ok
 	}
+}
+
+// The groups are citable by the IDs the summary gives them — concept:N, area:N, system:N, the last a
+// feature in the result — and, since a model reaches for a name as often as for an ID, by name
+// where no other group shares it: "Shared platform", "area:shared-platform", "system:Albums".
+func (s *seeding) groupNames(g grouping, ids map[string]bool) map[string]string {
+	names := map[string]string{}
+	taken := map[string]int{}
+	add := func(kind string, i int, name string) {
+		id := fmt.Sprintf("%s:%d", kind, i+1)
+		ids[id] = true
+		for _, k := range []string{groupKey(name), groupKey(kind + ":" + name)} {
+			taken[k]++
+			names[k] = id
+		}
+	}
+	for i, c := range g.Concepts {
+		add("concept", i, c.Name)
+	}
+	for i, a := range g.Areas {
+		add("area", i, a.Name)
+	}
+	for i, f := range g.largestFirst(s) {
+		add("system", i, f.Name)
+		k := groupKey("feature:" + f.Name)
+		taken[k]++
+		names[k] = fmt.Sprintf("system:%d", i+1)
+	}
+	for k, n := range taken {
+		if n > 1 || ids[k] {
+			delete(names, k)
+		}
+	}
+	return names
+}
+
+// groupKey is a group's name as it may be cited: case, spaces and hyphens set aside.
+func groupKey(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(name) {
+		if r == ' ' || r == '-' || r == '_' {
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// featureID is a system's ID in the summary as the result calls it: a feature.
+func featureID(c string) string {
+	if n, ok := strings.CutPrefix(c, "system:"); ok && n != "" && strings.Trim(n, "0123456789") == "" {
+		return "feature:" + n
+	}
+	return c
+}
+
+// flowAtStart is the given flow an answer named and then went on about — "route:server POST
+// /api/assets, then background jobs" — the longest whose ID the answer starts with, then a comma or a
+// space.
+func flowAtStart(said string, given map[string][]givenStep) string {
+	best := ""
+	for f := range given {
+		if rest, ok := strings.CutPrefix(said, f); ok && (rest == "" || rest[0] == ',' || rest[0] == ' ') && len(f) > len(best) {
+			best = f
+		}
+	}
+	return best
 }
 
 // stage2Answer is stage 2's answer as the schema has it.
@@ -312,7 +389,7 @@ type stage2Answer struct {
 // fixWriting checks stage 2's answer: a citation that does not resolve is dropped — a job's bare name
 // made its ID first — and a review point left citing nothing is dropped, since nothing is shown
 // unchecked; a scenario's steps must start at 1 and rise within the steps its flow was given.
-func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenStep, diagrams map[string]string) (Claim, []Scenario, []Point, []Note, map[string]int) {
+func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenStep, diagrams, groups map[string]string) (Claim, []Scenario, []Point, []Note, map[string]int) {
 	fixes := map[string]int{}
 	jobID := map[string]string{}
 	for id := range ids {
@@ -334,12 +411,17 @@ func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenSte
 				} else if id, ok := whole(c); ok {
 					c = id
 					fixes[where+": a shortened ID made whole"]++
+				} else if id, ok := groups[groupKey(c)]; ok {
+					c = id
+					fixes[where+": a group's name made its ID"]++
 				}
 			}
-			if ids[c] && !contains(good, c) {
-				good = append(good, c)
-			} else if !ids[c] {
+			if !ids[c] {
 				fixes[where+": unresolved citation dropped"]++
+				continue
+			}
+			if c = featureID(c); !contains(good, c) {
+				good = append(good, c)
 			}
 		}
 		return good
@@ -371,6 +453,9 @@ func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenSte
 			if f, found := wholeFlow(sc.Flow); found {
 				sc.Flow, steps, ok = f, given[f], true
 				fixes["scenarios: a shortened flow made whole"]++
+			} else if f := flowAtStart(sc.Flow, given); f != "" {
+				sc.Flow, steps, ok = f, given[f], true
+				fixes["scenarios: words after the flow's ID set aside"]++
 			}
 		}
 		if !ok {
