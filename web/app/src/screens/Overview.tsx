@@ -7,6 +7,7 @@ import { kindStyle } from '../ui/kinds'
 import { Failure, Loading, TruthMark } from '../ui/marks'
 import type { Piece } from '../sentence'
 import { namedIn, number, structureColumns, structureSentence } from '../sentence'
+import { ReturnVisit } from './home/ReturnVisit'
 
 /**
  * The Overview (platform-surface §6.1): what is this system? One paragraph in plain words, one
@@ -15,7 +16,7 @@ import { namedIn, number, structureColumns, structureSentence } from '../sentenc
  * when the repository states one or someone asked AI for one, and says which. The counts that used
  * to fill this page live in Reference and About these docs.
  */
-export function Overview(props: { summary: Summary; versions: Version[]; version: number | null; go: (r: Partial<Route>) => void; coverage?: CoverageResponse }) {
+export function Overview(props: { summary: Summary; versions: Version[]; version: number | null; go: (r: Partial<Route>) => void; coverage?: CoverageResponse; seen?: number }) {
   const q = props.version ? `?version=${props.version}` : ''
   const m = useApi<ModelResponse>(`/api/model${q}`)
   const [evidence, setEvidence] = useState(false)
@@ -45,6 +46,7 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
   return (
     <div className="reading overview">
       <h1 className="visually-hidden">{props.summary.name}</h1>
+      {props.seen !== undefined && props.version === null && <ReturnVisit seen={props.seen} versions={props.versions} go={props.go} />}
       <div className="page-q">What is this?</div>
 
       {props.summary.tiny && props.summary.story ? (

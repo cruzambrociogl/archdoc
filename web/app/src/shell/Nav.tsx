@@ -8,6 +8,8 @@ interface Entry {
   screen: Screen
   /** The plain question the entry answers (platform-surface §17.3), as its hover title. */
   q: string
+  /** A count on the entry: on a return visit, the versions since this reader last looked. */
+  badge?: number
 }
 
 interface Group {
@@ -44,7 +46,7 @@ const readNarrow = () => {
  * separators. An entry appears only where the place can do it and there is evidence behind it —
  * absent, never disabled.
  */
-export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Route>) => void; open: boolean; coverage?: CoverageResponse }) {
+export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Route>) => void; open: boolean; coverage?: CoverageResponse; newer?: number }) {
   const { route, go } = props
   const can = useCapabilities()
   const cov = props.coverage
@@ -80,7 +82,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
     },
     {
       label: 'Keeping up',
-      entries: [{ screen: 'changes', q: 'What changed since you last looked?' }, ...(can.ask ? [{ screen: 'plan' as const, q: 'Did it build what you asked?' }] : [])],
+      entries: [{ screen: 'changes', q: 'What changed since you last looked?', badge: props.newer || undefined }, ...(can.ask ? [{ screen: 'plan' as const, q: 'Did it build what you asked?' }] : [])],
     },
     { label: 'In detail', entries: [{ screen: 'reference', q: 'Every part, route and table' }] },
   ]
@@ -100,6 +102,11 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
           <path d={icons[e.screen]} />
         </svg>
         <span className="nav-label">{titles[e.screen]}</span>
+        {e.badge ? (
+          <span className="nav-badge" title={`${e.badge} ${e.badge === 1 ? 'version' : 'versions'} since you last looked`}>
+            {e.badge}
+          </span>
+        ) : null}
       </button>
     )
   }

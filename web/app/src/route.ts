@@ -19,6 +19,7 @@ export const screens = [
   'features',
   'usage',
   'changes',
+  'change',
   'plan',
   'reference',
   'entries',
@@ -138,6 +139,11 @@ export function hrefOf(r: Route): string {
       search.entry = r.focus
       path = paths.entries
       break
+    case 'change':
+      // The version is in the path — "latest" when it is the latest — so it is not said twice.
+      delete search.v
+      path = `/changes/${r.v ?? 'latest'}/${enc(r.focus ?? '')}`
+      break
     default:
       path = paths[r.screen]
   }
@@ -145,7 +151,7 @@ export function hrefOf(r: Route): string {
 }
 
 // The sections and pages whose address is fixed.
-const paths: Record<Exclude<Screen, 'architecture' | 'part' | 'data' | 'usage' | 'component'>, string> = {
+const paths: Record<Exclude<Screen, 'architecture' | 'part' | 'data' | 'usage' | 'component' | 'change'>, string> = {
   home: '/home',
   features: '/features',
   changes: '/changes',
@@ -206,6 +212,16 @@ export function routeAt(pathname: string, search: Record<string, unknown>): Rout
     r.screen = 'usage'
     if (seg.length >= 3) r.face = `${b}/${rest(2)}`
     take('focus', 'entry')
+    return r
+  }
+  // One change: the version it is in, then its key — which may hold a slash.
+  if (a === 'changes' && seg.length >= 3) {
+    const v = b === 'latest' ? undefined : Number(b)
+    if (v !== undefined && !(Number.isInteger(v) && v > 0)) return undefined
+    r.screen = 'change'
+    delete r.v
+    if (v !== undefined) r.v = v
+    r.focus = rest(2)
     return r
   }
   if (a === 'reference' && b === 'entry-points' && seg.length === 2) {
@@ -274,6 +290,7 @@ export const titles: Record<Screen, string> = {
   features: 'Features',
   usage: 'Usage',
   changes: 'Changes',
+  change: 'One change',
   plan: 'Plan',
   reference: 'Reference',
   entries: 'Every entry point',
@@ -292,6 +309,8 @@ export function sectionOf(screen: Screen): Screen {
   switch (screen) {
     case 'part':
       return 'architecture'
+    case 'change':
+      return 'changes'
     case 'entries':
     case 'component':
     case 'deps':

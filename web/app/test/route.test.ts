@@ -29,6 +29,9 @@ const views: [Route, string][] = [
   [{ screen: 'entries', focus: 'job:immich-server AssetDelete' }, '/reference/entry-points?entry=job%3Aimmich-server+AssetDelete'],
   [{ screen: 'entries', q: 'album' }, '/reference/entry-points?q=album'],
   [{ screen: 'changes', v: 3, from: 1 }, '/changes?v=3&from=1'],
+  [{ screen: 'change', focus: 'route:server POST /api/ocr' }, '/changes/latest/route%3Aserver%20POST%20%2Fapi%2Focr'],
+  [{ screen: 'change', v: 7, focus: 'w0' }, '/changes/7/w0'],
+  [{ screen: 'change', focus: 'cmp:server/ocr', from: 3 }, '/changes/latest/cmp%3Aserver%2Focr?from=3'],
   [{ screen: 'plan' }, '/plan'],
   [{ screen: 'reference' }, '/reference'],
   [{ screen: 'component', focus: 'cmp:immich-server/asset' }, '/reference/component/cmp%3Aimmich-server%2Fasset'],
@@ -63,7 +66,7 @@ test('the bare address is Home', () => {
 })
 
 test('an address no page lives at is none', () => {
-  for (const path of ['/map', '/overview', '/does', '/architecture/elsewhere', '/architecture/part/svc%3Aredis', '/architecture/part/svc%3Aredis/breaks', '/data/nothing', '/not-built-yet', '/usage/jobs/svc%3Ax', '/usage/api']) {
+  for (const path of ['/map', '/overview', '/does', '/architecture/elsewhere', '/architecture/part/svc%3Aredis', '/architecture/part/svc%3Aredis/breaks', '/data/nothing', '/not-built-yet', '/usage/jobs/svc%3Ax', '/usage/api', '/changes/x/w0', '/changes/0/w0']) {
     assert.equal(routeAt(path, {}), undefined, path)
   }
 })

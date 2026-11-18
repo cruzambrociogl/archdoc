@@ -1212,3 +1212,25 @@ button.legend-row:hover {
   align-items: center;
   margin-top: 8px;
 }
+
+/* A count on a menu entry: on a return visit, the versions since the reader last looked. */
+.nav-badge {
+  flex: 0 0 auto;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: 700 10px/16px var(--font-sans);
+  text-align: center;
+}
+.nav.narrow .nav-item {
+  position: relative;
+}
+.nav.narrow .nav-badge {
+  position: absolute;
+  margin-left: 12px;
+  margin-top: -14px;
+}

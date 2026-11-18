@@ -9,7 +9,7 @@
 //   archdoc serve <your Immich clone> --port 7491
 //   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
 //     --remote-debugging-port=9333 --user-data-dir="$(mktemp -d)" about:blank
-//   node web/app/test/browser.mjs 9333 http://localhost:7491
+//   node web/app/test/browser.mjs 9333 http://localhost:7491 [a repository with history, served too]
 const port = process.argv[2], base = process.argv[3]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
@@ -192,6 +192,42 @@ await check('Reference lit', `document.querySelector('.nav-item.active .nav-labe
 await go('/reference')
 await js(`[...document.querySelectorAll('button, a')].find(b => b.textContent.includes('Every entry point')).click(), true`)
 await check('Reference keeps every entry point, jobs too', hash, '#/reference/entry-points')
+
+// 15. With a repository that has a history (a fourth argument): a change where it landed, and Home
+// on a return visit. The Immich of 9 Oct, 30 versions, served from a copy.
+const history = process.argv[4]
+if (history) {
+  const hgo = async (h) => { await send('Page.navigate', { url: `${history}/#${h}` }); await sleep(3000) }
+  await hgo('/changes')
+  await until(`document.querySelectorAll('.meaning-landed').length > 0`, 'the story')
+  await check('each change can be seen where it landed', `document.querySelectorAll('.meaning-landed').length`, 8)
+  await js(`document.querySelector('.meaning-landed').click(), true`)
+  await check('one change, at its own address', hash, '#/changes/latest/cmp%3Amobile%2Fshared-link')
+  await check('its band', title, 'shared-link, in immich_mobile')
+  await check('where it landed', `document.querySelector('.band-line').textContent`, 'It landed in immich_mobile.')
+  await check('what happened there', `[...document.querySelectorAll('.view-diagram .el-tag')].map(t => t.textContent).join(',')`, 'New part inside')
+  await check('only there lit', `document.querySelectorAll('.view-diagram .react-flow__node-element:not(:has(.is-dim))').length`, 1)
+  await check('cited', `!!document.querySelector('.band-meta .cite')`, true)
+  await check('the breadcrumb', `[...document.querySelectorAll('.crumbs .crumb')].map(c => c.textContent).join(' › ')`, 'immich › Changes › One change')
+  await js(`[...document.querySelectorAll('.part-more')].find(b => b.textContent.startsWith('Every change')).click(), true`)
+  await check('every change in this version, one step away', hash, '#/changes')
+
+  // Home, as if this reader last looked at version 25.
+  await js(`(() => { const k = Object.keys(localStorage).find(k => k.startsWith('archdoc.seen.')); localStorage.setItem(k, '25'); return true })()`)
+  await hgo('/home')
+  await send('Page.reload'); await sleep(3500)
+  await check('Home says since when', `document.querySelector('.return-since')?.textContent.startsWith('Since you last looked · ')`, true)
+  await check('what the versions since did', `document.querySelector('.return-sentence').textContent`, '5 new versions since you last looked changed the architecture: added 62 parts; changed 33 connections.')
+  await check('the first five changes', `document.querySelectorAll('.return-row').length`, 5)
+  await check('a count on Changes', `[...document.querySelectorAll('.nav-item')].find(b => b.querySelector('.nav-label').textContent === 'Changes').querySelector('.nav-badge')?.textContent`, '5')
+  await js(`document.querySelector('.return-row .link-btn').click(), true`)
+  await check('a change since then, compared with what was seen', `location.hash.endsWith('?from=25')`, true)
+  await check('the band says so', `document.querySelector('.band-meta').textContent.includes('compared with version 25')`, true)
+  // The next visit has seen the latest: nothing new.
+  await hgo('/home'); await send('Page.reload'); await sleep(3500)
+  await check('the next visit: nothing new', `!!document.querySelector('.return-visit')`, false)
+  await check('and no count', `!!document.querySelector('.nav-badge')`, false)
+}
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 ws.close()

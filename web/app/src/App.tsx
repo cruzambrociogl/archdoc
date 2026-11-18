@@ -16,6 +16,8 @@ import { Explorer } from './screens/explorer/Explorer'
 import { Part } from './screens/part/Part'
 import { Trust } from './screens/trust/Trust'
 import { Usage } from './screens/usage/Usage'
+import { OneChange } from './screens/change/OneChange'
+import { useSeen } from './shell/seen'
 import { Overview } from './screens/Overview'
 import { Features } from './screens/Features'
 import { WhatItDoes } from './screens/WhatItDoes'
@@ -82,6 +84,8 @@ function Shell() {
   const [rail, setRail] = useState<RailContent | null>(null)
   const [bandSeen, setBandSeen] = useState(marksSeen)
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
+  // Since you last looked: the version this browser last showed, where the place keeps versions.
+  const seen = useSeen(summary.data?.root ?? '', summary.data?.latest_version, !!summary.data && can.history)
 
   // A diagram fills the page: Architecture and Data.
   const canvas = route.screen === 'architecture' || route.screen === 'data'
@@ -138,18 +142,18 @@ function Shell() {
         />
         {!bandSeen && <MarksBand onOpen={setRail} onDismiss={() => setBandSeen(true)} />}
         <div className="shell-body">
-          <Nav summary={s} route={route} go={go} open={navOpen} coverage={coverage.data} />
+          <Nav summary={s} route={route} go={go} open={navOpen} coverage={coverage.data} newer={seen === undefined ? 0 : (versions.data ?? []).filter((v) => v.id > seen).length} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <div className="main-col">
           <NoticeBand summary={s} />
-          <main className={`shell-main ${canvas || route.screen === 'part' || route.screen === 'about' || route.screen === 'written' ? 'full' : 'page'}`}>
+          <main className={`shell-main ${canvas || ['part', 'about', 'written', 'change'].includes(route.screen) ? 'full' : 'page'}`}>
             {unknownPath ? (
               <Gone kind="page" address={unknownPath} go={go} />
             ) : versionGone ? (
               <Gone kind="version" v={route.v!} versions={versions.data!} name={s.name} go={go} />
             ) : (
               <>
-                {route.screen === 'home' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
+                {route.screen === 'home' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} seen={seen} />}
                 {canvas && (
                   <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} />
                 )}
@@ -159,7 +163,8 @@ function Shell() {
                 {route.screen === 'entries' && <Features version={version} route={route} go={go} />}
                 {route.screen === 'component' && <Component version={version} route={route} go={go} />}
                 {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
-                {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} />}
+                {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} seen={seen} />}
+                {route.screen === 'change' && <OneChange route={route} go={go} versions={versions.data ?? []} summary={s} />}
                 {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
                 {route.screen === 'reference' && <Reference summary={s} coverage={coverage.data} go={go} />}
                 {(route.screen === 'about' || route.screen === 'written') && <Trust route={route} go={go} version={version} summary={s} session={session.data} onNames={setPartNames} />}

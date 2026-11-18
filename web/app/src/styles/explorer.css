@@ -1323,3 +1323,23 @@ button.part-row-name:hover {
 .part-more:hover {
   border-color: var(--rule);
 }
+
+/* One change (app-design-screens §11): the key's tag in ink, a dimmed box, and the steps away. */
+.key-tag.ink {
+  border-color: var(--canvas-ink);
+  background: var(--canvas-ink);
+  color: #fbfcfc;
+  /* A ring of the diagram's white, so the sample reads on a dark panel as it does on the diagram. */
+  box-shadow: 0 0 0 2px var(--canvas);
+}
+.key-box.dim {
+  opacity: 0.25;
+}
+.part-steps {
+  display: grid;
+  gap: 8px;
+}
+.part-steps-head {
+  font-size: 14px;
+  font-weight: 600;
+}

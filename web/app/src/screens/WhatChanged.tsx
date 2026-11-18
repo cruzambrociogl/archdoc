@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { DiffResponse, ModelResponse, Session, Version } from '../api'
 import type { Item } from '../story'
 import { join, tell } from '../story'
@@ -16,7 +16,7 @@ import { Changes } from './Changes'
  * template from the engine's diff, so it is proven. The detailed comparison of any two versions is
  * still here, under Advanced, intact.
  */
-export function WhatChanged(props: { versions: Version[]; route: Route; go: (r: Partial<Route>, o?: { keep?: boolean }) => void; root: string; session?: Session }) {
+export function WhatChanged(props: { versions: Version[]; route: Route; go: (r: Partial<Route>, o?: { keep?: boolean }) => void; root: string; session?: Session; seen?: number }) {
   const can = useCapabilities()
   const [advanced, setAdvanced] = useState(props.route.from !== undefined)
   const sorted = useMemo(() => [...props.versions].sort((a, b) => b.id - a.id), [props.versions])
@@ -26,7 +26,7 @@ export function WhatChanged(props: { versions: Version[]; route: Route; go: (r: 
   const diff = useApi<DiffResponse>(ready ? `/api/diff?from=${base}&to=${to}` : null)
   const before = useApi<ModelResponse>(ready ? `/api/model?version=${base}` : null)
   const after = useApi<ModelResponse>(to ? `/api/model?version=${to}` : null)
-  const seen = useSeen(props.root, sorted[0]?.id)
+  const seen = props.seen
 
   const newer = seen === undefined ? 0 : sorted.filter((v) => v.id > seen).length
   const since =
@@ -71,7 +71,7 @@ export function WhatChanged(props: { versions: Version[]; route: Route; go: (r: 
       ) : !diff.data || !after.data || !before.data ? (
         <Loading what="what changed" />
       ) : (
-        <Story d={diff.data} before={before.data} after={after.data} label={label(sorted.find((v) => v.id === to))} go={props.go} base={base!} to={to!} />
+        <Story d={diff.data} before={before.data} after={after.data} label={label(sorted.find((v) => v.id === to))} go={props.go} base={base!} to={to!} latest={to === sorted[0]?.id} />
       )}
 
       {sorted.length > 1 && (
@@ -91,10 +91,12 @@ export function WhatChanged(props: { versions: Version[]; route: Route; go: (r: 
 }
 
 /** One version, told: a sentence, then its changes by what they mean (§6.2). */
-function Story(props: { d: DiffResponse; before: ModelResponse; after: ModelResponse; label: string; base: number; to: number; go: (r: Partial<Route>) => void }) {
+function Story(props: { d: DiffResponse; before: ModelResponse; after: ModelResponse; label: string; base: number; to: number; latest: boolean; go: (r: Partial<Route>) => void }) {
   const { groups, clauses, structural } = tell(props.d, props.before, props.after)
   const full = groups.filter((g) => g.items.length)
   const empty = groups.filter((g) => !g.items.length && !g.title.startsWith('Wording'))
+  // A change that touched something drawn opens where it landed (platform-surface §17.3).
+  const open = (it: Item) => (it.on?.length ? () => props.go({ screen: 'change', v: props.latest ? undefined : props.to, focus: it.key }) : undefined)
   return (
     <>
       <p className="story-answer">
@@ -118,13 +120,10 @@ function Story(props: { d: DiffResponse; before: ModelResponse; after: ModelResp
             </h2>
             <ul>
               {g.items.slice(0, 5).map((it) => (
-                <li key={it.key}>
-                  <span className="meaning-text">{it.text}</span>
-                  {it.cite?.file && <Cite p={it.cite} compact />}
-                </li>
+                <Line key={it.key} it={it} open={open} />
               ))}
             </ul>
-            {g.items.length > 5 && <MoreItems items={g.items.slice(5)} />}
+            {g.items.length > 5 && <MoreItems items={g.items.slice(5)} open={open} />}
           </section>
         ))}
         {empty.length > 0 && <p className="meaning-nothing">{nothingLine(empty.map((g) => g.title))}</p>}
@@ -133,22 +132,35 @@ function Story(props: { d: DiffResponse; before: ModelResponse; after: ModelResp
   )
 }
 
+/** One change: what it is, its line, and where it landed. */
+function Line({ it, open }: { it: Item; open: (it: Item) => (() => void) | undefined }) {
+  const go = open(it)
+  return (
+    <li>
+      <span className="meaning-text">{it.text}</span>
+      {it.cite?.file && <Cite p={it.cite} compact />}
+      {go && (
+        <button className="link-btn meaning-landed" onClick={go}>
+          See where it landed →
+        </button>
+      )}
+    </li>
+  )
+}
+
 /** Lists stop at five (rule 15); the rest is one deliberate step away. */
-function MoreItems({ items }: { items: Item[] }) {
-  const [open, setOpen] = useState(false)
-  if (!open)
+function MoreItems({ items, open }: { items: Item[]; open: (it: Item) => (() => void) | undefined }) {
+  const [shown, setShown] = useState(false)
+  if (!shown)
     return (
-      <button className="link-btn meaning-more" onClick={() => setOpen(true)}>
+      <button className="link-btn meaning-more" onClick={() => setShown(true)}>
         {items.length} more →
       </button>
     )
   return (
     <ul>
       {items.map((it) => (
-        <li key={it.key}>
-          <span className="meaning-text">{it.text}</span>
-          {it.cite?.file && <Cite p={it.cite} compact />}
-        </li>
+        <Line key={it.key} it={it} open={open} />
       ))}
     </ul>
   )
@@ -169,29 +181,3 @@ function nothingLine(titles: string[]): string {
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 const label = (v?: Version) => (v ? `version ${v.id}${v.commit ? ` · ${v.commit.slice(0, 7)}` : ''} · ${day(v.created_at)}` : '')
-
-/**
- * Which version this browser last showed for this repository (§4.5: locally, "since you last
- * opened it on this machine"). Read once, then moved to the latest. Storage may be blocked; then
- * there is no "since", only the versions.
- */
-function useSeen(root: string, latest?: number): number | undefined {
-  const key = `archdoc.seen.${root}`
-  const [seen] = useState<number | undefined>(() => {
-    try {
-      const v = localStorage.getItem(key)
-      return v === null ? undefined : Number(v)
-    } catch {
-      return undefined
-    }
-  })
-  useEffect(() => {
-    if (latest === undefined) return
-    try {
-      localStorage.setItem(key, String(latest))
-    } catch {
-      /* blocked: nothing remembered */
-    }
-  }, [key, latest])
-  return seen
-}

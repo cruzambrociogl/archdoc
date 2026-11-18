@@ -4,7 +4,9 @@
 
 import type { DiffResponse, Edge, ModelResponse, Node, Provenance } from './api'
 
-export type Item = { key: string; text: string; cite?: Provenance }
+/** Where a change landed: an element it touched, and what happened to it, in a word or two ("New route", "Now Valkey 9"). */
+export type Landing = { id: string; tag: string }
+export type Item = { key: string; text: string; cite?: Provenance; on?: Landing[] }
 export type Group = { tag: string; title: string; items: Item[] }
 
 /** The version's changes by meaning, the clauses of its sentence, and whether the architecture changed at all. */
@@ -29,6 +31,10 @@ export function tell(d: DiffResponse, before: ModelResponse, after: ModelRespons
   const rewired = [...addedEdges.filter(between), ...removedEdges.filter(between)]
   // A route by its method; a page, a job or a command by what it is.
   const entryText = (e: { kind: string; method: string; path: string; summary?: string }) => `${['page', 'job', 'command'].includes(e.kind) ? e.kind : e.method} ${e.path}${e.summary ? ` — ${e.summary}` : ''}`
+  const entryWord = (kind: string) => (kind === 'http' ? 'route' : kind)
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+  // An element by where it is drawn: a component or a table on the part it is inside.
+  const home = (id: string) => names.get(id)?.parent ?? id
 
   // Grouped by what it means, in a fixed order, so the order never shifts (App Findings, round 5).
   const groups: Group[] = [
@@ -36,35 +42,50 @@ export function tell(d: DiffResponse, before: ModelResponse, after: ModelRespons
       tag: '+',
       title: 'New capability',
       items: [
-        ...(x.added_entries ?? []).map((e) => ({ key: e.id, text: entryText(e), cite: e.provenance })),
-        ...added.filter((n) => n.kind === 'component' || n.kind === 'application').map((n) => ({ key: n.id, text: `${n.name}${n.parent ? `, in ${name(n.parent)}` : ''}`, cite: n.provenance })),
+        ...(x.added_entries ?? []).map((e) => ({ key: e.id, text: entryText(e), cite: e.provenance, on: [{ id: e.container, tag: `New ${entryWord(e.kind)}` }] })),
+        ...added
+          .filter((n) => n.kind === 'component' || n.kind === 'application')
+          .map((n) => ({ key: n.id, text: `${n.name}${n.parent ? `, in ${name(n.parent)}` : ''}`, cite: n.provenance, on: [n.parent ? { id: n.parent, tag: 'New part inside' } : { id: n.id, tag: 'New' }] })),
       ],
     },
-    { tag: '+', title: 'New outside service', items: added.filter((n) => n.kind === 'external').map((n) => ({ key: n.id, text: n.name, cite: n.provenance })) },
+    { tag: '+', title: 'New outside service', items: added.filter((n) => n.kind === 'external').map((n) => ({ key: n.id, text: n.name, cite: n.provenance, on: [{ id: n.id, tag: 'New' }] })) },
     {
       tag: '±',
       title: 'Data changes',
       items: [
-        ...added.filter((n) => isData(n.kind)).map((n) => ({ key: n.id, text: `${n.name} — new`, cite: n.provenance })),
-        ...removed.filter((n) => isData(n.kind)).map((n) => ({ key: `r${n.id}`, text: `${n.name} — gone`, cite: n.provenance })),
-        ...columns.map((c, i) => ({ key: `c${i}`, text: `${name(c.element)}.${c.field.slice(7)}: ${c.before || '—'} → ${c.after || '—'}` })),
+        ...added.filter((n) => isData(n.kind)).map((n) => ({ key: n.id, text: `${n.name} — new`, cite: n.provenance, on: [n.parent ? { id: n.parent, tag: `New ${n.kind}` } : { id: n.id, tag: 'New' }] })),
+        ...removed.filter((n) => isData(n.kind)).map((n) => ({ key: `r${n.id}`, text: `${n.name} — gone`, cite: n.provenance, on: [{ id: n.parent ?? n.id, tag: `${cap(n.kind)} gone` }] })),
+        ...columns.map((c, i) => ({ key: `c${i}`, text: `${name(c.element)}.${c.field.slice(7)}: ${c.before || '—'} → ${c.after || '—'}`, on: [{ id: home(c.element), tag: 'Columns changed' }] })),
       ],
     },
     {
       tag: '~',
       title: 'Changed',
       items: [
-        ...moved.map((m) => ({ key: m.to, text: m.class === 'renamed' ? `${m.was} is now ${m.is}` : `${m.is} ${m.to.startsWith('ext:') ? 'is no longer declared here' : 'is now declared here'}` })),
-        ...values.map((c, i) => ({ key: `v${i}`, text: `${name(c.element)}: ${c.field} ${c.before || '—'} → ${c.after || '—'}` })),
-        ...rewired.map((e, i) => ({ key: `w${i}`, text: `${name(e.from)} ${addedEdges.includes(e) ? 'now uses' : 'no longer uses'} ${name(e.to)}`, cite: (e.provenance ?? [])[0] })),
+        ...moved.map((m) => ({
+          key: m.to,
+          text: m.class === 'renamed' ? `${m.was} is now ${m.is}` : `${m.is} ${m.to.startsWith('ext:') ? 'is no longer declared here' : 'is now declared here'}`,
+          on: [{ id: m.to, tag: m.class === 'renamed' ? 'Renamed' : 'Moved' }],
+        })),
+        ...values.map((c, i) => ({
+          key: `v${i}`,
+          text: `${name(c.element)}: ${c.field} ${c.before || '—'} → ${c.after || '—'}`,
+          on: [{ id: home(c.element), tag: c.field === 'technology' && c.after ? `Now ${c.after}` : `${cap(c.field)} changed` }],
+        })),
+        ...rewired.map((e, i) => ({
+          key: `w${i}`,
+          text: `${name(e.from)} ${addedEdges.includes(e) ? 'now uses' : 'no longer uses'} ${name(e.to)}`,
+          cite: (e.provenance ?? [])[0],
+          on: [{ id: e.from, tag: addedEdges.includes(e) ? 'New connection' : 'Connection gone' }, { id: e.to, tag: '' }],
+        })),
       ],
     },
     {
       tag: '−',
       title: 'Removed',
       items: [
-        ...removed.filter((n) => !isData(n.kind)).map((n) => ({ key: n.id, text: n.name, cite: n.provenance })),
-        ...(x.removed_entries ?? []).map((e) => ({ key: e.id, text: entryText(e), cite: e.provenance })),
+        ...removed.filter((n) => !isData(n.kind)).map((n) => ({ key: n.id, text: n.name, cite: n.provenance, on: [{ id: n.parent ?? n.id, tag: n.parent ? 'Part gone inside' : 'Gone' }] })),
+        ...(x.removed_entries ?? []).map((e) => ({ key: e.id, text: entryText(e), cite: e.provenance, on: [{ id: e.container, tag: `${cap(entryWord(e.kind))} gone` }] })),
       ],
     },
     { tag: '~', title: 'Wording only — doesn’t count', items: wording.map((c, i) => ({ key: `t${i}`, text: `${name(c.element)}: the ${c.field} was rewritten` })) },
@@ -98,4 +119,25 @@ export function tell(d: DiffResponse, before: ModelResponse, after: ModelRespons
 
 export function join(xs: string[]): string {
   return xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`
+}
+
+/**
+ * Where a change landed, on a diagram whose boxes are `drawn`: each element it touched, lifted to the
+ * box it is drawn inside — a component to its application — with what happened to it. Two things
+ * on one box say both. What it touched that is drawn nowhere here, a part gone, is left out.
+ */
+export function landed(on: Landing[], parentOf: (id: string) => string | undefined, drawn: Set<string>): { lit: Set<string>; tags: Map<string, string> } {
+  const lit = new Set<string>()
+  const tags = new Map<string, string>()
+  for (const l of on) {
+    let id: string | undefined = l.id
+    for (let hops = 0; id && !drawn.has(id) && hops < 8; hops++) id = parentOf(id)
+    if (!id || !drawn.has(id)) continue
+    lit.add(id)
+    if (!l.tag) continue
+    const had = tags.get(id)
+    if (!had) tags.set(id, l.tag)
+    else if (!had.split(' · ').includes(l.tag)) tags.set(id, `${had} · ${l.tag}`)
+  }
+  return { lit, tags }
 }
