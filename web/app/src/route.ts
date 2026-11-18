@@ -55,7 +55,7 @@ export interface Route {
   /** What left this machine: the open run. */
   run?: number
   /** One part: which question — what it touches, or what depends on it. */
-  question?: 'touches' | 'depends'
+  question?: 'touches' | 'depends' | 'down'
   /** Usage: the face — how, and of which part — "api/svc:immich-server". */
   face?: string
   /** Architecture: Classic C4's blues instead of archdoc's look. */
@@ -187,7 +187,7 @@ export function routeAt(pathname: string, search: Record<string, unknown>): Rout
   if (a === 'architecture' && b === 'part') {
     const question = seg[seg.length - 1]
     const id = rest(2).slice(0, -(question.length + 1))
-    if (seg.length < 4 || (question !== 'touches' && question !== 'depends') || !id) return undefined
+    if (seg.length < 4 || (question !== 'touches' && question !== 'depends' && question !== 'down') || !id) return undefined
     r.screen = 'part'
     r.focus = id
     r.question = question

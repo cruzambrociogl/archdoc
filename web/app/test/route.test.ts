@@ -22,6 +22,7 @@ const views: [Route, string][] = [
   [{ screen: 'part', focus: 'svc:immich-machine-learning', question: 'touches' }, '/architecture/part/svc%3Aimmich-machine-learning/touches'],
   [{ screen: 'part', focus: 'app:packages/cli', question: 'depends' }, '/architecture/part/app%3Apackages%2Fcli/depends'],
   [{ screen: 'part', focus: 'svc:redis', question: 'depends', q: 'immich' }, '/architecture/part/svc%3Aredis/depends?q=immich'],
+  [{ screen: 'part', focus: 'svc:immich-machine-learning', question: 'down' }, '/architecture/part/svc%3Aimmich-machine-learning/down'],
   [{ screen: 'data', level: 'data:svc:immich-server' }, '/data/data/svc%3Aimmich-server'],
   [{ screen: 'data', level: 'dataflow' }, '/data/dataflow'],
   [{ screen: 'features' }, '/features'],

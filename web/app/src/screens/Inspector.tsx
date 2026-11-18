@@ -46,7 +46,7 @@ export function Inspector({
   /** Opens a component's own page. */
   onPage?: (id: string) => void
   /** On Apps and services: opens one part, at a question about it. */
-  onAsk?: (id: string, question: 'touches' | 'depends') => void
+  onAsk?: (id: string, question: 'touches' | 'depends' | 'down') => void
 }) {
   const nodes = model.nodes ?? []
   const edges = model.edges ?? []
@@ -87,6 +87,9 @@ export function Inspector({
                 </button>
                 <button className="link-btn" onClick={() => onAsk(node.id, 'depends')}>
                   What depends on it? →
+                </button>
+                <button className="link-btn" onClick={() => onAsk(node.id, 'down')}>
+                  What breaks without it? →
                 </button>
               </section>
             ) : undefined

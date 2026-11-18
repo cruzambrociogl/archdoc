@@ -2,7 +2,7 @@
 // subject by a box, a row and Find a part, switches the question, copies a link, narrows the menu;
 // opens What archdoc knows from Home, both its tabs, its lists and the report one step away; Usage's
 // faces, an entry chosen and filtered, its steps in Reference; Architecture's title and key, the
-// deployment tab, the look, every download.
+// deployment tab, the look, every download; what breaks without a part.
 // Each check says what the page shows after the step. Immich's ids, at the revision
 // docs/survey-test-subjects.md pins.
 //
@@ -224,6 +224,28 @@ await go('/data/dataflow')
 await check('Data has a title and key too, and no look switch', `!!document.querySelector('.c4-title') && !document.querySelector('.look-switch')`, true)
 await js(`[...document.querySelectorAll('button.tool')].find(b => b.textContent.startsWith('Download')).click(), true`)
 await check('and no C4 text, since it is not C4', `[...document.querySelectorAll('.download-pop .more-label')].map(l => l.textContent).join(',')`, 'SVG,PNG,Mermaid')
+
+// 17. What breaks without one part: from a box's panel; the database, the queue, a service it can't tie.
+await go('/architecture/containers?part=svc%3Adatabase')
+await until(`!!document.querySelector('.inspector-ask')`, 'the ask block')
+await js(`[...document.querySelectorAll('.inspector-ask button')].find(b => b.textContent.startsWith('What breaks')).click(), true`)
+await check('the panel asks what breaks', hash, '#/architecture/part/svc%3Adatabase/down')
+await check('its question', title, 'What breaks if database is down?')
+await check('what stops, and what is not affected or not known', `document.querySelector('.band-line').textContent`, 'immich-server stops 240 routes and 62 background jobs that read or write its tables. 61 of its ways in reach nothing of it; 17 weren’t followed, so can’t be told.')
+await check('Proven, and what it was worked out from', `document.querySelector('.band-meta').textContent.includes('Worked out from which tables each way in reads and writes')`, true)
+await check('the part down, hatched and tagged', `[...document.querySelectorAll('.view-diagram .el-hatch')].length + ' ' + [...document.querySelectorAll('.view-diagram .el-tag')].map(t => t.textContent).sort().join(',')`, '1 Down,depends on it')
+await check('five rows first, routes before jobs', `[...document.querySelectorAll('.part-list .part-row')].slice(0, 5).every(r => !r.querySelector('.part-row-what') || /^(GET|POST|PUT|PATCH|DELETE) /.test(r.querySelector('.part-row-what').textContent))`, true)
+await check('each stop cited', `[...document.querySelectorAll('.part-list .part-row')].every(r => r.querySelector('.cite'))`, true)
+await js(`[...document.querySelectorAll('.part-all')].find(b => b.textContent.startsWith('Show all')).click(), true`)
+await check('all 302', `document.querySelectorAll('section[aria-label="What stops in immich-server"] .part-row').length`, 302)
+await go('/architecture/part/svc%3Aredis/down')
+await check('the queue down', `document.querySelector('.band-line')?.textContent`, 'immich-server stops 36 routes and 66 background jobs that queue work on it, or are taken from its queue. 262 of its ways in reach nothing of it; 16 weren’t followed, so can’t be told.')
+await go('/architecture/part/svc%3Aimmich-machine-learning/down')
+await check('a service it cannot tie: said, not guessed', `document.querySelector('.band-line')?.textContent`, 'immich-server waits for its answer, but which of its ways in make the call isn’t recorded.')
+await check('no stop listed for it', `!!document.querySelector('section[aria-label^="What stops"]')`, false)
+await check('the not-known list cites the arrow', `!!document.querySelector('section[aria-label="Depends on it, how not recorded"] .cite')`, true)
+await js(`document.querySelector('.view-diagram .react-flow__node[data-id="svc:database"]').click(), true`)
+await check('another box keeps the question', hash, '#/architecture/part/svc%3Adatabase/down')
 
 // 15. With a repository that has a history (a fourth argument): a change where it landed, and Home
 // on a return visit. The Immich of 9 Oct, 30 versions, served from a copy.
