@@ -29,6 +29,10 @@ func TestTracedCountsWhatAFileOrTheCatalogStates(t *testing.T) {
 	if traced, of := Traced(m); traced != 3 || of != 6 {
 		t.Errorf("traced %d of %d, want 3 of 6", traced, of)
 	}
+	// The report carries the same figure as numbers, for the app's What archdoc knows.
+	if r := BuildCoverage(m, core.FactSet{}, nil); r.Traced != 3 || r.Of != 6 {
+		t.Errorf("the report says traced %d of %d, want 3 of 6", r.Traced, r.Of)
+	}
 	if got := percent(2499, 2500); got != "99.9%" {
 		t.Errorf("2499 of 2500 is %s — it must not round up to 100%%", got)
 	}

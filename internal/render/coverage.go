@@ -39,9 +39,13 @@ type CoverageReport struct {
 	Read   []ReadFile `json:"read"`
 	Known  []Count    `json:"known"`
 	// Complete counts the elements and relationships no validator finding names, out of Items.
-	Complete int        `json:"complete"`
-	Items    int        `json:"items"`
-	Gaps     []GapGroup `json:"gaps"`
+	Complete int `json:"complete"`
+	Items    int `json:"items"`
+	// Traced counts the elements and relationships whose provenance names a file or the catalog,
+	// out of Of: the same figure as Known's first line, as numbers for the app.
+	Traced int        `json:"traced"`
+	Of     int        `json:"of"`
+	Gaps   []GapGroup `json:"gaps"`
 	// Unconnected are elements nothing reaches and that reach nothing.
 	Unconnected []string `json:"unconnected"`
 	Limits      []Limit  `json:"limits"`
@@ -120,6 +124,7 @@ const CoverageJSONFile = "coverage.json"
 // BuildCoverage computes the report.
 func BuildCoverage(m core.Model, facts core.FactSet, gaps []Gap) CoverageReport {
 	r := CoverageReport{Source: facts.Source, Read: sourcesRead(facts), Known: knownCounts(m, gaps)}
+	r.Traced, r.Of = Traced(m)
 
 	byRule := map[string][]Gap{}
 	named := map[string]bool{}
