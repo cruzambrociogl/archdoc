@@ -25,6 +25,8 @@ export const screens = [
   'deps',
   'docs',
   'about',
+  'written',
+  'report',
   'runs',
   'settings',
 ] as const
@@ -143,6 +145,8 @@ const paths: Record<Exclude<Screen, 'architecture' | 'part' | 'data' | 'usage' |
   deps: '/reference/dependencies',
   docs: '/reference/documentation',
   about: '/about/what-was-read',
+  written: '/about/what-the-ai-wrote',
+  report: '/about/report',
   runs: '/about/what-left',
   settings: '/settings',
 }
@@ -259,6 +263,8 @@ export const titles: Record<Screen, string> = {
   deps: 'What it relies on',
   docs: 'Documentation',
   about: 'What archdoc knows',
+  written: 'What archdoc knows',
+  report: 'About these docs',
   runs: 'What left this machine',
   settings: 'Settings',
 }
@@ -273,6 +279,8 @@ export function sectionOf(screen: Screen): Screen {
     case 'docs':
       return 'reference'
     case 'about':
+    case 'written':
+    case 'report':
     case 'runs':
       return 'home'
     default:

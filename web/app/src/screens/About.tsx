@@ -5,9 +5,9 @@ import type { Route } from '../route'
 import { Coverage } from './Coverage'
 
 /**
- * About these docs (platform-surface §4.4): the honesty of the product in one place — which commit
- * and version this is, what archdoc could and could not read, and, on this machine, what left it.
- * Reached from the Overview's trust sentence and from ⋯; not a menu entry.
+ * About these docs (platform-surface §4.4): the whole report behind What archdoc knows — which commit
+ * and version this is, every count, what the checks found, what reading the code cannot tell, and,
+ * on this machine, what left it. One step from What archdoc knows; not a menu entry.
  */
 export function About(props: { summary: Summary; session?: Session; go: (r: Partial<Route>) => void }) {
   const { summary: s, session, go } = props

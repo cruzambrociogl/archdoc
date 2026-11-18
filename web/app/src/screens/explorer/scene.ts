@@ -19,9 +19,15 @@ export interface ElementData extends Record<string, unknown> {
   opens?: number
   /** Calls leaving this box for an address computed at run time: shown as a count, never as a target. */
   unresolved?: number
-  /** A word the highlight puts on the box: "through immich-server", "Down", "New route". */
+  /** A word the highlight puts on the box: "through immich-server", "Partly read", "Written by AI". */
   tag?: string
+  /** What the tag means, and so its colour: the ink of the drawing, grey for what was not read, the AI's blue. */
+  tone?: Tone
+  /** Hatched in grey: not read, or read only in part. */
+  hatch?: boolean
 }
+
+export type Tone = 'ink' | 'muted' | 'interp'
 
 /**
  * The highlight (platform-surface §17.5): one thing shown on the system. What belongs to it stays
@@ -32,6 +38,10 @@ export interface ElementData extends Record<string, unknown> {
 export interface Highlight {
   lit: Set<string>
   tags?: Map<string, string>
+  /** One meaning for every tag of this view; ink when none is said. */
+  tone?: Tone
+  /** Boxes hatched in grey (rule: the hatch is only for Not read and Partly read, and Down). */
+  hatched?: Set<string>
 }
 
 /** Find a part: the boxes whose name, id or technology holds what was typed; none when nothing was. */
@@ -200,7 +210,7 @@ export function toFlow(
       position: { x: b.rect.x, y: b.rect.y },
       width: b.rect.w,
       height: b.rect.h,
-      data: { node: n, dim: dimNode(n), match: !!found?.lit.has(n.id), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id), opens: opts.opens?.get(n.id), unresolved: loose.get(n.id), tag: shown?.tags?.get(n.id) } satisfies ElementData,
+      data: { node: n, dim: dimNode(n), match: !!found?.lit.has(n.id), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id), opens: opts.opens?.get(n.id), unresolved: loose.get(n.id), tag: shown?.tags?.get(n.id), tone: shown?.tone, hatch: shown?.hatched?.has(n.id) } satisfies ElementData,
       selected: opts.selected === n.id,
     })
   }

@@ -1,5 +1,6 @@
 // The app in a real browser, as a reader uses it: opens One part from a box's panel, changes the
-// subject by a box, a row and Find a part, switches the question, copies a link, narrows the menu.
+// subject by a box, a row and Find a part, switches the question, copies a link, narrows the menu;
+// opens What archdoc knows from Home, both its tabs, its lists and the report one step away.
 // Each check says what the page shows after the step. Immich's ids, at the revision
 // docs/survey-test-subjects.md pins.
 //
@@ -44,15 +45,15 @@ await check('the panel opens What depends on it', hash, '#/architecture/part/svc
 await check('its band asks the question', title, 'What depends on immich-server?')
 
 // 2. Selecting another box changes the subject and keeps the question.
-await until(`!!document.querySelector('.part-diagram .react-flow__node[data-id="svc:database"]')`, 'the diagram')
-await js(`document.querySelector('.part-diagram .react-flow__node[data-id="svc:database"]').click(), true`)
+await until(`!!document.querySelector('.view-diagram .react-flow__node[data-id="svc:database"]')`, 'the diagram')
+await js(`document.querySelector('.view-diagram .react-flow__node[data-id="svc:database"]').click(), true`)
 await check('a box becomes the subject, the question kept', hash, '#/architecture/part/svc%3Adatabase/depends')
 await check('the band follows', title, 'What depends on database?')
 await check('the sentence', `document.querySelector('.band-line').textContent`, 'immich-server uses database directly. @immich/cli, immich_mobile, immich-web and User reach it through immich-server.')
 await check('five rows', `document.querySelectorAll('.part-row').length`, 5)
 
 // 3. A person is not a subject: clicking it changes nothing.
-await js(`document.querySelector('.part-diagram .react-flow__node[data-id="actor:user"]').click(), true`)
+await js(`document.querySelector('.view-diagram .react-flow__node[data-id="actor:user"]').click(), true`)
 await sleep(400)
 await check('clicking the person keeps the subject', hash, '#/architecture/part/svc%3Adatabase/depends')
 
@@ -70,17 +71,17 @@ await check('a row asks about its part', hash, '#/architecture/part/svc%3Aredis/
 
 // 6. Find a part: / moves to it, typing counts, Enter makes the first match the subject, Esc clears.
 await go('/architecture/part/svc%3Aredis/depends')
-await until(`!!document.querySelector('.part-diagram .find input')`, 'the find box')
+await until(`!!document.querySelector('.view-diagram .find input')`, 'the find box')
 await key(null, '/')
 await check('/ moves to Find a part', `document.activeElement?.getAttribute('aria-label')`, 'Find a part')
-await typeInto('.part-diagram .find input', 'machine')
-await check('the count', `document.querySelector('.part-diagram .find-count')?.textContent`, '1 found')
+await typeInto('.view-diagram .find input', 'machine')
+await check('the count', `document.querySelector('.view-diagram .find-count')?.textContent`, '1 found')
 await check('the find is in the address', hash, '#/architecture/part/svc%3Aredis/depends?q=machine')
-await key('.part-diagram .find input', 'Enter')
+await key('.view-diagram .find input', 'Enter')
 await check('Enter makes the match the subject, the find cleared', hash, '#/architecture/part/svc%3Aimmich-machine-learning/depends')
-await typeInto('.part-diagram .find input', 'zzz')
-await check('no match', `document.querySelector('.part-diagram .find-count')?.textContent`, 'none found')
-await key('.part-diagram .find input', 'Escape')
+await typeInto('.view-diagram .find input', 'zzz')
+await check('no match', `document.querySelector('.view-diagram .find-count')?.textContent`, 'none found')
+await key('.view-diagram .find input', 'Escape')
 await check('Esc clears the find', hash, '#/architecture/part/svc%3Aimmich-machine-learning/depends')
 
 // 7. The breadcrumb names the part and goes back to Architecture.
@@ -110,6 +111,49 @@ await check('and wide again', `Math.round(document.querySelector('nav.nav').getB
 // 10. Keys: ⌘K opens search, Esc closes it; ? opens the keys.
 await key(null, '?')
 await check('? shows the keys', `!!document.querySelector('.shortcuts')`, true)
+
+// 11. What archdoc knows, from Home's trust sentence.
+await go('/home')
+await until(`!!document.querySelector('.trust-sentence')`, 'the trust sentence')
+await js(`document.querySelector('.trust-sentence').click(), true`)
+await check('Home opens What archdoc knows', hash, '#/about/what-was-read')
+await check('its question', title, 'How much of this picture can you trust?')
+await check('what was read, in numbers', `document.querySelector('.band-line').textContent.split('. ')[0]`, 'archdoc read the code of all 5 applications: 1,761 files, 189,980 lines')
+await check('the calls it couldn’t follow, by part', `document.querySelector('.band-line').textContent.includes('11 calls go to an address set at run time, which archdoc couldn’t follow: 5 in immich-server, 4 in immich-web and 2 in @immich/cli.')`, true)
+await check('no claim about tracing from a report that does not count it', `document.querySelector('.band-line').textContent.includes('traced')`, false)
+await check('two parts hatched', `document.querySelectorAll('.view-diagram .el-hatch').length`, 2)
+await check('tagged Partly read', `[...document.querySelectorAll('.view-diagram .el-tag')].map(t => t.textContent).join(',')`, 'Partly read,Partly read')
+await check('nothing dimmed', `document.querySelectorAll('.view-diagram .is-dim').length`, 0)
+await check('the key', `!!document.querySelector('.view-key')`, true)
+await check('five of what couldn’t be resolved', `document.querySelectorAll('section[aria-label="What couldn’t be resolved"] .part-row').length`, 5)
+await check('its count', `document.querySelector('section[aria-label="What couldn’t be resolved"] .part-list-head .muted').textContent`, '12')
+await check('five of what wasn’t read', `document.querySelectorAll('section[aria-label="What wasn’t read"] .part-row').length`, 5)
+await check('every unresolved row cites its line', `[...document.querySelectorAll('section[aria-label="What couldn’t be resolved"] .part-row')].every(r => r.querySelector('.cite'))`, true)
+await js(`document.querySelector('.part-all').click(), true`)
+await check('Show all: in the address', hash, '#/about/what-was-read?all=1')
+await check('all twelve', `document.querySelectorAll('section[aria-label="What couldn’t be resolved"] .part-row').length`, 12)
+await check('all twenty-three', `document.querySelectorAll('section[aria-label="What wasn’t read"] .part-row').length`, 23)
+
+// 12. The other tab, and the whole report one step away.
+await js(`[...document.querySelectorAll('.part-bar [role=tab]')].find(b => b.textContent === 'What the AI wrote').click(), true`)
+await check('What the AI wrote', hash, '#/about/what-the-ai-wrote')
+await check('its question', title, 'Which words did the AI write?')
+await check('on a run without AI, it says so', `document.querySelector('.band-line').textContent.startsWith('None of it.')`, true)
+await check('no box tagged', `document.querySelectorAll('.view-diagram .el-tag').length`, 0)
+await check('the breadcrumb', `[...document.querySelectorAll('.crumbs .crumb')].map(c => c.textContent).join(' › ')`, 'immich › Home › What archdoc knows')
+await check('the menu keeps Home lit', `document.querySelector('.nav-item.active .nav-label').textContent`, 'Home')
+await js(`document.querySelector('.part-more').click(), true`)
+await check('About these docs, one step away', hash, '#/about/report')
+await check('its breadcrumb', `[...document.querySelectorAll('.crumbs .crumb')].map(c => c.textContent).join(' › ')`, 'immich › Home › About these docs')
+
+// 13. Find a part on this diagram lights what matches; nothing here can be picked.
+await go('/about/what-was-read')
+await until(`!!document.querySelector('.view-diagram .find input')`, 'the find box')
+await typeInto('.view-diagram .find input', 'redis')
+await check('found', `document.querySelector('.view-diagram .find-count')?.textContent`, '1 found')
+await key('.view-diagram .find input', 'Enter')
+await sleep(300)
+await check('Enter picks nothing on a view that has no subject', hash, '#/about/what-was-read?q=redis')
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 ws.close()

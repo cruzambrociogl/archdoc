@@ -234,8 +234,12 @@ export interface CoverageResponse {
   source: string
   read: { file: string; used: boolean; why: string }[]
   known: { label: string; value: string }[]
+  /** Elements and relationships no check found a gap in, out of items. */
   complete: number
   items: number
+  /** Elements and relationships traced to a file or the catalog, out of `of`. Absent from a report made before 17 Nov. */
+  traced?: number
+  of?: number
   gaps: { rule: string; gaps: { rule: string; element: string; message: string }[] }[]
   unconnected: string[]
   limits: { limit: string; needed: string }[]

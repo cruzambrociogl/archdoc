@@ -31,7 +31,9 @@ const screenNames: [Screen, string][] = [
   ['reference', 'Reference'],
   ['deps', 'What it relies on · Dependencies'],
   ['docs', 'Documentation · Documents'],
-  ['about', 'What archdoc knows · Coverage'],
+  ['about', 'What archdoc knows · What was read · Coverage'],
+  ['written', 'What the AI wrote'],
+  ['report', 'About these docs · The full report'],
   ['settings', 'Settings · Your corrections'],
   ['runs', 'What left this machine · Network runs'],
 ]

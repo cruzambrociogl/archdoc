@@ -60,7 +60,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
 
   return (
     <div
-      className={`el el-${k.hue} ${n.evidence === 'referenced' ? 'el-referenced' : ''} ${selected ? 'el-selected' : ''} ${data.dim ? 'is-dim' : ''} ${data.match ? 'el-match' : ''} ${data.delta ? `el-delta-${data.delta}` : ''}`}
+      className={`el el-${k.hue} ${n.evidence === 'referenced' ? 'el-referenced' : ''} ${selected ? 'el-selected' : ''} ${data.dim ? 'is-dim' : ''} ${data.match ? 'el-match' : ''} ${data.delta ? `el-delta-${data.delta}` : ''} ${data.hatch ? 'el-hatch' : ''}`}
       title={`${n.name} · ${k.label}${n.technology ? ` · ${n.technology}` : ''}${n.files ? ` · ${n.files.length} files, ${(n.lines ?? 0).toLocaleString()} lines` : ''}`}
     >
       {/* Edges follow stored routes; these handles only satisfy the graph library. */}
@@ -70,7 +70,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
       {data.placed && <span className="el-placed" title="Placed by a person · layout.yaml — presentation, not fact" />}
       {data.isNew && <span className="el-new">new · placed automatically</span>}
       {data.delta && <DeltaTag mark={data.delta} />}
-      {data.tag && <span className="el-tag">{data.tag}</span>}
+      {data.tag && <span className={`el-tag tone-${data.tone ?? 'ink'}`}>{data.tag}</span>}
       {data.unresolved ? (
         <span className="el-unresolved" title={`${data.unresolved} calls from here go to an address computed at run time — listed in the inspector, not drawn`}>
           ? {data.unresolved}

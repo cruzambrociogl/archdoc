@@ -14,6 +14,7 @@ import type { RailContent } from './shell/Rail'
 import { MarksBand, Rail, RailProvider, marksSeen } from './shell/Rail'
 import { Explorer } from './screens/explorer/Explorer'
 import { Part } from './screens/part/Part'
+import { Trust } from './screens/trust/Trust'
 import { Overview } from './screens/Overview'
 import { Features } from './screens/Features'
 import { WhatItDoes } from './screens/WhatItDoes'
@@ -140,7 +141,7 @@ function Shell() {
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <div className="main-col">
           <NoticeBand summary={s} />
-          <main className={`shell-main ${canvas || route.screen === 'part' ? 'full' : 'page'}`}>
+          <main className={`shell-main ${canvas || route.screen === 'part' || route.screen === 'about' || route.screen === 'written' ? 'full' : 'page'}`}>
             {unknownPath ? (
               <Gone kind="page" address={unknownPath} go={go} />
             ) : versionGone ? (
@@ -159,7 +160,8 @@ function Shell() {
                 {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} />}
                 {route.screen === 'docs' && <Documents version={version} route={route} go={go} />}
                 {route.screen === 'reference' && <Reference summary={s} coverage={coverage.data} go={go} />}
-                {route.screen === 'about' && <About summary={s} session={session.data} go={go} />}
+                {(route.screen === 'about' || route.screen === 'written') && <Trust route={route} go={go} version={version} summary={s} session={session.data} onNames={setPartNames} />}
+                {route.screen === 'report' && <About summary={s} session={session.data} go={go} />}
                 {route.screen === 'plan' && <PlanCheck go={go} />}
                 {route.screen === 'settings' && <Corrections />}
                 {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}

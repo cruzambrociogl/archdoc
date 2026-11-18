@@ -31,6 +31,9 @@ const views: [Route, string][] = [
   [{ screen: 'deps', q: 'nest' }, '/reference/dependencies?q=nest'],
   [{ screen: 'docs', doc: 'docs/architecture/01.generated.md' }, '/reference/documentation?doc=docs%2Farchitecture%2F01.generated.md'],
   [{ screen: 'about' }, '/about/what-was-read'],
+  [{ screen: 'about', all: '1' }, '/about/what-was-read?all=1'],
+  [{ screen: 'written' }, '/about/what-the-ai-wrote'],
+  [{ screen: 'report' }, '/about/report'],
   [{ screen: 'runs', run: 4 }, '/about/what-left?run=4'],
   [{ screen: 'settings' }, '/settings'],
 ]

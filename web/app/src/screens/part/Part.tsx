@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { Background, BackgroundVariant, ReactFlow, ReactFlowProvider } from '@xyflow/react'
-import '@xyflow/react/dist/base.css'
+import { useEffect, useMemo } from 'react'
 import type { SceneResponse } from '../../api'
 import { useApi } from '../../api'
 import type { Route } from '../../route'
 import { Cite } from '../../ui/Cite'
 import { Failure, Loading } from '../../ui/marks'
-import { Markers, edgeTypes, nodeTypes } from '../explorer/parts'
-import { findParts, toFlow } from '../explorer/scene'
+import { ViewDiagram } from '../explorer/ViewDiagram'
 import type { Way } from './reach'
 import { askable, highlight, reach, rows, sentence, ways } from './reach'
 
@@ -18,7 +15,6 @@ const titles: Record<Way, (name: string) => string> = {
   touches: (n) => `What does ${n} touch?`,
   depends: (n) => `What depends on ${n}?`,
 }
-const none = new Set<string>()
 
 /**
  * One part, and the questions about it (platform-surface §17.3; app-design-screens §6). An archdoc
@@ -95,9 +91,7 @@ export function Part(props: { route: Route; go: Go; version: number | null; onNa
           <p className="band-meta">Select another part on the diagram to ask about it.</p>
         </div>
 
-        <ReactFlowProvider>
-          <PartDiagram scene={scene.data} subject={subject} find={route.q ?? ''} reachedLit={highlight(subject, reached, name)} onPick={ask} onFind={(q) => move({ q: q || undefined }, true)} />
-        </ReactFlowProvider>
+        <ViewDiagram scene={scene.data} subject={subject} find={route.q ?? ''} highlight={highlight(subject, reached, name)} onPick={ask} onFind={(q) => move({ q: q || undefined }, true)} />
 
         <section className="part-list" aria-label={way === 'touches' ? 'How it reaches each one' : 'How each one reaches it'}>
           <div className="part-list-head">
@@ -135,100 +129,6 @@ export function Part(props: { route: Route; go: Go; version: number | null; onNa
           })}
         </section>
       </div>
-    </div>
-  )
-}
-
-/**
- * Apps and services, read only: the subject outlined, what answers the question lit, the rest dimmed.
- * Find a part lights what matches instead, and Enter makes the first match the subject.
- */
-function PartDiagram(props: {
-  scene: SceneResponse
-  subject: string
-  find: string
-  reachedLit: ReturnType<typeof highlight>
-  onPick: (id: string) => void
-  onFind: (q: string) => void
-}) {
-  const findRef = useRef<HTMLInputElement>(null)
-  const found = useMemo(() => findParts(props.scene.model.nodes ?? [], props.find), [props.scene.model.nodes, props.find])
-  const { nodes, edges } = useMemo(
-    () =>
-      toFlow(props.scene, props.scene.layout, {
-        selected: props.subject,
-        focus: false,
-        find: props.find,
-        placed: none,
-        isNew: none,
-        // While finding, what matches is what shows.
-        highlight: found ? undefined : props.reachedLit,
-      }),
-    [props.scene, props.subject, props.find, props.reachedLit, found],
-  )
-
-  // "/" moves to Find a part, unless something is being typed.
-  useEffect(() => {
-    const on = (e: KeyboardEvent) => {
-      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
-      if ((e.target as HTMLElement).closest('input, select, textarea, [contenteditable]')) return
-      e.preventDefault()
-      findRef.current?.focus()
-    }
-    window.addEventListener('keydown', on)
-    return () => window.removeEventListener('keydown', on)
-  }, [])
-
-  const first = found ? (props.scene.model.nodes ?? []).find((n) => found.lit.has(n.id) && n.kind !== 'actor') : undefined
-
-  return (
-    <div className="explorer-canvas part-diagram">
-      <Markers />
-      <div className="canvas-tools">
-        <label className="find">
-          <span>/</span>
-          <input
-            ref={findRef}
-            value={props.find}
-            aria-label="Find a part"
-            placeholder="Find a part"
-            onChange={(e) => props.onFind(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && first) props.onPick(first.id)
-              if (e.key === 'Escape') {
-                props.onFind('')
-                e.currentTarget.blur()
-                e.stopPropagation()
-              }
-            }}
-          />
-          {found && (
-            <span className="find-count" aria-live="polite">
-              {found.lit.size ? `${found.lit.size} found` : 'none found'}
-            </span>
-          )}
-        </label>
-      </div>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodeClick={(_, n) => n.type === 'element' && props.onPick(n.id)}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        zoomOnScroll={false}
-        preventScrolling={false}
-        zoomOnDoubleClick={false}
-        fitView
-        fitViewOptions={{ padding: 0.06 }}
-        minZoom={0.1}
-        maxZoom={1.6}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background variant={BackgroundVariant.Dots} gap={18} size={1.2} color="var(--canvas-dot)" />
-      </ReactFlow>
     </div>
   )
 }
