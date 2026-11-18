@@ -84,6 +84,7 @@ func newServer(root, history string, up Updater) *Server {
 	s.mux.HandleFunc("GET /api/model", s.model)
 	s.mux.HandleFunc("GET /api/svg", s.svg)
 	s.mux.HandleFunc("GET /api/export", s.export)
+	s.mux.HandleFunc("GET /api/breaks", s.breaks)
 	s.mux.HandleFunc("GET /api/scene", s.scene)
 	s.mux.HandleFunc("GET /api/diff", s.diff)
 	s.mux.HandleFunc("GET /api/runs", s.runs)
@@ -426,6 +427,22 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Write([]byte(text))
+}
+
+// breaks is what stops if one part of Apps and services is down (One part, What breaks without it):
+// worked out by the engine from the facts, per way in, each with its line.
+func (s *Server) breaks(w http.ResponseWriter, r *http.Request) {
+	v, err := s.version(r, "version")
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	b, ok := render.Breaks(v.Model, r.URL.Query().Get("part"))
+	if !ok {
+		notFound(w, "no part "+r.URL.Query().Get("part")+" to ask about")
+		return
+	}
+	send(w, b)
 }
 
 // heading names the view on screen: its C4 type and scope, and its plain name.

@@ -144,6 +144,12 @@ func Export(root string, since int64) (map[string][]byte, error) {
 			paths = append(paths, "/api/export?view="+q+"&format=structurizr", "/api/export?view="+q+"&format=plantuml")
 		}
 	}
+	// What breaks without each part of Apps and services, for One part.
+	for _, n := range latest.Model.Container().Nodes {
+		if render.HasBreaks(latest.Model, n.ID) {
+			paths = append(paths, "/api/breaks?part="+url.QueryEscape(n.ID))
+		}
+	}
 	versions := []int64{latest.ID}
 	var optional []string // the baseline may not have every view the latest has
 	if base != 0 {
