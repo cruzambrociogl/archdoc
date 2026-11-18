@@ -28,10 +28,22 @@ what is different for a user.
   repositories opens the System map: how they fit together, in a sentence and a picture — each link
   one repository's requirement of another's package, cited at both ends — and how far a pinned
   commit or tag is behind. Each repository's pages open from it. Go modules' requirements are read.
-- **Home: `archdoc home`.** Every repository, and folder of them, this machine has documented or
-  served, with what changed in each since you last opened it here, what couldn't be resolved, and
-  when it last changed. The list is a file in your user configuration folder, never in a repository;
-  `generate` and `serve` add to it. With one place there is no Home: it opens that place.
+- **Just `archdoc`.** In a project's folder — or any folder inside it — a bare `archdoc` documents the
+  repository, free and offline, and opens it in the browser. It writes only `.archdoc/` until you ask
+  for the documents (Documents › Write the documents, or `archdoc generate`); once they are there,
+  every run keeps them current. In a folder of repositories it documents each one; in your home
+  folder it documents nothing and opens the library.
+- **One archdoc per machine.** A second `archdoc`, in another project, opens that project in the one
+  already running instead of failing on the port. `archdoc restart` stops it and starts it again in
+  the terminal you are in — on the same address, so open pages keep working — which is how a newly
+  set `ANTHROPIC_API_KEY` is picked up.
+- **The library: `archdoc library`.** Every repository, and folder of them, this machine has
+  documented or served, with what changed in each since you last opened it here, what couldn't be
+  resolved, and when it last changed — shown with one project too, and first in every project's
+  breadcrumb. The list is a file in your user configuration folder, never in a repository.
+  `archdoc home` is now `archdoc library`.
+- **Enrich with AI.** The app's paid update is named for what it does; it still shows what it would
+  send and cost first.
 - **What changed across a system.** Beside its map, a system tells each repository's latest version
   in the sentence that repository's own What changed writes, the most recent first, and says which of
   the others require it.
@@ -70,14 +82,14 @@ what is different for a user.
 - **The Map's boxes say their kind at a glance.** Each icon sits on a tile of its kind's colour. The
   count of calls archdoc couldn't resolve, in a box's corner, no longer changes with the theme: the
   diagram is the same drawing in light and dark.
-- **The archdoc wordmark goes home**: to Home, a system's map, or the website's start — wherever is
+- **The archdoc wordmark goes home**: to the library, a system's map, or the website's start — wherever is
   above the repository you are reading.
 - **Update from the app, with or without AI.** On this machine the top bar says *Out of date* when
-  another commit is checked out than the documentation was made from — Home says it on each card too
-  — and its menu updates it: **Update**, free and offline, as `archdoc generate` does; and **Update
+  another commit is checked out than the documentation was made from — the library says it on each card too
+  — and its menu updates it: **Update**, free and offline, as `archdoc generate` does; and **Enrich
   with AI**, which first says what labels and explanations would send and roughly cost, each to tick
   or not, and then sends no more requests, and costs no more than a little over, what you agreed to.
-  It needs `ANTHROPIC_API_KEY` in the shell `archdoc serve` started from. One update runs at a time,
+  It needs `ANTHROPIC_API_KEY` in the shell archdoc started from (`archdoc restart` picks up a new one). One update runs at a time,
   from here or a terminal; a band above the page follows it and says how it ended.
 - **`GenerateOptions.DryRun`**, in the library: every paid run's requests — label's, then explain's,
   from one reading — are put to its Consent, and the run stops: nothing sent, nothing written, and the

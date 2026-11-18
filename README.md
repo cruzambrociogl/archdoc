@@ -46,6 +46,7 @@ What it does now:
 
 | | |
 |---|---|
+| `archdoc`, in a project | The one command: documents the project you are in — from anywhere inside it — free and offline, and opens it in the browser. Writes only `.archdoc/`; the documents are written when you ask, from the app's Documents or with `generate`, and kept current after that. One archdoc serves the whole machine: run it in another project and that one opens in the same app, beside the first in the **library**. In a folder of repositories it reads each one. `archdoc restart` starts it again from the terminal you are in — after setting `ANTHROPIC_API_KEY`, say |
 | `archdoc generate` | C4 context and container diagrams; inside each container whose code it reads, its components and its tables; every route, page, command and background job; what each route or job sets off; the packages each container depends on and where it uses them; twelve arc42 sections and a coverage report — every element cited at its line |
 | `archdoc generate`, on something small | A folder of scripts or a single page, with no manifest, is documented from its files; a project of one application and a few files gets one page instead of twelve chapters |
 | `archdoc explain` | Asks a model what each component does — the one of two commands that cost money, and it says what it will send and what that should cost, and asks, first (`--dry-run` prints the requests). It is sent names, paths and the code's own one-line route summaries, never code — logged as `structure-and-summaries`; every sentence must cite the facts it rests on or it is refused; answers are remembered, so nothing is asked twice. `--limit N` and `--only <id>` ask about fewer; a component of one file with no route or table is not asked about |
@@ -56,7 +57,7 @@ What it does now:
 | `archdoc scan` | What `generate` would find, written nowhere |
 | `archdoc diff <path> <commit> [<commit>]` | What changed in the architecture between two commits, or since one, said as a reader would — "cache renamed to store"; `--detail` lists every change under its class: added, removed, renamed, re-bounded, protocol-changed, changed. Needs git |
 | `archdoc init` | A `.archdoc/rules.yaml` to correct the model in, every line a comment until you write one |
-| `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see. Its status menu updates the documentation — free, as `generate` does, or with AI after saying what it would send and cost |
+| `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see. Its status menu updates the documentation — free, as `generate` does, or **Enrich with AI** after saying what it would send and cost |
 | `archdoc export --site` | The same app as a static site a team opens without archdoc — GitHub Pages, any static host |
 
 Every command explains itself — `archdoc help <command>` — and exits 0 when done, 1 when something
@@ -490,11 +491,12 @@ Served on a folder that holds several documented repositories, the app opens on 
 map**: how they fit together — which repository requires which one's package, cited at both ends,
 and how far a pinned commit is behind — and each repository's pages under it.
 
-`./archdoc home` opens **Home**: every repository and system this machine has documented or served,
-and what changed in each since you last opened it here. `generate` and `serve` remember the folder in
-a file in your user configuration folder — never in the repository.
+`./archdoc library` opens the **library**: every repository and system this machine has documented
+or served, and what changed in each since you last opened it here — in this machine's one archdoc, the
+one a bare `archdoc` starts. A bare `archdoc`, `generate` and `serve` remember the folder in a file in
+your user configuration folder — never in the repository.
 
-With `ANTHROPIC_API_KEY` set where `archdoc serve` starts, the app also **asks**: a question typed
+With `ANTHROPIC_API_KEY` set where archdoc starts, the app also **asks**: a question typed
 into the search box is answered from what archdoc read, each sentence cited, and **Did it build what
 I asked?** reads the plan files you name against the code. Each says what it sends and what it
 costs before sending; every request is in *What left this machine*.

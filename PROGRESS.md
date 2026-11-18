@@ -5,7 +5,7 @@ criteria (§12). These are the project's own work breakdown — no parallel TODO
 
 **Status key:** `·` not started · `~` in progress · `✓` done · `⊘` superseded, see note
 
-Last updated: 2026-11-17 (the surface's revision 8, after round 7; before that, revision 7 and the facts since 29 Oct — see "Where this stands" below)
+Last updated: 2026-11-18 (the local version in one command; the surface's revision 8, after round 7; before that, revision 7 and the facts since 29 Oct — see "Where this stands" below)
 
 ---
 
@@ -33,8 +33,8 @@ swapped in; the website's unchanged run — errors that say what still works, lo
 for, links to a page, version or part that is gone, the Overview's picture as a list, reduced motion.
 Stage 4 has begun with the system level: `archdoc serve` on a folder of repositories shows the
 System map — code links read from every manifest, Go's included, cited at both ends, with drift.
-Home is built too: `archdoc home` lists every place this machine remembers, with what changed in each
-since it was last opened here; and the system's What changed, each repository's latest version told,
+Home is built too — since 18 Nov the **library**, `archdoc library` — listing every place this
+machine remembers, with what changed in each since it was last opened here; and the system's What changed, each repository's latest version told,
 with who in the system requires it. Stage 4 is built but for what waits on other features —
 generating from Home, and systems and Home on the website, which need accounts. Ask and "Did it
 build what I asked?" are built in the local app, on the person's own key: facts chosen without a
@@ -43,9 +43,14 @@ One update runs at a time: `generate` holds the repository while it writes, a se
 says for whom, and the app says an update is running in the terminal, with what it is doing. A Map
 link to a part a version lacks says where it went. Locally, the app updates the documentation itself
 (`../archdoc-platform/docs/decisions.md`, 23 Oct): the top bar says Out of date when another commit
-is checked out, and so does Home; Update is free and offline, and Update with AI first shows what label
+is checked out, and so does the library; Update is free and offline, and Enrich with AI first shows what label
 and explain would send and cost — a dry run of the same pipeline — and never sends more than was
 agreed to. On the platform it stays off until the security analysis.
+**The local version in one command** (18 Nov, `docs/decisions.md`): a bare `archdoc` documents the
+repository it is run in — from any subfolder, or each one in a folder of them — writing only
+`.archdoc/` until the documents are asked for, and opens it in this machine's one archdoc; a second
+`archdoc` joins the running one, and `archdoc restart` takes it over. Not built yet: `archdoc update`
+and `archdoc uninstall`, which need something published to download from.
 A coding agent can ask archdoc too: `archdoc mcp` answers Claude Code, Cursor or any MCP client —
 what the system is, one thing with its proof, every route or table, what a change to a part or a
 class touches, what changed, whether the documentation is current — locally, read-only, cited. A

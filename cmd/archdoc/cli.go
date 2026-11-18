@@ -18,9 +18,12 @@ type env struct {
 	out      io.Writer
 	in       io.Reader
 	terminal bool
-	// remember keeps this machine's list of documented places, which Home shows: the real command
-	// only, so a test never writes into its user's list.
+	// remember keeps this machine's list of documented places, which the library shows: the real
+	// command only, so a test never writes into its user's list.
 	remember bool
+	// machine lets a command serve, find or stop this machine's one archdoc: the real command only,
+	// so a test never opens a browser or stops the archdoc its user is running.
+	machine bool
 }
 
 // command is one thing archdoc does. The table below is the only list of them: the usage text, a
@@ -85,9 +88,12 @@ func init() {
 			"Serves the app on this machine only. Ctrl-C stops it. A folder holding several documented repositories\n" +
 				"is served as one system: how they fit together, and each one's pages. The app can update the\n" +
 				"documentation as generate does; with AI only after showing what it sends and costs, on ANTHROPIC_API_KEY.", groupRead, serveCommand},
-		{"home", "", "open Home: every repository, and folder of them, this machine has documented",
-			"What changed in each since you last opened it here. The list is a file in your user configuration\n" +
-				"folder; generate and serve add to it.", groupRead, homeCommand},
+		{"library", "", "open the library: every project this machine has documented",
+			"Opens this machine's archdoc on its library, starting it if none is running. The list is a file in your\n" +
+				"user configuration folder; a bare archdoc, generate and serve add to it.", groupRead, libraryCommand},
+		{"restart", "", "restart this machine's archdoc, reading this terminal's environment",
+			"Stops the archdoc serving this machine and starts it again here, on the same address, so pages open in\n" +
+				"a browser go on working. Run it after setting ANTHROPIC_API_KEY, or after updating archdoc.", groupRead, restart},
 		{"mcp", "[<path>]", "answer a coding agent's questions about the architecture, over MCP",
 			"Speaks the Model Context Protocol on stdin and stdout, for Claude Code, Cursor or any MCP client, which\n" +
 				"starts it in the repository it works in. The agent asks what show, status and the app's Impact answer —\n" +
@@ -146,7 +152,8 @@ func exitCode(err error) int {
 
 func usage(out io.Writer) {
 	fmt.Fprint(out, "archdoc — architecture documentation, read from a repository's code and configuration\n\n")
-	fmt.Fprint(out, "usage:\n  archdoc <command> <path> [flags]\n  archdoc help <command>      a command's flags and what it does\n")
+	fmt.Fprint(out, "usage:\n  archdoc                     document the project you are in and open it — free, offline\n"+
+		"  archdoc <command> <path> [flags]\n  archdoc help <command>      a command's flags and what it does\n")
 	for _, g := range groups {
 		fmt.Fprintf(out, "\n%s:\n", g)
 		for _, c := range commands {

@@ -19,7 +19,12 @@ import (
 // and folders of them — at /api/home, and each one's own API under /at/{id}/, as `archdoc serve`
 // would serve it alone. Opening a place from Home is an action: it remembers each repository's
 // version then, which is what "changed since you last looked" counts from.
-func NewHome(up Updater) http.Handler {
+func NewHome(up Updater) http.Handler { return newHome(up, nil) }
+
+// newHome is Home, and — given stop — this machine's one archdoc, which another can ask to stop
+// (machine.go). Its session names its process, so the archdoc that finds it knows it is the one
+// that recorded itself.
+func newHome(up Updater, stop func()) http.Handler {
 	token := newToken()
 	mux := http.NewServeMux()
 	var mu sync.Mutex
@@ -27,8 +32,14 @@ func NewHome(up Updater) http.Handler {
 
 	mux.HandleFunc("GET /api/session", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		send(w, map[string]any{"token": token, "mode": "home"})
+		send(w, map[string]any{"token": token, "mode": "home", "pid": os.Getpid()})
 	})
+	if stop != nil {
+		mux.HandleFunc("/api/machine/stop", gated(token, func(w http.ResponseWriter, r *http.Request) {
+			send(w, map[string]any{"stopping": true})
+			stop()
+		}))
+	}
 	mux.HandleFunc("GET /api/home", func(w http.ResponseWriter, r *http.Request) {
 		list, err := recent.List()
 		if err != nil {

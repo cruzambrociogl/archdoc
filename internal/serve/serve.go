@@ -160,8 +160,18 @@ func ListenAndServeHome(ctx context.Context, port int, up Updater, ready func(ur
 func listen(ctx context.Context, srv http.Handler, port int, ready func(url string)) error {
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
+		if port == MachinePort {
+			if m, ok := Running(); ok && m.Port == port {
+				return fmt.Errorf("port %d is this machine's archdoc, at %s — open the project there with a bare 'archdoc' in it, or serve on another --port", port, m.URL())
+			}
+		}
 		return err
 	}
+	return serveOn(ctx, ln, srv, ready)
+}
+
+// serveOn serves a handler on a listener already bound to the loopback interface, until ctx ends.
+func serveOn(ctx context.Context, ln net.Listener, srv http.Handler, ready func(url string)) error {
 	hs := &http.Server{Handler: srv, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		<-ctx.Done()

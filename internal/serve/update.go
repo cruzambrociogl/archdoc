@@ -41,6 +41,9 @@ type Run struct {
 	Agree  func(Ask) error
 	// Log receives what generate prints.
 	Log io.Writer
+	// Docs writes the documents into docs/architecture/, as archdoc generate does. Without it an
+	// update writes them only where archdoc has written them before (decisions, 18 Nov 2026).
+	Docs bool
 }
 
 // Ask is what one paid run would send, as Agree is shown it.
@@ -126,6 +129,8 @@ type update struct {
 	Label   bool           `json:"label"`
 	Explain bool           `json:"explain"`
 	Agreed  map[string]Ask `json:"agreed"`
+	// Docs also writes the documents into the repository — the Documents screen's button.
+	Docs bool `json:"docs"`
 }
 
 // previewUpdate says what an update with AI would send and roughly cost: a dry run of the
@@ -164,7 +169,7 @@ func (s *Server) startUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	ai := body.Label || body.Explain
 	if ai && strings.TrimSpace(os.Getenv(keyVar)) == "" {
-		refuse(w, http.StatusBadRequest, keyVar+" isn’t set in the shell archdoc serve was started from — set it there and start archdoc serve again")
+		refuse(w, http.StatusBadRequest, keyVar+" isn’t set where archdoc was started — set it in a terminal, then run archdoc restart there")
 		return
 	}
 	s.app.mu.Lock()
@@ -191,7 +196,7 @@ func (s *Server) startUpdate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) runUpdate(body update, started time.Time) {
 	var log bytes.Buffer
 	agree := func(a Ask) error { return withinAgreed(a, body.Agreed[a.What]) }
-	out, err := s.update(context.Background(), s.root, Run{Label: body.Label, Explain: body.Explain, Agree: agree, Log: &syncWriter{w: &log}})
+	out, err := s.update(context.Background(), s.root, Run{Label: body.Label, Explain: body.Explain, Docs: body.Docs, Agree: agree, Log: &syncWriter{w: &log}})
 	end := &finished{AI: body.Label || body.Explain, Started: started, Finished: time.Now(), Version: out.Version, Changed: out.Changed, Log: tail(log.String(), 40)}
 	if err != nil {
 		end.Error = err.Error()

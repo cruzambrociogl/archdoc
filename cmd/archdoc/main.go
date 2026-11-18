@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	err := runIn(env{out: os.Stdout, in: os.Stdin, terminal: interactive(os.Stdin), remember: true}, os.Args[1:])
+	err := runIn(env{out: os.Stdout, in: os.Stdin, terminal: interactive(os.Stdin), remember: true, machine: true}, os.Args[1:])
 	code := exitCode(err)
 	if code != 0 {
 		fmt.Fprintln(os.Stderr, "archdoc:", err)
@@ -39,8 +39,7 @@ func run(args []string, out io.Writer) error {
 
 func runIn(e env, args []string) error {
 	if len(args) == 0 {
-		usage(e.out)
-		return nil
+		return openHere(e, ".")
 	}
 	switch args[0] {
 	case "-h", "--help":
@@ -51,6 +50,10 @@ func runIn(e env, args []string) error {
 	}
 	c, ok := lookupCommand(args[0])
 	if !ok {
+		// archdoc <folder>: the bare command, from there. A command's name always wins.
+		if info, err := os.Stat(args[0]); err == nil && info.IsDir() && len(args) == 1 {
+			return openHere(e, args[0])
+		}
 		return unknownCommand(args[0])
 	}
 	return c.run(e, args[1:])

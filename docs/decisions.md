@@ -1374,3 +1374,33 @@ smart search → duplicates, in the facts; 492 fewer steps, cut flows 69 → 44,
 job, 18 more reached. eShopOnWeb's eight one-arrow flows, an endpoint calling its own `HandleAsync`,
 are gone; petclinic loses a validation helper.
 → `internal/code/script.go` (`caseOf`), `core.Mention.Case`, `internal/model/flows.go` (`queuedAfter`, `whenDone`, `handOffs`, `leaf`, `leadsOut`); `TestJobsQueuedWhenAJobIsDone`, `TestCutFlowsKeepWhereTheyLead`
+
+**2026-11-18 — The local version is one command: `archdoc`, in the project**
+Installing and using archdoc should take no configuration. A bare `archdoc` documents where it is
+run and opens the app; the subcommands stay for scripts and anyone who wants the flags. Some
+configuration is given up for that.
+- **It writes only `.archdoc/`.** That holds the model the app reads. The Markdown documentation in
+  `docs/architecture/` is written only when asked for, by `archdoc generate` or from the app, so a
+  first look does not leave a dozen new files in the person's working tree.
+- **It finds the project.** Run in a subfolder, it moves up to the git root. Run in a folder that
+  holds several repositories, it opens Home with all of them.
+- **There is one archdoc per machine.** A second `archdoc`, in another project, adds that project to
+  the one already serving and opens its page, instead of failing on port 7474.
+- The bare command is the one exception to "the commands that write need a path". The subcommands
+  keep the rule.
+- AI is never part of the one command. The app's *Update with AI* becomes *Enrich with AI*, a
+  deliberate step that still says what it sends and costs first. The key stays in
+  `ANTHROPIC_API_KEY` and nothing stores it.
+- `archdoc update` and `archdoc uninstall` are added. Connecting a coding agent in one step
+  (`archdoc connect claude`) is on hold.
+- **Built the same day.** `archdoc.Locate` finds the place; `GenerateOptions.DocsIfThere` writes the
+  documents only where they are; the app's updates use it too, and the Documents screen writes them
+  on request. Home's server is the machine's archdoc. It records itself in the user's configuration
+  folder (`running.json`), takes any free port when another program has 7474, and stops when
+  `archdoc restart` asks. That request goes to 127.0.0.1 only, from `internal/serve`, the package the
+  network boundary already lets serve: no request leaves the machine.
+- **Home here is the library.** Nav F calls a project's first page Home, so this machine's list of
+  projects is the *library*, and `archdoc home` is `archdoc library`. It is there with one project
+  too, which reverses platform-surface §5.3's "with one repository there is no Home" for this
+  machine: the library is where the next project appears.
+- `update` and `uninstall` wait: nothing is published to update from yet.

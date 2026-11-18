@@ -65,6 +65,18 @@ type GenerateOptions struct {
 	Progress func(Progress)
 	// By names who is updating, for anyone who looks while it runs: "archdoc generate" when empty.
 	By string
+	// DocsIfThere writes docs/architecture/ only where archdoc has written it before — its index is
+	// there — and otherwise only .archdoc/, which the app reads. What a bare `archdoc` and the app's
+	// own updates do: a first look leaves no documents in someone's working tree, and documents they
+	// asked for once stay current (decisions, 18 Nov 2026).
+	DocsIfThere bool
+}
+
+// DocsWritten reports whether archdoc's documents are in the repository at root: what DocsIfThere
+// keeps current.
+func DocsWritten(root string) bool {
+	_, err := os.Stat(filepath.Join(root, docsDir, render.IndexFile))
+	return err == nil
 }
 
 // LabelOptions is a label run: the model to ask, and who agrees to sending.
@@ -424,6 +436,12 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 			fmt.Fprintf(out, "wrote %s\n", rel)
 		}
 	}
+	// Documents only where they are wanted: always for generate, and with DocsIfThere only where
+	// archdoc has written them before. Not writing them writes, removes and creates nothing there.
+	docs := !o.DocsIfThere || DocsWritten(facts.Root)
+	if !docs {
+		generated = nil
+	}
 	for _, name := range sortedKeys(generated) {
 		if err := write(facts.Root, filepath.Join(docsDir, name), generated[name]); err != nil {
 			return nil, err
@@ -435,6 +453,9 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 	// document no longer has, an older layout's file, a picture the layout could not draw — would
 	// otherwise sit beside the current set looking current. They are removed; nothing else is.
 	for _, name := range orphans(facts.Root, generated) {
+		if !docs {
+			break // generated is empty: every file archdoc wrote would look like an orphan
+		}
 		if err := os.Remove(filepath.Join(facts.Root, docsDir, name)); err != nil {
 			return nil, err
 		}
@@ -463,7 +484,7 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 	created := 0
 	stubs := render.Stubs(m, plan, meta)
 	for _, name := range sortedKeys(stubs) {
-		if existing[name] {
+		if existing[name] || !docs {
 			continue
 		}
 		if err := write(facts.Root, filepath.Join(docsDir, name), stubs[name]); err != nil {
@@ -477,7 +498,10 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 		}
 		created++
 	}
-	if !o.Verbose {
+	switch {
+	case !docs:
+		fmt.Fprintf(out, "wrote %d files into %s; no documents in %s — 'archdoc generate' writes them, or the app's Documents\n", written, stateDir, docsDir)
+	case !o.Verbose:
 		fmt.Fprintf(out, "wrote %d files into %s and %s — --verbose lists them\n", written, docsDir, stateDir)
 	}
 

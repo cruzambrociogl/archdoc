@@ -2,7 +2,7 @@
 //
 // It is separate from package archdoc so that the engine's API never imports an HTTP package: the
 // network-boundary check stays about imports, not exceptions. Like internal/serve, which does the
-// work, this package only listens; it sends nothing anywhere — the app's Update with AI goes
+// work, this package only listens; it sends nothing anywhere — the app's Enrich with AI goes
 // through package archdoc's paid runs, which ask internal/semantic.
 package server
 
@@ -27,6 +27,28 @@ func ListenAndServeHome(ctx context.Context, port int, ready func(url string)) e
 	return serve.ListenAndServeHome(ctx, port, update, ready)
 }
 
+// Machine is the archdoc serving this machine's library: one per machine (decisions, 18 Nov 2026).
+type Machine = serve.Machine
+
+// ErrHandedOver ends ServeMachine when another archdoc asked it to stop — `archdoc restart`.
+var ErrHandedOver = serve.ErrHandedOver
+
+// MachinePort is where the library is served when nothing else has the port.
+const MachinePort = serve.MachinePort
+
+// Running is the archdoc serving this machine's library, if one is.
+func Running() (Machine, bool) { return serve.Running() }
+
+// ServeMachine serves the library — every place this machine remembers, each one's own pages —
+// as this machine's one archdoc, until ctx ends or another archdoc asks it to stop. It takes port,
+// or any free port when another program has that one. ready is called with the library's address.
+func ServeMachine(ctx context.Context, port int, ready func(url string)) error {
+	return serve.ServeMachine(ctx, port, update, ready)
+}
+
+// Address is the path of a remembered place's pages in the library, for the folder at path.
+func Address(path string) string { return serve.Address(path) }
+
 // update is generate for the app: recorded in the repository's history like the command's runs,
 // and each paid run put to the app's Agree with what it would send and cost.
 func update(ctx context.Context, root string, r serve.Run) (serve.Outcome, error) {
@@ -40,7 +62,7 @@ func update(ctx context.Context, root string, r serve.Run) (serve.Outcome, error
 		}
 		return err
 	})
-	o := archdoc.GenerateOptions{Log: r.Log, History: true, DryRun: r.DryRun, By: "the app"}
+	o := archdoc.GenerateOptions{Log: r.Log, History: true, DryRun: r.DryRun, By: "the app", DocsIfThere: !r.Docs}
 	if r.Label {
 		o.Label = &archdoc.LabelOptions{Model: archdoc.LabelModel, Consent: agree}
 	}

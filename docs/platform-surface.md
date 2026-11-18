@@ -252,7 +252,7 @@ The hook that brings people back.
 
 ### Flow 7 — Local · L
 
-1. `archdoc` with no arguments opens **Home** (§5.3) — recent folders and systems.
+1. `archdoc` with no arguments documents the project it is run in and opens it; the **library** (§5.3) lists every project on the machine (decisions, 18 Nov 2026).
 2. Open a folder → **Generate** → the narrative of §5.2, locally.
 3. The same app as the platform (§4.1): the same pages and names, with the local features of §4.5.
 
@@ -690,6 +690,10 @@ anyone who arrives without one. A signed-out visitor at the app's root is sent t
 - **Private** — sign in to continue.
 
 ### 5.3 Home · L, D
+
+> **18 Nov 2026, locally:** this page is the **library** — Nav F calls a project's first page Home —
+> and it is there with one repository too: one archdoc serves the whole machine, and the library is
+> where the next project appears. `docs/decisions.md`, 18 Nov 2026.
 
 **Answers:** did anything change since I last looked?
 

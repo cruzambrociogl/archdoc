@@ -14,11 +14,6 @@ func TestRun(t *testing.T) {
 		wantMatch string
 	}{
 		{
-			name:      "no arguments prints usage",
-			args:      nil,
-			wantMatch: "usage:",
-		},
-		{
 			name:      "help prints usage",
 			args:      []string{"help"},
 			wantMatch: "usage:",

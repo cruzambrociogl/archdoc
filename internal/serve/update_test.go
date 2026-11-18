@@ -109,7 +109,7 @@ func TestUpdateFromTheApp(t *testing.T) {
 	if got.Running || got.Last == nil || got.Last.Version != 3 || !got.Last.Changed || got.Last.Error != "" || got.Last.AI || !strings.Contains(got.Last.Log, "recorded version 3") {
 		t.Errorf("after it ended: %+v %+v", got, got.Last)
 	}
-	if asked.Label || asked.Explain || asked.DryRun {
+	if asked.Label || asked.Explain || asked.DryRun || asked.Docs {
 		t.Errorf("a plain update asked for %+v", asked)
 	}
 
@@ -120,6 +120,26 @@ func TestUpdateFromTheApp(t *testing.T) {
 	defer l.Release()
 	if rec := do("POST", "/api/update", ""); rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "archdoc generate") {
 		t.Errorf("while the terminal updates: %d %s", rec.Code, rec.Body)
+	}
+}
+
+// The Documents screen's button writes the documents into the repository: an update that says so.
+func TestUpdateWritesTheDocumentsWhenAsked(t *testing.T) {
+	asked := make(chan Run, 1)
+	_, do := updatingServer(t, func(ctx context.Context, root string, r Run) (Outcome, error) {
+		asked <- r
+		return Outcome{}, nil
+	})
+	if rec := do("POST", "/api/update", `{"docs":true}`); rec.Code != http.StatusAccepted {
+		t.Fatalf("update: %d %s", rec.Code, rec.Body)
+	}
+	select {
+	case r := <-asked:
+		if !r.Docs || r.Label || r.Explain {
+			t.Errorf("asked to write the documents, the run was %+v", r)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no run started")
 	}
 }
 
