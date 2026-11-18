@@ -176,6 +176,10 @@ func ExportFrom(root string, since int64, fixed *Fixed) (map[string][]byte, erro
 	if err := put("/api/coverage", true); err != nil {
 		return nil, err
 	}
+	// The explanation, when there is one of the latest version's architecture.
+	if err := put("/api/interpretation", true); err != nil {
+		return nil, err
+	}
 	// Completeness by size only: a published site is built from a fresh checkout, where every
 	// modification time is the checkout's, so staleness would mean nothing there.
 	comp, err := get("/api/completeness?basis=size", false)

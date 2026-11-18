@@ -343,3 +343,35 @@ func TestThePageRunsUnderThePolicy(t *testing.T) {
 		t.Errorf("the policy allows inline or evaluated script: %q", csp)
 	}
 }
+
+// The explanation is served for the version whose architecture it explains, and for no other: a
+// version that changed since reads without AI rather than with another architecture's explanation.
+func TestTheExplanationIsServedOnlyForItsArchitecture(t *testing.T) {
+	ts, root := server(t)
+	if code, _ := get(t, ts, "/api/interpretation"); code != http.StatusNotFound {
+		t.Errorf("no explanation: %d, want 404", code)
+	}
+	h, err := store.Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	latest, _ := h.Latest()
+	h.Close()
+	write := func(fingerprint string) {
+		b, _ := json.Marshal(map[string]any{"thesis": map[string]any{"text": "A shop."}, "fingerprint": fingerprint})
+		if err := os.WriteFile(filepath.Join(root, ".archdoc", interpretationFile), b, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(latest.Fingerprint)
+	if code, b := get(t, ts, "/api/interpretation"); code != http.StatusOK || !strings.Contains(string(b), "A shop.") {
+		t.Errorf("the latest version's explanation: %d %s", code, b)
+	}
+	if code, _ := get(t, ts, "/api/interpretation?version=1"); code != http.StatusNotFound {
+		t.Errorf("an older version, of another architecture: %d, want 404", code)
+	}
+	write("another architecture")
+	if code, _ := get(t, ts, "/api/interpretation"); code != http.StatusNotFound {
+		t.Errorf("an explanation of another architecture: %d, want 404", code)
+	}
+}

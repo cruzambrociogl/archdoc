@@ -99,6 +99,7 @@ func newServer(root, history string, up Updater) *Server {
 	s.mux.HandleFunc("GET /api/questions", s.questions)
 	s.mux.HandleFunc("GET /api/views", s.views)
 	s.mux.HandleFunc("GET /api/coverage", s.coverage)
+	s.mux.HandleFunc("GET /api/interpretation", s.interpretation)
 
 	// Actions — each one behind the gate (guard.go).
 	s.mux.HandleFunc("/api/layout", s.action(s.saveLayout))
@@ -204,6 +205,47 @@ func (s *Server) coverage(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		fail(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
+}
+
+// interpretationFile is where 'archdoc interpret' keeps the system explained (package archdoc's
+// InterpretationFile), beside the model.
+const interpretationFile = "interpretation.json"
+
+// interpretation serves the AI's explanation of the requested version — only when it explains that
+// version's architecture. A version whose architecture changed since reads without AI, never with an
+// explanation of another architecture (platform decisions, 18 Nov).
+func (s *Server) interpretation(w http.ResponseWriter, r *http.Request) {
+	if s.fixed != nil {
+		notFound(w, "a site built from a record carries no explanation yet")
+		return
+	}
+	v, err := s.version(r, "version")
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	b, err := os.ReadFile(filepath.Join(s.root, ".archdoc", interpretationFile))
+	if errors.Is(err, os.ErrNotExist) {
+		notFound(w, "not explained — 'archdoc interpret' explains it")
+		return
+	}
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	var head struct {
+		Fingerprint string `json:"fingerprint"`
+	}
+	if err := json.Unmarshal(b, &head); err != nil {
+		fail(w, fmt.Errorf(".archdoc/%s: %w", interpretationFile, err))
+		return
+	}
+	if head.Fingerprint == "" || head.Fingerprint != v.Fingerprint {
+		notFound(w, "this version is not explained: its architecture is not the one explained")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

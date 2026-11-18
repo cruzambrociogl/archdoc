@@ -661,3 +661,92 @@ export interface PlanCheck {
   additions: number
   model?: string
 }
+
+// ——— the system explained ———
+// What 'archdoc interpret' (and the website's Explaining phase) made of a version: the engine's
+// Interpretation, read at /api/interpretation. Every claim cites facts by their IDs and carries its
+// mark; the app computes nothing it did not store.
+
+/** A claim's mark (platform-surface §4.7): proven by a rule over facts, or written by a model. */
+export type Mark = 'proven' | 'written-by-ai'
+
+export interface InterpretedClaim {
+  text: string
+  cites: string[]
+  mark: Mark
+}
+
+/** A feature, a concept or an area: what it holds — entry, table or component IDs. */
+export interface InterpretedGroup {
+  name: string
+  says: string
+  members: string[]
+  /** A feature's components, the parts its flows pass through. */
+  parts?: string[]
+  /** The area nearly every other one uses. */
+  everywhere?: boolean
+  mark: Mark
+}
+
+export interface ScenarioStep {
+  text: string
+  /** The steps of the flow, as the model was given them, this sentence stands for: its own, then its background work. */
+  from: number
+  to: number
+  background?: boolean
+  /** The elements those steps touch: components, tables, jobs, routes. */
+  crosses?: string[]
+}
+
+export interface Scenario {
+  title: string
+  /** The entry point whose flow the story follows. */
+  flow: string
+  steps: ScenarioStep[]
+  mark: Mark
+}
+
+export interface ReviewPoint {
+  text: string
+  kind: 'observation' | 'question'
+  cites: string[]
+  mark: Mark
+}
+
+/** What to notice in one diagram, by the view's name. */
+export interface DiagramNote {
+  diagram: string
+  text: string
+  cites: string[]
+  mark: Mark
+}
+
+export interface Interpretation {
+  thesis: InterpretedClaim
+  features: InterpretedGroup[]
+  concepts: InterpretedGroup[]
+  areas?: InterpretedGroup[]
+  /** The container the areas divide. */
+  areas_of?: string
+  scenarios: Scenario[] | null
+  review: ReviewPoint[] | null
+  notes?: DiagramNote[]
+  /** Features that look drawn by container or by kind rather than purpose: said, not changed. */
+  flags?: string[]
+  fixes?: Record<string, number>
+  calls: { stage: string; model: string; input_tokens: number; output_tokens: number; cost: number; cost_known: boolean }[]
+  cost: number
+  cost_known: boolean
+  fingerprint?: string
+}
+
+/**
+ * The explanation of a version, or none. A version without one — never explained, or of an
+ * architecture other than the one explained — is a state, not an error: `missing` says why.
+ */
+export function useInterpretation(version?: number | null) {
+  const { data, error, loading } = useApi<Interpretation>(
+    '/api/interpretation' + (version ? `?version=${version}` : ''),
+  )
+  return { interpretation: data, missing: error, loading }
+}
