@@ -26,7 +26,8 @@ const screenNames: [Screen, string][] = [
   ['architecture', 'Architecture · C4 · Map'],
   ['data', 'Data · What it stores'],
   ['features', 'Features · What it does'],
-  ['usage', 'Usage · Routes · Commands · Pages'],
+  ['usage', 'Usage · Screens · API · Command line'],
+  ['entries', 'Every entry point · Routes · Pages · Commands · Jobs'],
   ['changes', 'Changes · What changed'],
   ['reference', 'Reference'],
   ['deps', 'What it relies on · Dependencies'],
@@ -107,7 +108,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
         title: `${e.method} ${e.path}`,
         meta: e.summary ?? e.handler,
         cite: at(e.provenance),
-        go: () => props.go({ screen: 'usage', focus: e.id }),
+        go: () => props.go({ screen: e.kind === 'job' ? 'entries' : 'usage', focus: e.id }),
       })
     }
 

@@ -15,6 +15,7 @@ import { MarksBand, Rail, RailProvider, marksSeen } from './shell/Rail'
 import { Explorer } from './screens/explorer/Explorer'
 import { Part } from './screens/part/Part'
 import { Trust } from './screens/trust/Trust'
+import { Usage } from './screens/usage/Usage'
 import { Overview } from './screens/Overview'
 import { Features } from './screens/Features'
 import { WhatItDoes } from './screens/WhatItDoes'
@@ -154,7 +155,8 @@ function Shell() {
                 )}
                 {route.screen === 'part' && <Part route={route} go={go} version={version} onNames={setPartNames} />}
                 {route.screen === 'features' && <WhatItDoes version={version} go={go} />}
-                {route.screen === 'usage' && <Features version={version} route={route} go={go} />}
+                {route.screen === 'usage' && <Usage route={route} go={go} version={version} summary={s} />}
+                {route.screen === 'entries' && <Features version={version} route={route} go={go} />}
                 {route.screen === 'component' && <Component version={version} route={route} go={go} />}
                 {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
                 {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} />}

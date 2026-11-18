@@ -1133,6 +1133,9 @@
   height: clamp(340px, 58vh, 620px);
   border: 1px solid var(--rule-soft);
 }
+.view-diagram.small {
+  height: 220px;
+}
 .view-diagram .react-flow__node {
   cursor: default;
 }

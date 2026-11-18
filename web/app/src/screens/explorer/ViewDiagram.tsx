@@ -23,6 +23,8 @@ export function ViewDiagram(props: {
   onFind: (q: string) => void
   /** Where a box can be picked — One part's subject — what picking does. */
   onPick?: (id: string) => void
+  /** A small map beside something else: no find box, and less height. */
+  small?: boolean
 }) {
   return (
     <ReactFlowProvider>
@@ -48,8 +50,9 @@ function Diagram(props: Parameters<typeof ViewDiagram>[0]) {
     [props.scene, props.subject, props.find, props.highlight, found],
   )
 
-  // "/" moves to Find a part, unless something is being typed.
+  // "/" moves to Find a part, unless something is being typed. A small map has no find box.
   useEffect(() => {
+    if (props.small) return
     const on = (e: KeyboardEvent) => {
       if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
       if ((e.target as HTMLElement).closest('input, select, textarea, [contenteditable]')) return
@@ -58,38 +61,40 @@ function Diagram(props: Parameters<typeof ViewDiagram>[0]) {
     }
     window.addEventListener('keydown', on)
     return () => window.removeEventListener('keydown', on)
-  }, [])
+  }, [props.small])
 
   const first = found ? (props.scene.model.nodes ?? []).find((n) => found.lit.has(n.id) && n.kind !== 'actor') : undefined
 
   return (
-    <div className={`explorer-canvas view-diagram ${props.onPick ? 'pickable' : ''}`}>
+    <div className={`explorer-canvas view-diagram ${props.onPick ? 'pickable' : ''} ${props.small ? 'small' : ''}`}>
       <Markers />
-      <div className="canvas-tools">
-        <label className="find">
-          <span>/</span>
-          <input
-            ref={findRef}
-            value={props.find}
-            aria-label="Find a part"
-            placeholder="Find a part"
-            onChange={(e) => props.onFind(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && first && props.onPick) props.onPick(first.id)
-              if (e.key === 'Escape') {
-                props.onFind('')
-                e.currentTarget.blur()
-                e.stopPropagation()
-              }
-            }}
-          />
-          {found && (
-            <span className="find-count" aria-live="polite">
-              {found.lit.size ? `${found.lit.size} found` : 'none found'}
-            </span>
-          )}
-        </label>
-      </div>
+      {!props.small && (
+        <div className="canvas-tools">
+          <label className="find">
+            <span>/</span>
+            <input
+              ref={findRef}
+              value={props.find}
+              aria-label="Find a part"
+              placeholder="Find a part"
+              onChange={(e) => props.onFind(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && first && props.onPick) props.onPick(first.id)
+                if (e.key === 'Escape') {
+                  props.onFind('')
+                  e.currentTarget.blur()
+                  e.stopPropagation()
+                }
+              }}
+            />
+            {found && (
+              <span className="find-count" aria-live="polite">
+                {found.lit.size ? `${found.lit.size} found` : 'none found'}
+              </span>
+            )}
+          </label>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -103,7 +108,8 @@ function Diagram(props: Parameters<typeof ViewDiagram>[0]) {
         preventScrolling={false}
         zoomOnDoubleClick={false}
         fitView
-        fitViewOptions={{ padding: 0.06 }}
+        // A small map frames what it lights, with what is around it; a full one, the whole system.
+        fitViewOptions={props.small && props.highlight ? { nodes: [...props.highlight.lit].map((id) => ({ id })), padding: 1.4 } : { padding: 0.06 }}
         minZoom={0.1}
         maxZoom={1.6}
         proOptions={{ hideAttribution: true }}

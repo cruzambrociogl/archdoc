@@ -24,6 +24,10 @@ const views: [Route, string][] = [
   [{ screen: 'data', level: 'dataflow' }, '/data/dataflow'],
   [{ screen: 'features' }, '/features'],
   [{ screen: 'usage', focus: 'route:GET /api/albums' }, '/usage?entry=route%3AGET+%2Fapi%2Falbums'],
+  [{ screen: 'usage', face: 'api/svc:immich-server', focus: 'route:GET /api/albums' }, '/usage/api/svc%3Aimmich-server?entry=route%3AGET+%2Fapi%2Falbums'],
+  [{ screen: 'usage', face: 'cli/app:packages/cli', q: 'up' }, '/usage/cli/app%3Apackages%2Fcli?q=up'],
+  [{ screen: 'entries', focus: 'job:immich-server AssetDelete' }, '/reference/entry-points?entry=job%3Aimmich-server+AssetDelete'],
+  [{ screen: 'entries', q: 'album' }, '/reference/entry-points?q=album'],
   [{ screen: 'changes', v: 3, from: 1 }, '/changes?v=3&from=1'],
   [{ screen: 'plan' }, '/plan'],
   [{ screen: 'reference' }, '/reference'],
@@ -50,12 +54,16 @@ test('a router that hands over the path already decoded still finds the part', (
   assert.deepEqual(routeAt('/reference/component/cmp:immich-server/asset', {}), { screen: 'component', focus: 'cmp:immich-server/asset' })
 })
 
+test('a face whose part holds a slash, from a router that decodes the path', () => {
+  assert.deepEqual(routeAt('/usage/cli/app:packages/cli', {}), { screen: 'usage', face: 'cli/app:packages/cli' })
+})
+
 test('the bare address is Home', () => {
   assert.deepEqual(routeAt('/', {}), { screen: 'home' })
 })
 
 test('an address no page lives at is none', () => {
-  for (const path of ['/map', '/overview', '/does', '/architecture/elsewhere', '/architecture/part/svc%3Aredis', '/architecture/part/svc%3Aredis/breaks', '/data/nothing', '/not-built-yet']) {
+  for (const path of ['/map', '/overview', '/does', '/architecture/elsewhere', '/architecture/part/svc%3Aredis', '/architecture/part/svc%3Aredis/breaks', '/data/nothing', '/not-built-yet', '/usage/jobs/svc%3Ax', '/usage/api']) {
     assert.equal(routeAt(path, {}), undefined, path)
   }
 })

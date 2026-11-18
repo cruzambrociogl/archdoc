@@ -52,7 +52,7 @@ export function WhatItDoes(props: { version: number | null; go: (r: Partial<Rout
                         {e.summary && <span className="muted"> — {e.summary}</span>}
                         <span className="feature-entry-right">
                           {flows.has(e.id) && (
-                            <button className="link-btn" onClick={() => props.go({ screen: 'usage', focus: e.id })}>
+                            <button className="link-btn" onClick={() => props.go({ screen: 'entries', focus: e.id })}>
                               How it works →
                             </button>
                           )}
@@ -62,7 +62,7 @@ export function WhatItDoes(props: { version: number | null; go: (r: Partial<Rout
                     ))}
                     {f.entries.length > 12 && (
                       <li>
-                        <button className="link-btn" onClick={() => props.go({ screen: 'usage', q: f.key.startsWith('area:') ? f.key.slice(5) : undefined })}>
+                        <button className="link-btn" onClick={() => props.go({ screen: 'entries', q: f.key.startsWith('area:') ? f.key.slice(5) : undefined })}>
                           All {f.entries.length}, in Every entry point →
                         </button>
                       </li>

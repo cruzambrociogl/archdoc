@@ -21,6 +21,7 @@ export const screens = [
   'changes',
   'plan',
   'reference',
+  'entries',
   'component',
   'deps',
   'docs',
@@ -54,6 +55,8 @@ export interface Route {
   run?: number
   /** One part: which question — what it touches, or what depends on it. */
   question?: 'touches' | 'depends'
+  /** Usage: the face — how, and of which part — "api/svc:immich-server". */
+  face?: string
 }
 
 // The search keys, in a fixed order so one view has one address. `focus` is spelled by what it
@@ -122,12 +125,18 @@ export function hrefOf(r: Route): string {
     case 'part':
       path = `/architecture/part/${enc(r.focus ?? '')}/${r.question ?? 'touches'}`
       break
-    case 'usage':
+    case 'usage': {
       search.entry = r.focus
-      path = '/usage'
+      const [how, ...of] = (r.face ?? '').split('/')
+      path = r.face ? `/usage/${how}/${enc(of.join('/'))}` : '/usage'
       break
+    }
     case 'component':
       path = r.focus ? `/reference/component/${enc(r.focus)}` : '/reference'
+      break
+    case 'entries':
+      search.entry = r.focus
+      path = paths.entries
       break
     default:
       path = paths[r.screen]
@@ -142,6 +151,7 @@ const paths: Record<Exclude<Screen, 'architecture' | 'part' | 'data' | 'usage' |
   changes: '/changes',
   plan: '/plan',
   reference: '/reference',
+  entries: '/reference/entry-points',
   deps: '/reference/dependencies',
   docs: '/reference/documentation',
   about: '/about/what-was-read',
@@ -191,8 +201,15 @@ export function routeAt(pathname: string, search: Record<string, unknown>): Rout
     }
     return r
   }
-  if (a === 'usage' && seg.length === 1) {
+  // Usage, and a face: how it is used, and of which part — whose id may hold a slash.
+  if (a === 'usage' && (seg.length === 1 || (seg.length >= 3 && (b === 'screens' || b === 'api' || b === 'cli')))) {
     r.screen = 'usage'
+    if (seg.length >= 3) r.face = `${b}/${rest(2)}`
+    take('focus', 'entry')
+    return r
+  }
+  if (a === 'reference' && b === 'entry-points' && seg.length === 2) {
+    r.screen = 'entries'
     take('focus', 'entry')
     return r
   }
@@ -259,6 +276,7 @@ export const titles: Record<Screen, string> = {
   changes: 'Changes',
   plan: 'Plan',
   reference: 'Reference',
+  entries: 'Every entry point',
   component: 'A component',
   deps: 'What it relies on',
   docs: 'Documentation',
@@ -274,6 +292,7 @@ export function sectionOf(screen: Screen): Screen {
   switch (screen) {
     case 'part':
       return 'architecture'
+    case 'entries':
     case 'component':
     case 'deps':
     case 'docs':

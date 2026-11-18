@@ -55,8 +55,8 @@ export function Impact(props: { element: string; version: number | null; go: (r:
   const counts = [flows.length ? n(flows.length, 'flow', 'flows') : '', jobs.length ? n(jobs.length, 'job', 'jobs') : ''].filter(Boolean)
 
   const groups: { title: string; items: { key: string; text: string; cite?: Provenance; on?: () => void }[] }[] = [
-    { title: 'Routes and pages through it', items: flows.map((e) => ({ key: e.id, text: `${e.kind === 'page' ? 'page' : e.method} ${e.path}`, cite: e.provenance, on: () => props.go({ screen: 'usage', focus: e.id }) })) },
-    { title: 'Background jobs', items: jobs.map((e) => ({ key: e.id, text: label(e), cite: e.provenance, on: () => props.go({ screen: 'usage', focus: e.id }) })) },
+    { title: 'Routes and pages through it', items: flows.map((e) => ({ key: e.id, text: `${e.kind === 'page' ? 'page' : e.method} ${e.path}`, cite: e.provenance, on: () => props.go({ screen: 'entries', focus: e.id }) })) },
+    { title: 'Background jobs', items: jobs.map((e) => ({ key: e.id, text: label(e), cite: e.provenance, on: () => props.go({ screen: 'entries', focus: e.id }) })) },
     { title: 'Who uses it', items: [...users].map(([id, p]) => ({ key: id, text: name(id), cite: p, on: () => props.go({ screen: 'architecture', focus: id }) })) },
     { title: 'What it uses', items: [...uses].map(([id, p]) => ({ key: id, text: name(id), cite: p, on: () => props.go({ screen: 'architecture', focus: id }) })) },
     { title: 'Outside services it reaches', items: reach.map((e) => ({ key: e.to, text: name(e.to), cite: (e.provenance ?? [])[0] })) },

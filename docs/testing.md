@@ -13,8 +13,8 @@ criteria are defined in `docs/product-definition.md` §12 and their status is ke
 | The network boundary — only `internal/semantic` may make outbound calls (hard rule 3, AC-8) | the `network-boundary` job in `.github/workflows/ci.yml` | CI |
 | The public API is enough: `cmd/archdoc` imports nothing from `internal/`, and `examples/library` — a module of its own — documents a fixture through it | the `public-api` job | CI |
 | The web app — both packages — typechecks and builds | `cd web && npm run build`; the `web` job | Locally and CI |
-| The web app's own logic — every address and the view it opens, what a part reaches — passes its tests (Node's test runner over `web/app/test/*.test.ts`, the app's TypeScript as written; no test library) | `cd web && npm test`; the `web` job | Locally and CI |
-| The app in a real browser: One part from a box's panel, a new subject by box, row and Find a part, Copy link, the narrow menu; What archdoc knows from Home, its two tabs, its lists and the report — 52 checks on Immich | `web/app/test/browser.mjs`, its header says how to run it | By hand, after a change to the shell, One part or What archdoc knows |
+| The web app's own logic — every address and the view it opens, what a part reaches, what archdoc knows, Usage's faces — passes its tests (Node's test runner over `web/app/test/*.test.ts`, the app's TypeScript as written; no test library) | `cd web && npm test`; the `web` job | Locally and CI |
+| The app in a real browser: One part from a box's panel, a new subject by box, row and Find a part, Copy link, the narrow menu; What archdoc knows from Home, its two tabs, its lists and the report; Usage's faces, an entry chosen and filtered, its steps in Reference — 73 checks on Immich | `web/app/test/browser.mjs`, its header says how to run it | By hand, after a change to the shell, One part, What archdoc knows or Usage |
 | Every screen renders the same, live and published | headless Chrome over each screen, text compared with the previous build — by hand, as for step 2 (`docs/decisions.md`, 21 Oct) | Before a release |
 
 ## The acceptance criteria

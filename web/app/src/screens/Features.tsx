@@ -56,13 +56,13 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
     .join(', ')
   const containers = new Set(entries.map((e) => e.container)).size
   const shown = groups.reduce((n, g) => n + g.classes.reduce((k, [, es]) => k + es.length, 0), 0)
-  const setFind = (v: string) => props.go({ screen: 'usage', q: v || undefined, focus: open }, { replace: true })
-  const toggle = (id: string) => props.go({ screen: 'usage', q: props.route.q, focus: open === id ? undefined : id }, { replace: true })
+  const setFind = (v: string) => props.go({ screen: 'entries', q: v || undefined, focus: open }, { replace: true })
+  const toggle = (id: string) => props.go({ screen: 'entries', q: props.route.q, focus: open === id ? undefined : id }, { replace: true })
 
   return (
     <div className="reading wide">
-      <div className="page-q">How is it used?</div>
-      <h1 className="page-title">Usage</h1>
+      <Eyebrow>Reference · every entry point</Eyebrow>
+      <h1 className="page-title">The ways in</h1>
       {entries.length === 0 ? (
         <p className="lede">
           No routes were found in the code archdoc reads. Routes are read from NestJS controllers today; other frameworks follow.
@@ -112,7 +112,7 @@ export function Features(props: { version: number | null; route: Route; go: (r: 
                   nodes={nodes}
                   flow={flows.get(e.id)}
                   onTable={(id) => props.go({ screen: 'architecture', level: dataLevel(g.container), focus: id })}
-                  onJob={(id) => props.go({ screen: 'usage', focus: id })}
+                  onJob={(id) => props.go({ screen: 'entries', focus: id })}
                   go={props.go}
                 />
               ))}

@@ -1,6 +1,7 @@
 // The app in a real browser, as a reader uses it: opens One part from a box's panel, changes the
 // subject by a box, a row and Find a part, switches the question, copies a link, narrows the menu;
-// opens What archdoc knows from Home, both its tabs, its lists and the report one step away.
+// opens What archdoc knows from Home, both its tabs, its lists and the report one step away; Usage's
+// faces, an entry chosen and filtered, its steps in Reference.
 // Each check says what the page shows after the step. Immich's ids, at the revision
 // docs/survey-test-subjects.md pins.
 //
@@ -25,7 +26,13 @@ const until = async (expr, what, ms = 6000) => { const t = Date.now(); while (Da
 let failed = 0
 const check = async (what, expr, want) => {
   let got, first
-  for (let i = 0; i < 20; i++) { got = await js(expr); if (i === 0) first = got; if (got === want) break; await sleep(150) }
+  // An element not there yet reads as nothing, and the check waits for it as for a wrong value.
+  for (let i = 0; i < 40; i++) {
+    try { got = await js(expr) } catch { got = undefined }
+    if (i === 0) first = got
+    if (got === want) break
+    await sleep(150)
+  }
   if (got !== want && first !== undefined) got = first
   const ok = got === want
   if (!ok) failed++
@@ -154,6 +161,37 @@ await check('found', `document.querySelector('.view-diagram .find-count')?.textC
 await key('.view-diagram .find input', 'Enter')
 await sleep(300)
 await check('Enter picks nothing on a view that has no subject', hash, '#/about/what-was-read?q=redis')
+
+// 14. Usage: the faces from the menu, an entry chosen, the filter, its steps in Reference.
+await go('/home')
+await js(`[...document.querySelectorAll('.nav-item')].find(b => b.textContent === 'Usage').click(), true`)
+await check('Usage from the menu', hash, '#/usage')
+await check('the sentence naming the faces', `document.querySelector('.usage-lede').textContent`, 'immich is used 5 ways: on the screens of immich-web, through the APIs of immich-server and immich-machine-learning, and from the command lines of immich-server and @immich/cli.')
+await check('five faces', `document.querySelectorAll('.usage-tab').length`, 5)
+await check('the first is the screens', `document.querySelector('.usage-tab.on').textContent`, 'Screensimmich-web · 55 pages')
+await check('every page listed', `document.querySelectorAll('.usage-row').length`, 55)
+await check('the mark says what pages archdoc doesn’t read', `document.querySelector('.usage-mark').textContent.includes('doesn’t read what a page shows or calls yet')`, true)
+await js(`[...document.querySelectorAll('.usage-tab')].find(b => b.textContent.startsWith('APIimmich-server')).click(), true`)
+await check('the API of immich-server', hash, '#/usage/api/svc%3Aimmich-server')
+await check('301 routes', `document.querySelectorAll('.usage-row').length`, 301)
+await check('no background jobs among them', `[...document.querySelectorAll('.usage-row-address')].some(a => a.textContent.startsWith('JOB'))`, false)
+await js(`[...document.querySelectorAll('.usage-row')].find(r => r.querySelector('.usage-row-name').textContent === 'Delete an album').click(), true`)
+await check('an entry chosen, in the address', hash, '#/usage/api/svc%3Aimmich-server?entry=route%3Aimmich-server+DELETE+%2Fapi%2Falbums%2F%3Aid')
+await check('the chosen entry at the right', `document.querySelector('.usage-entry-name').textContent`, 'Delete an album')
+await check('its address', `document.querySelector('.usage-entry-address').textContent`, 'DELETE /api/albums/:id')
+await check('what handles it, cited', `!!document.querySelector('.usage-facts dd .cite')`, true)
+await check('what it sets off, as the engine followed it', `document.querySelectorAll('.usage-facts dd')[2].textContent`, 'Deletes album.Its 4 steps, each at its line →')
+await check('the small map lights one part', `document.querySelectorAll('.view-diagram.small .react-flow__node-element:not(:has(.is-dim))').length`, 1)
+await typeInto('.usage-filter', 'albums')
+await check('the filter, in the address, the entry kept', hash, '#/usage/api/svc%3Aimmich-server?entry=route%3Aimmich-server+DELETE+%2Fapi%2Falbums%2F%3Aid&q=albums')
+await check('fewer rows', `document.querySelectorAll('.usage-row').length < 301 && document.querySelectorAll('.usage-row').length > 0`, true)
+await check('how many shown', `document.querySelector('.usage-list-foot').textContent.includes('shown of 301 routes')`, true)
+await js(`[...document.querySelectorAll('.usage-facts .link-btn')].find(b => b.textContent.startsWith('Its ')).click(), true`)
+await check('its steps, in the complete list, that entry open', hash, '#/reference/entry-points?entry=route%3Aimmich-server+DELETE+%2Fapi%2Falbums%2F%3Aid')
+await check('Reference lit', `document.querySelector('.nav-item.active .nav-label').textContent`, 'Reference')
+await go('/reference')
+await js(`[...document.querySelectorAll('button, a')].find(b => b.textContent.includes('Every entry point')).click(), true`)
+await check('Reference keeps every entry point, jobs too', hash, '#/reference/entry-points')
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 ws.close()
