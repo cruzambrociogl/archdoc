@@ -1,7 +1,8 @@
 // The app in a real browser, as a reader uses it: opens One part from a box's panel, changes the
 // subject by a box, a row and Find a part, switches the question, copies a link, narrows the menu;
 // opens What archdoc knows from Home, both its tabs, its lists and the report one step away; Usage's
-// faces, an entry chosen and filtered, its steps in Reference.
+// faces, an entry chosen and filtered, its steps in Reference; Architecture's title and key, the
+// deployment tab, the look, every download.
 // Each check says what the page shows after the step. Immich's ids, at the revision
 // docs/survey-test-subjects.md pins.
 //
@@ -192,6 +193,37 @@ await check('Reference lit', `document.querySelector('.nav-item.active .nav-labe
 await go('/reference')
 await js(`[...document.querySelectorAll('button, a')].find(b => b.textContent.includes('Every entry point')).click(), true`)
 await check('Reference keeps every entry point, jobs too', hash, '#/reference/entry-points')
+
+// 16. Architecture at C4's standard: the title and key, the deployment tab, the look, Download.
+await go('/architecture/containers')
+await check('the diagram’s title', `document.querySelector('.c4-title')?.textContent`, 'Container diagram for immich')
+await check('its plain name', `document.querySelector('.c4-plain').textContent`, 'Apps and services')
+await check('its key: exactly the styles it draws', `[...document.querySelectorAll('.c4-key .view-key-item')].map(i => i.textContent).join(' | ')`, 'Person | Container: an app or a service | Container: a data store or queue | External system: named, not declared here | Arrow: what one calls or uses, and how')
+await check('what it shows', `document.querySelector('.c4-shows').textContent`, 'The 5 apps and services and 2 stores immich is made of, and what each one calls.')
+await js(`[...document.querySelectorAll('.zoom-btn')].find(b => b.textContent.startsWith('Where it runs')).click(), true`)
+await check('the deployment tab', hash, '#/architecture/deployment')
+await check('its title', `document.querySelector('.c4-title').textContent`, 'Deployment diagram for immich · docker/docker-compose.yml')
+await check('what the Compose file runs, and what it reaches', `document.querySelectorAll('.explorer-canvas .react-flow__node-element').length`, 11)
+await js(`[...document.querySelectorAll('.look-switch button')].find(b => b.textContent === 'Classic C4').click(), true`)
+await check('Classic C4, in the address', hash, '#/architecture/deployment?look=classic')
+await check('the canvas in C4’s blues', `document.querySelector('.explorer-canvas').classList.contains('classic')`, true)
+await check('the key follows', `document.querySelector('.c4-key').classList.contains('classic')`, true)
+await go('/architecture/context')
+await check('remembered on the next diagram', `document.querySelector('.explorer-canvas')?.classList.contains('classic')`, true)
+await js(`[...document.querySelectorAll('.look-switch button')].find(b => b.textContent === 'archdoc’s look').click(), true`)
+await check('and back', `document.querySelector('.explorer-canvas').classList.contains('classic')`, false)
+await go('/architecture/containers')
+await js(`[...document.querySelectorAll('button.tool')].find(b => b.textContent.startsWith('Download')).click(), true`)
+await check('Download offers five', `[...document.querySelectorAll('.download-pop .more-label')].map(l => l.textContent).join(',')`, 'SVG,PNG,Mermaid,Structurizr DSL,C4-PlantUML')
+await check('every file it links is served', `(async () => { const as = [...document.querySelectorAll('.download-pop a')]; const r = await Promise.all(as.map(a => fetch(a.href).then(x => x.status + ' ' + a.getAttribute('download')))); return r.join(',') })()`, '200 container.svg,200 container.mmd,200 container.dsl,200 container.puml')
+await check('the SVG carries its title and key', `fetch(document.querySelector('.download-pop a').href).then(r => r.text()).then(t => t.includes('Container diagram for immich') && t.includes('Arrow: what one calls or uses, and how'))`, true)
+await js(`[...document.querySelectorAll('.download-pop button')].find(b => b.textContent.startsWith('PNG')).click(), true`)
+await sleep(1500)
+await check('the PNG is drawn without a problem', `!!document.querySelector('.download-problem')`, false)
+await go('/data/dataflow')
+await check('Data has a title and key too, and no look switch', `!!document.querySelector('.c4-title') && !document.querySelector('.look-switch')`, true)
+await js(`[...document.querySelectorAll('button.tool')].find(b => b.textContent.startsWith('Download')).click(), true`)
+await check('and no C4 text, since it is not C4', `[...document.querySelectorAll('.download-pop .more-label')].map(l => l.textContent).join(',')`, 'SVG,PNG,Mermaid')
 
 // 15. With a repository that has a history (a fourth argument): a change where it landed, and Home
 // on a return visit. The Immich of 9 Oct, 30 versions, served from a copy.

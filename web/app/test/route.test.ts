@@ -14,6 +14,8 @@ const read = (href: string) => {
 const views: [Route, string][] = [
   [{ screen: 'home' }, '/home'],
   [{ screen: 'architecture', level: 'context' }, '/architecture/context'],
+  [{ screen: 'architecture', level: 'deployment' }, '/architecture/deployment'],
+  [{ screen: 'architecture', level: 'container', look: 'classic' }, '/architecture/containers?look=classic'],
   [{ screen: 'architecture', level: 'container', focus: 'svc:immich-server' }, '/architecture/containers?part=svc%3Aimmich-server'],
   [{ screen: 'architecture', level: 'component:svc:immich-server', all: '1' }, '/architecture/components/svc%3Aimmich-server?all=1'],
   [{ screen: 'architecture', level: 'structure:svc:immich-server' }, '/architecture/components/svc%3Aimmich-server?by=folder'],
@@ -61,12 +63,17 @@ test('a face whose part holds a slash, from a router that decodes the path', () 
   assert.deepEqual(routeAt('/usage/cli/app:packages/cli', {}), { screen: 'usage', face: 'cli/app:packages/cli' })
 })
 
+test('the look belongs to Architecture: a link elsewhere does not carry it', () => {
+  assert.equal(hrefOf({ screen: 'data', level: 'dataflow', look: 'classic' }), '/data/dataflow')
+  assert.deepEqual(routeAt('/data/dataflow', parseSearch('look=classic')), { screen: 'data', level: 'dataflow' })
+})
+
 test('the bare address is Home', () => {
   assert.deepEqual(routeAt('/', {}), { screen: 'home' })
 })
 
 test('an address no page lives at is none', () => {
-  for (const path of ['/map', '/overview', '/does', '/architecture/elsewhere', '/architecture/part/svc%3Aredis', '/architecture/part/svc%3Aredis/breaks', '/data/nothing', '/not-built-yet', '/usage/jobs/svc%3Ax', '/usage/api', '/changes/x/w0', '/changes/0/w0']) {
+  for (const path of ['/map', '/overview', '/does', '/architecture/elsewhere', '/architecture/part/svc%3Aredis', '/architecture/part/svc%3Aredis/breaks', '/data/nothing', '/not-built-yet', '/usage/jobs/svc%3Ax', '/usage/api', '/changes/x/w0', '/changes/0/w0', '/architecture/deployment/x']) {
     assert.equal(routeAt(path, {}), undefined, path)
   }
 })

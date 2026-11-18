@@ -1343,3 +1343,103 @@ button.part-row-name:hover {
   font-size: 14px;
   font-weight: 600;
 }
+
+/* ——— What a C4 diagram is, above it (rule 23; app-design-screens §4) ——— */
+.c4-head {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 6px;
+  padding: 9px 14px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule-soft);
+}
+.c4-head-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+.c4-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.c4-plain {
+  font-size: 12px;
+  color: var(--muted);
+}
+.c4-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 16px;
+  font-size: 11.5px;
+}
+.c4-shows {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 860px;
+}
+.c4-italic {
+  font: italic 12px var(--font-serif);
+  color: var(--muted);
+}
+/* A key swatch: the box style, in the look on screen — the engine's palettes (internal/render/figure.go). */
+.c4-swatch {
+  width: 22px;
+  height: 13px;
+  box-sizing: border-box;
+  border: 1px solid var(--k-slate);
+  border-top-width: 3px;
+  background: var(--k-slate-fill);
+  border-radius: 2px;
+}
+.c4-swatch[data-style='person'] { border-color: var(--k-green); background: var(--k-green-fill); }
+.c4-swatch[data-style='store'],
+.c4-swatch[data-style='table'] { border-color: var(--k-teal); background: var(--k-teal-fill); }
+.c4-swatch[data-style='external'] { border-color: var(--k-violet); background: var(--k-violet-fill); border-style: dashed; border-top-width: 1px; }
+.c4-key.classic .c4-swatch { border-top-width: 1px; border-radius: 4px; }
+.c4-key.classic .c4-swatch[data-style='person'] { background: #08427b; border-color: #052e56; }
+.c4-key.classic .c4-swatch[data-style='system'],
+.c4-key.classic .c4-swatch[data-style='container'] { background: #1168bd; border-color: #0b4884; }
+.c4-key.classic .c4-swatch[data-style='store'] { background: #2574b8; border-color: #0b4884; }
+.c4-key.classic .c4-swatch[data-style='component'],
+.c4-key.classic .c4-swatch[data-style='folder'] { background: #85bbf0; border-color: #5d82a8; }
+.c4-key.classic .c4-swatch[data-style='external'] { background: #ffffff; border-color: #8b8b8b; }
+
+/* ——— Classic C4: the same diagram in C4's usual blues, the committed SVGs' palette ——— */
+.explorer-canvas.classic .el {
+  --text: #ffffff;
+  --tint-ink: #ffffff;
+  border-radius: 8px;
+}
+.explorer-canvas.classic .el-cap {
+  display: none;
+}
+.explorer-canvas.classic .el[data-style='person'] { --hue: #052e56; --fill: #08427b; }
+.explorer-canvas.classic .el[data-style='system'],
+.explorer-canvas.classic .el[data-style='container'] { --hue: #0b4884; --fill: #1168bd; }
+.explorer-canvas.classic .el[data-style='store'] { --hue: #0b4884; --fill: #2574b8; }
+.explorer-canvas.classic .el[data-style='component'],
+.explorer-canvas.classic .el[data-style='folder'] { --hue: #5d82a8; --fill: #85bbf0; --text: #0b2a4a; --tint-ink: #0b2a4a; }
+.explorer-canvas.classic .el[data-style='external'] { --hue: #8b8b8b; --fill: #ffffff; --text: #3d3d3d; --tint-ink: #3d3d3d; }
+.explorer-canvas.classic .el .el-name,
+.explorer-canvas.classic .el .el-desc,
+.explorer-canvas.classic .el .el-head {
+  color: var(--text);
+}
+
+.look-switch button {
+  white-space: nowrap;
+}
+.download-pop {
+  right: 0;
+  left: auto;
+  min-width: 250px;
+}
+.download-problem {
+  margin: 6px 10px;
+  font-size: 12px;
+  color: var(--unres);
+}

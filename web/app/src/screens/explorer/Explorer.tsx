@@ -16,6 +16,10 @@ import { Ghosts, Markers, edgeTypes, nodeTypes } from './parts'
 import type { Delta, Draft, ElementData } from './scene'
 import { arrangeDraft, findParts, membersOf, toDelta, toFlow } from './scene'
 import { SaveView } from './SaveView'
+import type { Look } from './look'
+import { rememberLook, rememberedLook } from './look'
+import { pngOf, save } from '../../ui/download'
+import { styleOf } from '../../ui/kinds'
 
 /** "context", "container", or "component:<container id>" — one container's components. */
 export type Level = string
@@ -25,7 +29,7 @@ const moving = (ms: number) => (window.matchMedia?.('(prefers-reduced-motion: re
 
 // With no level named, the explorer opens where C4 starts — the system in its context — and each
 // level opens onto the next: the system onto its containers, a container onto its components.
-const levelOf = (raw?: string): Level => (raw === 'container' || raw === 'dataflow' || insideOf(raw) ? raw! : 'context')
+const levelOf = (raw?: string): Level => (raw === 'container' || raw === 'dataflow' || raw === 'deployment' || insideOf(raw) ? raw! : 'context')
 
 type Go = (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void
 
@@ -102,6 +106,14 @@ export function Explorer(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstData])
 
+  // The look: the address's, else this viewer's last choice. Only C4 has a Classic look; Data has its own notations.
+  const look: Look = props.route.look ?? rememberedLook()
+  const c4 = props.route.screen === 'architecture'
+  const setLook = (l: Look) => {
+    rememberLook(l)
+    props.go({ ...props.route, look: l === 'classic' ? 'classic' : undefined }, { replace: true })
+  }
+
   const select = (id: string | null) =>
     props.go({ screen: props.route.screen, level: props.route.level, focus: id ?? undefined, q: props.route.q, dim: props.route.dim, all: props.route.all, from: props.route.from }, { replace: true })
 
@@ -118,7 +130,10 @@ export function Explorer(props: {
         scene={scene.data}
         views={props.views}
         onViewsChanged={props.onViewsChanged}
+        look={look}
+        onLook={c4 ? setLook : undefined}
       />
+      {scene.data?.heading && <Heading scene={scene.data} look={c4 ? look : 'archdoc'} />}
       {scene.error && (
         <div className="explorer-state">
           <Failure error={scene.error} />
@@ -143,6 +158,7 @@ export function Explorer(props: {
             unsaved={unsaved}
             delta={delta}
             reload={() => setReload((n) => n + 1)}
+            classic={c4 && look === 'classic'}
             open={(id) =>
               level === 'context'
                 ? props.go({ screen: 'architecture', level: scene.data?.tiny && scene.data.components[0] ? componentLevel(scene.data.components[0].id) : 'container', from: props.route.from })
@@ -166,6 +182,9 @@ function Toolbar(props: {
   scene?: SceneResponse
   views: SavedView[]
   onViewsChanged: () => void
+  look: Look
+  /** Where the look can change — the C4 diagrams — how. */
+  onLook?: (look: Look) => void
 }) {
   const source = useSource()
   const q = props.version ? `&version=${props.version}` : ''
@@ -209,6 +228,7 @@ function Toolbar(props: {
     ...(target.component
       ? [{ id: 'component', plain: `Inside ${insideName ?? 'one part'}`, term: 'components', on: () => props.go({ screen: 'architecture', level: componentLevel(target.component!), from: props.route.from }), picks: openings.component.length > 1 }]
       : []),
+    ...(props.scene?.deployment ? [{ id: 'deployment', plain: 'Where it runs', term: 'deployment', on: () => props.go({ screen: 'architecture', level: 'deployment' }, { keep: true }) }] : []),
   ]
   const lenses: { id: string; plain: string; term: string; on: () => void }[] = [
     ...(target.data ? [{ id: 'data', plain: 'What it stores', term: 'entities', on: () => props.go({ screen: 'architecture', level: dataLevel(target.data!), from: props.route.from }) }] : []),
@@ -360,14 +380,17 @@ function Toolbar(props: {
           )}
         </div>
       )}
-      <a
-        className="tool"
-        href={source.url(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
-        download={`${props.level.replace(/^(component|data|structure|main):[^:]*:/, '$1-').replace(/[:/]/g, '-')}.svg`}
-        title="The same picture, as the committed SVG"
-      >
-        Export SVG
-      </a>
+      {props.onLook && (
+        <div className="segmented look-switch" role="group" aria-label="The look">
+          <button className={props.look === 'archdoc' ? 'on' : ''} aria-pressed={props.look === 'archdoc'} onClick={() => props.onLook!('archdoc')}>
+            archdoc’s look
+          </button>
+          <button className={props.look === 'classic' ? 'on' : ''} aria-pressed={props.look === 'classic'} onClick={() => props.onLook!('classic')}>
+            Classic C4
+          </button>
+        </div>
+      )}
+      <Download level={props.level} q={q} look={props.onLook ? props.look : 'archdoc'} c4={!!props.scene?.heading?.c4} />
       {saving && (
         <SaveView
           route={props.route}
@@ -444,6 +467,8 @@ function Arranged(props: {
   delta?: Delta
   reload: () => void
   open: (container: string) => void
+  /** Drawn in Classic C4's blues. */
+  classic?: boolean
 }) {
   const source = useSource()
   const { scene } = props
@@ -531,7 +556,7 @@ function Arranged(props: {
         }}
       />
       <div className={`explorer-body ${props.selected ? '' : 'nothing-selected'}`}>
-        <div className="explorer-canvas">
+        <div className={`explorer-canvas ${props.classic ? 'classic' : ''}`}>
           <Canvas
             scene={scene}
             layout={layout}
@@ -914,6 +939,126 @@ function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; se
         </span>
       )}
       <span className="status-url">#{url}</span>
+    </div>
+  )
+}
+
+/** A file name for a view: "container", "component-immich-server", "deployment". */
+const fileOf = (level: string) => level.replace(/^(component|data|structure|main):[^:]*:/, '$1-').replace(/[:/]/g, '-')
+
+/**
+ * Download (platform-surface §17.4): the diagram as a picture — SVG, or PNG drawn from it — in the
+ * look on screen, with its title and key; as Mermaid; and, for a C4 diagram, as Structurizr DSL and
+ * C4-PlantUML. Every one is written by the engine from the same view.
+ */
+function Download(props: { level: string; q: string; look: Look; c4: boolean }) {
+  const source = useSource()
+  const [open, setOpen] = useState(false)
+  const [problem, setProblem] = useState<string | null>(null)
+  const view = encodeURIComponent(props.level)
+  const name = fileOf(props.level)
+  const svg = `/api/svg?view=${view}${props.look === 'archdoc' ? '&look=archdoc' : ''}${props.q}`
+  const text = (format: string) => `/api/export?view=${view}&format=${format}${props.q}`
+  const png = async () => {
+    setProblem(null)
+    try {
+      const r = await source.get(svg)
+      if (!r.ok) throw new Error(`the picture could not be fetched (${r.status})`)
+      save(await pngOf(await r.text()), `${name}.png`)
+      setOpen(false)
+    } catch (e) {
+      setProblem(e instanceof Error ? e.message : String(e))
+    }
+  }
+  const items: { label: string; sub: string; href?: string; file?: string; on?: () => void }[] = [
+    { label: 'SVG', sub: 'the picture, with its title and key', href: source.url(svg), file: `${name}.svg` },
+    { label: 'PNG', sub: 'the same picture, at twice its size', on: png },
+    { label: 'Mermaid', sub: 'as text, for a Markdown page', href: source.url(text('mermaid')), file: `${name}.mmd` },
+    ...(props.c4
+      ? [
+          { label: 'Structurizr DSL', sub: 'for Structurizr, C4’s own tool', href: source.url(text('structurizr')), file: `${name}.dsl` },
+          { label: 'C4-PlantUML', sub: 'for PlantUML’s C4 library', href: source.url(text('plantuml')), file: `${name}.puml` },
+        ]
+      : []),
+  ]
+  return (
+    <div className="pop-anchor">
+      <button className={`tool ${open ? 'on' : ''}`} aria-expanded={open} onClick={() => setOpen((o) => !o)} title="This diagram as a file">
+        Download ▾
+      </button>
+      {open && (
+        <div className="pop download-pop" role="menu">
+          {items.map((it) =>
+            it.href ? (
+              <a key={it.label} className="more-item" role="menuitem" href={it.href} download={it.file} onClick={() => setOpen(false)}>
+                <span>
+                  <span className="more-label">{it.label}</span>
+                  <span className="more-sub">{it.sub}</span>
+                </span>
+              </a>
+            ) : (
+              <button key={it.label} className="more-item" role="menuitem" onClick={it.on}>
+                <span>
+                  <span className="more-label">{it.label}</span>
+                  <span className="more-sub">{it.sub}</span>
+                </span>
+              </button>
+            ),
+          )}
+          {problem && <p className="download-problem">{problem}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * What a diagram is, above it (rule 23; app-design-screens §4): its C4 type and scope, its plain
+ * name, its key — exactly the styles it draws, in the look on screen — and what it shows, in one
+ * sentence from a template.
+ */
+function Heading(props: { scene: SceneResponse; look: Look }) {
+  const { scene } = props
+  const h = scene.heading!
+  const nodes = scene.model.nodes ?? []
+  const count = (style: string) => nodes.filter((n) => styleOf(n) === style).length
+  const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`
+  const system = scene.model.name
+  const shows = (() => {
+    const v = scene.view
+    if (v.startsWith('context')) return `${system} as one box, with ${n(count('person'), 'kind of person', 'kinds of people')} who use it and ${n(count('external'), 'outside system', 'outside systems')} it reaches.`
+    if (v.startsWith('container')) return `The ${n(count('container'), 'app or service', 'apps and services')} and ${n(count('store'), 'store', 'stores')} ${system} is made of, and what each one calls.`
+    if (v === 'deployment') return `Where ${system} runs, as its Compose file states it: the ${n(count('container') + count('store'), 'service', 'services')} it runs, and ${n(count('external'), 'outside system', 'outside systems')} they reach. Ports, hosts and replicas are not drawn.`
+    if (v.startsWith('component') || v.startsWith('main') || v.startsWith('structure'))
+      return `The ${n(count('component') + count('folder'), v.startsWith('structure') ? 'folder' : 'component', v.startsWith('structure') ? 'folders' : 'components')} ${h.plain.toLowerCase()}, and which use which: an arrow is an import.`
+    if (v.startsWith('data:')) return `${n(nodes.length, 'table', 'tables')}, and the keys that tie them.`
+    return 'Where data comes in, where it goes, and where it is kept.'
+  })()
+  return (
+    <div className="c4-head">
+      <div className="c4-head-title">
+        <span className="c4-title">{h.title}</span>
+        <span className="c4-plain">{h.plain}</span>
+      </div>
+      <div className={`c4-key ${props.look === 'classic' ? 'classic' : ''}`} aria-label="Key">
+        <span className="view-key-label">Key</span>
+        {(scene.key ?? []).map((k) => (
+          <span key={k.style} className="view-key-item">
+            {k.style === 'arrow' ? (
+              <svg width="26" height="10" aria-hidden="true">
+                <path d="M1 5H20" stroke="#707070" strokeWidth="1.3" />
+                <path d="M19 1.5L25 5L19 8.5z" fill="#707070" />
+              </svg>
+            ) : k.style === 'italic' ? (
+              <em className="c4-italic">Aa</em>
+            ) : (
+              <span className="c4-swatch" data-style={k.style} />
+            )}
+            {k.label}
+          </span>
+        ))}
+      </div>
+      <p className="c4-shows">{shows}</p>
     </div>
   )
 }

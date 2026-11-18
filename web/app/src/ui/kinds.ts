@@ -37,6 +37,21 @@ const kinds: Record<string, KindStyle> = {
   queue: { label: 'Queue', hue: 'teal', icon: icons.queue },
 }
 
+/**
+ * A box's style on a C4 diagram, as the engine names it (internal/render/figure.go, styleKey): what
+ * it is, and whether the repository only names it. The Classic look and the key go by it.
+ */
+export function styleOf(n: { kind: string; evidence?: string }): string {
+  if (n.kind === 'actor') return 'person'
+  if (n.evidence === 'referenced' || n.kind === 'external') return 'external'
+  if (n.kind === 'system') return 'system'
+  if (n.kind === 'datastore' || n.kind === 'queue') return 'store'
+  if (n.kind === 'component') return 'component'
+  if (n.kind === 'module') return 'folder'
+  if (n.kind === 'table') return 'table'
+  return 'container'
+}
+
 export function kindStyle(kind: string): KindStyle {
   return kinds[kind] ?? { label: kind, hue: 'grey', icon: icons.container }
 }

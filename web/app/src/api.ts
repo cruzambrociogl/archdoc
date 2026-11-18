@@ -218,6 +218,12 @@ export interface SceneResponse {
   tiny?: boolean
   /** The system has a data-flow view. */
   dataflow?: boolean
+  /** The system has a deployment view: a Compose file that runs its services. */
+  deployment?: boolean
+  /** What the diagram is (rule 23): its C4 type and scope, its plain name. */
+  heading?: { title: string; plain: string; c4: boolean }
+  /** Its key: exactly the box styles it uses, the arrow, and italics where AI wrote words. */
+  key?: { style: string; label: string }[]
   /** Containers with more components than a diagram shows: they open on their main ones. */
   main?: Opening[]
   /** Containers whose components are features, and so have a by-folder view too; counts their folders. */

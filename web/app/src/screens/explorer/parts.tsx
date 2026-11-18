@@ -3,7 +3,7 @@
 
 import { BaseEdge, EdgeLabelRenderer, Handle, Position, useStore } from '@xyflow/react'
 import type { EdgeProps, NodeProps, Node as FlowNode, Edge as FlowEdge } from '@xyflow/react'
-import { kindStyle } from '../../ui/kinds'
+import { kindStyle, styleOf } from '../../ui/kinds'
 import type { BoundaryData, Delta, ElementData, Mark, RouteData } from './scene'
 
 // Below this zoom a box shows only its name and icon (semantic zoom, "Surface Foundations" 6.4).
@@ -61,6 +61,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
   return (
     <div
       className={`el el-${k.hue} ${n.evidence === 'referenced' ? 'el-referenced' : ''} ${selected ? 'el-selected' : ''} ${data.dim ? 'is-dim' : ''} ${data.match ? 'el-match' : ''} ${data.delta ? `el-delta-${data.delta}` : ''} ${data.hatch ? 'el-hatch' : ''}`}
+      data-style={styleOf(n)}
       title={`${n.name} · ${k.label}${n.technology ? ` · ${n.technology}` : ''}${n.files ? ` · ${n.files.length} files, ${(n.lines ?? 0).toLocaleString()} lines` : ''}`}
     >
       {/* Edges follow stored routes; these handles only satisfy the graph library. */}

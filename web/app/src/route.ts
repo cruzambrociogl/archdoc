@@ -58,11 +58,13 @@ export interface Route {
   question?: 'touches' | 'depends'
   /** Usage: the face — how, and of which part — "api/svc:immich-server". */
   face?: string
+  /** Architecture: Classic C4's blues instead of archdoc's look. */
+  look?: 'classic'
 }
 
 // The search keys, in a fixed order so one view has one address. `focus` is spelled by what it
 // is on each screen: a part on a diagram, an entry in Usage.
-const order = ['v', 'part', 'entry', 'by', 'q', 'dim', 'all', 'from', 'doc', 'run'] as const
+const order = ['v', 'part', 'entry', 'by', 'q', 'dim', 'all', 'from', 'doc', 'run', 'look'] as const
 const numeric = new Set<string>(['v', 'from', 'run'])
 
 /** The search string of a route, in the fixed order: "?part=api&q=user", or "". */
@@ -105,7 +107,7 @@ const dec = (s: string) => {
 
 /** The address of a route: its path, then its search. */
 export function hrefOf(r: Route): string {
-  const search: Record<string, unknown> = { v: r.v, q: r.q, dim: r.dim, all: r.all, from: r.from, doc: r.doc, run: r.run }
+  const search: Record<string, unknown> = { v: r.v, q: r.q, dim: r.dim, all: r.all, from: r.from, doc: r.doc, run: r.run, look: r.screen === 'architecture' ? r.look : undefined }
   let path: string
   switch (r.screen) {
     case 'architecture':
@@ -119,6 +121,7 @@ export function hrefOf(r: Route): string {
         path = `/architecture/components/${enc(inside)}`
         if (structureOf(l) !== undefined) search.by = 'folder'
       } else if (l === 'container') path = '/architecture/containers'
+      else if (l === 'deployment') path = '/architecture/deployment'
       else if (l === 'context') path = '/architecture/context'
       else path = r.screen === 'data' ? '/data' : '/architecture'
       break
@@ -193,10 +196,12 @@ export function routeAt(pathname: string, search: Record<string, unknown>): Rout
   if (a === 'architecture' || a === 'data') {
     r.screen = a
     take('focus', 'part')
+    if (a === 'architecture' && search.look === 'classic') r.look = 'classic'
     if (a === 'architecture') {
       if (seg.length === 1) return r
       if (b === 'context' && seg.length === 2) r.level = 'context'
       else if (b === 'containers' && seg.length === 2) r.level = 'container'
+      else if (b === 'deployment' && seg.length === 2) r.level = 'deployment'
       else if (b === 'components' && seg.length > 2) r.level = search.by === 'folder' ? structureLevel(rest(2)) : componentLevel(rest(2))
       else return undefined
     } else {
@@ -342,6 +347,8 @@ export function levelName(level: string | undefined, name: (id: string) => strin
       return 'What it stores'
     case 'dataflow':
       return 'How data moves'
+    case 'deployment':
+      return 'Where it runs'
     default:
       return 'Architecture'
   }
