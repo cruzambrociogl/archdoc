@@ -14,6 +14,7 @@ import { componentLevel, componentOf, dataLevel, dataOf, mainOf, structureLevel,
 export const screens = [
   'home',
   'architecture',
+  'part',
   'data',
   'features',
   'usage',
@@ -49,6 +50,8 @@ export interface Route {
   doc?: string
   /** What left this machine: the open run. */
   run?: number
+  /** One part: which question — what it touches, or what depends on it. */
+  question?: 'touches' | 'depends'
 }
 
 // The search keys, in a fixed order so one view has one address. `focus` is spelled by what it
@@ -114,6 +117,9 @@ export function hrefOf(r: Route): string {
       else path = r.screen === 'data' ? '/data' : '/architecture'
       break
     }
+    case 'part':
+      path = `/architecture/part/${enc(r.focus ?? '')}/${r.question ?? 'touches'}`
+      break
     case 'usage':
       search.entry = r.focus
       path = '/usage'
@@ -128,7 +134,7 @@ export function hrefOf(r: Route): string {
 }
 
 // The sections and pages whose address is fixed.
-const paths: Record<Exclude<Screen, 'architecture' | 'data' | 'usage' | 'component'>, string> = {
+const paths: Record<Exclude<Screen, 'architecture' | 'part' | 'data' | 'usage' | 'component'>, string> = {
   home: '/home',
   features: '/features',
   changes: '/changes',
@@ -154,6 +160,16 @@ export function routeAt(pathname: string, search: Record<string, unknown>): Rout
 
   const [a, b] = seg
   if (seg.length === 0) return r
+  // One part: its id may hold a slash, so it is everything between "part" and the question.
+  if (a === 'architecture' && b === 'part') {
+    const question = seg[seg.length - 1]
+    const id = rest(2).slice(0, -(question.length + 1))
+    if (seg.length < 4 || (question !== 'touches' && question !== 'depends') || !id) return undefined
+    r.screen = 'part'
+    r.focus = id
+    r.question = question
+    return r
+  }
   if (a === 'architecture' || a === 'data') {
     r.screen = a
     take('focus', 'part')
@@ -232,6 +248,7 @@ export function useRoute(): [Route, Go] {
 export const titles: Record<Screen, string> = {
   home: 'Home',
   architecture: 'Architecture',
+  part: 'One part',
   data: 'Data',
   features: 'Features',
   usage: 'Usage',
@@ -249,6 +266,8 @@ export const titles: Record<Screen, string> = {
 /** The menu entry a screen belongs to: a component page is in Reference; what archdoc knows is reached from Home. */
 export function sectionOf(screen: Screen): Screen {
   switch (screen) {
+    case 'part':
+      return 'architecture'
     case 'component':
     case 'deps':
     case 'docs':

@@ -151,6 +151,11 @@ jobs:
       - name: Typecheck and build
         run: npm run build
 
+      # The app's own logic — the addresses, what a part reaches — with Node's test runner, which
+      # runs TypeScript as written; no test library.
+      - name: Test
+        run: npm test
+
   # The GitHub Action (action.yml), run as a workflow runs it, on a repository whose second commit
   # adds a service: the comparison finds it, the site builds, current documentation passes the
   # check, and documentation the code has moved past fails it.

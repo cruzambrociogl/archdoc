@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "npm run dev -w @archdoc/host",
     "build": "npm run typecheck -w @archdoc/app && npm run build -w @archdoc/host",
-    "typecheck": "npm run typecheck --workspaces"
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test -w @archdoc/app"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

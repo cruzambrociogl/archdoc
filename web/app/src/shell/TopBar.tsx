@@ -104,7 +104,7 @@ export function TopBar(props: {
     ...(parent?.crumbs ?? []).map((c) => ({ label: c.label, mono: true, on: c.open })),
     { label: parent?.repo ?? s.name, mono: true, on: () => go({ screen: 'home' }) },
     { label: titles[section], on: route.screen !== section || (canvas && route.level) ? () => go({ screen: section }) : undefined },
-    ...(route.screen !== section ? [{ label: titles[route.screen] }] : []),
+    ...(route.screen !== section ? [{ label: route.screen === 'part' && route.focus ? props.name(route.focus) : titles[route.screen] }] : []),
     ...(canvas && route.level ? [{ label: levelName(route.level, props.name) }] : []),
   ]
 

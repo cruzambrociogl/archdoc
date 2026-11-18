@@ -13,6 +13,7 @@ import { Shortcuts } from './shell/Shortcuts'
 import type { RailContent } from './shell/Rail'
 import { MarksBand, Rail, RailProvider, marksSeen } from './shell/Rail'
 import { Explorer } from './screens/explorer/Explorer'
+import { Part } from './screens/part/Part'
 import { Overview } from './screens/Overview'
 import { Features } from './screens/Features'
 import { WhatItDoes } from './screens/WhatItDoes'
@@ -139,7 +140,7 @@ function Shell() {
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <div className="main-col">
           <NoticeBand summary={s} />
-          <main className={`shell-main ${canvas ? 'full' : 'page'}`}>
+          <main className={`shell-main ${canvas || route.screen === 'part' ? 'full' : 'page'}`}>
             {unknownPath ? (
               <Gone kind="page" address={unknownPath} go={go} />
             ) : versionGone ? (
@@ -150,6 +151,7 @@ function Shell() {
                 {canvas && (
                   <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} />
                 )}
+                {route.screen === 'part' && <Part route={route} go={go} version={version} onNames={setPartNames} />}
                 {route.screen === 'features' && <WhatItDoes version={version} go={go} />}
                 {route.screen === 'usage' && <Features version={version} route={route} go={go} />}
                 {route.screen === 'component' && <Component version={version} route={route} go={go} />}

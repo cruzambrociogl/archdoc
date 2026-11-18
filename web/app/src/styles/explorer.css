@@ -1013,11 +1013,11 @@
 }
 
 /* A word the highlight puts on a box (platform-surface §17.5): on the diagram's own tokens, like the
-   rest of the drawing, under the box's top edge. */
+   rest of the drawing, astride the box's top edge, clear of its name and technology. */
 .el-tag {
   position: absolute;
-  left: 6px;
-  bottom: -9px;
+  left: 8px;
+  top: -8px;
   padding: 0 5px;
   border: 1px solid var(--canvas-ink);
   background: var(--canvas-ink);
@@ -1052,4 +1052,140 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0 16px;
+}
+
+/* ——— One part (platform-surface §17.3; app-design-screens §6): an archdoc view ——— */
+.part-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.part-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px 16px 48px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  /* The chrome's own rule, so the dots sit quietly in both themes; the diagram keeps its canvas. */
+  background-image: radial-gradient(var(--rule-soft) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.part-body > * {
+  max-width: 1140px;
+}
+
+/* The band above an archdoc view: what kind of view it is, its question, the answer in a sentence. */
+.band {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--ink);
+}
+.band-kind {
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.band-title {
+  margin: 0;
+  font: 400 21px/1.3 var(--font-serif);
+  color: var(--ink);
+}
+.band-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.band-meta {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.part-diagram {
+  flex: none;
+  height: clamp(340px, 58vh, 620px);
+  border: 1px solid var(--rule-soft);
+}
+.part-diagram .react-flow__node {
+  cursor: pointer;
+}
+
+.part-list {
+  display: grid;
+  padding: 14px 18px 8px;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+}
+.part-list-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+.part-list-head h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.part-row {
+  display: grid;
+  gap: 3px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.part-row-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.part-row-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 600 13.5px var(--font-sans);
+  text-align: left;
+}
+button.part-row-name {
+  cursor: pointer;
+}
+button.part-row-name:hover {
+  color: var(--accent);
+}
+.part-tag {
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 16px;
+  border: 1px solid var(--ink);
+}
+.part-tag.direct {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.part-tag.indirect {
+  border-color: var(--rule);
+  color: var(--muted);
+}
+.part-row-how {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.part-row-cites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.inspector-ask {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
 }

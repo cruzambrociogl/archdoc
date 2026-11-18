@@ -1,0 +1,58 @@
+// The addresses: every view has one, and reading it back gives the same view.
+
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { hrefOf, parseSearch, routeAt } from '../src/route.ts'
+import type { Route } from '../src/route.ts'
+
+/** What the router hands routeAt: the path, and the search already parsed. */
+const read = (href: string) => {
+  const [path, search = ''] = href.split('?')
+  return routeAt(path, parseSearch(search))
+}
+
+const views: [Route, string][] = [
+  [{ screen: 'home' }, '/home'],
+  [{ screen: 'architecture', level: 'context' }, '/architecture/context'],
+  [{ screen: 'architecture', level: 'container', focus: 'svc:immich-server' }, '/architecture/containers?part=svc%3Aimmich-server'],
+  [{ screen: 'architecture', level: 'component:svc:immich-server', all: '1' }, '/architecture/components/svc%3Aimmich-server?all=1'],
+  [{ screen: 'architecture', level: 'structure:svc:immich-server' }, '/architecture/components/svc%3Aimmich-server?by=folder'],
+  [{ screen: 'part', focus: 'svc:immich-machine-learning', question: 'touches' }, '/architecture/part/svc%3Aimmich-machine-learning/touches'],
+  [{ screen: 'part', focus: 'app:packages/cli', question: 'depends' }, '/architecture/part/app%3Apackages%2Fcli/depends'],
+  [{ screen: 'part', focus: 'svc:redis', question: 'depends', q: 'immich' }, '/architecture/part/svc%3Aredis/depends?q=immich'],
+  [{ screen: 'data', level: 'data:svc:immich-server' }, '/data/data/svc%3Aimmich-server'],
+  [{ screen: 'data', level: 'dataflow' }, '/data/dataflow'],
+  [{ screen: 'features' }, '/features'],
+  [{ screen: 'usage', focus: 'route:GET /api/albums' }, '/usage?entry=route%3AGET+%2Fapi%2Falbums'],
+  [{ screen: 'changes', v: 3, from: 1 }, '/changes?v=3&from=1'],
+  [{ screen: 'plan' }, '/plan'],
+  [{ screen: 'reference' }, '/reference'],
+  [{ screen: 'component', focus: 'cmp:immich-server/asset' }, '/reference/component/cmp%3Aimmich-server%2Fasset'],
+  [{ screen: 'deps', q: 'nest' }, '/reference/dependencies?q=nest'],
+  [{ screen: 'docs', doc: 'docs/architecture/01.generated.md' }, '/reference/documentation?doc=docs%2Farchitecture%2F01.generated.md'],
+  [{ screen: 'about' }, '/about/what-was-read'],
+  [{ screen: 'runs', run: 4 }, '/about/what-left?run=4'],
+  [{ screen: 'settings' }, '/settings'],
+]
+
+for (const [route, href] of views) {
+  test(`${href} is the address of its view, and opens it again`, () => {
+    assert.equal(hrefOf(route), href)
+    assert.deepEqual(read(href), route)
+  })
+}
+
+test('a router that hands over the path already decoded still finds the part', () => {
+  assert.deepEqual(routeAt('/architecture/part/app:packages/cli/depends', {}), { screen: 'part', focus: 'app:packages/cli', question: 'depends' })
+  assert.deepEqual(routeAt('/reference/component/cmp:immich-server/asset', {}), { screen: 'component', focus: 'cmp:immich-server/asset' })
+})
+
+test('the bare address is Home', () => {
+  assert.deepEqual(routeAt('/', {}), { screen: 'home' })
+})
+
+test('an address no page lives at is none', () => {
+  for (const path of ['/map', '/overview', '/does', '/architecture/elsewhere', '/architecture/part/svc%3Aredis', '/architecture/part/svc%3Aredis/breaks', '/data/nothing', '/not-built-yet']) {
+    assert.equal(routeAt(path, {}), undefined, path)
+  }
+})

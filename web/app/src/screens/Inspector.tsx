@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import type { Change, Edge, Entry, Explanation, Model, Node, Provenance, Unresolved } from '../api'
 import { Cite } from '../ui/Cite'
 import { KindTile } from '../ui/KindTile'
@@ -25,6 +26,7 @@ export function Inspector({
   onOpenData,
   unresolved,
   onPage,
+  onAsk,
   go,
 }: {
   /** Opens a placeholder's entry on the Not built yet page. */
@@ -43,6 +45,8 @@ export function Inspector({
   onOpenData?: (id: string) => void
   /** Opens a component's own page. */
   onPage?: (id: string) => void
+  /** On Apps and services: opens one part, at a question about it. */
+  onAsk?: (id: string, question: 'touches' | 'depends') => void
 }) {
   const nodes = model.nodes ?? []
   const edges = model.edges ?? []
@@ -57,7 +61,7 @@ export function Inspector({
         <Eyebrow>Inspector</Eyebrow>
         <span className="mono muted small">{what}</span>
       </div>
-      {node && <TouchButton id={node.id} />}
+      {node && !onAsk && <TouchButton id={node.id} />}
       {(node || edge) && changes?.mark && <ChangeNote changes={changes} />}
       {node ? (
         <Passport
@@ -74,6 +78,19 @@ export function Inspector({
           holds={holds?.get(node.id)}
           onOpenData={onOpenData}
           onPage={onPage}
+          ask={
+            onAsk && node.kind !== 'actor' ? (
+              <section className="inspector-section inspector-ask">
+                <Eyebrow>Ask about this part</Eyebrow>
+                <button className="link-btn" onClick={() => onAsk(node.id, 'touches')}>
+                  What does it touch? →
+                </button>
+                <button className="link-btn" onClick={() => onAsk(node.id, 'depends')}>
+                  What depends on it? →
+                </button>
+              </section>
+            ) : undefined
+          }
         />
       ) : edge ? (
         <EdgePassport edge={edge} nodes={nodes} onSelect={onSelect} />
@@ -146,7 +163,10 @@ function Passport({
   holds,
   onOpenData,
   onPage,
+  ask,
 }: {
+  /** On Apps and services: the questions one part answers, under its name. */
+  ask?: ReactNode
   node: Node
   nodes: Node[]
   edges: Edge[]
@@ -211,6 +231,7 @@ function Passport({
           </span>
         </div>
       </div>
+      {ask}
 
       {explanation && (
         <section className="inspector-section">

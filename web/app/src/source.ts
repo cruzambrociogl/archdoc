@@ -132,11 +132,10 @@ export interface HostedRepository {
 
 /** A request turned down before anything ran, with why as a kind and in plain words. */
 export class Refusal extends Error {
-  constructor(
-    message: string,
-    readonly kind: 'not_github' | 'not_found' | 'no_ref' | 'unavailable',
-  ) {
+  readonly kind: 'not_github' | 'not_found' | 'no_ref' | 'unavailable'
+  constructor(message: string, kind: Refusal['kind']) {
     super(message)
+    this.kind = kind
   }
 }
 
