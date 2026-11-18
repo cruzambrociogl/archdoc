@@ -112,6 +112,13 @@ func init() {
 				"own route summaries — never code. A sentence that cites nothing it was given is refused. Says how many\n" +
 				"requests and what they should cost, and asks first; --dry-run prints them and stops. Needs ANTHROPIC_API_KEY.",
 			groupPaid, explain},
+		{"interpret", "<path>", "ask Claude to explain the whole system: features, scenarios, a review",
+			"Two requests to Haiku: one groups what archdoc found by rule into features, concepts and areas; one writes\n" +
+				"what the system is, a few key scenarios, a review and a note on each diagram — every claim citing facts.\n" +
+				"Names and structure only, never code. Says what it will send and should cost (about 1¢ for a large\n" +
+				"repository) and asks first; --dry-run prints both requests. Keeps the result in .archdoc/interpretation.json,\n" +
+				"and asks nothing again until the architecture changes. Needs ANTHROPIC_API_KEY.",
+			groupPaid, interpret},
 		{"version", "", "print build information", "", "", func(e env, _ []string) error { return version(e) }},
 		{"help", "[<command>]", "this list, or one command's flags", "", "", helpCommand},
 	}

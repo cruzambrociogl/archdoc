@@ -59,6 +59,7 @@ What it does now:
 | `archdoc init` | A `.archdoc/rules.yaml` to correct the model in, every line a comment until you write one |
 | `archdoc serve` | The web app: the diagrams drawn interactively from context down to components and data, features and their flows, every value's citation, what changed between two versions, the documents, what archdoc could not see. Its status menu updates the documentation — free, as `generate` does, or **Enrich with AI** after saying what it would send and cost |
 | `archdoc export --site` | The same app as a static site a team opens without archdoc — GitHub Pages, any static host |
+| `archdoc interpret` | The whole system explained by Claude (Haiku): what it is, its features, a few key scenarios, a review and a note on each diagram — every claim cited, no code sent, about 1¢ for a large repository. Asks first; kept in `.archdoc/interpretation.json` and not asked again until the architecture changes |
 | `archdoc export --record` | The record: the model, the coverage report and the documents in one file (`.archdoc/record.json`), with none of the code, so the site can be built where the repository is not. After `generate` |
 
 Every command explains itself — `archdoc help <command>` — and exits 0 when done, 1 when something

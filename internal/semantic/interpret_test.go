@@ -169,11 +169,16 @@ func canned(t *testing.T) *answers {
 		"systems":[{"name":"Library","purpose":"Keeping and finding photos.","seeds":[` + strings.Join(systems, ",") + `,"e99"]}]}`
 	write := `{"thesis":{"text":"A NestJS server keeps photos in PostgreSQL and hands thumbnails to jobs.","cites":["svc:server","AssetThumbnail","svc:nowhere"]},
 		"scenarios":[
-			{"title":"Uploading a photo","flow":"route:server POST /api/assets","steps":[{"text":"The upload arrives.","from":1},{"text":"It is written.","from":1},{"text":"Thumbnails, then faces, in the background.","from":4}]},
+			{"title":"Uploading a photo","flow":"route:POST /api/assets","steps":[{"text":"The upload arrives.","from":1},{"text":"It is written.","from":1},{"text":"Thumbnails, then faces, in the background.","from":4}]},
 			{"title":"Backwards","flow":"route:server POST /api/assets","steps":[{"text":"b","from":2},{"text":"a","from":1}]}],
 		"review":[{"text":"Upload queues the thumbnail job.","kind":"observation","cites":["route:server POST /api/assets","job:server AssetThumbnail"]},
 			{"text":"Unfounded.","kind":"question","cites":["nothing:here"]},
-			{"text":"Shortened.","kind":"observation","cites":["route:POST /api/assets","job:FaceDetect","server/asset","web>server","area:library"]}]}`
+			{"text":"Shortened.","kind":"observation","cites":["route:POST /api/assets","job:FaceDetect","server/asset","web>server","area:library"]}],
+		"notes":[{"diagram":"container","text":"The web app reaches the database only through the server.","cites":["app:web>svc:server"]},
+			{"diagram":"container","text":"Twice.","cites":["svc:server"]},
+			{"diagram":"[context]","text":"Nothing to cite.","cites":["area:x"]},
+			{"diagram":"the big picture","text":"No such diagram.","cites":["svc:server"]},
+			{"diagram":"System Context","text":"By its title.","cites":["svc:server"]}]}`
 	if !json.Valid([]byte(group)) || !json.Valid([]byte(write)) {
 		t.Fatal("the canned answers are not JSON")
 	}
@@ -234,10 +239,14 @@ func TestInterpretChecksEveryClaimAndPlacesEverySeed(t *testing.T) {
 	}
 	for _, want := range []string{"systems: unknown id dropped", "concepts: id normalised", "areas: left out, placed by the rule",
 		"thesis: a job's bare name made its ID", "thesis: unresolved citation dropped", "review: a shortened ID made whole", "review: point dropped, nothing it cites resolves",
-		"scenarios: dropped, its step numbers do not rise from 1 within the flow", "scenarios: steps starting at the same flow step merged"} {
+		"scenarios: dropped, its step numbers do not rise from 1 within the flow", "scenarios: steps starting at the same flow step merged",
+		"notes: a second for one diagram dropped", "notes: a diagram's title made its name", "scenarios: a shortened flow made whole", "notes: dropped, nothing it cites resolves", "notes: dropped, no such diagram"} {
 		if got.Fixes[want] == 0 {
 			t.Errorf("fixes %v lack %q", got.Fixes, want)
 		}
+	}
+	if len(got.Notes) != 2 || got.Notes[0].Diagram != "container" || got.Notes[1].Diagram != "context" || got.Notes[0].Mark != WrittenByAI {
+		t.Errorf("notes %+v: one per diagram the app draws, each citing what resolves", got.Notes)
 	}
 	if len(got.Calls) != 2 || got.Calls[0].Model != GroupModel || got.Calls[1].Model != Sonnet || !got.CostKnown {
 		t.Errorf("calls %+v", got.Calls)
@@ -300,5 +309,47 @@ func TestHaikuCostsMoreForALongPrompt(t *testing.T) {
 	long, _ := Cost(GroupModel, 100_001, 1000)
 	if short != (100_000*0.10+1000*0.50)/1e6 || long != (100_001*0.50+1000*2.50)/1e6 {
 		t.Errorf("haiku: %f up to 100K tokens, %f beyond", short, long)
+	}
+}
+
+// The answers' fields go to the model in the order written — the thesis first, a sentence before what
+// it cites — which a Go map would sort away.
+func TestTheSchemasKeepTheirOrder(t *testing.T) {
+	b, err := json.Marshal(WriteSchema)
+	if err != nil || !json.Valid(b) {
+		t.Fatal(err)
+	}
+	w := string(b)
+	if strings.Index(w, `"thesis"`) > strings.Index(w, `"scenarios"`) || strings.Index(w, `"scenarios"`) > strings.Index(w, `"notes"`) ||
+		strings.Index(w, `"text":{"type":"string"},"kind"`) < 0 {
+		t.Errorf("the writing schema's order: %s", w)
+	}
+	g, _ := json.Marshal(GroupSchema)
+	if gs := string(g); strings.Index(gs, `"concepts"`) > strings.Index(gs, `"areas"`) || strings.Index(gs, `"name":{"type":"string"},"meaning"`) < 0 {
+		t.Errorf("the grouping schema's order: %s", gs)
+	}
+}
+
+// An empty thesis is asked for once more; twice empty, the run has nothing to show.
+func TestAnEmptyThesisIsAskedForAgain(t *testing.T) {
+	a := canned(t)
+	empty := strings.Replace(a.write, `"text":"A NestJS server keeps photos in PostgreSQL and hands thumbnails to jobs."`, `"text":""`, 1)
+	writes := 0
+	write := func(_ context.Context, _ string, _ []Turn) (Reply, error) {
+		writes++
+		if writes == 1 {
+			return Reply{Text: empty, Stop: "end_turn", InputTokens: 5000, OutputTokens: 900}, nil
+		}
+		return Reply{Text: a.write, Stop: "end_turn", InputTokens: 5000, OutputTokens: 1200}, nil
+	}
+	got, err := Interpret(context.Background(), a.completer("group"), GroupModel, write, WriteModel, photos())
+	if err != nil || got.Thesis.Text == "" || len(got.Calls) != 3 || got.Fixes["write: sent again, the thesis was empty"] != 1 {
+		t.Errorf("after an empty thesis: %v, %d calls, fixes %v", err, len(got.Calls), got.Fixes)
+	}
+	never := func(_ context.Context, _ string, _ []Turn) (Reply, error) {
+		return Reply{Text: empty, Stop: "end_turn", InputTokens: 5000, OutputTokens: 900}, nil
+	}
+	if _, err := Interpret(context.Background(), a.completer("group"), GroupModel, never, WriteModel, photos()); err != ErrNotUsable {
+		t.Errorf("twice empty: %v", err)
 	}
 }

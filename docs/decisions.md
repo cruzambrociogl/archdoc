@@ -1445,3 +1445,25 @@ fallback, so none is sent to it. Sonnet stays a choice: `InterpretOptions.WriteM
 how much Haiku varies between runs is not measured.
 → `internal/semantic/interpret.go`, `interpret_fix.go`; `interpret.go`
 
+**2026-11-18 — `archdoc interpret`; a note on each diagram; the answers' order kept**
+- **The command.** `archdoc interpret <path>` runs inside Generate, as label and explain do: its
+  Consent is asked with theirs, before anything is written, and its two requests go out only once
+  the documentation is written, so a failed explanation costs the documentation nothing. The result
+  is kept in `.archdoc/interpretation.json` (committed, like the model), with the architecture's
+  fingerprint: an unchanged architecture is not asked about again unless `--again`. Every request is
+  in the run log. `--model claude-sonnet-5-5` writes on Sonnet; `--cap` refuses a run estimated above it.
+- **What to notice.** The writing request lists the diagrams the app draws and asks for one or two
+  sentences on what to notice in each, cited like any claim; a note for a diagram that does not exist,
+  a second for one diagram, or one citing nothing that resolves is dropped. A diagram named by its
+  title is taken for its name.
+- **Order.** Structured outputs are written in the order the schema lists the fields, and a Go map
+  sends them alphabetically — the thesis last, after the notes. In two of six measured runs Haiku left
+  it empty. The schemas are now sent in the order written (the thesis first, a sentence before what it
+  cites), and an empty thesis is asked for once more, paid for; twice empty, the run fails.
+- **Measured** (Haiku, three runs each on Immich, petclinic's microservices and the small script):
+  about 1¢ a run on Immich, a third of a cent on petclinic, a tenth on the script. Between runs the
+  concepts agree at 0.70–0.84 and the areas at 0.58–0.75; the features vary more (0.38–0.46: the
+  same features, cut differently). With the order fixed (three more runs on Immich), no thesis came
+  back empty; the notes fell to one to three a run, and one run of three had many unresolved citations.
+→ `generate.go`, `interpret.go`, `cmd/archdoc/paid.go`; `internal/semantic/interpret*.go`
+

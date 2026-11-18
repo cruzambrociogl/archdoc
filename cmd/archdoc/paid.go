@@ -45,7 +45,11 @@ func (c consent) ask(e env) archdoc.Consent {
 			return fmt.Errorf("%s sends to Anthropic, and ANTHROPIC_API_KEY is not set — set it, or see what would be sent with --dry-run", r.What)
 		}
 		fmt.Fprintf(e.out, "%s: %s to %s, %d bytes — %s.\n", r.What, requests, r.Model, r.Bytes, cost)
-		fmt.Fprintf(e.out, "Sends %s. A corrected answer is asked for again and costs more.\n", r.Sends)
+		if r.What == "interpret" {
+			fmt.Fprintf(e.out, "Sends %s. Nothing is sent back for correction: what the answer gets wrong is fixed here or left out.\n", r.Sends)
+		} else {
+			fmt.Fprintf(e.out, "Sends %s. A corrected answer is asked for again and costs more.\n", r.Sends)
+		}
 		if c.yes {
 			return nil
 		}
@@ -103,4 +107,24 @@ func explain(e env, args []string) error {
 	}
 	return document(e, root, archdoc.GenerateOptions{Verbose: *verbose,
 		Explain: &archdoc.ExplainOptions{Only: *only, Limit: *limit, DryRun: *dry, Consent: consent{yes: *yes, dry: *dry}.ask(e)}})
+}
+
+func interpret(e env, args []string) error {
+	fs := flags("interpret")
+	model := fs.String("model", archdoc.WriteModel, "the `model` that writes the explanation: "+archdoc.Sonnet+" for a fuller answer at about twenty times the price")
+	capUSD := fs.Float64("cap", 0, "send nothing if the estimate is above this many `dollars`")
+	again := fs.Bool("again", false, "ask again even when this architecture was explained before")
+	yes := fs.Bool("yes", false, "send without asking — for scripts; what it costs is still printed")
+	dry := fs.Bool("dry-run", false, "print exactly what would be sent, and stop: nothing sent, nothing written")
+	verbose := fs.Bool("verbose", false, "list every file written")
+	positional, err := parse(e, fs, args, nil)
+	if err != nil {
+		return err
+	}
+	root, err := writePath(fs, positional)
+	if err != nil {
+		return err
+	}
+	return document(e, root, archdoc.GenerateOptions{Verbose: *verbose, DocsIfThere: true,
+		Interpret: &archdoc.InterpretOptions{Consent: consent{yes: *yes, dry: *dry}.ask(e), WriteModel: *model, Cap: *capUSD, Again: *again}})
 }

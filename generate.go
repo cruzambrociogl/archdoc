@@ -70,6 +70,10 @@ type GenerateOptions struct {
 	// own updates do: a first look leaves no documents in someone's working tree, and documents they
 	// asked for once stay current (decisions, 18 Nov 2026).
 	DocsIfThere bool
+	// Interpret explains the whole system once the documentation is written (InterpretOptions), and
+	// keeps it in InterpretationFile. Its Consent is asked with label's and explain's, before anything
+	// is written; an architecture already explained is not asked about again, unless Again.
+	Interpret *InterpretOptions
 }
 
 // DocsWritten reports whether archdoc's documents are in the repository at root: what DocsIfThere
@@ -108,6 +112,8 @@ type Generated struct {
 	// Both are zero without History, or when history was unavailable.
 	Version int64
 	Changed bool
+	// Interpretation is the system explained, when Interpret was asked for and went through.
+	Interpretation *Interpretation
 }
 
 // Generate is the pipeline: read, derive, correct, ask if asked to, validate, write, record.
@@ -280,6 +286,18 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 				rec = &semantic.Recorder{}
 				asker = semantic.ClaudeWith(semantic.ExplainModel, semantic.ExplainSchema(), semantic.ExplainMaxTokens, "low", rec)
 			}
+		}
+	}
+	var interpret *InterpretOptions
+	if x := o.Interpret; x != nil && !o.IndexOnly {
+		fp, _ := store.Fingerprint(m)
+		if prev, err := ReadInterpretation(facts.Root); err == nil && prev.Fingerprint == fp && !x.Again {
+			fmt.Fprintf(out, "already explained for this architecture (%s) — nothing sent; --again asks anew\n", InterpretationFile)
+		} else {
+			if err := askInterpret(m, *x); err != nil {
+				return nil, err
+			}
+			interpret = x
 		}
 	}
 	if o.DryRun {
@@ -526,6 +544,13 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 		}
 	}
 
+	if interpret != nil {
+		it, err := interpretIn(ctx, facts.Root, root, m, *interpret, out)
+		if err != nil {
+			return res, err
+		}
+		res.Interpretation = it
+	}
 	return res, nil
 }
 

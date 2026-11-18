@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/cruzambrociogl/archdoc/internal/core"
+	"github.com/cruzambrociogl/archdoc/internal/render"
 )
 
 // What the two requests of Interpret carry: the seeds for the model to group (stage 1), and a summary
@@ -444,6 +445,8 @@ func (s *seeding) summary(g grouping) (string, map[string][]givenStep) {
 		out = append(out, s.chains()...)
 	}
 
+	out = append(out, s.diagrams()...)
+
 	// the flows given step by step: the widest flow of each of the largest features
 	var picked []string
 	taken := map[string]bool{}
@@ -499,6 +502,34 @@ func (s *seeding) summary(g grouping) (string, map[string][]givenStep) {
 		}
 	}
 	return strings.Join(out, "\n"), given
+}
+
+// diagrams lists the diagrams the app draws, each by its name, with what it holds: what a note on
+// what to notice is written for.
+func (s *seeding) diagrams() []string {
+	out := []string{"\n## Diagrams (by name: what each draws)"}
+	for _, v := range render.Views(s.m) {
+		out = append(out, fmt.Sprintf("[%s] %s: %d boxes, %d arrows", v.Name, v.Title, len(v.Model.Nodes), len(v.Model.Edges)))
+	}
+	return out
+}
+
+// diagramNames maps what an answer may call a diagram to its name: the name as listed, or — when no
+// other diagram shares it — its title ("System context"), in any case.
+func diagramNames(m core.Model) map[string]string {
+	names := map[string]string{}
+	titles := map[string][]string{}
+	for _, v := range render.Views(m) {
+		names[v.Name] = v.Name
+		t := strings.ToLower(v.Title)
+		titles[t] = append(titles[t], v.Name)
+	}
+	for t, ns := range titles {
+		if _, taken := names[t]; !taken && len(ns) == 1 {
+			names[t] = ns[0]
+		}
+	}
+	return names
 }
 
 // touched is what a step crosses, by the elements a reader can open: the components of its two ends,

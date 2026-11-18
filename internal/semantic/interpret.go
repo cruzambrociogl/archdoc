@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cruzambrociogl/archdoc/internal/core"
 )
@@ -56,12 +57,17 @@ type Interpretation struct {
 	AreasOf   string     `json:"areas_of,omitempty"`
 	Scenarios []Scenario `json:"scenarios"`
 	Review    []Point    `json:"review"`
+	// Notes are what to notice in a diagram, by its name: at most one each, where there was something
+	// worth saying.
+	Notes []Note `json:"notes,omitempty"`
 	// Flags are features that look drawn by container or by kind rather than by purpose. Said, not
 	// changed.
 	Flags []string `json:"flags,omitempty"`
 	// Fixes counts what was corrected in code, by kind of correction.
 	Fixes map[string]int `json:"fixes,omitempty"`
 	Calls []Call         `json:"calls"`
+	// Fingerprint is the architecture it explains: when the model's changes, it is out of date.
+	Fingerprint string `json:"fingerprint,omitempty"`
 	// Cost is the run's cost in US dollars; CostKnown is false when a model's price is unknown.
 	Cost      float64 `json:"cost"`
 	CostKnown bool    `json:"cost_known"`
@@ -116,6 +122,14 @@ type Point struct {
 	Mark  string   `json:"mark"`
 }
 
+// Note is what to notice in one diagram: the second half of its walkthrough, beneath the picture.
+type Note struct {
+	Diagram string   `json:"diagram"` // a view's name: "container", "component:svc:immich-server"
+	Text    string   `json:"text"`
+	Cites   []string `json:"cites"`
+	Mark    string   `json:"mark"`
+}
+
 // Call is one request a run sent.
 type Call struct {
 	Stage        string  `json:"stage"` // "group" or "write"
@@ -162,42 +176,43 @@ Below are archdoc's facts about the repository, each with an id in square bracke
 	`worth knowing. Kind "observation" when the facts show it, "question" when they cannot settle it. Cite what each ` +
 	`rests on. The concepts, areas and systems are archdoc's grouping, not the code's: use them to explain, never ` +
 	`review them.
+- notes: for each diagram listed, one or two sentences on what to notice in it: what a reader looking at it ` +
+	`would miss or should look at first. Name the diagram exactly as listed and cite the facts the note rests on. ` +
+	`Leave out a diagram with nothing worth saying.
 
 Cite facts by their exact id, without the brackets. Write plainly. Leave out what the facts do not support.`
 
-var (
-	str = map[string]any{"type": "string"}
-	arr = map[string]any{"type": "array", "items": str}
+// The two answers' shapes, enforced by structured outputs. A model writes an answer's fields in the
+// order its schema lists them, so the order is kept as written — the summary before the details, a
+// sentence before what it cites — rather than the alphabetical one a Go map would send. Writing the
+// thesis last, after twenty notes, left it empty in two runs of six (18 Nov).
+const (
+	strJSON = `{"type":"string"}`
+	arrJSON = `{"type":"array","items":{"type":"string"}}`
 )
 
-func groupsOf(field string) map[string]any {
-	return map[string]any{"type": "array", "items": map[string]any{
-		"type": "object", "additionalProperties": false, "required": []string{"name", field, "seeds"},
-		"properties": map[string]any{"name": str, field: str, "seeds": arr}}}
+func groupsJSON(field string) string {
+	return `{"type":"array","items":{"type":"object","additionalProperties":false,"required":["name","` + field + `","seeds"],` +
+		`"properties":{"name":` + strJSON + `,"` + field + `":` + strJSON + `,"seeds":` + arrJSON + `}}}`
 }
 
-// GroupSchema and WriteSchema are the two answers' shapes, enforced by structured outputs.
+func objectSchema(required []string, properties string) map[string]any {
+	return map[string]any{"type": "object", "additionalProperties": false, "required": required, "properties": json.RawMessage(properties)}
+}
+
+// GroupSchema and WriteSchema are the two answers' shapes.
 var (
-	GroupSchema = map[string]any{
-		"type": "object", "additionalProperties": false, "required": []string{"concepts", "areas", "systems"},
-		"properties": map[string]any{"concepts": groupsOf("meaning"), "areas": groupsOf("responsibility"), "systems": groupsOf("purpose")},
-	}
-	WriteSchema = map[string]any{
-		"type": "object", "additionalProperties": false, "required": []string{"thesis", "scenarios", "review"},
-		"properties": map[string]any{
-			"thesis": map[string]any{"type": "object", "additionalProperties": false, "required": []string{"text", "cites"},
-				"properties": map[string]any{"text": str, "cites": arr}},
-			"scenarios": map[string]any{"type": "array", "items": map[string]any{
-				"type": "object", "additionalProperties": false, "required": []string{"title", "flow", "steps"},
-				"properties": map[string]any{"title": str, "flow": str, "steps": map[string]any{"type": "array", "items": map[string]any{
-					"type": "object", "additionalProperties": false, "required": []string{"text", "from"},
-					"properties": map[string]any{"text": str, "from": map[string]any{"type": "integer"}}}}}}},
-			"review": map[string]any{"type": "array", "items": map[string]any{
-				"type": "object", "additionalProperties": false, "required": []string{"text", "kind", "cites"},
-				"properties": map[string]any{"text": str, "kind": map[string]any{"type": "string", "enum": []string{"observation", "question"}},
-					"cites": arr}}},
-		},
-	}
+	GroupSchema = objectSchema([]string{"concepts", "areas", "systems"},
+		`{"concepts":`+groupsJSON("meaning")+`,"areas":`+groupsJSON("responsibility")+`,"systems":`+groupsJSON("purpose")+`}`)
+	WriteSchema = objectSchema([]string{"thesis", "scenarios", "review", "notes"}, `{`+
+		`"thesis":{"type":"object","additionalProperties":false,"required":["text","cites"],"properties":{"text":`+strJSON+`,"cites":`+arrJSON+`}},`+
+		`"scenarios":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["title","flow","steps"],"properties":{`+
+		`"title":`+strJSON+`,"flow":`+strJSON+`,"steps":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["text","from"],`+
+		`"properties":{"text":`+strJSON+`,"from":{"type":"integer"}}}}}}},`+
+		`"review":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["text","kind","cites"],"properties":{`+
+		`"text":`+strJSON+`,"kind":{"type":"string","enum":["observation","question"]},"cites":`+arrJSON+`}}},`+
+		`"notes":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["diagram","text","cites"],"properties":{`+
+		`"diagram":`+strJSON+`,"text":`+strJSON+`,"cites":`+arrJSON+`}}}}`)
 )
 
 // Before sending, only a request's size is known. Measured on Immich: the ids and paths these
@@ -239,7 +254,8 @@ func (s *seeding) ungrouped() grouping {
 	return g
 }
 
-// ErrNotUsable is an answer with nothing left to show once its unresolved citations are dropped.
+// ErrNotUsable is an answer with nothing to show: no thesis twice over, or nothing left once its
+// unresolved citations are dropped.
 var ErrNotUsable = errors.New("the explanation cited nothing that resolves")
 
 // Interpret runs both requests: group answers stage 1 and write stage 2, each on the model named
@@ -284,9 +300,20 @@ func Interpret(ctx context.Context, group Completer, groupModel string, write Co
 	if err := call("write", writeModel, write, writeSystem, summary, &a2); err != nil {
 		return out, err
 	}
-	thesis, scenarios, review, fixes2 := fixWriting(a2, citable(m), given)
+	// An answer with no thesis has nothing to open with: it is asked for once more, and paid for.
+	if strings.TrimSpace(a2.Thesis.Text) == "" {
+		out.Fixes["write: sent again, the thesis was empty"]++
+		a2 = stage2Answer{}
+		if err := call("write", writeModel, write, writeSystem, summary, &a2); err != nil {
+			return out, err
+		}
+		if strings.TrimSpace(a2.Thesis.Text) == "" {
+			return out, ErrNotUsable
+		}
+	}
+	thesis, scenarios, review, notes, fixes2 := fixWriting(a2, citable(m), given, diagramNames(m))
 	merge(out.Fixes, fixes2)
-	out.Thesis, out.Scenarios, out.Review = thesis, scenarios, review
+	out.Thesis, out.Scenarios, out.Review, out.Notes = thesis, scenarios, review, notes
 	out.Features, out.Concepts, out.Areas = s.features(g), s.concepts(g), s.areaGroups(g)
 	if len(out.Areas) > 0 {
 		out.AreasOf = s.areaOf

@@ -255,6 +255,7 @@ func shortened(ids map[string]bool) func(string) (string, bool) {
 		case "job", "route", "page", "command":
 			if _, after, ok := strings.Cut(rest, " "); ok { // "<container> <what>"
 				put(kind+":"+after, id)
+				put(after, id)
 			}
 		case "cmp":
 			put(rest, id)
@@ -301,12 +302,17 @@ type stage2Answer struct {
 		Kind  string   `json:"kind"`
 		Cites []string `json:"cites"`
 	} `json:"review"`
+	Notes []struct {
+		Diagram string   `json:"diagram"`
+		Text    string   `json:"text"`
+		Cites   []string `json:"cites"`
+	} `json:"notes"`
 }
 
 // fixWriting checks stage 2's answer: a citation that does not resolve is dropped — a job's bare name
 // made its ID first — and a review point left citing nothing is dropped, since nothing is shown
 // unchecked; a scenario's steps must start at 1 and rise within the steps its flow was given.
-func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenStep) (Claim, []Scenario, []Point, map[string]int) {
+func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenStep, diagrams map[string]string) (Claim, []Scenario, []Point, []Note, map[string]int) {
 	fixes := map[string]int{}
 	jobID := map[string]string{}
 	for id := range ids {
@@ -352,9 +358,21 @@ func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenSte
 		}
 		review = append(review, Point{Text: r.Text, Kind: r.Kind, Cites: cs, Mark: WrittenByAI})
 	}
+	flowIDs := map[string]bool{}
+	for f := range given {
+		flowIDs[f] = true
+	}
+	wholeFlow := shortened(flowIDs)
 	var scenarios []Scenario
 	for _, sc := range a.Scenarios {
+		sc.Flow = strings.Trim(strings.TrimSpace(sc.Flow), "[]")
 		steps, ok := given[sc.Flow]
+		if !ok {
+			if f, found := wholeFlow(sc.Flow); found {
+				sc.Flow, steps, ok = f, given[f], true
+				fixes["scenarios: a shortened flow made whole"]++
+			}
+		}
 		if !ok {
 			fixes["scenarios: dropped, its flow was not given"]++
 			continue
@@ -397,5 +415,33 @@ func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenSte
 		}
 		scenarios = append(scenarios, out)
 	}
-	return thesis, scenarios, review, fixes
+	// A note is for a diagram the app draws, one each, and rests on facts like any other claim.
+	var notes []Note
+	noted := map[string]bool{}
+	for _, n := range a.Notes {
+		said := strings.Trim(strings.TrimSpace(n.Diagram), "[]")
+		d, known := diagrams[said]
+		if !known {
+			d, known = diagrams[strings.ToLower(said)]
+			if known {
+				fixes["notes: a diagram's title made its name"]++
+			}
+		}
+		switch {
+		case !known:
+			fixes["notes: dropped, no such diagram"]++
+			continue
+		case noted[d]:
+			fixes["notes: a second for one diagram dropped"]++
+			continue
+		}
+		cs := keep(n.Cites, "notes")
+		if len(cs) == 0 {
+			fixes["notes: dropped, nothing it cites resolves"]++
+			continue
+		}
+		noted[d] = true
+		notes = append(notes, Note{Diagram: d, Text: n.Text, Cites: cs, Mark: WrittenByAI})
+	}
+	return thesis, scenarios, review, notes, fixes
 }
