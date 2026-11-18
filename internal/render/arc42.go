@@ -116,7 +116,7 @@ func Arc42(m core.Model, facts core.FactSet, plan []Section, meta Meta) map[stri
 		case 6:
 			b.WriteString(runtimeSection(m))
 		case 7:
-			b.WriteString(deploymentSection(m, facts))
+			b.WriteString(deploymentSection(m, facts, meta))
 		case 12:
 			b.WriteString(glossarySection(m))
 		}
@@ -217,7 +217,7 @@ func runtimeSection(m core.Model) string {
 // This section is also where Compose *belongs*. A compose file is a deployment descriptor, and the
 // container view (§5) is the awkward projection of it; everything below was already extracted and
 // then dropped on the floor because §5 must not show deployment concepts.
-func deploymentSection(m core.Model, facts core.FactSet) string {
+func deploymentSection(m core.Model, facts core.FactSet, meta Meta) string {
 	var b strings.Builder
 
 	b.WriteString("Compose describes one host running containers, so this view is one level deep.\n")
@@ -225,6 +225,14 @@ func deploymentSection(m core.Model, facts core.FactSet) string {
 	b.WriteString("this release. What the configuration does state is below, and all of it is declared:\n")
 	b.WriteString("the image each container runs, what is published to the host, which networks each\n")
 	b.WriteString("sits on, and what the repository mounts into it.\n\n")
+
+	// The deployment diagram: the Compose file as its one deployment node, and what it runs.
+	if HasDeployment(m) {
+		drawn := deploymentView(m).Model
+		b.WriteString(figure(meta, "Where it runs", "deployment.svg", Mermaid(drawn, true)))
+		b.WriteString(folded(drawn, nil))
+		b.WriteString("\n")
+	}
 
 	view := m.Container()
 	svc := byName(facts)

@@ -83,6 +83,7 @@ func newServer(root, history string, up Updater) *Server {
 	s.mux.HandleFunc("GET /api/versions", s.versions)
 	s.mux.HandleFunc("GET /api/model", s.model)
 	s.mux.HandleFunc("GET /api/svg", s.svg)
+	s.mux.HandleFunc("GET /api/export", s.export)
 	s.mux.HandleFunc("GET /api/scene", s.scene)
 	s.mux.HandleFunc("GET /api/diff", s.diff)
 	s.mux.HandleFunc("GET /api/runs", s.runs)
@@ -267,6 +268,7 @@ func (s *Server) summary(w http.ResponseWriter, r *http.Request) {
 	counts["flows"], counts["entries"], counts["unresolved"] = len(latest.Model.Flows), len(latest.Model.Entries), len(latest.Model.Unresolved)
 	out["counts"], out["kinds"] = counts, orEmpty(kinds)
 	out["dataflow"] = render.HasDataFlow(latest.Model)
+	out["deployment"] = render.HasDeployment(latest.Model)
 	send(w, out)
 }
 
@@ -347,6 +349,8 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 	}
 	send(w, map[string]any{
 		"version": v.ID, "view": name, "model": view, "layout": l,
+		// What the diagram is, and its key (rule 23): the same words its downloads carry.
+		"heading": heading(v.Model, name, view), "key": render.KeyOf(view),
 		// The containers that have a component view, so a container can say it opens and the
 		// component level can offer the others.
 		"components": opens(v.Model, core.Component, v.Model.Components()),
@@ -355,7 +359,8 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 		// A project of one small application has no containers level worth a tab of its own.
 		"tiny": render.Tiny(v.Model),
 		// The system's containers by stage, from who puts data in to where it is kept.
-		"dataflow": render.HasDataFlow(v.Model),
+		"dataflow":   render.HasDataFlow(v.Model),
+		"deployment": render.HasDeployment(v.Model),
 		// The containers with more components than a diagram shows, which open on their main ones.
 		"main": opens(v.Model, core.Component, render.Mains(v.Model)),
 		// The containers whose components are features, and so have a by-folder view as well.
@@ -371,7 +376,7 @@ func (s *Server) scene(w http.ResponseWriter, r *http.Request) {
 
 // svg draws a view exactly as the committed SVG draws it — the export of the same scene.
 func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
-	_, _, view, l, _, _, err := s.laidOut(r)
+	v, name, view, l, _, _, err := s.laidOut(r)
 	if errors.Is(err, errNoView) {
 		notFound(w, err.Error())
 		return
@@ -380,8 +385,54 @@ func (s *Server) svg(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
+	// The figure a person keeps: its title and key above the drawing (rule 23), in the look asked
+	// for — Classic C4 unless archdoc's is named, the look committed files have.
+	shown, _ := render.ViewOf(v.Model, name)
+	shown.Model = view
 	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
-	w.Write([]byte(render.SVG(view, l)))
+	w.Write([]byte(render.Figure(v.Model, shown, l, render.LookOf(r.URL.Query().Get("look")))))
+}
+
+// export is a view as text another tool opens (Download): Mermaid for every view; Structurizr DSL
+// and C4-PlantUML for the C4 ones. Written from the same view as the picture.
+func (s *Server) export(w http.ResponseWriter, r *http.Request) {
+	v, name, view, _, _, _, err := s.laidOut(r)
+	if errors.Is(err, errNoView) {
+		notFound(w, err.Error())
+		return
+	}
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	shown, _ := render.ViewOf(v.Model, name)
+	shown.Model = view
+	var text string
+	ok := true
+	switch r.URL.Query().Get("format") {
+	case "mermaid":
+		text = render.Mermaid(view, shown.Group)
+	case "structurizr":
+		text, ok = render.Structurizr(v.Model, shown)
+	case "plantuml":
+		text, ok = render.PlantUML(v.Model, shown)
+	default:
+		notFound(w, "no such format: "+r.URL.Query().Get("format"))
+		return
+	}
+	if !ok {
+		notFound(w, "the "+name+" view is not a C4 diagram, so it has no "+r.URL.Query().Get("format"))
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte(text))
+}
+
+// heading names the view on screen: its C4 type and scope, and its plain name.
+func heading(m core.Model, name string, view core.Model) render.Heading {
+	v, _ := render.ViewOf(m, name)
+	v.Model = view
+	return render.HeadingOf(m, v)
 }
 
 // laidOut resolves the requested version and view at the layout it is drawn at: the stored one

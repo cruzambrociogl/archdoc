@@ -17,7 +17,13 @@ import (
 // PRV-05 on the diagram itself: text a model wrote is set in italics, the same rule the evidence
 // tables follow. A reader can tell interpretation from reading without leaving the picture.
 func SVG(view core.Model, l core.Layout) string {
+	return drawing(view, l, Classic)
+}
+
+// drawing is SVG in a look: the same layout and rules, in the look's colours.
+func drawing(view core.Model, l core.Layout, look Look) string {
 	const margin = 16.0
+	pal := paletteOf(look)
 
 	var b strings.Builder
 	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="%s %s %s %s" width="%s" height="%s" font-family="Helvetica, Arial, sans-serif">`+"\n",
@@ -97,7 +103,7 @@ func SVG(view core.Model, l core.Layout) string {
 		if !ok {
 			continue
 		}
-		b.WriteString(box(n, bx.Rect))
+		b.WriteString(box(n, bx.Rect, pal))
 	}
 
 	b.WriteString("</svg>\n")
@@ -154,29 +160,25 @@ func clip(s string, n int) string {
 	return s
 }
 
-// box draws one element in C4 style.
-func box(n core.Node, r core.Rect) string {
+// box draws one element in C4 style, in a look's colours.
+func box(n core.Node, r core.Rect, pal palette) string {
 	if n.Kind == core.Table {
 		return tableBox(n, r)
 	}
-	fill, stroke, text, dash := "#1168bd", "#0b4884", "#ffffff", ""
-	switch {
-	case n.Kind == core.Actor:
-		fill, stroke = "#08427b", "#052e56"
-	case n.Evidence == core.Referenced || n.Kind == core.External:
-		// Referenced, not declared: hollow and dashed, the same convention as the Mermaid view.
-		fill, stroke, text, dash = "#ffffff", "#8b8b8b", "#3d3d3d", ` stroke-dasharray="5 3"`
-	case n.Kind == core.Datastore:
-		fill, stroke = "#2574b8", "#0b4884"
-	case n.Kind == core.Component || n.Kind == core.Module:
-		// C4's component blue: lighter than the container it sits in, with dark text.
-		fill, stroke, text = "#85bbf0", "#5d82a8", "#0b2a4a"
+	st := pal.of(n)
+	fill, stroke, text, dash := st.fill, st.stroke, st.text, ""
+	if st.dashed {
+		dash = ` stroke-dasharray="5 3"`
 	}
 
 	var b strings.Builder
 	fmt.Fprintf(&b, `<g id="%s">`+"\n", esc(n.ID))
-	fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="%s" rx="8" fill="%s" stroke="%s" stroke-width="1.2"%s/>`+"\n",
-		num(r.X), num(r.Y), num(r.W), num(r.H), fill, stroke, dash)
+	fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="%s" rx="%s" fill="%s" stroke="%s" stroke-width="1.2"%s/>`+"\n",
+		num(r.X), num(r.Y), num(r.W), num(r.H), num(pal.radius), fill, stroke, dash)
+	if pal.cap {
+		// archdoc's look: kind is hue, and a cap in the stroke colour along the top edge.
+		fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="3" fill="%s"/>`+"\n", num(r.X), num(r.Y), num(r.W), stroke)
+	}
 
 	name, kind, desc := boxLines(n)
 	cx := r.X + r.W/2

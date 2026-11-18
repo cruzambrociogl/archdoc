@@ -125,14 +125,14 @@ func TestFirstRunProducesTheWholeDocument(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 12 sections + index + coverage, and three diagrams — context, containers, data flow — each as
-	// .mmd and .svg.
-	if len(entries) != 20 {
+	// 12 sections + index + coverage, and four diagrams — context, containers, data flow, where it
+	// runs — each as .mmd and .svg.
+	if len(entries) != 22 {
 		names := make([]string, 0, len(entries))
 		for _, e := range entries {
 			names = append(names, e.Name())
 		}
-		t.Errorf("got %d files, want 20: %v", len(entries), names)
+		t.Errorf("got %d files, want 22: %v", len(entries), names)
 	}
 }
 

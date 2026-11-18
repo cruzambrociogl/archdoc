@@ -59,7 +59,8 @@ const (
 const AllSuffix = ":all"
 
 // Views lists every diagram of the model, in a fixed order: context, container, then one
-// component view per container whose code was read, in model order, and the data-flow view last.
+// component view per container whose code was read, in model order, the data-flow view, and the
+// deployment view last.
 func Views(m core.Model) []View {
 	out := []View{
 		{Name: "context", File: "context", Title: "System context", Model: Overview(m, m.Context())},
@@ -80,6 +81,9 @@ func Views(m core.Model) []View {
 	if HasDataFlow(m) {
 		out = append(out, dataFlowView(m))
 	}
+	if HasDeployment(m) {
+		out = append(out, deploymentView(m))
+	}
 	return out
 }
 
@@ -97,6 +101,10 @@ func ViewOf(m core.Model, name string) (View, bool) {
 	case name == DataFlow:
 		if HasDataFlow(m) {
 			return dataFlowView(m), true
+		}
+	case name == Deployment:
+		if HasDeployment(m) {
+			return deploymentView(m), true
 		}
 	case strings.HasPrefix(name, ComponentPrefix):
 		id := strings.TrimPrefix(name, ComponentPrefix)

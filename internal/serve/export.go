@@ -137,7 +137,12 @@ func Export(root string, since int64) (map[string][]byte, error) {
 	views := render.Views(latest.Model)
 	for _, view := range views {
 		q := url.QueryEscape(view.Name)
-		paths = append(paths, "/api/scene?view="+q, "/api/svg?view="+q)
+		paths = append(paths, "/api/scene?view="+q, "/api/svg?view="+q,
+			// What Download offers: the figure in archdoc's look too, and the view as text.
+			"/api/svg?view="+q+"&look=archdoc", "/api/export?view="+q+"&format=mermaid")
+		if render.HasText(view) {
+			paths = append(paths, "/api/export?view="+q+"&format=structurizr", "/api/export?view="+q+"&format=plantuml")
+		}
 	}
 	versions := []int64{latest.ID}
 	var optional []string // the baseline may not have every view the latest has

@@ -399,7 +399,8 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 				continue
 			}
 			l, rep := arrange.Apply(view.Name, stored, arrangement)
-			generated[view.File+".svg"] = render.SVG(view.Model, l)
+			// Each with its title and key (rule 23), in C4's own blues: the look committed files have.
+			generated[view.File+".svg"] = render.Figure(m, view, l, render.Classic)
 			if len(rep.Stale) > 0 {
 				fmt.Fprintf(out, "%s/%s: %d saved position(s) in the %s view match nothing: %s\n",
 					arrange.Dir, arrange.LayoutFile, len(rep.Stale), view.Name, strings.Join(rep.Stale, ", "))
