@@ -13,13 +13,15 @@ const changed = (p: HomePlace) => (p.repos ?? []).some((r) => r.since > 0)
 const stale = (p: HomePlace) => (p.repos ?? []).some((r) => movedOn(r.commit, r.head))
 
 /**
- * Home, on this machine (platform-surface §5.3): did anything change since I last looked? One
+ * The library, on this machine (platform-surface §5.3, Home there; renamed on 18 Nov 2026, since a
+ * project's first page is its Home in Nav F): every project archdoc has documented here, and did
+ * anything change since I last looked? One
  * sentence across every place this machine remembers, then a card for each — a repository, or a
  * system of them — with a status line per repository: what changed since it was last opened here,
  * whether the code has moved on since its docs, what couldn't be resolved, and when it last changed.
  * A card opens its place, where it is updated.
  */
-export function Home(props: { data?: HomeResponse; error?: Error; missing?: boolean; onOpen: (p: HomePlace) => void; onHome: () => void }) {
+export function Library(props: { data?: HomeResponse; error?: Error; missing?: boolean; onOpen: (p: HomePlace) => void; onHome: () => void }) {
   const [adding, setAdding] = useState(false)
   const places = props.data?.places ?? []
   return (
@@ -27,7 +29,7 @@ export function Home(props: { data?: HomeResponse; error?: Error; missing?: bool
       <WebsiteBar onStart={props.onHome}>
         <nav className="crumbs" aria-label="Where you are">
           <span className="crumb current" aria-current="page">
-            Home
+            Library
           </span>
         </nav>
       </WebsiteBar>
@@ -43,7 +45,7 @@ export function Home(props: { data?: HomeResponse; error?: Error; missing?: bool
                 <div>
                   <div className="page-q">Did anything change since I last looked?</div>
                   {props.missing && <p className="gone-more">That address names no place this machine remembers. These are the ones it does:</p>}
-                  <p className="overview-answer">{places.length ? homeSentence(places) : 'No folders yet. archdoc reads one on this machine — free, and nothing is sent.'}</p>
+                  <p className="overview-answer">{places.length ? homeSentence(places) : 'No projects yet. archdoc reads one on this machine — free, and nothing is sent.'}</p>
                 </div>
                 <button className="btn btn-outline" aria-expanded={adding} onClick={() => setAdding((a) => !a)}>
                   Open a folder
@@ -82,13 +84,13 @@ function homeSentence(places: HomePlace[]): string {
 /** Reading a folder happens in a terminal, on this machine; the folder then appears here. */
 function OpenAFolder() {
   const [copied, setCopied] = useState(false)
-  const command = 'archdoc generate path/to/folder'
+  const command = 'archdoc'
   return (
     <div className="home-open">
       <p>
-        In a terminal, <span className="mono">{command}</span> reads a repository on this machine — free, offline, and nothing is
-        sent — and it appears here when you open Home again. For several repositories in one folder, generate each, then{' '}
-        <span className="mono">archdoc serve</span> the folder: it appears as a system.
+        In a terminal, go to a project’s folder and run <span className="mono">{command}</span>. It reads the project on this machine —
+        free, offline, and nothing is sent — and opens it here, in this same archdoc. Run in a folder that holds several repositories,
+        it reads each one, and they appear here together as a system.
       </p>
       <button
         className="btn btn-ink"

@@ -767,7 +767,7 @@ button.crumb:hover {
   line-height: 1.45;
   color: var(--muted);
 }
-/* Update with AI: what each paid run would send and cost, chosen before anything is sent. */
+/* Enrich with AI: what each paid run would send and cost, chosen before anything is sent. */
 .update-ai {
   display: grid;
   gap: 10px;

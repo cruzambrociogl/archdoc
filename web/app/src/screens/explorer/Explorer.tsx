@@ -76,7 +76,7 @@ export function Explorer(props: {
   // A diagram can be arranged anywhere, but only the latest version's arrangement is saved, and only
   // where the place can write: an arrangement is for the architecture as it is now.
   const editable = props.editable && props.version === null
-  const unsaved = editable ? undefined : props.editable ? 'only the latest version’s arrangement is saved' : 'an arrangement is saved from archdoc serve, on your machine'
+  const unsaved = editable ? undefined : props.editable ? 'only the latest version’s arrangement is saved' : 'an arrangement is saved from archdoc, on your machine'
 
   // The change overlay: the diff against the compared version, and that version's scene for ghosts.
   const current = scene.data?.version

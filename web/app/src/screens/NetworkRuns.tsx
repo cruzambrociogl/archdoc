@@ -71,7 +71,7 @@ export function NetworkRuns(props: { route: Route; go: (r: Partial<Route>, o?: {
       {!can.runDetails ? (
         <p className="lede-quiet">
           This published site carries only the summary above. Each request, exactly as it was sent, stays on the machine that
-          made it, in archdoc serve.
+          made it, in archdoc there.
         </p>
       ) : (
         <RunDetail id={open} go={props.go} />

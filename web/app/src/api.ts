@@ -8,7 +8,7 @@ import { reached, unanswered, unreachable, useConnection } from './connection'
 
 /** What nothing answering means, in each place. */
 export const notAnswering: Record<Capabilities['place'], string> = {
-  local: 'archdoc serve isn’t answering',
+  local: 'archdoc isn’t answering',
   published: 'this site isn’t answering',
   hosted: 'archdoc isn’t answering',
 }
@@ -575,7 +575,7 @@ export interface AskPreview {
   remembered_at?: string
 }
 
-/** What one paid run of an update with AI would send, from a dry run of the pipeline. */
+/** What one paid run of Enrich with AI would send, from a dry run of the pipeline. */
 export interface UpdateAsk {
   what: 'label' | 'explain'
   model: string
@@ -586,7 +586,7 @@ export interface UpdateAsk {
   known: boolean
 }
 
-/** What an update with AI would send and cost; key is whether the person's key is set where archdoc serve started. */
+/** What Enrich with AI would send and cost; key is whether the person's key is set where archdoc was started. */
 export interface UpdatePreview {
   asks: UpdateAsk[]
   key: boolean

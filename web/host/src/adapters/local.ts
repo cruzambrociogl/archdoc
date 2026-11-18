@@ -1,4 +1,4 @@
-// The app on this machine, served by `archdoc serve`: it reads the API, can save, and opens
+// The app on this machine, served by archdoc: it reads the API, can save, and opens
 // citations in the editor.
 
 import type { Source } from '@archdoc/app'
@@ -34,11 +34,18 @@ export function localAt(prefix: string): Source {
     get: (path) => read(prefix + path),
     url: (path) => prefix + path,
     async act<T>(path: string, body?: unknown): Promise<T> {
-      const r = await fetch(prefix + path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Archdoc-Token': await token(prefix) },
-        body: body === undefined ? undefined : JSON.stringify(body),
-      })
+      const post = async () =>
+        fetch(prefix + path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Archdoc-Token': await token(prefix) },
+          body: body === undefined ? undefined : JSON.stringify(body),
+        })
+      let r = await post()
+      // After archdoc restart the server has a new session: the page asks for it once, and tries again.
+      if (r.status === 403) {
+        sessions.delete(prefix)
+        r = await post()
+      }
       const text = await r.text()
       let data: unknown = undefined
       try {
@@ -71,7 +78,7 @@ function systemAt(prefix: string): Source {
 
 export const system = systemAt('')
 
-/** `archdoc home`: every place this machine remembers, each under /at/{id}. */
+/** The library — this machine's one archdoc: every place it remembers, each under /at/{id}. */
 export const home: Source = {
   ...local,
   home: {

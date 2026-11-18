@@ -9,7 +9,7 @@ import { TruthMark } from '../ui/marks'
 import type { MarkKind } from '../ui/markInfo'
 import { MarkGlyph } from '../ui/markInfo'
 import { useParent } from './parent'
-import { UpdateButton, UpdateWithAI } from './Update'
+import { UpdateButton, EnrichWithAI } from './Update'
 import { copyText } from './copy'
 import { loadedAt, useUpdating } from './updating'
 
@@ -233,7 +233,7 @@ export function TopBar(props: {
               )}
             </p>
             {can.update && !older && withAI ? (
-              <UpdateWithAI busy={busy} go={go} onStarted={() => setOpen(null)} />
+              <EnrichWithAI busy={busy} go={go} onStarted={() => setOpen(null)} />
             ) : (
               <div className="pop-actions">
                 {older && (
@@ -245,7 +245,7 @@ export function TopBar(props: {
                   <>
                     <UpdateButton busy={busy} />
                     <button className="btn btn-outline" disabled={busy} onClick={() => setWithAI(true)}>
-                      <TruthMark state="interpreted" /> Update with AI…
+                      <TruthMark state="interpreted" /> Enrich with AI…
                     </button>
                   </>
                 )}

@@ -5,6 +5,7 @@ import { useApi, useEditorLink, useLinkTarget, when } from '../api'
 import { useCapabilities, useSource } from '../source'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
+import { lookNow, useUpdating } from '../shell/updating'
 
 type State = 'generated' | 'not started' | 'written' | 'may be stale' | 'missing' | 'unknown'
 
@@ -42,14 +43,17 @@ const stateNote: Record<State, string> = {
  * regenerated from the model.
  */
 export function Documents(props: { version: number | null; route: Route; go: (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void }) {
-  const docs = useApi<DocsResponse>('/api/docs')
-  const comp = useApi<CompletenessResponse>(`/api/completeness${props.version ? `?version=${props.version}` : ''}`)
+  // Read again when an update ends: the one this screen's button starts writes the documents.
+  const ended = useUpdating()?.last?.finished ?? ''
+  const docs = useApi<DocsResponse>(`/api/docs#${ended}`)
+  const comp = useApi<CompletenessResponse>(`/api/completeness${props.version ? `?version=${props.version}` : ''}#${ended}`)
 
   if (docs.error) return <Failure error={docs.error} />
   if (comp.error) return <Failure error={comp.error} />
   if (!docs.data || !comp.data) return <Loading what="the documentation" />
 
   const gen = (docs.data.generated ?? []).filter((f) => f.endsWith('.md'))
+  if (!gen.length) return <NotWritten dir={docs.data.dir} />
   const sections: Entry[] = [
     ...gen
       .filter((f) => /^\d/.test(f))
@@ -99,7 +103,63 @@ export function Documents(props: { version: number | null; route: Route; go: (r:
             <Yours entry={entry} dir={docs.data.dir} changed={comp.data.architecture_changed} version={props.version} />
           )
         ) : (
-          <p className="muted">No documents yet — run archdoc generate.</p>
+          <p className="muted">No documents yet.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The documents aren't in the repository yet (decisions, 18 Nov 2026): a bare archdoc writes only
+ * .archdoc/, so a first look leaves nothing in the working tree. Here they are written on request,
+ * as archdoc generate writes them — and from then on every run keeps them current.
+ */
+function NotWritten({ dir }: { dir: string }) {
+  const source = useSource()
+  const can = useCapabilities()
+  const updating = useUpdating()
+  const [state, setState] = useState<{ asking?: boolean; error?: string }>({})
+  const busy = !!updating?.running
+  const write = async () => {
+    setState({ asking: true })
+    try {
+      await source.act('/api/update', { docs: true })
+      lookNow(source)
+      setState({})
+    } catch (e) {
+      setState({ error: e instanceof Error ? e.message : String(e) })
+    }
+  }
+  return (
+    <div className="doc-main">
+      <div className="reading">
+        <Eyebrow>arc42 · docs/architecture/</Eyebrow>
+        <h1 className="doc-title">The documents aren’t in the repository yet</h1>
+        <p>
+          Everything in this app is read from <span className="mono">.archdoc/</span>. The documents are the same architecture as files
+          to commit and review: twelve arc42 chapters in Markdown, every diagram as SVG and Mermaid, and a coverage report — written
+          into <span className="mono">{dir}</span>.
+        </p>
+        <p className="muted">
+          Once written, archdoc keeps them current every time it runs. It overwrites only the files whose names say{' '}
+          <span className="mono">.generated.</span>; the chapters for you to write are created once and never touched again.
+        </p>
+        {can.update ? (
+          <div className="pop-actions">
+            <button className="btn btn-ink" disabled={busy || state.asking} onClick={write}>
+              {busy ? 'Writing…' : 'Write the documents'}
+            </button>
+          </div>
+        ) : (
+          <p className="muted">
+            On your machine, <span className="mono">archdoc generate</span> in the project writes them.
+          </p>
+        )}
+        {state.error && (
+          <p className="pop-note" role="alert">
+            {state.error}
+          </p>
         )}
       </div>
     </div>

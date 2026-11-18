@@ -52,11 +52,11 @@ const runs: Record<UpdateAsk['what'], { title: string; one: string; many: string
 const size = (bytes: number) => (bytes < 1024 ? `${bytes} bytes` : `${Math.round(bytes / 1024)} KB`)
 
 /**
- * Update with AI (§4.3, rule 19): a separate, deliberate step. First what each paid run would send
+ * Enrich with AI (§4.3, rule 19; named so on 18 Nov 2026): a separate, deliberate step. First what each paid run would send
  * and roughly what it costs — from a dry run of the pipeline, so the figures are the engine's — and
  * only then, on the person's say, the update. The server sends nothing beyond what was shown here.
  */
-export function UpdateWithAI(props: { busy: boolean; go: (r: Partial<Route>) => void; onStarted: () => void }) {
+export function EnrichWithAI(props: { busy: boolean; go: (r: Partial<Route>) => void; onStarted: () => void }) {
   const source = useSource()
   const [preview, setPreview] = useState<{ data?: UpdatePreview; error?: string }>({})
   const [off, setOff] = useState<Partial<Record<UpdateAsk['what'], boolean>>>({})
@@ -127,12 +127,12 @@ export function UpdateWithAI(props: { busy: boolean; go: (r: Partial<Route>) => 
         </p>
       ) : (
         <p className="pop-note" role="alert">
-          ANTHROPIC_API_KEY isn’t set where archdoc serve was started. Set it in that shell, start archdoc serve again, and come back. Nothing has been sent.
+          ANTHROPIC_API_KEY isn’t set where archdoc was started. Set it in a terminal, run archdoc restart there, and reload this page. Nothing has been sent.
         </p>
       )}
       <div className="pop-actions">
         <button className="btn btn-ink" disabled={!key || !chosen.length || start.asking || props.busy} onClick={send}>
-          {props.busy ? 'Updating…' : 'Update with AI'}
+          {props.busy ? 'Updating…' : 'Enrich with AI'}
         </button>
         <button className="link-btn" onClick={() => props.go({ screen: 'runs' })}>
           What has left this machine →

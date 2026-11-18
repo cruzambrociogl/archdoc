@@ -61,7 +61,7 @@ export function NoticeBand({ summary }: { summary: Summary }) {
             still: can.place === 'hosted' ? `The problem is on archdoc’s side, not yours. ${still}` : still,
             todo:
               can.place === 'local'
-                ? 'Start it again in a terminal — archdoc serve, in the repository’s folder. This page reconnects on its own.'
+                ? 'Start it again in a terminal: archdoc, in the project’s folder. This page reconnects on its own.'
                 : 'Nothing to do here; it tries again on its own.',
             acts: [{ label: 'Try now', on: retryFailed, primary: true }],
             fold: true,
@@ -74,7 +74,7 @@ export function NoticeBand({ summary }: { summary: Summary }) {
       id: `updating-${busy.since}`,
       glyph: 'info',
       what: busy.mine
-        ? `An update${busy.ai ? ' with AI' : ''} started here is running, since ${time(Date.parse(busy.since ?? ''))}.`
+        ? `${busy.ai ? 'Enriching with AI, started here,' : 'An update started here'} is running, since ${time(Date.parse(busy.since ?? ''))}.`
         : `An update ${busy.by === 'the app' ? 'started in the app' : 'started in the terminal'} is running: ${busy.by}, since ${time(Date.parse(busy.since ?? ''))}.`,
       still: busy.doing ? `Now ${busy.doing}${busy.found?.length ? ` — ${busy.found.join(', ')} so far` : ''}.` : undefined,
       todo: 'These docs stay as they are until it ends; then this page says what changed.',
@@ -88,7 +88,7 @@ export function NoticeBand({ summary }: { summary: Summary }) {
         ? {
             id,
             glyph: 'warn',
-            what: end.ai ? aiFailure(end.error, 'The update with AI') : `The update stopped: ${end.error.replace(/\.$/, '')}.`,
+            what: end.ai ? aiFailure(end.error, 'The AI enrichment') : `The update stopped: ${end.error.replace(/\.$/, '')}.`,
             still: 'These docs are as they were.',
             acts: [{ label: 'Got it', on: dismiss(id), primary: true }],
           }
@@ -96,7 +96,7 @@ export function NoticeBand({ summary }: { summary: Summary }) {
             id,
             glyph: 'info',
             what: end.ai
-              ? `Updated with AI: what it wrote is in, and the architecture is as it was in version ${end.version}.`
+              ? `Enriched with AI: what it wrote is in, and the architecture is as it was in version ${end.version}.`
               : `Updated: the architecture is as it was in version ${end.version}.`,
             still: 'This page shows what it loaded until you choose.',
             acts: [

@@ -61,7 +61,7 @@ export function Changes(props: { versions: Version[]; route: Route; go: (r: Part
         {!to || sorted.length < 2 || !base ? (
           <>
             <h1 className="page-title small">{to ? `v${to}` : 'No versions'}</h1>
-            <p className="lede">This is the first version recorded. Changes appear here once the architecture changes and archdoc generate records another.</p>
+            <p className="lede">This is the first version recorded. Changes appear here once the architecture changes and archdoc records another.</p>
           </>
         ) : (
           <>

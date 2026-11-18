@@ -12,7 +12,7 @@ import { Failure, Loading, TruthMark } from '../ui/marks'
  */
 export function aiFailure(error: string, what: string): string {
   if (/credentials|401|x-api-key/i.test(error)) {
-    return `${what} couldn’t be written: Anthropic refused the key. Check ANTHROPIC_API_KEY in the shell archdoc serve was started from, then try again. This try cost nothing.`
+    return `${what} couldn’t be written: Anthropic refused the key. Check ANTHROPIC_API_KEY, run archdoc restart in the terminal where it is set, then try again. This try cost nothing.`
   }
   if (/credit|billing|402/i.test(error)) return `${what} couldn’t be written: the Anthropic account has no credit left. Add credit in the Anthropic console, then try again.`
   return `${what} couldn’t be written: ${error.replace(/\.$/, '')}. Everything proven is still here; this try is in What left this machine.`

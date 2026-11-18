@@ -3,16 +3,18 @@ import { useEffect, useMemo, useState } from 'react'
 import type { HomePlace, HomeResponse } from '../api'
 import type { Homes } from '../source'
 import { SourceProvider } from '../source'
-import { Home } from '../screens/Home'
+import { Library } from '../screens/Library'
 import { Loading } from '../ui/marks'
 import { ParentContext } from './parent'
 import { goTo, replaceWith, usePath } from './path'
 import { SystemSite } from './SystemSite'
 
 /**
- * Home's pages (platform-surface §5.3): Home at `/`, and each place this machine remembers at
- * `/at/{id}` — a repository's pages after `#`, a system's map and repositories under it — with Home
- * first in the breadcrumb. With one place there is no Home: it opens that place.
+ * The library's pages (platform-surface §5.3, Home there): the library at `/`, and each place this
+ * machine remembers at `/at/{id}` — a repository's pages after `#`, a system's map and repositories
+ * under it — with the library first in the breadcrumb. It is there with one place too: this
+ * machine's one archdoc serves every project, and the library is where the next one appears
+ * (decisions, 18 Nov 2026).
  */
 export function HomeSite({ home, Repository }: { home: Homes; Repository: ComponentType }) {
   const path = usePath()
@@ -28,7 +30,6 @@ export function HomeSite({ home, Repository }: { home: Homes; Repository: Compon
 
   const place = data?.places.find((p) => p.id === id)
   const source = useMemo(() => (place && place.kind !== 'missing' ? home.open(place) : undefined), [home, place])
-  const only = data?.places.length === 1 && data.places[0].kind !== 'missing' ? data.places[0] : undefined
   const open = useMemo(
     () => (p: HomePlace, replace = false) => {
       home.opened(p.id).catch(() => {}) // remembering is a convenience; opening goes on without it
@@ -36,10 +37,7 @@ export function HomeSite({ home, Repository }: { home: Homes; Repository: Compon
     },
     [home],
   )
-  useEffect(() => {
-    if (!id && only) open(only, true)
-  }, [id, only, open])
-  const above = useMemo(() => (only ? [] : [{ label: 'Home', open: () => goTo('/') }]), [only])
+  const above = useMemo(() => [{ label: 'Library', open: () => goTo('/') }], [])
 
   if (!data && !error) {
     return (
@@ -61,5 +59,5 @@ export function HomeSite({ home, Repository }: { home: Homes; Repository: Compon
       </SourceProvider>
     )
   }
-  return <Home data={data} error={error} missing={!!id} onOpen={(p) => open(p)} onHome={() => goTo('/')} />
+  return <Library data={data} error={error} missing={!!id} onOpen={(p) => open(p)} onHome={() => goTo('/')} />
 }
