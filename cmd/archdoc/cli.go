@@ -61,9 +61,11 @@ func init() {
 				"Never uses the network: descriptions and explanations Claude wrote before are reused while what they\n" +
 				"describe is unchanged. A run that changes nothing records no new version.",
 			groupWrite, generate},
-		{"export", "<path> --site", "build the published site: the web app as static files, for a team",
-			"Builds .archdoc/site from the committed record — the app, read-only, with the latest version's data —\n" +
-				"for any static host. Never deploys; never calls a model.",
+		{"export", "<path> --site | --record", "build the published site, or the record a site is built from elsewhere",
+			"--site builds .archdoc/site from the committed record — the app, read-only, with the latest version's\n" +
+				"data — for any static host. --record writes .archdoc/record.json: the model, the coverage report and the\n" +
+				"documents in one file, with none of the code, for a site to be built where the repository is not.\n" +
+				"Run 'archdoc generate' first. Never deploys; never calls a model.",
 			groupWrite, export},
 		{"status", "<path>", "is the documentation up to date with the code, and what is open",
 			"The latest version and the commit it was read at; whether the code has changed the architecture since\n" +

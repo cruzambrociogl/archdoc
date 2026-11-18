@@ -9,24 +9,40 @@ import (
 )
 
 // export builds the published site (SUR-05, surface-spec §3): the web app as static files, with
-// the latest version's data — and the change since a baseline — beside it.
+// the latest version's data — and the change since a baseline — beside it. Or the record: what
+// archdoc made of the repository, in one file, for a site to be built from somewhere else.
 func export(e env, args []string) error {
 	fs := flags("export")
-	site := fs.Bool("site", false, "build the published site into .archdoc/site (required: the one format so far)")
+	site := fs.Bool("site", false, "build the published site into .archdoc/site")
+	record := fs.Bool("record", false, "write the record into .archdoc/record.json: the model, the coverage report and the documents, in one file, with none of the code")
 	since := fs.Int64("since", 0, "the `version` 'what changed' is measured against; 0 is the one before the latest")
 
 	positional, err := parse(e, fs, args, nil)
 	if err != nil {
 		return err
 	}
-	if !*site {
-		return usagef("export builds the published site, and says so: archdoc export <path> --site")
+	if *site == *record {
+		return usagef("export makes one thing, and says which: archdoc export <path> --site, or --record")
 	}
 	root, err := writePath(fs, positional)
 	if err != nil {
 		return err
 	}
 	out := e.out
+
+	if *record {
+		r, err := archdoc.MakeRecord(root)
+		if err != nil {
+			return err
+		}
+		size, err := r.Write(root)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "wrote %s — %.1f MB: the model, the coverage report and %d documents, with none of the code\n",
+			archdoc.RecordFile, float64(size)/1e6, len(r.Documents))
+		return nil
+	}
 
 	s, err := archdoc.BuildSite(context.Background(), root, *since)
 	if err != nil {

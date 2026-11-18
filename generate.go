@@ -393,31 +393,8 @@ func Generate(ctx context.Context, root string, o GenerateOptions) (*Generated, 
 			generated[render.ComponentsFile] = components
 		}
 	}
-	views := render.Views(m)
-	for _, v := range views {
-		generated[v.File+".mmd"] = render.Mermaid(v.Model, v.Group)
-	}
-	if meta.Pictures {
-		// The committed pictures show the diagrams as a person arranged them in the app
-		// (layout.yaml); the engine's own layout is what is stored, so resetting loses nothing.
-		arrangement, _, err := arrange.LoadLayout(facts.Root)
-		if err != nil {
-			fmt.Fprintf(out, "warning: %v — drawing the engine's layout instead\n", err)
-			arrangement = arrange.Arrangement{}
-		}
-		for _, view := range views {
-			stored, ok := layouts[view.Name]
-			if !ok {
-				continue
-			}
-			l, rep := arrange.Apply(view.Name, stored, arrangement)
-			// Each with its title and key (rule 23), in C4's own blues: the look committed files have.
-			generated[view.File+".svg"] = render.Figure(m, view, l, render.Classic)
-			if len(rep.Stale) > 0 {
-				fmt.Fprintf(out, "%s/%s: %d saved position(s) in the %s view match nothing: %s\n",
-					arrange.Dir, arrange.LayoutFile, len(rep.Stale), view.Name, strings.Join(rep.Stale, ", "))
-			}
-		}
+	for name, content := range pictures(facts.Root, m, layouts, out) {
+		generated[name] = content
 	}
 	for name, content := range render.Arc42(m, *facts, plan, meta) {
 		generated[name] = content
@@ -597,11 +574,13 @@ const ignoreFile = `# Written by archdoc.
 # coverage.json, layout.yaml and views.yaml beside it.
 #
 # site/ is what 'archdoc export --site' builds from the committed record — a build product,
-# rebuilt by CI, not something to commit. updating.json says which run is updating the
-# repository right now, and lasts only as long as it does.
+# rebuilt by CI, not something to commit; record.json, what 'archdoc export --record' makes,
+# likewise. updating.json says which run is updating the repository right now, and lasts only
+# as long as it does.
 history.db
 history.db-shm
 history.db-wal
+record.json
 site/
 updating.json
 updating.json.tmp
@@ -674,6 +653,40 @@ func layoutViews(root string, m core.Model, history bool, out io.Writer) map[str
 	}
 
 	return computeLayouts(m, out)
+}
+
+// pictures draws every view: its Mermaid source always, and — when layouts drew it — its figure,
+// as a person arranged it in the app (layout.yaml under root). The engine's own layout is what is
+// stored, so resetting loses nothing. A site built from a record draws its diagrams here too, so
+// they are the ones generate would have committed.
+func pictures(root string, m core.Model, layouts map[string]core.Layout, out io.Writer) map[string]string {
+	files := map[string]string{}
+	views := render.Views(m)
+	for _, v := range views {
+		files[v.File+".mmd"] = render.Mermaid(v.Model, v.Group)
+	}
+	if layouts == nil {
+		return files
+	}
+	arrangement, _, err := arrange.LoadLayout(root)
+	if err != nil {
+		fmt.Fprintf(out, "warning: %v — drawing the engine's layout instead\n", err)
+		arrangement = arrange.Arrangement{}
+	}
+	for _, view := range views {
+		stored, ok := layouts[view.Name]
+		if !ok {
+			continue
+		}
+		l, rep := arrange.Apply(view.Name, stored, arrangement)
+		// Each with its title and key (rule 23), in C4's own blues: the look committed files have.
+		files[view.File+".svg"] = render.Figure(m, view, l, render.Classic)
+		if len(rep.Stale) > 0 {
+			fmt.Fprintf(out, "%s/%s: %d saved position(s) in the %s view match nothing: %s\n",
+				arrange.Dir, arrange.LayoutFile, len(rep.Stale), view.Name, strings.Join(rep.Stale, ", "))
+		}
+	}
+	return files
 }
 
 // computeLayouts lays out every view afresh.

@@ -233,6 +233,7 @@ is as good as the environment**, and the environment is usually somewhere else.
 archdoc scan | generate | diff | history | runs    the command line
 archdoc serve                                  the same engine, in a browser — this machine only
 archdoc export --site                          the same app as static files, for a team
+archdoc export --record                        the record a site is built from elsewhere, with no code
 ```
 
 The web app holds no logic — it renders what the engine already computed. It draws each diagram

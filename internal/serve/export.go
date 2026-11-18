@@ -73,16 +73,26 @@ func StaticName(apiPath string) string {
 var svgRef = regexp.MustCompile(`([A-Za-z0-9_.-]+\.svg)\b`)
 
 func Export(root string, since int64) (map[string][]byte, error) {
-	s, err := New(root, nil) // a published site never updates
+	return ExportFrom(root, since, nil)
+}
+
+// Fixed is what a site built from a record carries in place of what only the repository could
+// say: the commit and the remote its citations open on, and the two answers that read the
+// repository itself — what rules.yaml did, and which of the person's sections exist. The record
+// was made where the repository is (Captured); the site is built where it is not.
+type Fixed struct {
+	Commit, Remote      string
+	Rules, Completeness []byte
+}
+
+// ExportFrom is Export, for a root that may hold only the record's files: with fixed, what needs
+// the repository comes from it instead, so nothing reads code that is not there.
+func ExportFrom(root string, since int64, fixed *Fixed) (map[string][]byte, error) {
+	s, cleanup, err := exportServer(root, fixed)
 	if err != nil {
-		abs, _ := filepath.Abs(root)
-		seed, cleanup, serr := seedHistory(abs)
-		if serr != nil {
-			return nil, fmt.Errorf("%v; and no committed .archdoc/model.json to build from instead: %v", err, serr)
-		}
-		defer cleanup()
-		s = newServer(abs, seed, nil)
+		return nil, err
 	}
+	defer cleanup()
 	latest, err := s.latest()
 	if err != nil {
 		return nil, err
@@ -110,21 +120,7 @@ func Export(root string, since int64) (map[string][]byte, error) {
 	}
 
 	out := map[string][]byte{}
-	get := func(p string, optional bool) ([]byte, error) {
-		req := httptest.NewRequest("GET", p, nil)
-		req.Host = "localhost"
-		rec := httptest.NewRecorder()
-		s.ServeHTTP(rec, req)
-		if rec.Code == http.StatusNotFound && optional {
-			return nil, nil
-		}
-		if rec.Code != http.StatusOK {
-			return nil, fmt.Errorf("%s: %d %s", p, rec.Code, strings.TrimSpace(rec.Body.String()))
-		}
-		// Nothing about the publisher's machine travels: absolute paths become repository-relative.
-		b := bytes.ReplaceAll(rec.Body.Bytes(), []byte(s.root+"/"), nil)
-		return bytes.ReplaceAll(b, []byte(s.root), []byte(".")), nil
-	}
+	get := s.fetch
 	put := func(p string, optional bool) error {
 		b, err := get(p, optional)
 		if err == nil && b != nil {
@@ -236,15 +232,89 @@ func Export(root string, since int64) (map[string][]byte, error) {
 	sum["root"] = ""
 	out[StaticName("/api/summary")], _ = json.MarshalIndent(sum, "", "  ")
 	out[StaticName("/api/session")], _ = json.MarshalIndent(map[string]any{
-		"mode": "published", "remote": render.Remote(s.root), "commit": latest.Commit,
+		"mode": "published", "remote": s.remote(), "commit": latest.Commit,
 		"generated_at": latest.CreatedAt, "version": latest.ID, "baseline": base,
 	}, "", "  ")
 	return out, nil
 }
 
+// exportServer answers for root as a published site: from its history, or — with none — from a
+// history seeded from its model.json. cleanup removes the seed.
+func exportServer(root string, fixed *Fixed) (*Server, func(), error) {
+	if fixed == nil {
+		if s, err := New(root, nil); err == nil { // a published site never updates
+			return s, func() {}, nil
+		} else if _, serr := os.Stat(filepath.Join(root, ".archdoc", "model.json")); serr != nil {
+			return nil, nil, fmt.Errorf("%v; and no committed .archdoc/model.json to build from instead: %v", err, serr)
+		}
+	}
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	commit := render.Commit(abs)
+	if fixed != nil {
+		commit = fixed.Commit
+	}
+	seed, cleanup, err := seedHistory(abs, commit)
+	if err != nil {
+		return nil, nil, fmt.Errorf("no history, and no .archdoc/model.json to build from instead: %v", err)
+	}
+	s := newServer(abs, seed, nil)
+	s.fixed = fixed
+	return s, cleanup, nil
+}
+
+// fetch asks the server for p as the app would, and returns the answer with nothing about this
+// machine in it: absolute paths become repository-relative. An optional path that is not found
+// is nil, nil.
+func (s *Server) fetch(p string, optional bool) ([]byte, error) {
+	req := httptest.NewRequest("GET", p, nil)
+	req.Host = "localhost"
+	rec := httptest.NewRecorder()
+	s.ServeHTTP(rec, req)
+	if rec.Code == http.StatusNotFound && optional {
+		return nil, nil
+	}
+	if rec.Code != http.StatusOK {
+		return nil, fmt.Errorf("%s: %d %s", p, rec.Code, strings.TrimSpace(rec.Body.String()))
+	}
+	b := bytes.ReplaceAll(rec.Body.Bytes(), []byte(s.root+"/"), nil)
+	return bytes.ReplaceAll(b, []byte(s.root), []byte(".")), nil
+}
+
+// remote is where the site's citations open: the repository's origin, or the record's.
+func (s *Server) remote() string {
+	if s.fixed != nil {
+		return s.fixed.Remote
+	}
+	return render.Remote(s.root)
+}
+
+// Captured is what a record needs from the repository beyond its files: the commit and remote,
+// and the answers of the two endpoints that read the repository itself, exactly as a published
+// site built here would carry them.
+func Captured(root string) (*Fixed, error) {
+	s, cleanup, err := exportServer(root, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	rules, err := s.fetch("/api/rules", false)
+	if err != nil {
+		return nil, err
+	}
+	// By size only, as Export asks: the site is read far from this checkout's modification times.
+	comp, err := s.fetch("/api/completeness?basis=size", false)
+	if err != nil {
+		return nil, err
+	}
+	return &Fixed{Commit: render.Commit(s.root), Remote: render.Remote(s.root), Rules: rules, Completeness: comp}, nil
+}
+
 // seedHistory builds a one-version history from the committed model.json, in a temporary
 // directory, so a clone with no history.db can still be published. The caller removes it.
-func seedHistory(root string) (string, func(), error) {
+func seedHistory(root, commit string) (string, func(), error) {
 	b, err := os.ReadFile(filepath.Join(root, ".archdoc", "model.json"))
 	if err != nil {
 		return "", nil, err
@@ -274,7 +344,7 @@ func seedHistory(root string) (string, func(), error) {
 		return "", nil, err
 	}
 	defer h.Close()
-	if _, _, err := h.Save(m, layouts, render.Commit(root), "export"); err != nil {
+	if _, _, err := h.Save(m, layouts, commit, "export"); err != nil {
 		cleanup()
 		return "", nil, err
 	}

@@ -173,3 +173,31 @@ func TestShowFindsWhatItIsAskedFor(t *testing.T) {
 		t.Errorf("--json: exit %d\n%s", code, out)
 	}
 }
+
+// export --record writes one file a site can be built from elsewhere, and says what is in it; it
+// needs generate first, and makes one thing at a time.
+func TestExportRecordWritesTheRecord(t *testing.T) {
+	root := copyFixture(t, "repo")
+	if _, code, err := cli(t, "export", root, "--record"); code == 0 || err == nil || !strings.Contains(err.Error(), "archdoc generate") {
+		t.Errorf("a record before generate: exit %d, %v", code, err)
+	}
+	gen(t, root)
+	out, code, err := cli(t, "export", root, "--record")
+	if code != 0 {
+		t.Fatalf("export --record: exit %d, %v", code, err)
+	}
+	if !strings.Contains(out, archdoc.RecordFile) || !strings.Contains(out, "none of the code") {
+		t.Errorf("export --record said %q", out)
+	}
+	f, err := os.Open(filepath.Join(root, archdoc.RecordFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if _, err := archdoc.ReadRecord(f); err != nil {
+		t.Errorf("the record written does not read back: %v", err)
+	}
+	if _, code, _ := cli(t, "export", root, "--record", "--site"); code != 2 {
+		t.Errorf("--record and --site together: exit %d, want 2", code)
+	}
+}

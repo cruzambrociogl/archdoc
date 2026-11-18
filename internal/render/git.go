@@ -78,6 +78,10 @@ func Remote(root string) string {
 	return ""
 }
 
+// WebAddress is webURL for a caller outside the package: a record's remote is checked with it, so
+// only an address this function could have produced is accepted.
+func WebAddress(u string) string { return webURL(u) }
+
 // webURL turns a clone address into the repository's web address, or "" for an unknown host.
 func webURL(u string) string {
 	u = strings.TrimSuffix(u, ".git")

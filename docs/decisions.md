@@ -1404,3 +1404,17 @@ configuration is given up for that.
   too, which reverses platform-surface §5.3's "with one repository there is no Home" for this
   machine: the library is where the next project appears.
 - `update` and `uninstall` wait: nothing is published to update from yet.
+
+**2026-11-18 — The record: what archdoc made, in one file, for a site built elsewhere**
+A site could be built only where the repository is: the coverage report, the documents, what
+rules.yaml did and which of the person's sections exist all come from it. `archdoc export --record`
+writes `.archdoc/record.json` instead — the model, the coverage report, the documents archdoc wrote,
+those two answers, the commit, the remote and the diagrams' arrangement — and `BuildSiteFromRecord`
+builds the site from it with no checkout: the same server answers, and the diagrams are drawn from
+the model as generate draws them, so the two sites match file for file (`record_test.go`). Not the
+facts: they carry far more of the code's own text (Immich: 13 MB against a 2.5 MB record). Every
+string in the record's model is bounded to `MaxExcerpt` (300) characters — nothing on Immich reaches
+it. `ReadRecord` reads one from anyone: format first, then strictly, the commit and remote in
+archdoc's own forms, the model validated. `RecordFormat` follows the model's shape, which a test pins.
+→ `record.go`; `internal/serve/export.go` (`ExportFrom`, `Captured`); `cmd/archdoc/export.go`
+

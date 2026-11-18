@@ -49,9 +49,13 @@ func BuildSite(ctx context.Context, root string, since int64) (*Site, error) {
 	if err != nil {
 		return nil, err
 	}
+	return assemble(assets, data)
+}
 
+// assemble puts the app's files and a version's data together as a published site.
+func assemble(assets fs.FS, data map[string][]byte) (*Site, error) {
 	files := map[string][]byte{}
-	err = walkAssets(assets, func(name string, b []byte) {
+	err := walkAssets(assets, func(name string, b []byte) {
 		if name == "index.html" {
 			b = []byte(strings.Replace(string(b), "<head>", "<head>\n    "+publishedPolicy+"\n    "+publishedMarker, 1))
 		}

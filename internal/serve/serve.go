@@ -57,6 +57,9 @@ type Server struct {
 	// switched off. app is the runs it started.
 	update Updater
 	app    updates
+	// fixed is set when the repository is not here — a site built from a record (export.go): what
+	// only the repository could say comes with the record instead.
+	fixed *Fixed
 }
 
 // New prepares a server for the repository at root, updated through up — or not, when it is nil.
@@ -253,7 +256,7 @@ func (s *Server) summary(w http.ResponseWriter, r *http.Request) {
 		"name": latest.Model.Name, "root": s.root, "source": latest.Source,
 		"commit": latest.Commit, "latest_version": latest.ID,
 		// The commit checked out now: when it is not the version's, the code has moved on since.
-		"head":     render.Commit(s.root),
+		"head":     s.head(),
 		"versions": len(versions), "runs": len(runs),
 		"frontend_built": built || web.DevServer() != "",
 	}
@@ -631,6 +634,10 @@ func runJSON(r store.Run) map[string]any {
 // compiled to against the model as extracted, and the rules that matched nothing or overrode
 // another.
 func (s *Server) rules(w http.ResponseWriter, r *http.Request) {
+	if s.fixed != nil {
+		sendRaw(w, s.fixed.Rules)
+		return
+	}
 	f, err := rules.Load(s.root)
 	if err != nil {
 		fail(w, err)
@@ -733,6 +740,10 @@ func (s *Server) doc(w http.ResponseWriter, r *http.Request) {
 // stale" compares against when the latest version was recorded — the last time the architecture
 // changed.
 func (s *Server) completeness(w http.ResponseWriter, r *http.Request) {
+	if s.fixed != nil {
+		sendRaw(w, s.fixed.Completeness)
+		return
+	}
 	v, err := s.version(r, "version")
 	if err != nil {
 		fail(w, err)
@@ -823,6 +834,25 @@ func send(w http.ResponseWriter, v any) {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	enc.Encode(v)
+}
+
+// sendRaw answers with JSON already made: what a record carries for an endpoint that needs the
+// repository (export.go).
+func sendRaw(w http.ResponseWriter, b []byte) {
+	if len(b) == 0 {
+		notFound(w, "the record does not carry this")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
+}
+
+// head is the commit checked out now: the repository's, or the record's when there is none.
+func (s *Server) head() string {
+	if s.fixed != nil {
+		return s.fixed.Commit
+	}
+	return render.Commit(s.root)
 }
 
 func fail(w http.ResponseWriter, err error) {
