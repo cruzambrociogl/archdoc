@@ -18,8 +18,6 @@ export interface Capabilities {
   edit: boolean
   /** Each network run's requests, exactly as they were sent — which stay on the machine that sent them. */
   runDetails: boolean
-  /** What archdoc plans and has not built is shown, as placeholders. */
-  plans: boolean
   /** Where a citation opens: in an editor on this machine, or on the repository's host. */
   links: 'editor' | 'host'
   /** A model can be asked, on the person's own key: Ask, and Did it build what I asked? (§6.3, §6.5). */

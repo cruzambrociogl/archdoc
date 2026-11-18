@@ -2,7 +2,6 @@ import { useState } from 'react'
 import type { CodeRead, CoverageResponse } from '../api'
 import { componentLevel, useApi } from '../api'
 import { Cite } from '../ui/Cite'
-import { PlannedSlot } from '../ui/Planned'
 import type { Route } from '../route'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
 
@@ -31,7 +30,7 @@ function CodeRow({ c, go }: { c: CodeRead; go: (r: Partial<Route>) => void }) {
       <div className="mono small">
         {c.root}/{' '}
         {c.container && (
-          <button className="text-link" onClick={() => go({ screen: 'explorer', level: componentLevel(c.container) })}>
+          <button className="text-link" onClick={() => go({ screen: 'architecture', level: componentLevel(c.container) })}>
             · {c.components} components
           </button>
         )}
@@ -70,7 +69,7 @@ export function Coverage(props: { go: (r: Partial<Route>) => void }) {
   const gapCount = r.gaps.reduce((s, g) => s + g.gaps.length, 0)
   const toElement = (element: string) => {
     const edge = element.split(' → ')
-    props.go({ screen: 'explorer', level: 'container', focus: edge.length === 2 ? `${edge[0]}>${edge[1]}` : element })
+    props.go({ screen: 'architecture', level: 'container', focus: edge.length === 2 ? `${edge[0]}>${edge[1]}` : element })
   }
 
   return (
@@ -90,8 +89,6 @@ export function Coverage(props: { go: (r: Partial<Route>) => void }) {
           </div>
         ))}
       </div>
-
-      <PlannedSlot id="coverage-headline" go={props.go} />
 
       <div className="coverage-grid">
         <section>

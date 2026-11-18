@@ -40,7 +40,7 @@ export function WhatChanged(props: { versions: Version[]; route: Route; go: (r: 
 
   return (
     <div className="reading what-changed">
-      <div className="page-q">What just changed?</div>
+      <div className="page-q">What changed since you last looked?</div>
 
       {sorted.length > 1 && (
         <div className="version-strip" role="group" aria-label="Versions">
@@ -103,8 +103,8 @@ function Story(props: { d: DiffResponse; before: ModelResponse; after: ModelResp
       <div className="overview-source">
         <span>Written from the engine's comparison with the version before — proven, not interpreted.</span>
         {structural && (
-          <button className="link-btn" onClick={() => props.go({ screen: 'explorer', level: 'container', v: props.to === undefined ? undefined : props.to, from: props.base })}>
-            See it on the map →
+          <button className="link-btn" onClick={() => props.go({ screen: 'architecture', level: 'container', v: props.to === undefined ? undefined : props.to, from: props.base })}>
+            See it in Architecture →
           </button>
         )}
       </div>

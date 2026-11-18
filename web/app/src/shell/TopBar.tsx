@@ -5,7 +5,6 @@ import { useCapabilities, useSource } from '../source'
 import type { Route } from '../route'
 import { levelName, sectionOf, titles } from '../route'
 import type { Theme } from '../theme'
-import { Planned } from '../ui/Planned'
 import { TruthMark } from '../ui/marks'
 import type { MarkKind } from '../ui/markInfo'
 import { MarkGlyph } from '../ui/markInfo'
@@ -91,12 +90,13 @@ export function TopBar(props: {
 
   // Where you are: the repository, the section, and the page or level inside it.
   const section = sectionOf(route.screen)
+  const canvas = route.screen === 'architecture' || route.screen === 'data'
   const crumbs: { label: string; mono?: boolean; on?: () => void }[] = [
     ...(parent?.crumbs ?? []).map((c) => ({ label: c.label, mono: true, on: c.open })),
-    { label: parent?.repo ?? s.name, mono: true, on: () => go({ screen: 'overview' }) },
-    { label: titles[section], on: route.screen !== section || (section === 'explorer' && route.level) ? () => go({ screen: section }) : undefined },
+    { label: parent?.repo ?? s.name, mono: true, on: () => go({ screen: 'home' }) },
+    { label: titles[section], on: route.screen !== section || (canvas && route.level) ? () => go({ screen: section }) : undefined },
     ...(route.screen !== section ? [{ label: titles[route.screen] }] : []),
-    ...(route.screen === 'explorer' && route.level ? [{ label: levelName(route.level, props.name) }] : []),
+    ...(canvas && route.level ? [{ label: levelName(route.level, props.name) }] : []),
   ]
 
   return (
@@ -106,7 +106,7 @@ export function TopBar(props: {
       </button>
       {/* The wordmark goes home: the outermost level above — Start on the website, Home, a system's
           map — or, for a repository alone, its Overview. */}
-      <button className="brand-mark" onClick={parent?.home ?? parent?.crumbs[0]?.open ?? (() => go({ screen: 'overview' }))}>
+      <button className="brand-mark" onClick={parent?.home ?? parent?.crumbs[0]?.open ?? (() => go({ screen: 'home' }))}>
         archdoc
       </button>
 
@@ -229,28 +229,19 @@ export function TopBar(props: {
                     Show the latest
                   </button>
                 )}
-                {can.update && !older ? (
+                {can.update && !older && (
                   <>
                     <UpdateButton busy={busy} />
                     <button className="btn btn-outline" disabled={busy} onClick={() => setWithAI(true)}>
                       <TruthMark state="interpreted" /> Update with AI…
                     </button>
                   </>
-                ) : (
-                  !can.update && (
-                    <Planned id="run" go={go}>
-                      Update
-                    </Planned>
-                  )
                 )}
                 {can.history && props.versions.length > 1 && (
                   <button className="link-btn" onClick={() => go({ screen: 'changes', v: route.v })}>
                     Every version →
                   </button>
                 )}
-                <Planned id="git" go={go}>
-                  Uncommitted
-                </Planned>
               </div>
             )}
           </div>
@@ -274,18 +265,14 @@ export function TopBar(props: {
         </button>
       </div>
 
-      {/* Share, where showing someone works today: a published or hosted page's address. Publishing from here is designed, not built. */}
-      {can.place !== 'local' ? (
+      {/* Share, where showing someone works today: a published or hosted page's address. */}
+      {can.place !== 'local' && (
         <div className="pop-anchor">
           <button className={`btn btn-outline ${open === 'share' ? 'on' : ''}`} onClick={() => toggle('share')} aria-expanded={open === 'share'}>
             Share
           </button>
           {open === 'share' && <SharePop />}
         </div>
-      ) : (
-        <Planned id="publish" go={go}>
-          Share
-        </Planned>
       )}
 
       <button className="icon-btn" onClick={props.onTheme} title={themeLabel[props.theme]} aria-label={themeLabel[props.theme]}>
@@ -301,13 +288,13 @@ export function TopBar(props: {
             <button className="more-item" onClick={() => go(can.history ? { screen: 'changes', v: route.v } : { screen: 'about' })}>
               <span>
                 <span className="more-label">Showing · version {shown?.id ?? s.latest_version}</span>
-                <span className="more-sub">{can.history ? 'Every version, in What changed' : 'The one this site was built from'}</span>
+                <span className="more-sub">{can.history ? 'Every version, in Changes' : 'The one this site was built from'}</span>
               </span>
               <span className="mono more-right">{commit.slice(0, 7)}</span>
             </button>
             <button className="more-item" onClick={() => go({ screen: 'about' })}>
               <span>
-                <span className="more-label">About these docs</span>
+                <span className="more-label">What archdoc knows</span>
                 <span className="more-sub">What archdoc could and couldn't read</span>
               </span>
             </button>
@@ -333,13 +320,6 @@ export function TopBar(props: {
           </div>
         )}
       </div>
-
-      {/* The "you" slot (§4.3): locally, this machine's settings — designed, not built. A published site has none. */}
-      {can.place === 'local' && (
-        <Planned id="settings" go={go}>
-          This machine
-        </Planned>
-      )}
     </header>
   )
 }

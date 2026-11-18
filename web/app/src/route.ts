@@ -1,67 +1,49 @@
-// Every view state lives in the URL (surface-spec §4.2): copying the address bar reproduces the
-// view, and back and forward walk through every screen, selection and comparison.
+// Every view state lives in the URL: copying the address bar reproduces the view, and back and
+// forward walk through every screen, selection and comparison.
 //
-// The address is a path in the hash — #/map?level=container — so the same build works served by
-// archdoc at /, published under any subpath, and framed by the website. Each screen has a path in
-// the information architecture of platform-surface §4: Overview, What changed, the Map, What it
-// does, Reference, About these docs, Settings. TanStack Router keeps it; screens read it through
-// useRoute and move with go, and never see the router.
+// The address is a path in the hash — #/architecture/containers?part=api — so the same build works
+// served by archdoc at /, published under any subpath, and framed by the website. The paths are the
+// link shapes of the app's design (platform-surface §17.6, settled 17 Nov): a section first, then
+// what is open inside it. TanStack Router keeps the address; screens read it through useRoute and move
+// with go, and never see the router.
 
 import { useCallback, useMemo } from 'react'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
+import { componentLevel, componentOf, dataLevel, dataOf, mainOf, structureLevel, structureOf } from './api'
 
 export const screens = [
-  'overview',
+  'home',
+  'architecture',
+  'data',
+  'features',
+  'usage',
   'changes',
   'plan',
-  'explorer',
-  'features',
   'reference',
-  'entries',
   'component',
   'deps',
   'docs',
   'about',
   'runs',
-  'rules',
-  'planned',
+  'settings',
 ] as const
 export type Screen = (typeof screens)[number]
-
-/** Where each screen lives (platform-surface §4.4). Its menu entry is the first segment. */
-export const paths: Record<Screen, string> = {
-  overview: '/overview',
-  changes: '/changes',
-  plan: '/plan',
-  explorer: '/map',
-  features: '/does',
-  reference: '/reference',
-  entries: '/reference/entry-points',
-  component: '/reference/component',
-  deps: '/reference/dependencies',
-  docs: '/reference/documentation',
-  about: '/about',
-  runs: '/about/what-left',
-  rules: '/settings',
-  planned: '/not-built-yet',
-}
-const byPath = new Map(Object.entries(paths).map(([s, p]) => [p, s as Screen]))
 
 export interface Route {
   screen: Screen
   /** The version on screen; absent means the latest. */
   v?: number
-  /** Map: the level. */
+  /** Architecture and Data: the diagram — "context", "container", "component:<id>", "data:<id>", "dataflow". */
   level?: string
-  /** Map: the selected element; a component page's component; Not built yet: the plan opened. */
+  /** Architecture and Data: the selected part; Usage: the open entry; a component page: its component. */
   focus?: string
-  /** Map: the search, dimming what does not match. */
+  /** A diagram: the search, dimming what does not match. A list: its filter. */
   q?: string
-  /** Map: dim everything not one hop from the selection. */
+  /** A diagram: dim everything not one hop from the selection. */
   dim?: string
-  /** Map: every component of a large container, where the default is its main ones. */
+  /** A diagram: every component of a large container, or every external system, where the default is the main ones. */
   all?: string
-  /** What changed: the version compared against. */
+  /** Changes, and a diagram compared: the version compared against. */
   from?: number
   /** Documentation: the open file. */
   doc?: string
@@ -69,11 +51,12 @@ export interface Route {
   run?: number
 }
 
-// Fixed key order, so the same view always has the same address.
-const order: (keyof Route)[] = ['v', 'level', 'focus', 'q', 'dim', 'all', 'from', 'doc', 'run']
-const numeric = new Set<keyof Route>(['v', 'from', 'run'])
+// The search keys, in a fixed order so one view has one address. `focus` is spelled by what it
+// is on each screen: a part on a diagram, an entry in Usage.
+const order = ['v', 'part', 'entry', 'by', 'q', 'dim', 'all', 'from', 'doc', 'run'] as const
+const numeric = new Set<string>(['v', 'from', 'run'])
 
-/** The search string of a route, in the fixed order: "?level=container&focus=api", or "". */
+/** The search string of a route, in the fixed order: "?part=api&q=user", or "". */
 export function stringifySearch(search: Record<string, unknown>): string {
   const q = new URLSearchParams()
   for (const k of order) {
@@ -89,7 +72,7 @@ export function parseSearch(search: string): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   new URLSearchParams(search.replace(/^\?/, '')).forEach((raw, k) => {
     if (raw === '') return
-    if (numeric.has(k as keyof Route)) {
+    if (numeric.has(k)) {
       const n = Number(raw)
       if (Number.isInteger(n)) out[k] = n
     } else {
@@ -99,58 +82,144 @@ export function parseSearch(search: string): Record<string, unknown> {
   return out
 }
 
-/** The screen at a path, or none. */
-export const screenAt = (pathname: string): Screen | undefined => byPath.get(pathname.replace(/\/+$/, '') || '/')
+/** A diagram's section: what it stores and how data moves are Data; everything else is C4, in Architecture. */
+export const canvasOf = (level?: string): 'architecture' | 'data' => (dataOf(level) !== undefined || level === 'dataflow' ? 'data' : 'architecture')
 
-/**
- * The address an old link meant. Before 22 Oct a view was #screen=explorer&level=…; published sites
- * and bookmarks still carry those, so they open where that screen lives now (platform-surface §4.8,
- * "a page that is gone").
- */
-export function fromOldHash(hash: string): string | undefined {
-  const q = new URLSearchParams(hash.replace(/^#/, ''))
-  const old = q.get('screen')
-  if (!old) return undefined
-  const moved: Record<string, Screen> = { coverage: 'about' }
-  const screen: Screen = moved[old] ?? ((screens as readonly string[]).includes(old) ? (old as Screen) : 'overview')
-  q.delete('screen')
-  return `#${paths[screen]}${stringifySearch(parseSearch(q.toString()))}`
+const enc = encodeURIComponent
+const dec = (s: string) => {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return s
+  }
+}
+
+/** The address of a route: its path, then its search. */
+export function hrefOf(r: Route): string {
+  const search: Record<string, unknown> = { v: r.v, q: r.q, dim: r.dim, all: r.all, from: r.from, doc: r.doc, run: r.run }
+  let path: string
+  switch (r.screen) {
+    case 'architecture':
+    case 'data': {
+      search.part = r.focus
+      const l = r.level
+      const inside = componentOf(l) ?? mainOf(l) ?? structureOf(l)
+      if (dataOf(l) !== undefined) path = `/data/data/${enc(dataOf(l)!)}`
+      else if (l === 'dataflow') path = '/data/dataflow'
+      else if (inside !== undefined) {
+        path = `/architecture/components/${enc(inside)}`
+        if (structureOf(l) !== undefined) search.by = 'folder'
+      } else if (l === 'container') path = '/architecture/containers'
+      else if (l === 'context') path = '/architecture/context'
+      else path = r.screen === 'data' ? '/data' : '/architecture'
+      break
+    }
+    case 'usage':
+      search.entry = r.focus
+      path = '/usage'
+      break
+    case 'component':
+      path = r.focus ? `/reference/component/${enc(r.focus)}` : '/reference'
+      break
+    default:
+      path = paths[r.screen]
+  }
+  return path + stringifySearch(search)
+}
+
+// The sections and pages whose address is fixed.
+const paths: Record<Exclude<Screen, 'architecture' | 'data' | 'usage' | 'component'>, string> = {
+  home: '/home',
+  features: '/features',
+  changes: '/changes',
+  plan: '/plan',
+  reference: '/reference',
+  deps: '/reference/dependencies',
+  docs: '/reference/documentation',
+  about: '/about/what-was-read',
+  runs: '/about/what-left',
+  settings: '/settings',
+}
+const byPath = new Map(Object.entries(paths).map(([s, p]) => [p, s as Screen]))
+
+/** The route at an address, or none when no page lives there. */
+export function routeAt(pathname: string, search: Record<string, unknown>): Route | undefined {
+  const seg = pathname.split('/').filter(Boolean)
+  const rest = (from: number) => dec(seg.slice(from).join('/'))
+  const r: Route = { screen: 'home' }
+  const take = <K extends keyof Route>(k: K, key: string = k) => {
+    if (search[key] !== undefined) (r as unknown as Record<string, unknown>)[k] = search[key]
+  }
+  for (const k of ['v', 'q', 'dim', 'all', 'from', 'doc', 'run'] as const) take(k)
+
+  const [a, b] = seg
+  if (seg.length === 0) return r
+  if (a === 'architecture' || a === 'data') {
+    r.screen = a
+    take('focus', 'part')
+    if (a === 'architecture') {
+      if (seg.length === 1) return r
+      if (b === 'context' && seg.length === 2) r.level = 'context'
+      else if (b === 'containers' && seg.length === 2) r.level = 'container'
+      else if (b === 'components' && seg.length > 2) r.level = search.by === 'folder' ? structureLevel(rest(2)) : componentLevel(rest(2))
+      else return undefined
+    } else {
+      if (seg.length === 1) return r
+      if (b === 'data' && seg.length > 2) r.level = dataLevel(rest(2))
+      else if (b === 'dataflow' && seg.length === 2) r.level = 'dataflow'
+      else return undefined
+    }
+    return r
+  }
+  if (a === 'usage' && seg.length === 1) {
+    r.screen = 'usage'
+    take('focus', 'entry')
+    return r
+  }
+  if (a === 'reference' && b === 'component' && seg.length > 2) {
+    r.screen = 'component'
+    r.focus = rest(2)
+    return r
+  }
+  if (a === 'about' && seg.length === 1) {
+    r.screen = 'about'
+    return r
+  }
+  const screen = byPath.get('/' + seg.join('/'))
+  if (!screen) return undefined
+  r.screen = screen
+  return r
 }
 
 type Go = (next: Partial<Route>, opts?: { replace?: boolean; keep?: boolean }) => void
 
 /** The address, when no page lives there — a link to a page that is gone (§4.8). */
 export function useUnknownPath(): string | undefined {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
-  return screenAt(pathname) || pathname === '/' ? undefined : pathname
+  const location = useRouterState({ select: (s) => s.location })
+  return routeAt(location.pathname, location.search as Record<string, unknown>) ? undefined : location.pathname
 }
 
 /**
  * The current route, and a way to move. `go` replaces the screen-specific state unless it is
- * passed again; the version on screen (`v`) is carried across screens.
+ * passed again; the version on screen (`v`) is carried across screens. A diagram's section follows
+ * its level: a move to what it stores lands in Data, whichever section asked.
  */
 export function useRoute(): [Route, Go] {
   const location = useRouterState({ select: (s) => s.location })
   const navigate = useNavigate()
 
-  const route = useMemo<Route>(() => {
-    const search = location.search as Record<string, unknown>
-    const r: Route = { screen: screenAt(location.pathname) ?? 'overview' }
-    for (const k of order) {
-      const v = search[k]
-      if (v !== undefined) (r as unknown as Record<string, unknown>)[k] = v
-    }
-    return r
-  }, [location.pathname, location.search])
+  const route = useMemo<Route>(
+    () => routeAt(location.pathname, location.search as Record<string, unknown>) ?? { screen: 'home' },
+    [location.pathname, location.search],
+  )
 
   const go = useCallback<Go>(
     (next, opts = {}) => {
       const base: Route = opts.keep ? { ...route } : { screen: route.screen, v: route.v }
       const r = { ...base, ...next }
-      const search: Record<string, unknown> = {}
-      for (const k of order) if (r[k] !== undefined && r[k] !== '') search[k] = r[k]
+      if ((r.screen === 'architecture' || r.screen === 'data') && r.level) r.screen = canvasOf(r.level)
       // By href, not a typed `to`: a host may register a router of its own, and the app's paths are not its.
-      navigate({ href: paths[r.screen] + stringifySearch(search), replace: opts.replace })
+      navigate({ href: hrefOf(r), replace: opts.replace })
     },
     [route, navigate],
   )
@@ -158,40 +227,41 @@ export function useRoute(): [Route, Go] {
   return [route, go]
 }
 
-// Plain names first (platform-surface §4.1, rule 16): what the menu, the breadcrumb and the tab say.
+// Plain names, single words for the sections (platform-surface §17.3): what the menu, the
+// breadcrumb and the tab say.
 export const titles: Record<Screen, string> = {
-  overview: 'Overview',
-  changes: 'What changed',
-  plan: 'Did it build what I asked?',
-  explorer: 'Map',
-  features: 'What it does',
+  home: 'Home',
+  architecture: 'Architecture',
+  data: 'Data',
+  features: 'Features',
+  usage: 'Usage',
+  changes: 'Changes',
+  plan: 'Plan',
   reference: 'Reference',
-  entries: 'Every entry point',
   component: 'A component',
   deps: 'What it relies on',
   docs: 'Documentation',
-  about: 'About these docs',
+  about: 'What archdoc knows',
   runs: 'What left this machine',
-  rules: 'Settings',
-  planned: 'Not built yet',
+  settings: 'Settings',
 }
 
-/** The menu entry a screen belongs to: a component page is in Reference, what left this machine in About. */
+/** The menu entry a screen belongs to: a component page is in Reference; what archdoc knows is reached from Home. */
 export function sectionOf(screen: Screen): Screen {
   switch (screen) {
-    case 'entries':
     case 'component':
     case 'deps':
     case 'docs':
       return 'reference'
+    case 'about':
     case 'runs':
-      return 'about'
+      return 'home'
     default:
       return screen
   }
 }
 
-/** A Map level by its plain name (platform-surface §4.4): "Apps and services", not containers. */
+/** A diagram by its plain name (platform-surface §4.4): "Apps and services", not containers. */
 export function levelName(level: string | undefined, name: (id: string) => string): string {
   const [kind, id] = (level ?? 'context').split(/:(.*)/s)
   switch (kind) {
@@ -208,6 +278,6 @@ export function levelName(level: string | undefined, name: (id: string) => strin
     case 'dataflow':
       return 'How data moves'
     default:
-      return 'Map'
+      return 'Architecture'
   }
 }

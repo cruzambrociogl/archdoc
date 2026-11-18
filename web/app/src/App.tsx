@@ -5,7 +5,7 @@ import { RootContext, useApi } from './api'
 import { useCapabilities, useSource } from './source'
 import { Failure, Loading } from './ui/marks'
 import type { Screen } from './route'
-import { fromOldHash, parseSearch, stringifySearch, titles, useRoute, useUnknownPath } from './route'
+import { parseSearch, stringifySearch, titles, useRoute, useUnknownPath } from './route'
 import { useTheme } from './theme'
 import { TopBar } from './shell/TopBar'
 import { Nav } from './shell/Nav'
@@ -23,7 +23,6 @@ import { WhatChanged } from './screens/WhatChanged'
 import { Corrections } from './screens/Corrections'
 import { Documents } from './screens/Documents'
 import { NetworkRuns } from './screens/NetworkRuns'
-import { Planned } from './screens/Planned'
 import { Reference } from './screens/Reference'
 import { About } from './screens/About'
 import { Gone } from './screens/Gone'
@@ -49,21 +48,12 @@ export function App() {
 
 /**
  * One repository's pages, their address kept by a router in the hash, so the same build works at any
- * path. A link from before 22 Oct is rewritten first.
+ * path. The bare address opens Home.
  */
 function Repository() {
   const router = useMemo(() => {
-    const old = fromOldHash(location.hash)
-    if (old) history.replaceState(null, '', old)
-    // An old link opened in a page already showing the app is caught here, before any route matches.
-    const root = createRootRoute({
-      component: Shell,
-      beforeLoad: () => {
-        const to = fromOldHash(window.location.hash)
-        if (to) throw redirect({ href: to.slice(1), replace: true })
-      },
-    })
-    const home = createRoute({ getParentRoute: () => root, path: '/', beforeLoad: () => { throw redirect({ href: '/overview' }) } })
+    const root = createRootRoute({ component: Shell })
+    const home = createRoute({ getParentRoute: () => root, path: '/', beforeLoad: () => { throw redirect({ href: '/home', replace: true }) } })
     const any = createRoute({ getParentRoute: () => root, path: '$' })
     return createRouter({ routeTree: root.addChildren([home, any]), history: createHashHistory(), parseSearch, stringifySearch })
   }, [])
@@ -91,14 +81,15 @@ function Shell() {
   const [bandSeen, setBandSeen] = useState(marksSeen)
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
 
-  // The screen the explorer returns to.
-  const prev = useRef<Screen>('overview')
+  // A diagram fills the page: Architecture and Data. Esc leaves one for the screen before it.
+  const canvas = route.screen === 'architecture' || route.screen === 'data'
+  const prev = useRef<Screen>('home')
   useEffect(() => {
-    if (route.screen !== 'explorer') prev.current = route.screen
+    if (!canvas) prev.current = route.screen
     setNavOpen(false)
   }, [route.screen])
 
-  // ⌘K searches; E opens the explorer; Esc leaves it; ? shows the shortcuts. Never while typing.
+  // ⌘K searches; E opens Architecture; Esc leaves a diagram; ? shows the shortcuts. Never while typing.
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -109,16 +100,16 @@ function Shell() {
       const t = e.target as HTMLElement
       if (e.metaKey || e.ctrlKey || e.altKey || t.closest('input, select, textarea, [contenteditable]')) return
       if (searching || keys || document.querySelector('.dialog-scrim')) return
-      if ((e.key === 'e' || e.key === 'E') && route.screen !== 'explorer') go({ screen: 'explorer' })
-      else if (e.key === 'Escape' && route.screen === 'explorer') go({ screen: prev.current })
-      else if (e.key === '/' && route.screen !== 'explorer') {
+      if ((e.key === 'e' || e.key === 'E') && !canvas) go({ screen: 'architecture' })
+      else if (e.key === 'Escape' && canvas) go({ screen: prev.current })
+      else if (e.key === '/' && !canvas) {
         e.preventDefault()
         setSearching(true)
       } else if (e.key === '?') setKeys(true)
     }
     window.addEventListener('keydown', on)
     return () => window.removeEventListener('keydown', on)
-  }, [route.screen, go, searching, keys])
+  }, [canvas, go, searching, keys])
 
   useEffect(() => {
     const repo = summary.data?.name
@@ -156,19 +147,19 @@ function Shell() {
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <div className="main-col">
           <NoticeBand summary={s} />
-          <main className={`shell-main ${route.screen === 'explorer' ? 'full' : 'page'}`}>
+          <main className={`shell-main ${canvas ? 'full' : 'page'}`}>
             {unknownPath ? (
               <Gone kind="page" address={unknownPath} go={go} />
             ) : versionGone ? (
               <Gone kind="version" v={route.v!} versions={versions.data!} name={s.name} go={go} />
             ) : (
               <>
-                {route.screen === 'overview' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
-                {route.screen === 'explorer' && (
+                {route.screen === 'home' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} />}
+                {canvas && (
                   <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} />
                 )}
                 {route.screen === 'features' && <WhatItDoes version={version} go={go} />}
-                {route.screen === 'entries' && <Features version={version} route={route} go={go} />}
+                {route.screen === 'usage' && <Features version={version} route={route} go={go} />}
                 {route.screen === 'component' && <Component version={version} route={route} go={go} />}
                 {route.screen === 'deps' && <Dependencies version={version} route={route} go={go} />}
                 {route.screen === 'changes' && <WhatChanged versions={versions.data ?? []} route={route} go={go} root={s.root} session={session.data} />}
@@ -176,9 +167,8 @@ function Shell() {
                 {route.screen === 'reference' && <Reference summary={s} coverage={coverage.data} go={go} />}
                 {route.screen === 'about' && <About summary={s} session={session.data} go={go} />}
                 {route.screen === 'plan' && <PlanCheck go={go} />}
-                {route.screen === 'rules' && <Corrections />}
+                {route.screen === 'settings' && <Corrections />}
                 {route.screen === 'runs' && <NetworkRuns route={route} go={go} />}
-                {route.screen === 'planned' && <Planned route={route} />}
               </>
             )}
           </main>

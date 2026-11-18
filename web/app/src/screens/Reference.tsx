@@ -15,13 +15,13 @@ export function Reference(props: { summary: Summary; coverage?: CoverageResponse
 
   const doors: { title: string; what: string; count?: string; on: () => void }[] = [
     ...(firstInside
-      ? [{ title: 'Every component', what: 'Each part inside an app, what it is made of and what it calls', count: c.components ? String(c.components) : undefined, on: () => go({ screen: 'explorer', level: componentLevel(firstInside) }) }]
+      ? [{ title: 'Every component', what: 'Each part inside an app, what it is made of and what it calls', count: c.components ? String(c.components) : undefined, on: () => go({ screen: 'architecture', level: componentLevel(firstInside) }) }]
       : []),
     ...(cov?.tables_in?.length
-      ? [{ title: 'Every table', what: 'What it stores, table by table, with its columns', count: c.tables ? String(c.tables) : undefined, on: () => go({ screen: 'explorer', level: dataLevel(cov.tables_in![0]) }) }]
+      ? [{ title: 'Every table', what: 'What it stores, table by table, with its columns', count: c.tables ? String(c.tables) : undefined, on: () => go({ screen: 'architecture', level: dataLevel(cov.tables_in![0]) }) }]
       : []),
     ...(entries
-      ? [{ title: 'Every entry point', what: 'Every route, page, command and job, each with what it sets off', count: String(entries), on: () => go({ screen: 'entries' }) }]
+      ? [{ title: 'Every entry point', what: 'Every route, page, command and job, each with what it sets off', count: String(entries), on: () => go({ screen: 'usage' }) }]
       : []),
     ...(cov?.dependencies
       ? [{ title: 'What it relies on', what: 'Other people’s code, package by package, and where it is used', count: String(cov.dependencies), on: () => go({ screen: 'deps' }) }]

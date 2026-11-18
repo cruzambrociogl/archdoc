@@ -112,71 +112,92 @@ kbd {
   position: relative;
 }
 
+/* The side menu (platform-surface §17.3): single words with an icon each, in four groups. */
 .nav {
-  flex: 0 0 215px;
-  width: 215px;
+  flex: 0 0 176px;
+  width: 176px;
   background: var(--panel);
   border-right: 1px solid var(--rule);
-  overflow: auto;
-  padding: 12px 0;
+  overflow: hidden auto;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
 }
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 11px;
   width: 100%;
+  height: 34px;
+  flex: 0 0 auto;
   border: 0;
+  border-left: 2px solid transparent;
   background: none;
   text-align: left;
-  color: var(--ink);
+  color: var(--muted);
   font: 400 13.5px var(--font-sans);
-  padding: 8px 16px;
+  padding: 0 16px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .nav-item:hover {
   background: var(--hover);
-}
-.nav-item.depth-1 {
-  padding-left: 22px;
-  font-size: 12.5px;
-}
-.nav-item.depth-2 {
-  padding-left: 36px;
-  font-size: 12.5px;
-  color: var(--muted);
+  color: var(--ink);
 }
 .nav-item.active {
   font-weight: 600;
   color: var(--ink);
   background: var(--hover);
-  box-shadow: inset 3px 0 0 var(--accent);
+  border-left-color: var(--accent);
+}
+.nav-icon {
+  flex: 0 0 16px;
+  width: 16px;
+  text-align: center;
 }
 .nav-header {
-  cursor: default;
+  padding: 14px 18px 5px;
   font-weight: 600;
-  font-size: var(--t-eyebrow);
-  letter-spacing: 0.1em;
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
-  padding-top: 10px;
+  white-space: nowrap;
 }
-.nav-header:hover {
-  background: none;
+.nav-sep {
+  display: none;
+  height: 1px;
+  background: var(--rule);
+  margin: 8px 12px;
 }
 .nav-label {
   flex: 1;
   min-width: 0;
-  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.nav-badge {
+.nav-fill {
+  flex: 1 1 auto;
+}
+.nav-toggle {
+  height: 32px;
+  font-size: 12px;
+}
+.nav-toggle .nav-icon {
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  color: var(--muted);
 }
-.nav-divider {
-  height: 1px;
-  background: var(--rule);
-  margin: 10px 14px;
+
+/* Narrowed: the icons alone; the groups' names become separators. */
+.nav.narrow {
+  flex-basis: 52px;
+  width: 52px;
+}
+.nav.narrow .nav-label,
+.nav.narrow .nav-header {
+  display: none;
+}
+.nav.narrow .nav-sep {
+  display: block;
 }
 .nav-scrim {
   display: none;
@@ -213,6 +234,21 @@ kbd {
   .nav.open {
     transform: none;
     box-shadow: 0 20px 40px -20px rgba(21, 32, 30, 0.5);
+  }
+  /* As a drawer the menu is always wide: there is room, and nothing beside it to make room for. */
+  .nav.narrow {
+    flex-basis: 176px;
+    width: 176px;
+  }
+  .nav.narrow .nav-label {
+    display: block;
+  }
+  .nav.narrow .nav-header {
+    display: block;
+  }
+  .nav.narrow .nav-sep,
+  .nav-toggle {
+    display: none;
   }
   .nav-scrim {
     display: block;

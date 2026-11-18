@@ -5,14 +5,14 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
       'Anywhere',
       [
         ['Search everything', ['⌘', 'K']],
-        ['Search (outside the explorer)', ['/']],
-        ['Open the explorer', ['E']],
+        ['Search (off a diagram)', ['/']],
+        ['Open Architecture', ['E']],
         ['This sheet', ['?']],
-        ['Close, or leave the explorer', ['Esc']],
+        ['Close, or leave a diagram', ['Esc']],
       ],
     ],
     [
-      'In the explorer',
+      'On a diagram',
       [
         ['Find a box', ['/']],
         ['Frame the first match', ['↵']],
@@ -22,14 +22,6 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
         ['Undo a move', ['⌘', 'Z']],
         ['Redo it', ['⇧', '⌘', 'Z']],
         ['Lock the arrangement', ['the padlock, by the zoom']],
-      ],
-    ],
-    [
-      'Not built yet',
-      [
-        ['Overview', ['g', 'o']],
-        ['Architecture', ['g', 'a']],
-        ['Previous, next page', ['[', ']']],
       ],
     ],
   ]

@@ -58,7 +58,7 @@ export function Dependencies(props: { version: number | null; route: Route; go: 
                       {(d.components ?? []).map((c, i) => (
                         <span key={c}>
                           {i > 0 && ', '}
-                          <button className="text-link" onClick={() => props.go({ screen: 'explorer', level: componentLevel(container), focus: c })}>
+                          <button className="text-link" onClick={() => props.go({ screen: 'architecture', level: componentLevel(container), focus: c })}>
                             {names.get(c) ?? c}
                           </button>
                         </span>

@@ -2,7 +2,6 @@ import type { ModelResponse } from '../api'
 import { componentLevel, dataLevel, useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
-import { Planned, PlannedSlot } from '../ui/Planned'
 import { KindTile } from '../ui/KindTile'
 import { Eyebrow, Failure, Loading, TruthMark } from '../ui/marks'
 import { Gone } from './Gone'
@@ -51,7 +50,7 @@ export function Component(props: { version: number | null; route: Route; go: (r:
     <div className="reading wide component-page">
       <Eyebrow>
         Component ·{' '}
-        <button className="text-link" onClick={() => props.go({ screen: 'explorer', level: componentLevel(container) })}>
+        <button className="text-link" onClick={() => props.go({ screen: 'architecture', level: componentLevel(container) })}>
           {name(container)}
         </button>
       </Eyebrow>
@@ -61,7 +60,7 @@ export function Component(props: { version: number | null; route: Route; go: (r:
       <p className="lede-note">
         <span className="mono">{node.dir}</span> · {(node.files ?? []).length} files · {(node.lines ?? 0).toLocaleString()} lines · {node.technology} ·{' '}
         <Cite p={node.provenance} compact />{' '}
-        <button className="text-link" onClick={() => props.go({ screen: 'explorer', level: componentLevel(container), focus: node.id })}>
+        <button className="text-link" onClick={() => props.go({ screen: 'architecture', level: componentLevel(container), focus: node.id })}>
           Show on the diagram ⤴
         </button>
       </p>
@@ -69,10 +68,7 @@ export function Component(props: { version: number | null; route: Route; go: (r:
       {explanation ? (
         <section>
           <Eyebrow>
-            What it does · interpreted{' '}
-            <Planned id="plain" go={props.go}>
-              Plain language
-            </Planned>
+            What it does · interpreted
           </Eyebrow>
           {explanation.claims.map((c, i) => (
             <div key={i} className="claim">
@@ -122,7 +118,7 @@ export function Component(props: { version: number | null; route: Route; go: (r:
             {entries.slice(0, 40).map((e) => (
               <Row
                 key={e.id}
-                onClick={() => props.go({ screen: 'entries', focus: e.id })}
+                onClick={() => props.go({ screen: 'usage', focus: e.id })}
                 text={`${e.kind === 'page' ? '' : e.method + ' '}${e.path}`}
                 meta={e.summary}
                 cite={e.provenance}
@@ -130,7 +126,7 @@ export function Component(props: { version: number | null; route: Route; go: (r:
               />
             ))}
             {entries.length > 40 && (
-              <button className="text-link" onClick={() => props.go({ screen: 'entries' })}>
+              <button className="text-link" onClick={() => props.go({ screen: 'usage' })}>
                 and {entries.length - 40} more on Features
               </button>
             )}
@@ -142,7 +138,7 @@ export function Component(props: { version: number | null; route: Route; go: (r:
             {tables.map((t) => (
               <Row
                 key={t.id}
-                onClick={() => props.go({ screen: 'explorer', level: dataLevel(container), focus: t.id })}
+                onClick={() => props.go({ screen: 'architecture', level: dataLevel(container), focus: t.id })}
                 text={t.name}
                 meta={`${(t.columns ?? []).length} columns`}
                 cite={t.provenance}
@@ -173,9 +169,6 @@ export function Component(props: { version: number | null; route: Route; go: (r:
             ))}
           </section>
         )}
-        <PlannedSlot id="neighbours" go={props.go} />
-        <PlannedSlot id="touches" go={props.go} />
-        <PlannedSlot id="component-nav" go={props.go} />
         <section>
           <details className="files">
             <summary>

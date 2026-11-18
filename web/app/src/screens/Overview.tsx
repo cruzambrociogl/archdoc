@@ -39,7 +39,7 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
 
   const sentences = props.summary.tiny ? [] : structureSentence(props.summary.name, container)
   const cited = namedIn(sentences)
-  const open = (id: string) => props.go({ screen: 'explorer', level: props.summary.tiny ? 'context' : 'container', focus: id })
+  const open = (id: string) => props.go({ screen: 'architecture', level: props.summary.tiny ? 'context' : 'container', focus: id })
   const parts = (container.nodes ?? []).filter((n) => ['application', 'datastore', 'queue'].includes(n.kind))
 
   return (
@@ -102,7 +102,7 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
       )}
 
       {/* One picture: how the parts fit, a way into the Map (§6.1, item 2). */}
-      {!props.summary.tiny && parts.length > 0 && !asList && <HowItFits graph={container} open={open} openMap={() => props.go({ screen: 'explorer', level: 'container' })} />}
+      {!props.summary.tiny && parts.length > 0 && !asList && <HowItFits graph={container} open={open} openMap={() => props.go({ screen: 'architecture', level: 'container' })} />}
 
       {!props.summary.tiny && parts.length > 0 && (
         <>
@@ -119,7 +119,7 @@ export function Overview(props: { summary: Summary; versions: Version[]; version
         <span>
           {byAI ? 'Every part and connection here is proven from your code; the plain sentences are written by AI on top of them.' : 'Everything here is proven from your code.'}{' '}
           {unresolved ? `${unresolved} ${unresolved === 1 ? 'thing' : 'things'} couldn't be resolved.` : 'Nothing was left unresolved.'}
-          <span className="trust-more"> About these docs →</span>
+          <span className="trust-more"> What archdoc knows →</span>
         </span>
       </button>
     </div>
@@ -149,7 +149,7 @@ function HowItFits({ graph, open, openMap }: { graph: Model; open: (id: string) 
               {c.parts.slice(0, SHOWN).map((n) => {
                 const k = kindStyle(n.kind)
                 return (
-                  <button key={n.id} className={`fit-box tile-${k.hue}`} tabIndex={-1} onClick={() => open(n.id)} title={`${n.name} · ${n.technology || k.label} — open on the map`}>
+                  <button key={n.id} className={`fit-box tile-${k.hue}`} tabIndex={-1} onClick={() => open(n.id)} title={`${n.name} · ${n.technology || k.label} — open in Architecture`}>
                     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round">
                       <path d={k.icon} />
                     </svg>
@@ -157,7 +157,7 @@ function HowItFits({ graph, open, openMap }: { graph: Model; open: (id: string) 
                   </button>
                 )
               })}
-              {c.parts.length > SHOWN && <div className="fit-more">+ {c.parts.length - SHOWN} more on the map</div>}
+              {c.parts.length > SHOWN && <div className="fit-more">+ {c.parts.length - SHOWN} more in Architecture</div>}
             </div>
           </Fragment>
         ))}
@@ -165,7 +165,7 @@ function HowItFits({ graph, open, openMap }: { graph: Model; open: (id: string) 
       <div className="fit-foot">
         <span>{outside > 0 && `It reaches ${number(outside)} outside ${outside === 1 ? 'service' : 'services'}.`}</span>
         <button className="btn btn-ink" onClick={openMap}>
-          Open the map →
+          See the architecture →
         </button>
       </div>
     </div>
@@ -180,7 +180,7 @@ function Sentence({ pieces, open }: { pieces: Piece[]; open: (id: string) => voi
         typeof p === 'string' ? (
           <span key={i}>{p}</span>
         ) : (
-          <button key={i} className="part-link" onClick={() => open(p.node.id)} title={`${p.node.name} — on the map`}>
+          <button key={i} className="part-link" onClick={() => open(p.node.id)} title={`${p.node.name} — in Architecture`}>
             {p.node.name}
           </button>
         ),

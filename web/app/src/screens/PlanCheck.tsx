@@ -43,7 +43,7 @@ export function PlanCheck(props: { go: (r: Partial<Route>) => void }) {
 
   return (
     <div className="reading plan-check">
-      <div className="page-q">Did the code do what I asked?</div>
+      <div className="page-q">Did it build what you asked?</div>
 
       {!hasPlan || editing ? (
         <PlanFiles

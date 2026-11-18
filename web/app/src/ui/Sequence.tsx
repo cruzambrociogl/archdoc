@@ -1,7 +1,6 @@
 import type { Flow } from '../api'
 import { Cite } from './Cite'
 import { TruthMark } from './marks'
-import { Planned } from './Planned'
 import type { Route } from '../route'
 
 // A flow as a sequence diagram (F-12): a lifeline per participant, a numbered arrow per step, in
@@ -94,16 +93,6 @@ export function Sequence({
           })}
         </svg>
       </div>
-      {go && (
-        <div className="sequence-planned">
-          <Planned id="step-through" go={go}>
-            Step through
-          </Planned>
-          <Planned id="flow-on-canvas" go={go}>
-            Show on the diagram
-          </Planned>
-        </div>
-      )}
       <details className="sequence-steps">
         <summary>
           {flow.steps.length} steps, each at its line{flow.cut ? ' · cut at four calls deep or forty steps' : ''}

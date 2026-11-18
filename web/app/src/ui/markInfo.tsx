@@ -36,7 +36,7 @@ export function marks(can: Capabilities): Record<MarkKind, MarkInfo> {
     notread: {
       label: 'Not read',
       means: 'Files in a language archdoc doesn’t parse yet. Nothing in them is shown, and nothing about them is guessed.',
-      how: 'About these docs lists what was not read.',
+      how: 'What archdoc knows lists what was not read.',
     },
   }
 }

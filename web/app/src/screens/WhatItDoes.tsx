@@ -27,7 +27,7 @@ export function WhatItDoes(props: { version: number | null; go: (r: Partial<Rout
 
   return (
     <div className="reading what-it-does">
-      <div className="page-q">What can it do, and how does each thing work?</div>
+      <div className="page-q">What is it for?</div>
       {features.length === 0 ? (
         <p className="story-answer">archdoc found no routes, pages, jobs or commands in the code it read, so there is nothing to say here that would not be a guess.</p>
       ) : (
@@ -52,7 +52,7 @@ export function WhatItDoes(props: { version: number | null; go: (r: Partial<Rout
                         {e.summary && <span className="muted"> — {e.summary}</span>}
                         <span className="feature-entry-right">
                           {flows.has(e.id) && (
-                            <button className="link-btn" onClick={() => props.go({ screen: 'entries', focus: e.id })}>
+                            <button className="link-btn" onClick={() => props.go({ screen: 'usage', focus: e.id })}>
                               How it works →
                             </button>
                           )}
@@ -62,7 +62,7 @@ export function WhatItDoes(props: { version: number | null; go: (r: Partial<Rout
                     ))}
                     {f.entries.length > 12 && (
                       <li>
-                        <button className="link-btn" onClick={() => props.go({ screen: 'entries', q: f.key.startsWith('area:') ? f.key.slice(5) : undefined })}>
+                        <button className="link-btn" onClick={() => props.go({ screen: 'usage', q: f.key.startsWith('area:') ? f.key.slice(5) : undefined })}>
                           All {f.entries.length}, in Every entry point →
                         </button>
                       </li>

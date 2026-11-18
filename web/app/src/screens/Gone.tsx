@@ -36,8 +36,8 @@ export function Gone(
       </>
     )
     rows = [
-      { label: 'Overview', sub: 'what this is', on: () => go({ screen: 'overview' }) },
-      { label: 'Map', sub: 'how it is put together', on: () => go({ screen: 'explorer' }) },
+      { label: 'Home', sub: 'what this is', on: () => go({ screen: 'home' }) },
+      { label: 'Architecture', sub: 'how it is put together', on: () => go({ screen: 'architecture' }) },
       { label: 'Reference', sub: 'the complete detail', on: () => go({ screen: 'reference' }) },
     ]
   } else if (props.kind === 'version') {
@@ -53,7 +53,7 @@ export function Gone(
         : 'archdoc has recorded no versions yet.'
     rows = [
       { label: 'The latest version', sub: 'what the code is now', on: () => go({ v: undefined }, { keep: true }) },
-      ...(can.history ? [{ label: 'Every version', sub: 'in What changed', on: () => go({ screen: 'changes', v: undefined }) }] : []),
+      ...(can.history ? [{ label: 'Every version', sub: 'in Changes', on: () => go({ screen: 'changes', v: undefined }) }] : []),
     ]
   } else {
     return <PartGone {...props} />
@@ -95,7 +95,7 @@ function PartGone(props: { id: string; shown: number; name: string; go: Go; comp
         // A component has a page of its own; any other part is shown where it stood, on the Map —
         // which, asked from the Map, is where the link already points.
         on: () =>
-          last.kind === 'component' || props.compact ? props.go({ v: v.id }, { keep: true }) : props.go({ screen: 'explorer', level: 'container', focus: props.id, v: v.id }),
+          last.kind === 'component' || props.compact ? props.go({ v: v.id }, { keep: true }) : props.go({ screen: 'architecture', level: 'container', focus: props.id, v: v.id }),
       },
       ...(after ? [{ label: `What changed in version ${after.id}`, sub: 'the change that removed it', on: () => props.go({ screen: 'changes', v: after.id }) }] : []),
     ]

@@ -43,7 +43,7 @@ export function About(props: { summary: Summary; session?: Session; go: (r: Part
           )}
           {/* Where there is no Settings — a published site, a visitor — the corrections in force are listed here (§4.4). */}
           {can.place !== 'local' && (
-            <button className="link-btn" onClick={() => go({ screen: 'rules' })}>
+            <button className="link-btn" onClick={() => go({ screen: 'settings' })}>
               Corrections in force
             </button>
           )}

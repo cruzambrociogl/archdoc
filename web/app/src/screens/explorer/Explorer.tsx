@@ -6,7 +6,7 @@ import type { DiffResponse, ModelResponse, Opening, SavedView, SceneResponse, Ve
 import { componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, overview, structureLevel, structureOf, useApi } from '../../api'
 import { useSource } from '../../source'
 import type { Route } from '../../route'
-import { Planned } from '../../ui/Planned'
+import { hrefOf } from '../../route'
 import { Failure, Loading } from '../../ui/marks'
 import { kindStyle } from '../../ui/kinds'
 import { Inspector } from '../Inspector'
@@ -95,8 +95,15 @@ export function Explorer(props: {
   const whole = useApi<ModelResponse>(offScene ? `/api/model${props.version ? `?version=${props.version}` : ''}` : null)
   const gone = offScene && !!whole.data && !(whole.data.model.nodes ?? []).some((n) => n.id === selected)
 
+  // Data opened with no diagram named opens what the first part with tables stores, else how data moves.
+  const firstData = !props.route.level && props.route.screen === 'data' && scene.data ? (scene.data.data?.[0] ? dataLevel(scene.data.data[0].id) : scene.data.dataflow ? 'dataflow' : undefined) : undefined
+  useEffect(() => {
+    if (firstData) props.go({ screen: 'data', level: firstData }, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstData])
+
   const select = (id: string | null) =>
-    props.go({ screen: 'explorer', level: props.route.level, focus: id ?? undefined, q: props.route.q, dim: props.route.dim, all: props.route.all, from: props.route.from }, { replace: true })
+    props.go({ screen: props.route.screen, level: props.route.level, focus: id ?? undefined, q: props.route.q, dim: props.route.dim, all: props.route.all, from: props.route.from }, { replace: true })
 
   return (
     <div className="explorer">
@@ -119,7 +126,7 @@ export function Explorer(props: {
       )}
       {!scene.data && !scene.error && (
         <div className="explorer-state">
-          <Loading what="the map" />
+          <Loading what="the diagram" />
         </div>
       )}
       {gone && <Gone kind="part" id={selected!} shown={whole.data!.version} name={whole.data!.model.name} go={props.go} compact />}
@@ -138,8 +145,8 @@ export function Explorer(props: {
             reload={() => setReload((n) => n + 1)}
             open={(id) =>
               level === 'context'
-                ? props.go({ screen: 'explorer', level: scene.data?.tiny && scene.data.components[0] ? componentLevel(scene.data.components[0].id) : 'container', from: props.route.from })
-                : props.go({ screen: 'explorer', level: componentLevel(id), from: props.route.from })
+                ? props.go({ screen: 'architecture', level: scene.data?.tiny && scene.data.components[0] ? componentLevel(scene.data.components[0].id) : 'container', from: props.route.from })
+                : props.go({ screen: 'architecture', level: componentLevel(id), from: props.route.from })
             }
           />
         </ReactFlowProvider>
@@ -197,65 +204,66 @@ function Toolbar(props: {
   // Two kinds of move (App Findings, round 4, problem 1): zoom, a path from the outside world inward,
   // whose inside step always names a part; and lenses, other questions about the same system.
   const zoom: { id: string; plain: string; term: string; on?: () => void; picks?: boolean }[] = [
-    { id: 'context', plain: 'The outside world', term: 'context', on: () => props.go({ screen: 'explorer', level: 'context' }, { keep: true }) },
-    ...(props.scene?.tiny ? [] : [{ id: 'container', plain: 'Apps and services', term: 'containers', on: () => props.go({ screen: 'explorer', level: 'container' }, { keep: true }) }]),
+    { id: 'context', plain: 'The outside world', term: 'context', on: () => props.go({ screen: 'architecture', level: 'context' }, { keep: true }) },
+    ...(props.scene?.tiny ? [] : [{ id: 'container', plain: 'Apps and services', term: 'containers', on: () => props.go({ screen: 'architecture', level: 'container' }, { keep: true }) }]),
     ...(target.component
-      ? [{ id: 'component', plain: `Inside ${insideName ?? 'one part'}`, term: 'components', on: () => props.go({ screen: 'explorer', level: componentLevel(target.component!), from: props.route.from }), picks: openings.component.length > 1 }]
+      ? [{ id: 'component', plain: `Inside ${insideName ?? 'one part'}`, term: 'components', on: () => props.go({ screen: 'architecture', level: componentLevel(target.component!), from: props.route.from }), picks: openings.component.length > 1 }]
       : []),
   ]
   const lenses: { id: string; plain: string; term: string; on: () => void }[] = [
-    ...(target.data ? [{ id: 'data', plain: 'What it stores', term: 'entities', on: () => props.go({ screen: 'explorer', level: dataLevel(target.data!), from: props.route.from }) }] : []),
-    ...(props.scene?.dataflow ? [{ id: 'dataflow', plain: 'How data moves', term: 'data flow', on: () => props.go({ screen: 'explorer', level: 'dataflow' }, { keep: true }) }] : []),
+    ...(target.data ? [{ id: 'data', plain: 'What it stores', term: 'entities', on: () => props.go({ screen: 'architecture', level: dataLevel(target.data!), from: props.route.from }) }] : []),
+    ...(props.scene?.dataflow ? [{ id: 'dataflow', plain: 'How data moves', term: 'data flow', on: () => props.go({ screen: 'architecture', level: 'dataflow' }, { keep: true }) }] : []),
   ]
+  const isData = lens === 'data' || lens === 'dataflow'
   const shownView = props.views.find((v) => v.level === props.level && (v.focus ?? '') === (props.route.focus ?? '') && (v.find ?? '') === (props.route.q ?? '') && !!v.dim === (props.route.dim === '1'))
 
   return (
     <div className="explorer-toolbar" ref={bar}>
-      <div className="map-group" role="group" aria-label="Zoom">
-        <span className="map-group-label">Zoom</span>
-        {zoom.map((z, i) => (
-          <span key={z.id} className="zoom-step">
-            {i > 0 && <span className="crumb-sep">›</span>}
-            <button className={`zoom-btn ${lens === z.id ? 'on' : ''}`} aria-pressed={lens === z.id} onClick={() => (z.picks && lens === 'component' ? setOpen(open === 'part' ? null : 'part') : z.on?.())}>
-              <span className="zoom-plain">
-                {z.plain}
-                {z.picks && <span className="caret"> ▾</span>}
-              </span>
-              <span className="zoom-term">{z.term}</span>
-            </button>
-          </span>
-        ))}
-        {open === 'part' && (
-          <div className="pop map-pop">
-            <div className="pop-q">Go inside</div>
-            {openings.component.map((o) => (
-              <button
-                key={o.id}
-                className={`more-item ${o.id === inside ? 'on' : ''}`}
-                onClick={() => (setOpen(null), props.go({ screen: 'explorer', level: componentLevel(o.id), from: props.route.from }))}
-              >
-                <span>
-                  <span className="more-label mono">{o.name}</span>
-                  <span className="more-sub">{o.components} components</span>
+      {/* Architecture holds C4 alone and Data its own two diagrams (platform-surface §17.4): each
+          shows only its own. */}
+      {!isData && (
+        <div className="map-group" role="group" aria-label="Zoom">
+          <span className="map-group-label">Zoom</span>
+          {zoom.map((z, i) => (
+            <span key={z.id} className="zoom-step">
+              {i > 0 && <span className="crumb-sep">›</span>}
+              <button className={`zoom-btn ${lens === z.id ? 'on' : ''}`} aria-pressed={lens === z.id} onClick={() => (z.picks && lens === 'component' ? setOpen(open === 'part' ? null : 'part') : z.on?.())}>
+                <span className="zoom-plain">
+                  {z.plain}
+                  {z.picks && <span className="caret"> ▾</span>}
                 </span>
+                <span className="zoom-term">{z.term}</span>
               </button>
-            ))}
-          </div>
-        )}
-      </div>
-      {lenses.length > 0 && (
-        <div className="map-group" role="group" aria-label="Lenses">
-          <span className="map-divider" />
-          <span className="map-group-label">Lens</span>
+            </span>
+          ))}
+          {open === 'part' && (
+            <div className="pop map-pop">
+              <div className="pop-q">Go inside</div>
+              {openings.component.map((o) => (
+                <button
+                  key={o.id}
+                  className={`more-item ${o.id === inside ? 'on' : ''}`}
+                  onClick={() => (setOpen(null), props.go({ screen: 'architecture', level: componentLevel(o.id), from: props.route.from }))}
+                >
+                  <span>
+                    <span className="more-label mono">{o.name}</span>
+                    <span className="more-sub">{o.components} components</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {isData && lenses.length > 0 && (
+        <div className="map-group" role="group" aria-label="Data">
+          <span className="map-group-label">Show</span>
           {lenses.map((l) => (
             <button key={l.id} className={`lens-btn ${lens === l.id ? 'on' : ''}`} aria-pressed={lens === l.id} onClick={l.on}>
               {l.plain}
               <span className="zoom-term">{l.term}</span>
             </button>
           ))}
-          <Planned id="deployment" go={props.go}>
-            Where it runs
-          </Planned>
         </div>
       )}
       {inside && lens === 'data' && openings.data.length > 1 && (
@@ -264,7 +272,7 @@ function Toolbar(props: {
       {inside && lens === 'component' && (hasMain || hasFolders) && (
         <div className="segmented" role="tablist" aria-label="Which components are shown" title="The same code: the few components that handle the most, every component, or its folders">
           {hasMain && (
-            <button className={onMain ? 'on' : ''} role="tab" aria-selected={onMain} onClick={() => props.go({ screen: 'explorer', level: componentLevel(inside), from: props.route.from })}>
+            <button className={onMain ? 'on' : ''} role="tab" aria-selected={onMain} onClick={() => props.go({ screen: 'architecture', level: componentLevel(inside), from: props.route.from })}>
               Main
             </button>
           )}
@@ -272,12 +280,12 @@ function Toolbar(props: {
             className={!onMain && !byFolder ? 'on' : ''}
             role="tab"
             aria-selected={!onMain && !byFolder}
-            onClick={() => props.go({ screen: 'explorer', level: componentLevel(inside), all: hasMain ? '1' : undefined, from: props.route.from })}
+            onClick={() => props.go({ screen: 'architecture', level: componentLevel(inside), all: hasMain ? '1' : undefined, from: props.route.from })}
           >
             {hasMain ? `All ${allCount}` : 'By feature'}
           </button>
           {hasFolders && (
-            <button className={byFolder ? 'on' : ''} role="tab" aria-selected={byFolder} onClick={() => props.go({ screen: 'explorer', level: structureLevel(inside), from: props.route.from })}>
+            <button className={byFolder ? 'on' : ''} role="tab" aria-selected={byFolder} onClick={() => props.go({ screen: 'architecture', level: structureLevel(inside), from: props.route.from })}>
               By folder
             </button>
           )}
@@ -285,10 +293,10 @@ function Toolbar(props: {
       )}
       {overview(props.level) && (props.route.all || !!props.scene?.model.folded) && (
         <div className="segmented" role="tablist" aria-label="Which external systems are shown" title="The external systems the most containers reach, or every one">
-          <button className={!props.route.all ? 'on' : ''} role="tab" aria-selected={!props.route.all} onClick={() => props.go({ screen: 'explorer', level: props.level, from: props.route.from })}>
+          <button className={!props.route.all ? 'on' : ''} role="tab" aria-selected={!props.route.all} onClick={() => props.go({ screen: 'architecture', level: props.level, from: props.route.from })}>
             Main
           </button>
-          <button className={props.route.all ? 'on' : ''} role="tab" aria-selected={!!props.route.all} onClick={() => props.go({ screen: 'explorer', level: props.level, all: '1', from: props.route.from })}>
+          <button className={props.route.all ? 'on' : ''} role="tab" aria-selected={!!props.route.all} onClick={() => props.go({ screen: 'architecture', level: props.level, all: '1', from: props.route.from })}>
             All{externals ? ` ${externals}` : ''}
           </button>
         </div>
@@ -301,7 +309,7 @@ function Toolbar(props: {
           <select
             value={props.route.from ?? ''}
             aria-label="Compare with"
-            onChange={(e) => props.go({ screen: 'explorer', from: e.target.value ? Number(e.target.value) : undefined }, { keep: true, replace: true })}
+            onChange={(e) => props.go({ screen: 'architecture', from: e.target.value ? Number(e.target.value) : undefined }, { keep: true, replace: true })}
           >
             <option value="">with…</option>
             {[...props.versions]
@@ -338,7 +346,7 @@ function Toolbar(props: {
                 <button
                   key={v.name}
                   className={`more-item ${v === shownView ? 'on' : ''}`}
-                  onClick={() => (setOpen(null), props.go({ screen: 'explorer', level: v.level, focus: v.focus, q: v.find, dim: v.dim ? '1' : undefined }))}
+                  onClick={() => (setOpen(null), props.go({ screen: 'architecture', level: v.level, focus: v.focus, q: v.find, dim: v.dim ? '1' : undefined }))}
                 >
                   <span className="more-label">{v.name}</span>
                 </button>
@@ -352,9 +360,6 @@ function Toolbar(props: {
           )}
         </div>
       )}
-      <Planned id="share-card" go={props.go}>
-        Share card
-      </Planned>
       <a
         className="tool"
         href={source.url(`/api/svg?view=${encodeURIComponent(props.level)}${q}`)}
@@ -384,7 +389,7 @@ function ContainerPicker(props: { openings: Opening[]; current: string; go: Go; 
   return (
     <label className="tool compare" title={`The container whose ${props.noun} are shown`}>
       <span className="muted">inside</span>
-      <select value={props.current} onChange={(e) => props.go({ screen: 'explorer', level: props.level(e.target.value), from: props.route.from })}>
+      <select value={props.current} onChange={(e) => props.go({ screen: 'architecture', level: props.level(e.target.value), from: props.route.from })}>
         {props.openings.map((o) => (
           <option key={o.id} value={o.id}>
             {o.name} · {o.components} {props.noun}
@@ -560,7 +565,7 @@ function Arranged(props: {
           unresolved={scene.unresolved ?? []}
           onPage={(id) => props.go({ screen: 'component', focus: id })}
           go={props.go}
-          onOpenData={(id) => props.go({ screen: 'explorer', level: dataLevel(id), from: props.route.from })}
+          onOpenData={(id) => props.go({ screen: 'architecture', level: dataLevel(id), from: props.route.from })}
           changes={props.selected && props.delta ? { from: props.delta.from, mark: props.delta.nodes.get(props.selected) ?? props.delta.edges.get(props.selected), list: props.delta.changes.get(props.selected) ?? [] } : undefined}
         />
       </div>
@@ -678,7 +683,7 @@ function Canvas(props: {
   )
 
   const setRoute = (patch: Partial<Route>) =>
-    props.go({ screen: 'explorer', level: route.level, focus: route.focus, q: route.q, dim: route.dim, from: route.from, ...patch }, { replace: true })
+    props.go({ screen: route.screen, level: route.level, focus: route.focus, q: route.q, dim: route.dim, from: route.from, ...patch }, { replace: true })
 
   // A new scene — another level or version — is framed whole, unless the address names a selection:
   // a shared link to one element opens on that element.
@@ -881,9 +886,8 @@ function StatusBar({ scene, selected, route, delta }: { scene: SceneResponse; se
   const parts = componentOf(scene.view) ?? structureOf(scene.view) ?? mainOf(scene.view)
   const ofAll = scene.components.find((o) => o.id === mainOf(scene.view))?.components
   const tables = dataOf(scene.view)
-  const url = [`level=${scene.view}`, selected && `focus=${selected}`, route.q && `q=${route.q}`, route.dim && 'dim=1', route.from !== undefined && `from=${route.from}`]
-    .filter(Boolean)
-    .join('&')
+  // The address of exactly this view, the one a copied link carries.
+  const url = hrefOf({ ...route, level: route.level ?? scene.view, focus: selected ?? undefined })
   return (
     <div className="explorer-status">
       <span>

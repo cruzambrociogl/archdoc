@@ -22,16 +22,17 @@ interface Hit {
 // The pages, by their plain names (platform-surface §4.3) — and what they were called before, so an
 // old word still finds them.
 const screenNames: [Screen, string][] = [
-  ['overview', 'Overview'],
-  ['changes', 'What changed · Changes'],
-  ['explorer', 'Map · Explorer'],
-  ['features', 'What it does · Features'],
-  ['entries', 'Every entry point · Routes'],
+  ['home', 'Home · Overview'],
+  ['architecture', 'Architecture · C4 · Map'],
+  ['data', 'Data · What it stores'],
+  ['features', 'Features · What it does'],
+  ['usage', 'Usage · Routes · Commands · Pages'],
+  ['changes', 'Changes · What changed'],
   ['reference', 'Reference'],
   ['deps', 'What it relies on · Dependencies'],
   ['docs', 'Documentation · Documents'],
-  ['about', 'About these docs · Coverage'],
-  ['rules', 'Your corrections · Settings'],
+  ['about', 'What archdoc knows · Coverage'],
+  ['settings', 'Settings · Your corrections'],
   ['runs', 'What left this machine · Network runs'],
 ]
 
@@ -70,7 +71,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
       if (n?.kind === 'table' && n.parent) return dataLevel(n.parent)
       return inContainer.has(id) ? 'container' : 'context'
     }
-    const open = (n: Node) => props.go({ screen: 'explorer', level: levelOf(n.id), focus: n.id })
+    const open = (n: Node) => props.go({ screen: 'architecture', level: levelOf(n.id), focus: n.id })
 
     const hits: Hit[] = []
     for (const n of nodes) {
@@ -92,7 +93,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
         meta: [e.label, e.technology].filter(Boolean).join(' · ') || 'relationship',
         cite: at((e.provenance ?? [])[0]),
         interpreted: e.label_provenance?.origin === 'model',
-        go: () => props.go({ screen: 'explorer', level, focus: `${e.from}>${e.to}` }),
+        go: () => props.go({ screen: 'architecture', level, focus: `${e.from}>${e.to}` }),
       })
     }
 
@@ -104,7 +105,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
         title: `${e.method} ${e.path}`,
         meta: e.summary ?? e.handler,
         cite: at(e.provenance),
-        go: () => props.go({ screen: 'entries', focus: e.id }),
+        go: () => props.go({ screen: 'usage', focus: e.id }),
       })
     }
 
@@ -139,7 +140,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
         key: `v:${v.name}`,
         title: v.name,
         meta: [v.level, v.focus, v.find && `“${v.find}”`].filter(Boolean).join(' · '),
-        go: () => props.go({ screen: 'explorer', level: v.level, focus: v.focus, q: v.find, dim: v.dim ? '1' : undefined }),
+        go: () => props.go({ screen: 'architecture', level: v.level, focus: v.focus, q: v.find, dim: v.dim ? '1' : undefined }),
       })
     }
     for (const [id, label] of screenNames) hits.push({ group: 'Screens', key: `s:${id}`, title: label, meta: 'screen', go: () => props.go({ screen: id }) })

@@ -77,7 +77,7 @@ function Run(props: { id: number; runs: Runs; onRun: (id: number) => void; onSta
           const repo = await runs.repository(r.owner, r.name, atOf(r.ref)).catch(() => undefined)
           if (stopped) return
           const latest = repo?.versions[0]?.id
-          replaceWith(`${address(r.owner, r.name, atOf(r.ref))}${latest !== undefined && latest !== r.version ? `#/overview?v=${r.version}` : ''}`)
+          replaceWith(`${address(r.owner, r.name, atOf(r.ref))}${latest !== undefined && latest !== r.version ? `#/home?v=${r.version}` : ''}`)
         },
         (e: Error) => !stopped && setError(e),
       )

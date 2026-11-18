@@ -2,7 +2,6 @@ import type { Exchange, Run } from '../api'
 import { bytes, useApi, when } from '../api'
 import { useCapabilities } from '../source'
 import type { Route } from '../route'
-import { Planned } from '../ui/Planned'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
 
 /**
@@ -111,12 +110,7 @@ function RunDetail({ id, go }: { id: number; go: (r: Partial<Route>) => void }) 
               Request {i + 1} · exactly as sent · {bytes(x.body.length)}
             </Eyebrow>
             <span className="mono small muted">
-              {x.method} {x.url} → {x.status || 'no response'}{' '}
-              {i === 0 && (
-                <Planned id="run-download" go={go}>
-                  Copy · .json
-                </Planned>
-              )}
+              {x.method} {x.url} → {x.status || 'no response'}
             </span>
           </div>
           <pre className="payload">{x.body}</pre>

@@ -3,7 +3,6 @@ import type { DiffResponse, Edge, Entry, ModelResponse, Node, Provenance, Versio
 import { useApi } from '../api'
 import type { Route } from '../route'
 import { Cite } from '../ui/Cite'
-import { Planned, PlannedSlot } from '../ui/Planned'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
 
 /**
@@ -83,14 +82,10 @@ export function Changes(props: { versions: Version[]; route: Route; go: (r: Part
               </label>
               <span className="muted">→</span>
               <span className="compare-fixed mono">{label(to)}</span>
-              <button className="text-link compare-show" onClick={() => props.go({ screen: 'explorer', v: props.route.v, from: base })}>
+              <button className="text-link compare-show" onClick={() => props.go({ screen: 'architecture', v: props.route.v, from: base })}>
                 Show on diagram
               </button>
-              <Planned id="commits" go={props.go}>
-                Two commits
-              </Planned>
             </div>
-            <PlannedSlot id="session-summary" go={props.go} />
             {diff.loading && <Loading what="the comparison" />}
             {diff.error && <Failure error={diff.error} />}
             {diff.data && <Diff d={diff.data} name={name} kind={kind} />}

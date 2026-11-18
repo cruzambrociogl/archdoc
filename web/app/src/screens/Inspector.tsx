@@ -4,7 +4,6 @@ import { Cite } from '../ui/Cite'
 import { KindTile } from '../ui/KindTile'
 import { kindStyle } from '../ui/kinds'
 import { Eyebrow, TruthChip, TruthMark } from '../ui/marks'
-import { Planned } from '../ui/Planned'
 import { useRail } from '../shell/Rail'
 import type { Route } from '../route'
 
@@ -80,16 +79,6 @@ export function Inspector({
         <EdgePassport edge={edge} nodes={nodes} onSelect={onSelect} />
       ) : (
         <Index nodes={nodes} edges={edges} onSelect={onSelect} parts={parts} />
-      )}
-      {(node || edge) && go && (
-        <div className="inspector-planned">
-          <Planned id="correct" go={go}>
-            Correct this…
-          </Planned>{' '}
-          <Planned id="inspector-tabs" go={go}>
-            History
-          </Planned>
-        </div>
       )}
     </aside>
   )
