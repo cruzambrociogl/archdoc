@@ -24,6 +24,7 @@ const icons: Partial<Record<Screen, string>> = {
   architecture: 'M1.5 2.5h5v4h-5zM9.5 9.5h5v4h-5zM4 6.5v5h5.5',
   data: 'M3 4.2c0-1 2.2-1.7 5-1.7s5 .7 5 1.7v7.6c0 1-2.2 1.7-5 1.7s-5-.7-5-1.7zM3 4.2c0 1 2.2 1.7 5 1.7s5-.7 5-1.7M3 8c0 1 2.2 1.7 5 1.7s5-.7 5-1.7',
   features: 'M2.5 2.5H7V7H2.5zM9 2.5h4.5V7H9zM2.5 9H7v4.5H2.5zM9 9h4.5v4.5H9z',
+  scenarios: 'M3 3.5l9 4.5-9 4.5z',
   usage: 'M2 3h12v8H2zM6 13.5h4M8 11v2.5',
   changes: 'M8 2v4M8 10v4M5 8a3 3 0 106 0 3 3 0 00-6 0',
   plan: 'M2.5 8.5l3.5 3.5 7.5-8',
@@ -46,7 +47,7 @@ const readNarrow = () => {
  * separators. An entry appears only where the place can do it and there is evidence behind it —
  * absent, never disabled.
  */
-export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Route>) => void; open: boolean; coverage?: CoverageResponse; newer?: number }) {
+export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Route>) => void; open: boolean; coverage?: CoverageResponse; newer?: number; scenarios?: number }) {
   const { route, go } = props
   const can = useCapabilities()
   const cov = props.coverage
@@ -76,6 +77,8 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
       entries: entries
         ? [
             { screen: 'features', q: 'What is it for?' },
+            // Only with an explanation that tells one: absent, never disabled.
+            ...(props.scenarios ? [{ screen: 'scenarios' as const, q: 'What happens when someone does the things that matter?' }] : []),
             { screen: 'usage', q: 'How is it used?' },
           ]
         : [],

@@ -1,0 +1,509 @@
+/* The views that explain (app-design-screens §2, §8, §9): the tour, the review, features,
+   scenarios and their player, the dynamic diagram, and what sits beneath a diagram. Magenta is
+   only for the current step and for links; what a model wrote is marked by the slate diamond. */
+
+.written-by-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--interp-ink);
+}
+
+.cites {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  vertical-align: middle;
+}
+.cite-chip {
+  font: 500 11px/1.4 var(--font-mono);
+  color: var(--accent);
+  background: var(--chip);
+  border: 1px solid var(--rule-soft);
+  border-radius: 3px;
+  padding: 0 5px;
+  cursor: pointer;
+}
+.cite-chip:hover {
+  border-color: var(--accent-line);
+}
+
+.not-explained {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 12px 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--ink);
+  font-size: 13px;
+}
+
+.page-title {
+  margin: 4px 0 6px;
+  font: 400 26px/1.25 var(--font-serif);
+  color: var(--ink);
+}
+
+/* The tour */
+.tour-strip {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  background: var(--page);
+  border-bottom: 1px solid var(--rule-soft);
+}
+.tour-strip-name {
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tour-step {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tour-step.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+.tour-step.done .tour-n {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.tour-n {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  font-size: 10px;
+}
+.tour-time {
+  margin-left: auto;
+  font-size: 11.5px;
+}
+.tour-part {
+  padding: 18px 0 22px;
+  border-bottom: 1px solid var(--rule-soft);
+  scroll-margin-top: 48px;
+}
+.tour-thesis {
+  margin: 8px 0 8px;
+  font: 400 21px/1.5 var(--font-serif);
+  color: var(--ink);
+}
+.tour-mark {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 8px;
+}
+.tour-ask {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.tour-features {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 18px;
+  margin-top: 10px;
+}
+@media (max-width: 760px) {
+  .tour-features {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.tour-feature-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.tour-feature {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+.tour-feature.on {
+  border-left-color: var(--accent);
+}
+.tour-feature-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+}
+.tour-feature-says {
+  font-size: 12px;
+  color: var(--muted);
+}
+.tour-map .view-diagram.small {
+  height: 260px;
+}
+.tour-close {
+  padding: 18px 0;
+  font-size: 13.5px;
+}
+.tour-doors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+/* Review points */
+.points {
+  margin: 10px 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.point-kind {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  color: var(--muted);
+}
+.point-kind.question {
+  border-style: dashed;
+}
+
+/* Features */
+.feature-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+.feature-tile {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  cursor: pointer;
+}
+.feature-tile:hover {
+  border-color: var(--rule);
+}
+.feature-tile-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.feature-tile-says {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.explained-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font: 400 12px/1.5 var(--font-mono);
+}
+.step-away {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+  padding: 12px 0;
+}
+
+/* Scenarios and the player */
+.scenario-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.scenario-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+}
+.scenario-card-title {
+  font: 400 16px/1.35 var(--font-serif);
+  color: var(--ink);
+}
+.scenario-crosses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.scenario-ways {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.step-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.step-dot-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.step-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+}
+button.step-dot {
+  background: transparent;
+  cursor: pointer;
+}
+.step-dot.later {
+  border-style: dashed;
+  background: transparent;
+}
+button.step-dot.past {
+  background: var(--ink);
+}
+button.step-dot.now {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.step-rule {
+  display: inline-block;
+  width: 1px;
+  height: 12px;
+  background: var(--rule);
+}
+.player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 0 4px;
+}
+.step-chip {
+  padding: 0 8px;
+  font-size: 11px;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+}
+.step-chip.later {
+  border-style: dashed;
+  color: var(--muted);
+}
+.player-now {
+  margin: 4px 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.as-steps {
+  display: grid;
+  gap: 14px;
+  margin: 8px 0;
+}
+.as-steps-head {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.as-steps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.as-step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 2px 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.as-step .muted {
+  grid-column: 2;
+}
+.as-steps-list li.now .as-step {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+.as-step-n {
+  grid-row: span 2;
+}
+
+/* As a sequence */
+.scenario-sequence {
+  margin: 8px 0;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  padding: 10px;
+}
+.scenario-sequence svg {
+  display: block;
+}
+.seq-head {
+  fill: var(--chip);
+  stroke: var(--ink);
+}
+.seq-head-text {
+  font: 600 11.5px var(--font-sans);
+  fill: var(--ink);
+}
+.seq-life {
+  stroke: var(--rule);
+  stroke-dasharray: 4 3;
+}
+.seq-later {
+  fill: var(--hover);
+}
+.seq-later-label {
+  font: 600 10px var(--font-sans);
+  fill: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.seq-line {
+  stroke: var(--ink);
+  stroke-width: 1.3;
+}
+.seq-arrow {
+  fill: var(--ink);
+}
+.seq-note {
+  fill: var(--surface);
+  stroke: var(--rule);
+}
+.seq-text {
+  font: 11px var(--font-sans);
+  fill: var(--ink);
+}
+.seq-msg.later .seq-line {
+  stroke-dasharray: 5 4;
+}
+.seq-msg.now .seq-line {
+  stroke: var(--accent);
+  stroke-width: 2.2;
+}
+.seq-msg.now .seq-arrow,
+.seq-msg.now .seq-text {
+  fill: var(--accent);
+}
+.seq-msg.to-come {
+  opacity: 0.5;
+}
+
+/* The dynamic diagram's steps */
+.dynamic-steps {
+  margin: 10px 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.dynamic-steps li.later {
+  color: var(--muted);
+}
+
+/* Beneath a diagram */
+.explained-beneath {
+  display: grid;
+  gap: 10px;
+  max-height: 38vh;
+  overflow: auto;
+  flex: none;
+  padding: 10px 14px 14px;
+  background: var(--panel);
+  border-top: 1px solid var(--rule-soft);
+}
+.notice-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.notice-diamond {
+  color: var(--interp);
+}
+.areas-block summary {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  cursor: pointer;
+}
+.area-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.area-tile {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+}
+.area-tile.everywhere {
+  border-style: dashed;
+}
+.area-name {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-weight: 600;
+  font-size: 13px;
+}
+.area-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}

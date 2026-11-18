@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Background, BackgroundVariant, MiniMap, ReactFlow, ReactFlowProvider, ViewportPortal, useReactFlow, useStore } from '@xyflow/react'
 import type { Node as FlowNode } from '@xyflow/react'
 import '@xyflow/react/dist/base.css'
-import type { DiffResponse, ModelResponse, Opening, SavedView, SceneResponse, Version } from '../../api'
+import type { DiffResponse, Interpretation, ModelResponse, Opening, SavedView, SceneResponse, Version } from '../../api'
 import { componentLevel, componentOf, dataLevel, dataOf, insideOf, mainLevel, mainOf, overview, structureLevel, structureOf, useApi } from '../../api'
 import { useSource } from '../../source'
 import type { Route } from '../../route'
@@ -16,6 +16,7 @@ import { Ghosts, Markers, edgeTypes, nodeTypes } from './parts'
 import type { Delta, Draft, ElementData } from './scene'
 import { arrangeDraft, findParts, membersOf, toDelta, toFlow } from './scene'
 import { SaveView } from './SaveView'
+import { Areas, Notice } from '../explained/Explained'
 import type { Look } from './look'
 import { rememberLook, rememberedLook } from './look'
 import { pngOf, save } from '../../ui/download'
@@ -51,6 +52,8 @@ export function Explorer(props: {
   onViewsChanged: () => void
   /** Tells the shell each part's name as the Map shows it, for the breadcrumb. */
   onNames?: (names: Record<string, string>) => void
+  /** The system explained: what to notice beneath a diagram, and the areas of the divided container. */
+  interpretation?: Interpretation
 }) {
   const asked = levelOf(props.route.level)
   const [reload, setReload] = useState(0)
@@ -166,6 +169,9 @@ export function Explorer(props: {
             }
           />
         </ReactFlowProvider>
+      )}
+      {scene.data && props.interpretation && (
+        <ExplainedBeneath it={props.interpretation} view={scene.data.view} version={props.version} go={props.go} />
       )}
     </div>
   )
@@ -1059,6 +1065,19 @@ function Heading(props: { scene: SceneResponse; look: Look }) {
         ))}
       </div>
       <p className="c4-shows">{shows}</p>
+    </div>
+  )
+}
+
+/** Beneath a diagram: what to notice in it, and — inside the divided container — its areas. */
+function ExplainedBeneath(props: { it: Interpretation; view: string; version: number | null; go: Go }) {
+  const m = useApi<ModelResponse>(`/api/model${props.version ? `?version=${props.version}` : ''}`)
+  const inside = componentOf(props.view) ?? mainOf(props.view) ?? structureOf(props.view)
+  if (!m.data) return null
+  return (
+    <div className="explained-beneath">
+      <Notice it={props.it} view={props.view.replace(/:all$/, '')} model={m.data.model} go={props.go} />
+      <Areas it={props.it} container={inside} model={m.data.model} go={props.go} />
     </div>
   )
 }

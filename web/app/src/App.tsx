@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { RouterProvider, createHashHistory, createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router'
 import type { CoverageResponse, Session, Summary, Version, ViewsResponse } from './api'
-import { RootContext, useApi } from './api'
+import { RootContext, useApi, useInterpretation } from './api'
 import { useCapabilities, useSource } from './source'
 import { Failure, Loading } from './ui/marks'
 import { parseSearch, stringifySearch, titles, useRoute, useUnknownPath } from './route'
@@ -31,6 +31,7 @@ import { Reference } from './screens/Reference'
 import { About } from './screens/About'
 import { Gone } from './screens/Gone'
 import { PlanCheck } from './screens/PlanCheck'
+import { Dynamic, FeatureList, NotExplained, OneFeature, OneScenario, Review, Scenarios, Tour } from './screens/explained/Explained'
 import { Website } from './shell/Website'
 import { SystemSite } from './shell/SystemSite'
 import { HomeSite } from './shell/HomeSite'
@@ -84,6 +85,9 @@ function Shell() {
   const [rail, setRail] = useState<RailContent | null>(null)
   const [bandSeen, setBandSeen] = useState(marksSeen)
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
+  // The system explained, when the version on screen has an explanation of its own architecture.
+  const explained = useInterpretation(route.v ?? null)
+  const it = explained.interpretation
   // Since you last looked: the version this browser last showed, where the place keeps versions.
   const seen = useSeen(summary.data?.root ?? '', summary.data?.latest_version, !!summary.data && can.history)
 
@@ -142,7 +146,7 @@ function Shell() {
         />
         {!bandSeen && <MarksBand onOpen={setRail} onDismiss={() => setBandSeen(true)} />}
         <div className="shell-body">
-          <Nav summary={s} route={route} go={go} open={navOpen} coverage={coverage.data} newer={seen === undefined ? 0 : (versions.data ?? []).filter((v) => v.id > seen).length} />
+          <Nav summary={s} route={route} go={go} open={navOpen} coverage={coverage.data} scenarios={(it?.scenarios ?? []).length} newer={seen === undefined ? 0 : (versions.data ?? []).filter((v) => v.id > seen).length} />
           {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)} />}
           <div className="main-col">
           <NoticeBand summary={s} />
@@ -153,12 +157,34 @@ function Shell() {
               <Gone kind="version" v={route.v!} versions={versions.data!} name={s.name} go={go} />
             ) : (
               <>
-                {route.screen === 'home' && <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} seen={seen} />}
-                {canvas && (
-                  <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} />
+                {route.screen === 'home' &&
+                  (it && !s.tiny ? (
+                    <Tour it={it} summary={s} version={version} go={go} seen={seen} versions={versions.data ?? []} />
+                  ) : (
+                    <Overview summary={s} versions={versions.data ?? []} version={version} go={go} coverage={coverage.data} seen={seen} />
+                  ))}
+                {route.screen === 'review' && <Review it={it} missing={explained.missing} version={version} go={go} />}
+                {canvas && route.level?.startsWith('dynamic:') && <Dynamic it={it} missing={explained.missing} route={route} summary={s} version={version} go={go} />}
+                {canvas && !route.level?.startsWith('dynamic:') && (
+                  <Explorer version={version} versions={versions.data ?? []} route={route} go={go} editable={can.edit} views={views.data?.views ?? []} onViewsChanged={() => setViewsKey((k) => k + 1)} onNames={setPartNames} interpretation={it} />
                 )}
-                {route.screen === 'part' && <Part route={route} go={go} version={version} onNames={setPartNames} />}
-                {route.screen === 'features' && <WhatItDoes version={version} go={go} />}
+                {route.screen === 'feature' && <OneFeature it={it} missing={explained.missing} route={route} version={version} go={go} />}
+                {route.screen === 'scenarios' && <Scenarios it={it} missing={explained.missing} summary={s} version={version} go={go} />}
+                {route.screen === 'scenario' && <OneScenario it={it} missing={explained.missing} route={route} version={version} go={go} />}
+                {route.screen === 'part' && <Part route={route} go={go} version={version} onNames={setPartNames} interpretation={it} />}
+                {route.screen === 'features' &&
+                  (it ? (
+                    <FeatureList it={it} version={version} go={go} />
+                  ) : (
+                    <>
+                      {explained.missing !== undefined && (
+                        <div className="reading">
+                          <NotExplained why={explained.missing} go={go} onFeatures />
+                        </div>
+                      )}
+                      <WhatItDoes version={version} go={go} />
+                    </>
+                  ))}
                 {route.screen === 'usage' && <Usage route={route} go={go} version={version} summary={s} />}
                 {route.screen === 'entries' && <Features version={version} route={route} go={go} />}
                 {route.screen === 'component' && <Component version={version} route={route} go={go} />}

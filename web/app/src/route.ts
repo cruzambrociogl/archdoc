@@ -13,10 +13,14 @@ import { componentLevel, componentOf, dataLevel, dataOf, mainOf, structureLevel,
 
 export const screens = [
   'home',
+  'review',
   'architecture',
   'part',
   'data',
   'features',
+  'feature',
+  'scenarios',
+  'scenario',
   'usage',
   'changes',
   'change',
@@ -60,12 +64,16 @@ export interface Route {
   face?: string
   /** Architecture: Classic C4's blues instead of archdoc's look. */
   look?: 'classic'
+  /** One scenario: how it is read — played on the parts, as a sequence, as steps. */
+  way?: 'played' | 'seq' | 'steps'
+  /** One scenario: the step on screen, from 1. */
+  step?: number
 }
 
 // The search keys, in a fixed order so one view has one address. `focus` is spelled by what it
 // is on each screen: a part on a diagram, an entry in Usage.
-const order = ['v', 'part', 'entry', 'by', 'q', 'dim', 'all', 'from', 'doc', 'run', 'look'] as const
-const numeric = new Set<string>(['v', 'from', 'run'])
+const order = ['v', 'part', 'entry', 'by', 'q', 'dim', 'all', 'from', 'doc', 'run', 'look', 'step'] as const
+const numeric = new Set<string>(['v', 'from', 'run', 'step'])
 
 /** The search string of a route, in the fixed order: "?part=api&q=user", or "". */
 export function stringifySearch(search: Record<string, unknown>): string {
@@ -122,6 +130,7 @@ export function hrefOf(r: Route): string {
         if (structureOf(l) !== undefined) search.by = 'folder'
       } else if (l === 'container') path = '/architecture/containers'
       else if (l === 'deployment') path = '/architecture/deployment'
+      else if (l?.startsWith('dynamic:')) path = `/architecture/dynamic/${enc(l.slice('dynamic:'.length))}`
       else if (l === 'context') path = '/architecture/context'
       else path = r.screen === 'data' ? '/data' : '/architecture'
       break
@@ -142,6 +151,13 @@ export function hrefOf(r: Route): string {
       search.entry = r.focus
       path = paths.entries
       break
+    case 'feature':
+      path = r.focus ? `/features/${enc(r.focus)}` : '/features'
+      break
+    case 'scenario':
+      if (r.step && r.step > 1) search.step = r.step
+      path = r.focus ? `/scenarios/${enc(r.focus)}/${r.way ?? 'played'}` : '/scenarios'
+      break
     case 'change':
       // The version is in the path — "latest" when it is the latest — so it is not said twice.
       delete search.v
@@ -154,9 +170,11 @@ export function hrefOf(r: Route): string {
 }
 
 // The sections and pages whose address is fixed.
-const paths: Record<Exclude<Screen, 'architecture' | 'part' | 'data' | 'usage' | 'component' | 'change'>, string> = {
+const paths: Record<Exclude<Screen, 'architecture' | 'part' | 'data' | 'usage' | 'component' | 'change' | 'feature' | 'scenario'>, string> = {
   home: '/home',
+  review: '/home/review',
   features: '/features',
+  scenarios: '/scenarios',
   changes: '/changes',
   plan: '/plan',
   reference: '/reference',
@@ -202,6 +220,7 @@ export function routeAt(pathname: string, search: Record<string, unknown>): Rout
       if (b === 'context' && seg.length === 2) r.level = 'context'
       else if (b === 'containers' && seg.length === 2) r.level = 'container'
       else if (b === 'deployment' && seg.length === 2) r.level = 'deployment'
+      else if (b === 'dynamic' && seg.length === 3) r.level = `dynamic:${dec(seg[2])}`
       else if (b === 'components' && seg.length > 2) r.level = search.by === 'folder' ? structureLevel(rest(2)) : componentLevel(rest(2))
       else return undefined
     } else {
@@ -237,6 +256,19 @@ export function routeAt(pathname: string, search: Record<string, unknown>): Rout
   if (a === 'reference' && b === 'component' && seg.length > 2) {
     r.screen = 'component'
     r.focus = rest(2)
+    return r
+  }
+  // One feature, by its name as an address; one scenario, by its own, then how it is read.
+  if (a === 'features' && seg.length === 2) {
+    r.screen = 'feature'
+    r.focus = dec(b)
+    return r
+  }
+  if (a === 'scenarios' && seg.length === 3 && (seg[2] === 'played' || seg[2] === 'seq' || seg[2] === 'steps')) {
+    r.screen = 'scenario'
+    r.focus = dec(b)
+    r.way = seg[2]
+    take('step')
     return r
   }
   if (a === 'about' && seg.length === 1) {
@@ -289,10 +321,14 @@ export function useRoute(): [Route, Go] {
 // breadcrumb and the tab say.
 export const titles: Record<Screen, string> = {
   home: 'Home',
+  review: 'What an architect would point out',
   architecture: 'Architecture',
   part: 'One part',
   data: 'Data',
   features: 'Features',
+  feature: 'A feature',
+  scenarios: 'Scenarios',
+  scenario: 'A scenario',
   usage: 'Usage',
   changes: 'Changes',
   change: 'One change',
@@ -316,6 +352,12 @@ export function sectionOf(screen: Screen): Screen {
       return 'architecture'
     case 'change':
       return 'changes'
+    case 'review':
+      return 'home'
+    case 'feature':
+      return 'features'
+    case 'scenario':
+      return 'scenarios'
     case 'entries':
     case 'component':
     case 'deps':
@@ -349,6 +391,8 @@ export function levelName(level: string | undefined, name: (id: string) => strin
       return 'How data moves'
     case 'deployment':
       return 'Where it runs'
+    case 'dynamic':
+      return 'A scenario'
     default:
       return 'Architecture'
   }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import type { ModelResponse, SceneResponse } from '../../api'
+import type { Interpretation, ModelResponse, SceneResponse } from '../../api'
 import { useApi } from '../../api'
 import type { Route } from '../../route'
 import { Cite } from '../../ui/Cite'
@@ -11,6 +11,7 @@ import type { Breakage } from './down'
 import { downHighlight, downSentence, ordered } from './down'
 import { addressOf, nameOf } from '../usage/faces'
 import { TruthMark } from '../../ui/marks'
+import { featureSlugs, featuresThrough, scenarioSlugs, scenariosThrough } from '../../explain'
 
 type Go = (r: Partial<Route>, o?: { keep?: boolean; replace?: boolean }) => void
 
@@ -32,7 +33,7 @@ const titles: Record<Way, (name: string) => string> = {
  * What breaks without it is the engine's (/api/breaks): which ways in stop, worked out from the
  * tables each reads and writes and the jobs it queues, each at its line.
  */
-export function Part(props: { route: Route; go: Go; version: number | null; onNames?: (names: Record<string, string>) => void }) {
+export function Part(props: { route: Route; go: Go; version: number | null; onNames?: (names: Record<string, string>) => void; interpretation?: Interpretation }) {
   const { route, go } = props
   const subject = route.focus ?? ''
   const question: Question = route.question ?? 'touches'
@@ -102,6 +103,8 @@ export function Part(props: { route: Route; go: Go; version: number | null; onNa
         </div>
 
         <ViewDiagram scene={scene.data} subject={subject} find={route.q ?? ''} highlight={highlight(subject, reached, name)} onPick={ask} onFind={(q) => move({ q: q || undefined }, true)} />
+
+        {props.interpretation && <Through it={props.interpretation} box={subject} name={n} version={props.version} go={go} />}
 
         <section className="part-list" aria-label={way === 'touches' ? 'How it reaches each one' : 'How each one reaches it'}>
           <div className="part-list-head">
@@ -269,5 +272,53 @@ function Down(props: {
         </section>
       )}
     </div>
+  )
+}
+
+/** The one-part view's groups (app-build-plan S3.10): the features that use the part, and the scenarios that cross it. */
+function Through(props: { it: Interpretation; box: string; name: string; version: number | null; go: Go }) {
+  const m = useApi<ModelResponse>(`/api/model${props.version ? `?version=${props.version}` : ''}`)
+  if (!m.data) return null
+  const model = m.data.model
+  const features = featuresThrough(props.it, props.box, model)
+  const scenarios = scenariosThrough(props.it, props.box, model)
+  if (!features.length && !scenarios.length) return null
+  const fs = featureSlugs(props.it)
+  const ss = scenarioSlugs(props.it)
+  return (
+    <section className="part-list" aria-label={`What ${props.name} is part of`}>
+      <div className="part-list-head">
+        <h2>What {props.name} is part of</h2>
+        <span className="muted small">
+          <TruthMark state="interpreted" /> grouped by AI · what each holds is proven
+        </span>
+      </div>
+      {features.length > 0 && (
+        <p className="small">
+          <span className="muted">Features: </span>
+          {features.map((f, i) => (
+            <span key={f.name}>
+              {i > 0 && ', '}
+              <button className="part-link" onClick={() => props.go({ screen: 'feature', focus: fs[props.it.features.indexOf(f)] })}>
+                {f.name}
+              </button>
+            </span>
+          ))}
+        </p>
+      )}
+      {scenarios.length > 0 && (
+        <p className="small">
+          <span className="muted">Scenarios that cross it: </span>
+          {scenarios.map((x, i) => (
+            <span key={x.title}>
+              {i > 0 && ', '}
+              <button className="part-link" onClick={() => props.go({ screen: 'scenario', focus: ss[(props.it.scenarios ?? []).indexOf(x)], way: 'played' })}>
+                {x.title}
+              </button>
+            </span>
+          ))}
+        </p>
+      )}
+    </section>
   )
 }

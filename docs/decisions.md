@@ -1480,3 +1480,14 @@ dropped in all, every review point and note kept; replayed with the last two rep
 placed and two or three scenarios of three kept — the rest dropped for steps that go backwards.
 → `internal/semantic/interpret_fix.go`, `interpret_input.go`
 
+**2026-11-18 — The app shows the system explained**
+The shared app reads the explanation at `/api/interpretation` — only for the version whose architecture
+it explains — and shows Home's tour, the review, features by purpose, scenarios on one player (played
+on the parts, as a sequence, as steps; the step in the address), the C4 dynamic diagram, what to notice
+beneath each diagram, the areas of the divided container, and which features and scenarios cross a part.
+Without an explanation each view says so and the facts' version stands in. What it lights follows the
+engine's rules over the facts, ported, not new ones: a table sits in its container's one relational
+store, a job in its one queue store. `test/explained.browser.mjs` checks it in Chrome against the
+explanation the server holds.
+→ `web/app/src/screens/explained/Explained.tsx`, `web/app/src/explain.ts`, `internal/serve` (`/api/interpretation`)
+
