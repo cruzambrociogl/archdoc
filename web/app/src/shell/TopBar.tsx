@@ -10,6 +10,7 @@ import type { MarkKind } from '../ui/markInfo'
 import { MarkGlyph } from '../ui/markInfo'
 import { useParent } from './parent'
 import { UpdateButton, UpdateWithAI } from './Update'
+import { copyText } from './copy'
 import { loadedAt, useUpdating } from './updating'
 
 export const themeLabel: Record<Theme, string> = { system: 'Theme: system', light: 'Theme: light', dark: 'Theme: dark' }
@@ -86,6 +87,14 @@ export function TopBar(props: {
   const updated = !busy && !!updating?.last && !updating.last.error && Date.parse(updating.last.finished) > loadedAt
   const stale = can.place === 'local' && !older && !updated && movedOn(s.commit, s.head)
   const [withAI, setWithAI] = useState(false)
+  // Copy link (platform-surface §17.6): the address of exactly what is on screen, and a short
+  // message that says the view in words.
+  const [toast, setToast] = useState<string | null>(null)
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 2600)
+    return () => clearTimeout(t)
+  }, [toast])
   useEffect(() => setWithAI(false), [open])
 
   // Where you are: the repository, the section, and the page or level inside it.
@@ -98,6 +107,9 @@ export function TopBar(props: {
     ...(route.screen !== section ? [{ label: titles[route.screen] }] : []),
     ...(canvas && route.level ? [{ label: levelName(route.level, props.name) }] : []),
   ]
+
+  const where = crumbs.slice((parent?.crumbs.length ?? 0) + 1).map((c) => c.label).join(' › ')
+  const copyLink = () => copyText(location.href).then((ok) => setToast(ok ? `Link copied · ${where}` : 'Couldn’t copy · the address bar holds the link'))
 
   return (
     <header className="topbar" ref={bar}>
@@ -264,6 +276,18 @@ export function TopBar(props: {
           <kbd>⌘K</kbd>
         </button>
       </div>
+
+      <button className="btn btn-outline copy-link" onClick={copyLink} title="Copy a link to exactly this view">
+        <svg aria-hidden="true" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <path d="M6 8a2.8 2.8 0 004 0l2.2-2.2a2.8 2.8 0 00-4-4L7.4 2.6M8 6a2.8 2.8 0 00-4 0L1.8 8.2a2.8 2.8 0 004 4l.8-.8" />
+        </svg>
+        <span className="copy-link-text">Copy link</span>
+      </button>
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
+      )}
 
       {/* Share, where showing someone works today: a published or hosted page's address. */}
       {can.place !== 'local' && (

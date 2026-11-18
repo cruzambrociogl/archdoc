@@ -70,6 +70,7 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
       {data.placed && <span className="el-placed" title="Placed by a person · layout.yaml — presentation, not fact" />}
       {data.isNew && <span className="el-new">new · placed automatically</span>}
       {data.delta && <DeltaTag mark={data.delta} />}
+      {data.tag && <span className="el-tag">{data.tag}</span>}
       {data.unresolved ? (
         <span className="el-unresolved" title={`${data.unresolved} calls from here go to an address computed at run time — listed in the inspector, not drawn`}>
           ? {data.unresolved}

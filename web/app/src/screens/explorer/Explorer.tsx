@@ -14,7 +14,7 @@ import { Gone } from '../Gone'
 import { Legend } from './Legend'
 import { Ghosts, Markers, edgeTypes, nodeTypes } from './parts'
 import type { Delta, Draft, ElementData } from './scene'
-import { arrangeDraft, membersOf, toDelta, toFlow } from './scene'
+import { arrangeDraft, findParts, membersOf, toDelta, toFlow } from './scene'
 import { SaveView } from './SaveView'
 
 /** "context", "container", or "component:<container id>" — one container's components. */
@@ -674,6 +674,7 @@ function Canvas(props: {
   const focus = route.dim === '1'
   const [legend, setLegend] = useState(false)
   const findRef = useRef<HTMLInputElement>(null)
+  const found = useMemo(() => findParts(scene.model.nodes ?? [], find), [scene.model.nodes, find])
   const flow = useReactFlow()
   const dragStart = useRef<DragStart | null>(null)
 
@@ -753,7 +754,8 @@ function Canvas(props: {
           <input
             ref={findRef}
             value={find}
-            placeholder="Find node"
+            aria-label="Find a part"
+            placeholder="Find a part"
             onChange={(e) => setRoute({ q: e.target.value || undefined })}
             onKeyDown={(e) => {
               if (e.key === 'Enter') jumpToMatch()
@@ -764,6 +766,11 @@ function Canvas(props: {
               }
             }}
           />
+          {found && (
+            <span className="find-count" aria-live="polite">
+              {found.lit.size ? `${found.lit.size} found` : 'none found'}
+            </span>
+          )}
         </label>
         <button
           className={`tool ${focus ? 'on' : ''}`}

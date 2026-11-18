@@ -19,6 +19,27 @@ export interface ElementData extends Record<string, unknown> {
   opens?: number
   /** Calls leaving this box for an address computed at run time: shown as a count, never as a target. */
   unresolved?: number
+  /** A word the highlight puts on the box: "through immich-server", "Down", "New route". */
+  tag?: string
+}
+
+/**
+ * The highlight (platform-surface §17.5): one thing shown on the system. What belongs to it stays
+ * lit, the rest dims to about a fifth, and a box can carry a small tag. Every view that shows
+ * something on a diagram — a part found by name, a feature's parts, a change, one part's reach —
+ * passes one.
+ */
+export interface Highlight {
+  lit: Set<string>
+  tags?: Map<string, string>
+}
+
+/** Find a part: the boxes whose name, id or technology holds what was typed; none when nothing was. */
+export function findParts(nodes: Node[], typed: string): Highlight | undefined {
+  const q = typed.trim().toLowerCase()
+  if (!q) return undefined
+  const hit = (n: Node) => n.name.toLowerCase().includes(q) || n.id.toLowerCase().includes(q) || (n.technology ?? '').toLowerCase().includes(q)
+  return { lit: new Set(nodes.filter(hit).map((n) => n.id)) }
 }
 
 export interface BoundaryData extends Record<string, unknown> {
@@ -118,17 +139,19 @@ export const edgeKey = (e: { from: string; to: string }) => `${e.from}>${e.to}`
 
 /**
  * The flow graph for a scene. `focus` dims what is not one hop from the selection; `find` dims
- * what does not match the search. Dimming is presentation only — nothing is hidden or moved.
+ * what does not match the search; `highlight` dims what a view does not show. Dimming is
+ * presentation only — nothing is hidden or moved.
  */
 export function toFlow(
   sc: SceneResponse,
   layout: Layout,
-  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; delta?: Delta; opens?: Map<string, number> },
+  opts: { selected: string | null; focus: boolean; find: string; placed: Set<string>; isNew: Set<string>; delta?: Delta; opens?: Map<string, number>; highlight?: Highlight },
 ) {
   const nodes = sc.model.nodes ?? []
   const edges = sc.model.edges ?? []
   const byId = new Map(nodes.map((n) => [n.id, n]))
-  const q = opts.find.trim().toLowerCase()
+  const found = findParts(nodes, opts.find)
+  const shown = opts.highlight
   const loose = new Map<string, number>()
   for (const u of sc.unresolved ?? []) for (const id of [u.container, u.component]) if (id) loose.set(id, (loose.get(id) ?? 0) + 1)
 
@@ -144,9 +167,7 @@ export function toFlow(
       if (e.to === opts.selected) near.add(e.from)
     }
   }
-  const matches = (n: Node) =>
-    !q || n.name.toLowerCase().includes(q) || n.id.toLowerCase().includes(q) || (n.technology ?? '').toLowerCase().includes(q)
-  const dimNode = (n: Node) => (near.size > 0 && !near.has(n.id)) || (!!q && !matches(n))
+  const dimNode = (n: Node) => (near.size > 0 && !near.has(n.id)) || (!!found && !found.lit.has(n.id)) || (!!shown && !shown.lit.has(n.id))
 
   const flowNodes: FlowNode[] = []
 
@@ -179,7 +200,7 @@ export function toFlow(
       position: { x: b.rect.x, y: b.rect.y },
       width: b.rect.w,
       height: b.rect.h,
-      data: { node: n, dim: dimNode(n), match: !!q && matches(n), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id), opens: opts.opens?.get(n.id), unresolved: loose.get(n.id) } satisfies ElementData,
+      data: { node: n, dim: dimNode(n), match: !!found?.lit.has(n.id), placed: opts.placed.has(n.id), isNew: opts.isNew.has(n.id), delta: opts.delta?.nodes.get(n.id), opens: opts.opens?.get(n.id), unresolved: loose.get(n.id), tag: shown?.tags?.get(n.id) } satisfies ElementData,
       selected: opts.selected === n.id,
     })
   }
@@ -196,7 +217,10 @@ export function toFlow(
       source: e.from,
       target: e.to,
       type: 'routed',
-      data: { edge: e, d: curvePath(p.curve, p.tip), labelAt: p.label_at, dim: !lit || (!!q && dimNode(byId.get(e.from)!) && dimNode(byId.get(e.to)!)), delta: opts.delta?.edges.get(key) } satisfies RouteData,
+      data: { edge: e, d: curvePath(p.curve, p.tip), labelAt: p.label_at, dim:
+          !lit ||
+          (!!found && !found.lit.has(e.from) && !found.lit.has(e.to)) ||
+          (!!shown && !(shown.lit.has(e.from) && shown.lit.has(e.to))), delta: opts.delta?.edges.get(key) } satisfies RouteData,
       selected: opts.selected === key,
     })
   }

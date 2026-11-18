@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { RouterProvider, createHashHistory, createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router'
 import type { CoverageResponse, Session, Summary, Version, ViewsResponse } from './api'
 import { RootContext, useApi } from './api'
 import { useCapabilities, useSource } from './source'
 import { Failure, Loading } from './ui/marks'
-import type { Screen } from './route'
 import { parseSearch, stringifySearch, titles, useRoute, useUnknownPath } from './route'
 import { useTheme } from './theme'
 import { TopBar } from './shell/TopBar'
@@ -81,15 +80,12 @@ function Shell() {
   const [bandSeen, setBandSeen] = useState(marksSeen)
   const views = useApi<ViewsResponse>(`/api/views${viewsKey ? `#${viewsKey}` : ''}`)
 
-  // A diagram fills the page: Architecture and Data. Esc leaves one for the screen before it.
+  // A diagram fills the page: Architecture and Data.
   const canvas = route.screen === 'architecture' || route.screen === 'data'
-  const prev = useRef<Screen>('home')
-  useEffect(() => {
-    if (!canvas) prev.current = route.screen
-    setNavOpen(false)
-  }, [route.screen])
+  useEffect(() => setNavOpen(false), [route.screen])
 
-  // ⌘K searches; E opens Architecture; Esc leaves a diagram; ? shows the shortcuts. Never while typing.
+  // The keys (platform-surface §17.6): ⌘K opens search and ask; Esc closes what is open; ? shows
+  // the keys. `/` belongs to the diagram, which moves to Find a part. None works while typing.
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -100,16 +96,12 @@ function Shell() {
       const t = e.target as HTMLElement
       if (e.metaKey || e.ctrlKey || e.altKey || t.closest('input, select, textarea, [contenteditable]')) return
       if (searching || keys || document.querySelector('.dialog-scrim')) return
-      if ((e.key === 'e' || e.key === 'E') && !canvas) go({ screen: 'architecture' })
-      else if (e.key === 'Escape' && canvas) go({ screen: prev.current })
-      else if (e.key === '/' && !canvas) {
-        e.preventDefault()
-        setSearching(true)
-      } else if (e.key === '?') setKeys(true)
+      if (e.key === 'Escape' && navOpen) setNavOpen(false)
+      else if (e.key === '?') setKeys(true)
     }
     window.addEventListener('keydown', on)
     return () => window.removeEventListener('keydown', on)
-  }, [canvas, go, searching, keys])
+  }, [searching, keys, navOpen])
 
   useEffect(() => {
     const repo = summary.data?.name

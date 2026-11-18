@@ -2,21 +2,19 @@
 export function Shortcuts({ onClose }: { onClose: () => void }) {
   const groups: [string, [string, string[]][]][] = [
     [
-      'Anywhere',
+      'Everywhere',
       [
-        ['Search everything', ['⌘', 'K']],
-        ['Search (off a diagram)', ['/']],
-        ['Open Architecture', ['E']],
-        ['This sheet', ['?']],
-        ['Close, or leave a diagram', ['Esc']],
+        ['Search, or ask', ['⌘', 'K']],
+        ['Close search, a menu, the find box', ['Esc']],
+        ['These keys', ['?']],
       ],
     ],
     [
       'On a diagram',
       [
-        ['Find a box', ['/']],
-        ['Frame the first match', ['↵']],
-        ['Clear the search', ['Esc']],
+        ['Find a part', ['/']],
+        ['Select the first match', ['↵']],
+        ['Clear the find box', ['Esc']],
         ['Pan', ['drag the canvas']],
         ['Arrange', ['drag a box, or a boundary by its name']],
         ['Undo a move', ['⌘', 'Z']],
