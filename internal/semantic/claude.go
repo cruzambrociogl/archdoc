@@ -71,7 +71,7 @@ func ClaudeWith(model string, schema map[string]any, maxTokens int64, effort str
 			msgs = append(msgs, anthropic.NewBetaUserMessage(block))
 		}
 
-		resp, err := client.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
+		params := anthropic.BetaMessageNewParams{
 			Model:     model,
 			MaxTokens: maxTokens,
 			System:    []anthropic.BetaTextBlockParam{{Text: system}},
@@ -80,9 +80,13 @@ func ClaudeWith(model string, schema map[string]any, maxTokens int64, effort str
 				Effort: anthropic.BetaOutputConfigEffort(effort),
 				Format: anthropic.BetaJSONOutputFormatParam{Schema: schema},
 			},
-			Fallbacks: anthropic.BetaFallbacksParamUnion{OfDefault: constant.ValueOf[constant.Default]()},
-			Betas:     []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01},
-		})
+		}
+		// A refusal is re-served by a fallback model on the models that have one; the others refuse.
+		if !noFallback[model] {
+			params.Fallbacks = anthropic.BetaFallbacksParamUnion{OfDefault: constant.ValueOf[constant.Default]()}
+			params.Betas = []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01}
+		}
+		resp, err := client.Beta.Messages.New(ctx, params)
 		if err != nil {
 			return Reply{}, explain(err)
 		}
@@ -104,6 +108,9 @@ func ClaudeWith(model string, schema map[string]any, maxTokens int64, effort str
 		return Reply{Text: text, Stop: string(resp.StopReason), InputTokens: in, OutputTokens: out}, nil
 	}
 }
+
+// noFallback are the models with no server-side fallback: the parameter is not sent to them.
+var noFallback = map[string]bool{Haiku: true}
 
 // explain turns an API failure into something a person running a documentation tool can act on.
 func explain(err error) error {

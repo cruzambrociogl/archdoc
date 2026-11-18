@@ -1418,3 +1418,30 @@ it. `ReadRecord` reads one from anyone: format first, then strictly, the commit 
 archdoc's own forms, the model validated. `RecordFormat` follows the model's shape, which a test pins.
 → `record.go`; `internal/serve/export.go` (`ExportFrom`, `Captured`); `cmd/archdoc/export.go`
 
+**2026-11-18 — The system explained: Interpret, from facts, in two requests**
+`archdoc.Interpret` explains a whole system: a thesis, its features, concepts and areas, up to three
+key scenarios told through the background work they set off, and a review — each claim citing facts
+and marked. Rules seed the groups (a table with its audit table; components with the plumbing as one
+seed; entry points joined across kinds, so a feature cannot be drawn by container); Haiku names and
+merges the seeds, never splitting one; Sonnet writes from a summary of the groups. *Same day: Haiku
+writes too (below).* Facts only, no
+code. Nothing is sent back for repair: an unknown ID, a seed left out, a citation that resolves
+nowhere and a scenario whose steps go backwards are fixed in code and counted. Before sending, the
+Consent sees both requests and an upper estimate (Immich: about 8¢; measured, about 5¢); a cap
+refuses a run estimated above it. The rules and the two requests are a port of experiments run in
+Python; on Immich, the Go requests match them, the writing request byte for byte. No CLI flag yet,
+and no file written: the caller keeps the result.
+→ `interpret.go`; `internal/semantic/interpret*.go`
+
+**2026-11-18 — The explanation is written by Haiku, not Sonnet**
+Measured on three repositories (Immich, petclinic's microservices, a 21-line script), Haiku 5.5's
+writing matched Sonnet 5.5's — the same thesis, a fuller upload scenario on Immich, review points
+Sonnet missed — at a twentieth of the cost: Immich's first read about 1¢ instead of 5¢, a small one a
+fraction of a cent. Haiku slips more, so three repairs were added in code, each counted: an ID it
+shortened (`job:AssetDelete`, `route:POST /api/assets`, `web/workflow`) made whole when it matches one
+fact alone; two scenario steps it started at the same flow step merged; the review cut at eight points.
+On Immich they bring 12 of its 14 points through instead of 9. Haiku has no server-side refusal
+fallback, so none is sent to it. Sonnet stays a choice: `InterpretOptions.WriteModel`. One run each, so
+how much Haiku varies between runs is not measured.
+→ `internal/semantic/interpret.go`, `interpret_fix.go`; `interpret.go`
+

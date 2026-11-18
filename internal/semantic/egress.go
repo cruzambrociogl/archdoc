@@ -96,13 +96,25 @@ var prices = map[string]struct{ In, Out float64 }{
 	"claude-opus-5":     {In: 5, Out: 25}, // runs logged before 8 Oct 2026
 	"claude-opus-5-5":   {In: 4, Out: 20},
 	"claude-sonnet-5-5": {In: 2, Out: 10},
+	"claude-haiku-5-5":  {In: 0.10, Out: 0.50},
 }
+
+// longPrompt is the price of a request whose prompt is longer than longFrom tokens, for the models
+// whose price changes there.
+var longPrompt = map[string]struct{ In, Out float64 }{
+	"claude-haiku-5-5": {In: 0.50, Out: 2.50},
+}
+
+const longFrom = 100_000
 
 // Cost returns the dollar cost of a run, and whether the model's price is known.
 func Cost(model string, in, out int64) (float64, bool) {
 	p, ok := prices[model]
 	if !ok {
 		return 0, false
+	}
+	if long, ok := longPrompt[model]; ok && in > longFrom {
+		p = long
 	}
 	return (float64(in)*p.In + float64(out)*p.Out) / 1e6, true
 }
