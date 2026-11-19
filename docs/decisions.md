@@ -1539,3 +1539,14 @@ which), and at requests to an address made at run time. The same tables feed the
 - The depth (4) and length (40) are the other languages'. archdoc's own commands run its whole
   pipeline and reach the length; a service's routes mostly fit.
 → `internal/code/golang_flow.go`, `internal/model/flows_go.go`; `TestGoFuncsFollowTheTypes`, `TestSQLTables`, `TestAGoFlow`
+
+**2026-11-19 — A boundary is reshaped by its edge; what is saved is still where the boxes are**
+A sparse component view comes out of the engine as tall columns, and making it wide meant dragging
+every box. Pulling a boundary's side now lays out what it holds again in rows that fit the width
+(its top or bottom: columns that fit the height), in the order they were read, so what sat together
+stays together; a boundary inside moves as one piece with its boxes. The boundary keeps no size of
+its own: a stored size would disagree with its boxes the moment one moved. So `layout.yaml`, the
+engine's `arrange.Apply` and every renderer are unchanged — a reshape is many moves made at once, one
+step to undo. Rejected: a per-view "left to right" switch, which re-runs the layout — less control,
+and a new saved setting. A data-flow stage is not reshaped: its columns are kept in step.
+→ `web/app/src/screens/explorer/scene.ts` (`reshapeStart`, `reshape`), `parts.tsx`, `Explorer.tsx`; `test/reshape.test.ts`

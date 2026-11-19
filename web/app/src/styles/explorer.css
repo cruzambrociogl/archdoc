@@ -352,6 +352,38 @@
 .react-flow__node.dragging .boundary-label {
   cursor: grabbing;
 }
+/* Its edges reshape it: a strip to pull along each side, unseen until the pointer finds it, and a
+   small square at each corner. The boundary's body still lets the canvas pan. */
+.explorer-canvas .react-flow__resize-control.line.boundary-edge {
+  pointer-events: all;
+  border: 0;
+}
+.explorer-canvas .react-flow__resize-control.line.boundary-edge.left,
+.explorer-canvas .react-flow__resize-control.line.boundary-edge.right {
+  width: 9px;
+}
+.explorer-canvas .react-flow__resize-control.line.boundary-edge.top,
+.explorer-canvas .react-flow__resize-control.line.boundary-edge.bottom {
+  height: 9px;
+}
+.explorer-canvas .react-flow__resize-control.line.boundary-edge:hover {
+  background: var(--boundary-line);
+  background-clip: content-box;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+.explorer-canvas .react-flow__resize-control.line.boundary-edge.top:hover,
+.explorer-canvas .react-flow__resize-control.line.boundary-edge.bottom:hover {
+  padding: 4px 0;
+}
+.explorer-canvas .react-flow__resize-control.handle.boundary-corner {
+  pointer-events: all;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--boundary-line);
+  border-radius: 1px;
+  background: var(--canvas);
+}
 .el-head {
   display: flex;
   align-items: center;

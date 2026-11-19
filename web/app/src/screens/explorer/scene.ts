@@ -320,3 +320,103 @@ export function membersOf(l: Layout, boundary: string): string[] {
     .filter((b) => b.rect.x >= g.rect.x && b.rect.y >= g.rect.y && b.rect.x + b.rect.w <= g.rect.x + g.rect.w && b.rect.y + b.rect.h <= g.rect.y + g.rect.h)
     .map((b) => b.id)
 }
+
+// ——— reshaping a boundary ———
+// A boundary has no size of its own: it is drawn around what it holds. Pulling its edge is a way to
+// move many boxes at once — what it holds is laid out again in rows as wide as the edge was pulled
+// (or, pulled by its top or bottom, in columns as tall), and what is saved is only where each box
+// now sits, like any other move. A boundary inside it moves as one piece, with its boxes.
+
+/** Space between boxes laid out by a reshape: the engine's own, Graphviz's nodesep and ranksep. */
+const GAP = { x: 44, y: 64 }
+
+/** What a boundary held when the reshape began, and where. */
+export interface Reshape {
+  /** Each piece laid out: a box, or a boundary inside with the boxes it holds. */
+  items: { ids: string[]; rect: Rect }[]
+  /** The space between the boundary's edge and what it holds, kept as it is reshaped. */
+  pad: { left: number; top: number; right: number; bottom: number }
+}
+
+/**
+ * What the boundary `name` holds, as the engine drew it (`base`), at the positions shown now
+ * (`current`, the draft applied). Undefined when it holds nothing.
+ */
+export function reshapeStart(base: Layout, current: Layout, name: string): Reshape | undefined {
+  const groups = base.groups ?? []
+  const g = groups.find((x) => x.name === name)
+  if (!g) return undefined
+  const inside = (r: Rect, o: Rect) => r.x >= o.x && r.y >= o.y && r.x + r.w <= o.x + o.w && r.y + r.h <= o.y + o.h
+  const same = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
+  const boxes = base.boxes ?? []
+  const now = new Map((current.boxes ?? []).map((b) => [b.id, b.rect]))
+  const nowGroup = new Map((current.groups ?? []).map((x) => [x.name, x.rect]))
+
+  // The boundaries directly inside this one: not inside another that is.
+  const inner = groups.filter((x) => x.name !== name && !same(x.rect, g.rect) && inside(x.rect, g.rect))
+  const top = inner.filter((x) => !inner.some((y) => y !== x && !same(y.rect, x.rect) && inside(x.rect, y.rect)))
+
+  const items: Reshape['items'] = []
+  const taken = new Set<string>()
+  for (const x of top) {
+    const ids = boxes.filter((b) => inside(b.rect, x.rect) && !taken.has(b.id)).map((b) => b.id)
+    if (!ids.length) continue
+    ids.forEach((id) => taken.add(id))
+    items.push({ ids, rect: nowGroup.get(x.name) ?? x.rect })
+  }
+  for (const b of boxes) {
+    if (taken.has(b.id) || !inside(b.rect, g.rect)) continue
+    items.push({ ids: [b.id], rect: now.get(b.id) ?? b.rect })
+  }
+  if (!items.length) return undefined
+
+  const at = nowGroup.get(name) ?? g.rect
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+  for (const { rect: r } of items) {
+    x0 = Math.min(x0, r.x); y0 = Math.min(y0, r.y); x1 = Math.max(x1, r.x + r.w); y1 = Math.max(y1, r.y + r.h)
+  }
+  return { items, pad: { left: x0 - at.x, top: y0 - at.y, right: at.x + at.w - x1, bottom: at.y + at.h - y1 } }
+}
+
+/**
+ * Where each box goes for the boundary to take the shape `to`. `along` says which edge was pulled:
+ * a side lays out rows that fit the width, the top or bottom columns that fit the height. Pieces
+ * keep the order they were read in — row by row, or column by column — so what sat together stays
+ * together. A piece wider (or taller) than the shape asked gets a row (or column) of its own.
+ */
+export function reshape(s: Reshape, base: Layout, current: Layout, to: Rect, along: 'width' | 'height'): Draft {
+  const now = new Map((current.boxes ?? []).map((b) => [b.id, b.rect]))
+  const origin = { x: to.x + s.pad.left, y: to.y + s.pad.top }
+  const rows = along === 'width'
+  // Boxes the engine put in one rank share a centre line; read them in bands of 20 points, as the
+  // engine does when it folds a rank.
+  const band = (v: number) => Math.round(v / 20)
+  const centre = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 })
+  const order = [...s.items].sort((a, b) => {
+    const p = centre(a.rect), q = centre(b.rect)
+    return rows ? band(p.y) - band(q.y) || p.x - q.x : band(p.x) - band(q.x) || p.y - q.y
+  })
+
+  const draft: Draft = {}
+  const room = rows ? to.w - s.pad.left - s.pad.right : to.h - s.pad.top - s.pad.bottom
+  let along0 = 0, across = 0, line = 0
+  for (const it of order) {
+    const len = rows ? it.rect.w : it.rect.h
+    const thick = rows ? it.rect.h : it.rect.w
+    if (along0 > 0 && along0 + len > room) {
+      across += line + (rows ? GAP.y : GAP.x)
+      along0 = 0
+      line = 0
+    }
+    const x = origin.x + (rows ? along0 : across)
+    const y = origin.y + (rows ? across : along0)
+    const dx = x - it.rect.x, dy = y - it.rect.y
+    for (const id of it.ids) {
+      const r = now.get(id) ?? base.boxes?.find((b) => b.id === id)?.rect
+      if (r) draft[id] = { x: Math.round(Math.max(0, r.x + dx)), y: Math.round(Math.max(0, r.y + dy)) }
+    }
+    along0 += len + (rows ? GAP.x : GAP.y)
+    line = Math.max(line, thick)
+  }
+  return draft
+}

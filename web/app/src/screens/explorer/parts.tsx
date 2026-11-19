@@ -1,7 +1,8 @@
 // The diagram's parts, drawn as components from the design tokens (surface-spec §6.4): an
 // element box, a boundary, and a relationship routed along the engine's stored curve.
 
-import { BaseEdge, EdgeLabelRenderer, Handle, Position, useStore } from '@xyflow/react'
+import { createContext, useContext } from 'react'
+import { BaseEdge, EdgeLabelRenderer, Handle, NodeResizer, Position, useStore } from '@xyflow/react'
 import type { EdgeProps, NodeProps, Node as FlowNode, Edge as FlowEdge } from '@xyflow/react'
 import { kindStyle, styleOf } from '../../ui/kinds'
 import type { BoundaryData, Delta, ElementData, Mark, RouteData } from './scene'
@@ -113,10 +114,34 @@ export function ElementNode({ data, selected }: NodeProps<FlowNode<ElementData>>
   )
 }
 
-export function BoundaryNode({ data, draggable }: NodeProps<FlowNode<BoundaryData>>) {
+/**
+ * Reshaping a boundary by its edge, given by the canvas that can arrange: where it is not given — a
+ * diagram shown read-only — the edges are only lines.
+ */
+export interface Reshaping {
+  start: (boundary: string) => void
+  to: (boundary: string, rect: { x: number; y: number; w: number; h: number }, along: 'width' | 'height') => void
+  end: () => void
+}
+export const ReshapeContext = createContext<Reshaping | null>(null)
+
+export function BoundaryNode({ id, data, draggable }: NodeProps<FlowNode<BoundaryData>>) {
+  const reshaping = useContext(ReshapeContext)
+  const name = id.slice('boundary:'.length)
+  // A data-flow stage is a column the engine keeps in step with the others: it is not reshaped.
+  const reshapable = !!reshaping && draggable && !data.stage
   return (
     <div className={`boundary ${data.stage ? 'boundary-stage' : data.system ? 'boundary-system' : 'boundary-network'} ${draggable ? 'boundary-draggable' : ''}`}>
       <span className="boundary-label">{data.label}</span>
+      {reshapable && (
+        <NodeResizer
+          lineClassName="boundary-edge"
+          handleClassName="boundary-corner"
+          onResizeStart={() => reshaping.start(name)}
+          onResize={(_, p) => reshaping.to(name, { x: p.x, y: p.y, w: p.width, h: p.height }, p.direction[0] !== 0 ? 'width' : 'height')}
+          onResizeEnd={() => reshaping.end()}
+        />
+      )}
     </div>
   )
 }

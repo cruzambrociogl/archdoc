@@ -18,6 +18,10 @@ what is different for a user.
   Each has its flow: the program's calls, followed by the types the code states, to the tables its
   SQL names (sqlc's queries included), the jobs it queues and the requests it sends.
 - **Test fixtures are left alone.** Nothing under `testdata/` is taken for part of the system.
+- **Reshape a boundary by its edge.** Pull a dashed boundary's side and what it holds is laid out
+  again in rows that fit the new width; pull its top or bottom for columns that fit the height. A
+  tall component diagram becomes a wide one in one move. It saves box positions, like any drag, and
+  is one step to undo.
 
 - **Security updates.** `golang.org/x/image` 0.43, for six advisories in the image and font decoders
   archdoc's diagrams use; archdoc now builds with Go 1.27.4, for an advisory in `net/http`. CI runs

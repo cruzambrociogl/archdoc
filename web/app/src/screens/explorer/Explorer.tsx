@@ -12,9 +12,10 @@ import { kindStyle } from '../../ui/kinds'
 import { Inspector } from '../Inspector'
 import { Gone } from '../Gone'
 import { Legend } from './Legend'
-import { Ghosts, Markers, edgeTypes, nodeTypes } from './parts'
-import type { Delta, Draft, ElementData } from './scene'
-import { arrangeDraft, findParts, membersOf, toDelta, toFlow } from './scene'
+import { Ghosts, Markers, ReshapeContext, edgeTypes, nodeTypes } from './parts'
+import type { Reshaping } from './parts'
+import type { Delta, Draft, ElementData, Reshape } from './scene'
+import { arrangeDraft, findParts, membersOf, reshape, reshapeStart, toDelta, toFlow } from './scene'
 import { SaveView } from './SaveView'
 import { Areas, Notice } from '../explained/Explained'
 import type { Look } from './look'
@@ -629,7 +630,7 @@ function ArrangementBar(props: {
       ? `${a.placed.length} ${a.placed.length === 1 ? 'position' : 'positions'} kept${a.new.length ? ` · ${a.new.length} new since, placed automatically` : ''}`
       : props.locked
         ? 'positions from the engine · arrangement locked'
-        : 'positions from the engine · drag a box, or a boundary by its name, to arrange'
+        : 'positions from the engine · drag a box, or a boundary by its name, to arrange; pull a boundary’s edge to reshape it'
 
   return (
     <div className={`arrangement-bar ${dirty ? 'dirty' : ''}`}>
@@ -761,6 +762,35 @@ function Canvas(props: {
     }
     dragStart.current = { members, origin: { ...n.position }, base }
   }
+
+  // Pulling a boundary's edge lays out what it holds again, from where it all was when the pull
+  // began; like a drag, the whole pull is one step to undo.
+  const latest = useRef(props)
+  latest.current = props
+  const reshaping = useRef<{ s: Reshape; layout: SceneResponse['layout'] } | null>(null)
+  const reshaper = useMemo<Reshaping>(
+    () => ({
+      start: (name) => {
+        const p = latest.current
+        const s = reshapeStart(p.scene.layout, p.layout, name)
+        if (!s) return
+        reshaping.current = { s, layout: p.layout }
+        p.onDragStart()
+      },
+      to: (_, rect, along) => {
+        const r = reshaping.current
+        if (!r) return
+        const moved = reshape(r.s, latest.current.scene.layout, r.layout, rect, along)
+        latest.current.setDraft((d) => ({ ...d, ...moved }))
+      },
+      end: () => {
+        if (!reshaping.current) return
+        reshaping.current = null
+        latest.current.onDragEnd()
+      },
+    }),
+    [],
+  )
   const drag = (n: FlowNode) => {
     if (n.type === 'element') {
       props.setDraft((d) => ({ ...d, [n.id]: { x: Math.round(n.position.x), y: Math.round(n.position.y) } }))
@@ -814,6 +844,7 @@ function Canvas(props: {
         </button>
       </div>
 
+      <ReshapeContext.Provider value={reshaper}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -855,6 +886,7 @@ function Canvas(props: {
         />
         <ZoomControls locked={props.locked} onLock={props.onLock} canUndo={props.canUndo} canRedo={props.canRedo} onUndo={props.onUndo} onRedo={props.onRedo} />
       </ReactFlow>
+      </ReshapeContext.Provider>
 
       <button className="legend-toggle" onClick={() => setLegend((l) => !l)}>
         Legend
