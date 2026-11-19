@@ -19,8 +19,10 @@ import type { At } from '../source'
  */
 type Where = { page: 'start'; repo?: string } | { page: 'run'; id: number } | { page: 'repo'; owner: string; name: string; at?: At }
 
-// First segments that are the website's own, never an owner's.
-const reserved = new Set(['new', 'runs', 'api', 'assets'])
+// First segments that are the website's own, never an owner's — its accounts' pages among them, and
+// /o/, where an organisation's private projects are, so no organisation takes a public repository's
+// address.
+const reserved = new Set(['new', 'runs', 'api', 'assets', 'o', 'signin', 'account', 'invite'])
 
 function where(path: string): Where {
   const run = path.match(/^\/runs\/(\d+)\/?$/)

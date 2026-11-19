@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AccountButton } from './AccountButton'
 import type { Session, Summary, Version } from '../api'
 import { movedOn } from '../api'
 import { useCapabilities, useSource } from '../source'
@@ -344,6 +345,7 @@ export function TopBar(props: {
           </div>
         )}
       </div>
+      <AccountButton />
     </header>
   )
 }

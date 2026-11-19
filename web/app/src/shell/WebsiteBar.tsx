@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react'
 import { useTheme } from '../theme'
 import { themeGlyph, themeLabel } from './TopBar'
+import { AccountButton } from './AccountButton'
 
 /** Where archdoc runs on a machine of your own: the engine, which is public. */
 export const engineHome = 'https://github.com/cruzambrociogl/archdoc'
 
 /**
  * The top bar before there is a repository to show — Start, and a read on its way (App.dc.html,
- * "Landing" and "Generating"): the wordmark, what is being read, and the theme. No search, no share
- * and no menu, because none of the pages exist yet.
+ * "Landing" and "Generating"): the wordmark, what is being read, the theme, and — where the place has
+ * accounts — who is signed in. No search, no share and no menu, because none of the pages exist yet.
  */
 export function WebsiteBar(props: { onStart: () => void; children?: ReactNode }) {
   const [theme, nextTheme] = useTheme()
@@ -22,6 +23,7 @@ export function WebsiteBar(props: { onStart: () => void; children?: ReactNode })
       <button className="icon-btn" onClick={nextTheme} title={themeLabel[theme]} aria-label={themeLabel[theme]}>
         {themeGlyph[theme]}
       </button>
+      <AccountButton />
     </header>
   )
 }

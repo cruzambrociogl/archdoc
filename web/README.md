@@ -99,6 +99,12 @@ Source of its own. Given it, `App` shows Start (`/`, `/new?repo=…`), Generatin
 platform-surface §5.1–5.2 — and a repository at `/{owner}/{name}`, its pages after `#`; a finished
 read goes to its repository's address. Without it, `App` is one repository's pages.
 
+**Who is signed in.** Where a place has accounts, its Source has `account`: who is signed in, where
+signing in starts, and signing out. Given it, the top bar ends in Sign in, or the person's initials
+and a menu of the place's own links; without it — on this machine, on a published site — nothing of
+it shows. The website also keeps a few first segments of its addresses for its own pages
+(`shell/Website.tsx`, `reserved`), so no repository's address ever lands on them.
+
 `export --site` writes `<meta name="archdoc-mode" content="published">` into `index.html`;
 `host/src/main.tsx` reads it to choose the Source. A path the published site does not export simply
 fails; `serve.Export` lists what it exports.

@@ -1234,3 +1234,49 @@ button.legend-row:hover {
   margin-left: 12px;
   margin-top: -14px;
 }
+
+/* Who is signed in, where the place has accounts: initials on ink — in the page's own colour, which
+   reads in both themes — or their picture. */
+.avatar-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: var(--ink);
+  cursor: pointer;
+  overflow: hidden;
+}
+.avatar-btn.on {
+  outline: 2px solid var(--accent-line);
+}
+.avatar-initials {
+  font: 600 10.5px var(--font-sans);
+  letter-spacing: 0.04em;
+  color: var(--page);
+}
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.account-signin {
+  text-decoration: none;
+}
+.account-pop {
+  width: 260px;
+}
+.account-who {
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--rule-soft);
+  margin-bottom: 4px;
+}
+a.more-item {
+  text-decoration: none;
+}
+.account-out {
+  border-top: 1px solid var(--rule-soft);
+  margin-top: 4px;
+}

@@ -66,6 +66,31 @@ export interface Source {
    * each place — a repository, or a system — under it.
    */
   home?: Homes
+  /**
+   * Who is signed in, where the place has accounts: the archdoc website. Given, the bar shows Sign in,
+   * or the person and their menu; absent — on this machine, on a published site — nothing of it.
+   */
+  account?: Account
+}
+
+/** Signing in, where a place has accounts. The place decides what its menu holds. */
+export interface Account {
+  /** Who is signed in, or null. */
+  me(): Promise<SignedIn | null>
+  /** Where signing in starts, coming back to `back` — a path of this place. */
+  signIn(back: string): string
+  /** Ends this session. */
+  signOut(): Promise<void>
+}
+
+export interface SignedIn {
+  name: string
+  email: string
+  /** Two letters, for the avatar when there is no picture. */
+  initials: string
+  avatar?: string
+  /** The menu under the avatar, in order: Account settings, the person's organisations… */
+  links: { label: string; href: string; note?: string }[]
 }
 
 /** Home's places, each one's own Source, and remembering that one was opened. */
