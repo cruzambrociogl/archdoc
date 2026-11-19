@@ -50,10 +50,7 @@ func TestDataFlowStagesAndWhatMoves(t *testing.T) {
 // keep them so are not drawn.
 func TestDataFlowLaysOutStages(t *testing.T) {
 	m := dataFlowFixture()
-	v, ok := ViewOf(m, DataFlow)
-	if !ok {
-		t.Fatal("no data-flow view")
-	}
+	v := dataFlowView(m) // drawn directly: it is offered nowhere until redesigned
 	l, err := Layout(t.Context(), v.Model, v.Group)
 	if err != nil {
 		t.Fatal(err)
@@ -75,5 +72,25 @@ func TestDataFlowLaysOutStages(t *testing.T) {
 	}
 	if svg := SVG(v.Model, l); !strings.Contains(svg, ">STORES<") {
 		t.Error("the SVG does not name the stores column")
+	}
+}
+
+// Until how data moves is designed, no project has a data-flow view — not in the documents, not in
+// the list of views — even one the view could be drawn for.
+func TestDataFlowIsNotDrawnUntilDesigned(t *testing.T) {
+	m := dataFlowFixture()
+	if !hadDataFlow(m) {
+		t.Fatal("the fixture would have a data-flow view")
+	}
+	if HasDataFlow(m) {
+		t.Error("a data-flow view is offered")
+	}
+	for _, v := range Views(m) {
+		if v.Name == DataFlow {
+			t.Error("the views list it")
+		}
+	}
+	if _, ok := ViewOf(m, DataFlow); ok {
+		t.Error("it can be asked for by name")
 	}
 }

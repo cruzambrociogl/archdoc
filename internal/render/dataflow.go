@@ -38,9 +38,18 @@ var stageOrder = []string{stagePeople, stageClients, stageServices, stageStores,
 // dataNames is how many tables an arrow names before it counts the rest.
 const dataNames = 3
 
-// HasDataFlow reports whether the model has a data-flow view: a project with more than one
-// application's worth to say — something stored or reached outside, and something that does it.
+// HasDataFlow reports whether the model has a data-flow view. None does, for now: drawn, it was the
+// container view regrouped into stages, which says little the containers do not, and the app's
+// design leaves "how data moves" to be designed — what goes where, what is personal, what leaves
+// (decisions, 19 Nov). So it is not written into the documents, not exported, and not offered to the
+// explanation's notes. The view is kept, and tested, for when that design exists.
 func HasDataFlow(m core.Model) bool {
+	return false
+}
+
+// hadDataFlow is when a project had a data-flow view: more than one application's worth to say —
+// something stored or reached outside, and something that does it.
+func hadDataFlow(m core.Model) bool {
 	if Tiny(m) {
 		return false
 	}

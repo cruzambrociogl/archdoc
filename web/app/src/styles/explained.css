@@ -380,13 +380,24 @@ button.step-dot.now {
 /* As a sequence */
 .scenario-sequence {
   margin: 8px 0;
-  overflow-x: auto;
   background: var(--surface);
   border: 1px solid var(--rule-soft);
   padding: 10px;
 }
 .scenario-sequence svg {
   display: block;
+}
+/* A long sequence scrolls in its own box, so the player stays in view; the heads stay pinned. */
+.seq-scroll {
+  max-height: min(64vh, 680px);
+  overflow: auto;
+  position: relative;
+}
+.seq-heads {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
 }
 .seq-head {
   fill: var(--chip);

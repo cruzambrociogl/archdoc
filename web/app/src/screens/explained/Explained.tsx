@@ -700,9 +700,46 @@ function AsSteps({ s, at, onPick }: { s: Scenario; at: number; onPick: (i: numbe
 export function AsSequence({ s, at, model, title }: { s: Scenario; at?: number; model: Model; title: string }) {
   const seq = useMemo(() => buildSequence(s, model), [s, model])
   const { lanes, messages } = seq
+  const scroller = useRef<HTMLDivElement>(null)
+  // The box takes the room left below the player, so it fits the window and the player stays in view.
+  useEffect(() => {
+    const fit = () => {
+      const box = scroller.current
+      if (!box) return
+      const top = Math.max(box.getBoundingClientRect().top, 0)
+      box.style.maxHeight = `${Math.max(260, window.innerHeight - top - 24)}px`
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [lanes.length])
+  // A long sequence scrolls in its own box, the lifelines' heads pinned above it; playing and stepping
+  // keep the current step's messages in view — scrolled to, a third of the way down, when they are not.
+  useEffect(() => {
+    const box = scroller.current
+    if (!box || at === undefined) return
+    const now = [...box.querySelectorAll<SVGGElement>('.seq-body .seq-msg.now')].map((g) => g.getBBox())
+    if (!now.length) return
+    const top = HEADS + Math.min(...now.map((b) => b.y))
+    const bottom = HEADS + Math.max(...now.map((b) => b.y + b.height))
+    const left = Math.min(...now.map((b) => b.x))
+    const right = Math.max(...now.map((b) => b.x + b.width))
+    const behavior: ScrollBehavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    const to: ScrollToOptions = { behavior }
+    // What of the box is on screen: all of it, or what the window shows of it.
+    const shown = Math.min(box.clientHeight, window.innerHeight - box.getBoundingClientRect().top)
+    if (top < box.scrollTop + HEADS || bottom > box.scrollTop + shown) {
+      // The step's messages from the top of what shows, a little room above; all of them, when they fit.
+      const room = shown - HEADS
+      const span = bottom - top
+      to.top = Math.max(0, top - HEADS - (span < room ? Math.min(24, (room - span) / 2) : 8))
+    }
+    if (left < box.scrollLeft || right > box.scrollLeft + box.clientWidth) to.left = Math.max(0, left - 40)
+    if (to.top !== undefined || to.left !== undefined) box.scrollTo(to)
+  }, [at, seq])
   if (!lanes.length) return <p className="muted">The steps of this scenario cross no part archdoc draws.</p>
   const CHAR = 6.1
-  const HEAD = 52
+  const HEAD = 4
   const ROW = 34
   const PAD = 22
   // A lane is as far from the next as the widest message between neighbours needs, within bounds.
@@ -723,7 +760,7 @@ export function AsSequence({ s, at, model, title }: { s: Scenario; at?: number; 
   const noteW = (t: string) => Math.max(70, Math.round(t.length * CHAR) + 16)
   const notes = messages.filter((m) => m.kind === 'note').map((m) => x(m.from) + 8 + noteW(`${m.step + 1} ${m.label}`) + PAD)
   const width = Math.max(xs[xs.length - 1] + 75 + PAD, ...notes)
-  const height = HEAD + 24 + messages.length * ROW + 16
+  const height = HEAD + 24 + messages.length * ROW + 16 // the messages; the heads are drawn apart, pinned
   const rowY = (i: number) => HEAD + 30 + i * ROW
   const firstLater = messages.findIndex((m) => m.later)
   const lastLater = messages.length - 1 - [...messages].reverse().findIndex((m) => m.later)
@@ -741,61 +778,71 @@ export function AsSequence({ s, at, model, title }: { s: Scenario; at?: number; 
         <span className="c4-title">{title}</span>
         <span className="c4-plain">{caption} · solid, while you wait · dashed, in the background or an answer coming back</span>
       </figcaption>
-      <svg width={width} height={height} role="img" aria-label={title}>
-        {firstLater >= 0 && (
-          <>
-            <rect x={4} y={rowY(firstLater) - 22} width={width - 8} height={(lastLater - firstLater) * ROW + 34} className="seq-later" />
-            <text x={10} y={rowY(firstLater) - 9} className="seq-later-label">
-              In the background
-            </text>
-          </>
-        )}
-        {lanes.map((l) => (
-          <g key={l.id} className={`seq-lane seq-lane-${l.kind}`}>
-            <rect x={x(l.id) - 68} y={8} width={136} height={32} rx={l.kind === 'store' ? 10 : 3} className="seq-head" />
-            <text x={x(l.id)} y={28} textAnchor="middle" className="seq-head-text">
-              <title>{l.name}</title>
-              {fit(l.name, 124)}
-            </text>
-            <line x1={x(l.id)} x2={x(l.id)} y1={40} y2={height - 6} className="seq-life" />
-          </g>
-        ))}
-        {messages.map((m, i) => {
-          const y = rowY(i)
-          const text = m.kind === 'reply' ? m.label : `${m.step + 1} ${m.label}`
-          const cls = `seq-msg ${m.later ? 'later' : ''} ${m.kind === 'reply' ? 'reply' : ''} ${state(m)}`
-          if (m.kind === 'note') {
+      <div className="seq-scroll" ref={scroller}>
+        <svg width={width} height={HEADS} className="seq-heads" aria-hidden="true">
+          {lanes.map((l) => (
+            <g key={l.id} className={`seq-lane seq-lane-${l.kind}`}>
+              <rect x={x(l.id) - 68} y={8} width={136} height={32} rx={l.kind === 'store' ? 10 : 3} className="seq-head" />
+              <text x={x(l.id)} y={28} textAnchor="middle" className="seq-head-text">
+                <title>{l.name}</title>
+                {fit(l.name, 124)}
+              </text>
+              <line x1={x(l.id)} x2={x(l.id)} y1={40} y2={HEADS} className="seq-life" />
+            </g>
+          ))}
+        </svg>
+        <svg width={width} height={height} role="img" aria-label={title} className="seq-body">
+          {firstLater >= 0 && (
+            <>
+              <rect x={4} y={rowY(firstLater) - 22} width={width - 8} height={(lastLater - firstLater) * ROW + 34} className="seq-later" />
+              <text x={10} y={rowY(firstLater) - 9} className="seq-later-label">
+                In the background
+              </text>
+            </>
+          )}
+          {lanes.map((l) => (
+            <line key={l.id} x1={x(l.id)} x2={x(l.id)} y1={0} y2={height - 6} className="seq-life" />
+          ))}
+          {messages.map((m, i) => {
+            const y = rowY(i)
+            const text = m.kind === 'reply' ? m.label : `${m.step + 1} ${m.label}`
+            const cls = `seq-msg ${m.later ? 'later' : ''} ${m.kind === 'reply' ? 'reply' : ''} ${state(m)}`
+            if (m.kind === 'note') {
+              return (
+                <g key={i} className={cls}>
+                  <rect x={x(m.from) + 8} y={y - 13} width={noteW(text)} height={19} rx={2} className="seq-note" />
+                  <text x={x(m.from) + 15} y={y + 1} className="seq-text">
+                    {text}
+                  </text>
+                </g>
+              )
+            }
+            const x1 = x(m.from)
+            const x2 = x(m.to)
+            const dir = x2 > x1 ? 1 : -1
             return (
               <g key={i} className={cls}>
-                <rect x={x(m.from) + 8} y={y - 13} width={noteW(text)} height={19} rx={2} className="seq-note" />
-                <text x={x(m.from) + 15} y={y + 1} className="seq-text">
-                  {text}
+                <title>{text}</title>
+                <line x1={x1} x2={x2 - dir * 6} y1={y} y2={y} className="seq-line" />
+                {m.kind === 'reply' ? (
+                  <path d={`M${x2 - dir * 8} ${y - 4} L${x2} ${y} L${x2 - dir * 8} ${y + 4}`} className="seq-open" />
+                ) : (
+                  <path d={`M${x2} ${y} L${x2 - dir * 7} ${y - 4} L${x2 - dir * 7} ${y + 4}z`} className="seq-arrow" />
+                )}
+                <text x={(x1 + x2) / 2} y={y - 6} textAnchor="middle" className="seq-text">
+                  {fit(text, Math.abs(x2 - x1) - 12)}
                 </text>
               </g>
             )
-          }
-          const x1 = x(m.from)
-          const x2 = x(m.to)
-          const dir = x2 > x1 ? 1 : -1
-          return (
-            <g key={i} className={cls}>
-              <title>{text}</title>
-              <line x1={x1} x2={x2 - dir * 6} y1={y} y2={y} className="seq-line" />
-              {m.kind === 'reply' ? (
-                <path d={`M${x2 - dir * 8} ${y - 4} L${x2} ${y} L${x2 - dir * 8} ${y + 4}`} className="seq-open" />
-              ) : (
-                <path d={`M${x2} ${y} L${x2 - dir * 7} ${y - 4} L${x2 - dir * 7} ${y + 4}z`} className="seq-arrow" />
-              )}
-              <text x={(x1 + x2) / 2} y={y - 6} textAnchor="middle" className="seq-text">
-                {fit(text, Math.abs(x2 - x1) - 12)}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
+          })}
+        </svg>
+      </div>
     </figure>
   )
 }
+
+/** The height of a sequence's pinned row of lifeline heads. */
+const HEADS = 46
 
 // ——— Architecture: the C4 dynamic diagram ———
 

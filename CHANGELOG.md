@@ -13,7 +13,10 @@ what is different for a user.
   work a note, and what runs later in a grey group, dashed. *Played on the parts* frames the parts the
   story crosses; the arrows its steps used carry their numbers, the current one magenta, moving, with
   a few words. A job's story is in the background, every step.
-- **How data moves is not drawn** until it is designed; Data opens on what the system stores.
+- **How data moves is not drawn** until it is designed: Data opens on what the system stores, and
+  the documents, the exported site and the explanation's notes leave it out.
+- **A long sequence scrolls in its own box,** its lifelines' heads pinned, and follows the story:
+  playing or stepping keeps the current step's messages in view.
 - **A Go package two programs share is a part of each**, so a program's flows, access and
   dependencies name its own parts, not another program's.
 
