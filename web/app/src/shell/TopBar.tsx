@@ -138,6 +138,11 @@ export function TopBar(props: {
             )}
           </span>
         ))}
+        {can.private && (
+          <span className="private-mark" title="Only the people of its organisation read it">
+            Private
+          </span>
+        )}
       </nav>
 
       {/* On the website, which branch, tag or commit: each a history of its own, at its own address. */}
@@ -291,7 +296,7 @@ export function TopBar(props: {
       )}
 
       {/* Share, where showing someone works today: a published or hosted page's address. */}
-      {can.place !== 'local' && (
+      {can.place !== 'local' && !can.private && (
         <div className="pop-anchor">
           <button className={`btn btn-outline ${open === 'share' ? 'on' : ''}`} onClick={() => toggle('share')} aria-expanded={open === 'share'}>
             Share

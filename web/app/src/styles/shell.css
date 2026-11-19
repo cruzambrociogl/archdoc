@@ -1280,3 +1280,15 @@ a.more-item {
   border-top: 1px solid var(--rule-soft);
   margin-top: 4px;
 }
+
+/* A private project's bar: its name, then this. */
+.private-mark {
+  margin-left: 8px;
+  padding: 0 7px;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  font: 500 11px/1.6 var(--font-sans);
+  color: var(--ink);
+  white-space: nowrap;
+  align-self: center;
+}

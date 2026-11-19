@@ -585,6 +585,14 @@ jobs:
 The Action builds archdoc from its own source at the version named — `@develop` until the first
 release — so a first run takes a few minutes. It never calls a model; `action.yml` lists its inputs.
 
+**To archdoc's website, from your own CI.** A private repository's documentation can be published to
+a project on archdoc's website without archdoc ever reading the code: one job runs the Action with
+`mode: generate` — it reads the checkout, offline, and keeps `.archdoc/record.json` as an artifact —
+and a second, which checks nothing out, runs it with `mode: publish`, sending that file with a token
+GitHub makes for archdoc (`permissions: id-token: write`). The project's setup page writes the
+workflow. GitLab (`ci/gitlab/archdoc.yml`) and Bitbucket Pipelines (`ci/bitbucket/`) do the same in
+their own words; all three send with `ci/publish.sh`.
+
 ### What each subject shows
 
 | | What to look for |

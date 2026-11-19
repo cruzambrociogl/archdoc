@@ -28,6 +28,12 @@ export interface Capabilities {
    * security analysis of 22 Oct; a published site never updates.
    */
   update: boolean
+  /**
+   * A private project on the archdoc website, published by its own CI: its documentation names files,
+   * never lines — archdoc never had the code to open — its bar says Private, and there is no Share,
+   * since a private project has no share links (platform decisions, 18 Nov).
+   */
+  private: boolean
 }
 
 /** Where a citation is resolved against: the repository on disk, or its remote at a commit. */

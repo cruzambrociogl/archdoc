@@ -1,0 +1,65 @@
+# archdoc for GitLab CI/CD: a private repository's documentation, published to archdoc in two jobs.
+# Included from a project's .gitlab-ci.yml — archdoc's setup page writes the include, its inputs filled
+# in. gitlab.com only: archdoc doesn't take self-managed GitLab's tokens yet.
+#
+#   archdoc-generate  reads the code — offline — and keeps .archdoc/record.json as an artifact
+#   archdoc-publish   checks nothing out, asks GitLab for an id_token made for archdoc, and sends it
+spec:
+  inputs:
+    project:
+      description: The project's id, prj_…, from its setup page on archdoc.
+    branch:
+      description: The branch that publishes.
+      default: main
+    url:
+      description: Where archdoc is.
+      default: https://app.archdoc.dev
+    audience:
+      description: What the token is made for; archdoc takes only its own.
+      default: https://app.archdoc.dev
+    version:
+      description: The archdoc to build — a commit of github.com/cruzambrociogl/archdoc.
+      default: develop
+---
+archdoc-generate:
+  image: golang:1.27
+  rules:
+    - if: $CI_COMMIT_BRANCH == "$[[ inputs.branch ]]" && $CI_PIPELINE_SOURCE != "merge_request_event"
+  script:
+    - go install github.com/cruzambrociogl/archdoc/cmd/archdoc@$[[ inputs.version ]]
+    - archdoc generate .
+    - archdoc export . --record
+  artifacts:
+    name: archdoc-record
+    paths:
+      - .archdoc/record.json
+    expire_in: 30 days
+
+archdoc-publish:
+  image: alpine:3.21
+  needs: [archdoc-generate]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "$[[ inputs.branch ]]" && $CI_PIPELINE_SOURCE != "merge_request_event"
+  variables:
+    GIT_STRATEGY: none
+    ARCHDOC_URL: $[[ inputs.url ]]
+    ARCHDOC_PROJECT: $[[ inputs.project ]]
+    ARCHDOC_RECORD: .archdoc/record.json
+  id_tokens:
+    ARCHDOC_TOKEN:
+      aud: $[[ inputs.audience ]]
+  script:
+    - apk add --no-cache curl jq >/dev/null
+    # The same script every integration runs: ci/publish.sh, at the version this template is.
+    - |
+      set -eu
+      [ -s "$ARCHDOC_RECORD" ] || { echo "archdoc: no record — archdoc-generate keeps it as an artifact" >&2; exit 1; }
+      echo "archdoc: sending $ARCHDOC_RECORD to $ARCHDOC_URL for $ARCHDOC_PROJECT"
+      code=$(gzip -c "$ARCHDOC_RECORD" | curl -sS -X POST "$ARCHDOC_URL/api/publish?project=$ARCHDOC_PROJECT" \
+        -H "Authorization: Bearer $ARCHDOC_TOKEN" -H "Content-Type: application/gzip" \
+        --data-binary @- -o answer.json -w '%{http_code}')
+      outcome=$(jq -r '.outcome // ""' answer.json)
+      if [ "$outcome" = accepted ] || [ "$outcome" = same ]; then echo "archdoc: $(jq -r .message answer.json)"; exit 0; fi
+      echo "archdoc: refused (HTTP $code). $(jq -r '.message // ""' answer.json)" >&2
+      echo "archdoc: what to do: $(jq -r '.what_to_do // ""' answer.json)" >&2
+      exit 1

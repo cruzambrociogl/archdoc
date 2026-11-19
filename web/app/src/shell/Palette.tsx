@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DocsResponse, ModelResponse, Node, Provenance, SavedView } from '../api'
 import { componentLevel, dataLevel, useApi } from '../api'
+import { useCapabilities } from '../source'
 import type { Route, Screen } from '../route'
 import { kindStyle } from '../ui/kinds'
 import { TruthMark } from '../ui/marks'
@@ -39,7 +40,8 @@ const screenNames: [Screen, string][] = [
   ['runs', 'What left this machine · Network runs'],
 ]
 
-const at = (p?: Provenance) => (p?.file ? `${p.file}${p.line ? `:${p.line}` : ''}` : undefined)
+// Where a fact is read: its file and line — its file alone on a private project.
+const cite = (lines: boolean) => (p?: Provenance) => (p?.file ? `${p.file}${lines && p.line ? `:${p.line}` : ''}` : undefined)
 
 /**
  * Global search (surface-spec §5.17): one index over elements, relationships, the files that prove
@@ -53,6 +55,7 @@ export function Palette(props: { open: boolean; onClose: () => void; go: Go; vie
   const input = useRef<HTMLInputElement>(null)
   const model = useApi<ModelResponse>(props.open ? `/api/model${props.version ? `?version=${props.version}` : ''}` : null)
   const docs = useApi<DocsResponse>(props.open ? '/api/docs' : null)
+  const at = cite(!useCapabilities().private)
 
   useEffect(() => {
     if (props.open) {

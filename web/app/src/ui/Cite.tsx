@@ -1,5 +1,6 @@
 import type { Origin, Provenance } from '../api'
 import { useEditorLink, useLinkTarget } from '../api'
+import { useCapabilities } from '../source'
 
 const origins: Record<Origin, { title: string }> = {
   extraction: { title: 'Read from a file in the repository' },
@@ -18,9 +19,11 @@ export function OriginGlyph({ origin }: { origin: Origin }) {
  * The directory is muted and long paths truncate from the left, so the file and line always show.
  * Live, a click opens the editor at the line; elsewhere, the repository host at the commit, in a new tab.
  */
-export function Cite({ p, compact }: { p?: Provenance; compact?: boolean }) {
+export function Cite({ p: given, compact }: { p?: Provenance; compact?: boolean }) {
   const link = useEditorLink()
   const target = useLinkTarget()
+  // A private project names files, never lines: here, once, for every view that cites.
+  const p = useCapabilities().private && given ? { ...given, line: 0 } : given
   if (!p || (!p.file && !p.note)) {
     return <span className="cite cite-missing">no source recorded</span>
   }
@@ -43,7 +46,7 @@ export function Cite({ p, compact }: { p?: Provenance; compact?: boolean }) {
 
   const href = p.file ? link(p.file, p.line) : undefined
   return href ? (
-    <a className="cite" href={href} {...target} title={`${title}\n${p.file}${p.line ? `:${p.line}` : ''} — open at the line`}>
+    <a className="cite" href={href} {...target} title={`${title}\n${p.file}${p.line ? `:${p.line} — open at the line` : ' — open the file'}`}>
       <OriginGlyph origin={origin} />
       {body}
     </a>

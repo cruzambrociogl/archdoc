@@ -2,7 +2,8 @@ name: archdoc
 description: >-
   What a pull request changes in the architecture, whether the committed architecture documentation
   is current, and the documentation as a site — read from the code, every fact cited. Offline: it
-  never calls a model.
+  never calls a model. Or, in two jobs, a private repository's documentation published to archdoc:
+  mode generate reads the code and keeps the record; mode publish sends it.
 
 inputs:
   path:
@@ -36,6 +37,22 @@ inputs:
   token:
     description: The token that comments with.
     default: ${{ github.token }}
+  mode:
+    description: >-
+      Empty for the above. "generate": read the code — offline — and keep .archdoc/record.json as an
+      artifact of the run, archdoc-record. "publish": in a job of its own that checks nothing out,
+      take that artifact, ask GitHub for a token made for archdoc (permissions id-token: write), and
+      send it.
+    default: ""
+  project:
+    description: The project's id, prj_…, from its setup page on archdoc. For mode publish.
+    default: ""
+  url:
+    description: Where archdoc is. For mode publish.
+    default: https://app.archdoc.dev
+  audience:
+    description: What the token is made for; archdoc takes only its own. For mode publish.
+    default: https://app.archdoc.dev
 
 outputs:
   changes:
@@ -49,8 +66,10 @@ runs:
   using: composite
   steps:
     # archdoc is built from this action's own source, at the version the workflow names. The web app
-    # is built only for a site: comparing and checking do not need it.
-    - uses: actions/setup-go@v5
+    # is built only for a site: comparing, checking and the record do not need it. Publishing needs
+    # no archdoc at all.
+    - if: inputs.mode != 'publish'
+      uses: actions/setup-go@v5
       with:
         go-version-file: ${{ github.action_path }}/go.mod
         cache-dependency-path: ${{ github.action_path }}/go.sum
@@ -61,6 +80,7 @@ runs:
         # action as ./ — which the engine's CI does.
         node-version: 24
     - name: Build archdoc
+      if: inputs.mode != 'publish'
       shell: bash
       env:
         SITE: ${{ inputs.site }}
@@ -80,6 +100,7 @@ runs:
         go build -o "$bin/archdoc" ./cmd/archdoc
     - id: run
       name: Run archdoc
+      if: inputs.mode == ''
       shell: bash
       env:
         ARCHDOC: ${{ runner.temp }}/archdoc-action/archdoc
@@ -91,3 +112,50 @@ runs:
         INPUT_SITE: ${{ inputs.site }}
         GH_TOKEN: ${{ inputs.token }}
       run: bash "$GITHUB_ACTION_PATH/action/run.sh"
+
+    # mode generate: the record, made where the code is, offline, and kept on the run — the exact file
+    # archdoc receives, for anyone to read.
+    - name: Make the record
+      if: inputs.mode == 'generate'
+      shell: bash
+      env:
+        ARCHDOC: ${{ runner.temp }}/archdoc-action/archdoc
+        INPUT_PATH: ${{ inputs.path }}
+      run: |
+        set -euo pipefail
+        "$ARCHDOC" generate "$INPUT_PATH"
+        "$ARCHDOC" export "$INPUT_PATH" --record
+    - if: inputs.mode == 'generate'
+      uses: actions/upload-artifact@v4
+      with:
+        name: archdoc-record
+        path: ${{ inputs.path }}/.archdoc/record.json
+        if-no-files-found: error
+        # .archdoc is hidden, which upload-artifact leaves out unless told.
+        include-hidden-files: true
+
+    # mode publish: the record from the generate job, a token GitHub makes for archdoc, and one request.
+    - if: inputs.mode == 'publish'
+      uses: actions/download-artifact@v4
+      with:
+        name: archdoc-record
+        path: ${{ runner.temp }}/archdoc-record
+    - name: Publish to archdoc
+      if: inputs.mode == 'publish'
+      shell: bash
+      env:
+        ARCHDOC_URL: ${{ inputs.url }}
+        ARCHDOC_PROJECT: ${{ inputs.project }}
+        ARCHDOC_RECORD: ${{ runner.temp }}/archdoc-record/record.json
+        AUDIENCE: ${{ inputs.audience }}
+      run: |
+        set -euo pipefail
+        if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+          echo "archdoc: GitHub gave this job no way to ask for a token — give the publish job 'permissions: id-token: write'" >&2
+          exit 1
+        fi
+        ARCHDOC_TOKEN=$(curl -sS -G -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          --data-urlencode "audience=$AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r '.value')
+        echo "::add-mask::$ARCHDOC_TOKEN"
+        export ARCHDOC_TOKEN
+        sh "$GITHUB_ACTION_PATH/ci/publish.sh"

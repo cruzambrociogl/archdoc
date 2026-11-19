@@ -5,6 +5,8 @@
 // base styles — must come before the app's own, which override them. Order is the cascade.
 export { App } from './App'
 export { AccountButton } from './shell/AccountButton'
+export { ParentContext } from './shell/parent'
+export type { Crumb, Line } from './shell/parent'
 export { Refusal, SourceProvider } from './source'
 export { staticName } from './staticName'
 export type { Account, At, Branches, Capabilities, Homes, HostedRepository, HostedRun, Place, Runs, SignedIn, Source, Systems } from './source'

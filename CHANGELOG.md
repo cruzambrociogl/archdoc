@@ -6,6 +6,13 @@ what is different for a user.
 
 ## Unreleased
 
+- **Publishing from your own CI.** The Action's `mode: generate` keeps the record of a checkout as an
+  artifact of the run; `mode: publish`, in a job of its own, sends it to a project on archdoc's
+  website with a token GitHub makes for it. GitLab CI/CD and Bitbucket Pipelines do the same
+  (`ci/`). The record is exactly what is sent, and stays on the run for anyone to read.
+- **A private project's documentation names files, never lines,** says Private in its bar, and has
+  no Share. Where a place has accounts, the bar ends in Sign in or the person's menu.
+
 - **The app answers questions first.** One shell for the local app and published sites: Overview,
   What changed, Map, What it does, Reference and Settings, each named in plain words. The Overview
   says what the system is in one paragraph — the repository's own description where its manifest

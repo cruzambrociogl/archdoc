@@ -1,5 +1,6 @@
 import type { Op, RulesResponse } from '../api'
 import { useApi, useEditorLink, useLinkTarget } from '../api'
+import { useCapabilities } from '../source'
 import { Eyebrow, Failure, Loading } from '../ui/marks'
 
 type Rule = RulesResponse['rules'][number]
@@ -31,6 +32,7 @@ export function Corrections() {
   const r = useApi<RulesResponse>('/api/rules')
   const link = useEditorLink()
   const target = useLinkTarget()
+  const lines = !useCapabilities().private
   if (r.error) return <Failure error={r.error} />
   if (!r.data) return <Loading what="your corrections" />
   const { file, rules, findings } = r.data
@@ -118,12 +120,12 @@ export function Corrections() {
           return (
             <div key={rule.line} className="rules-row">
               <div>
-                <a className="cite" href={link(file, rule.line)} {...target} title="Asserted by a person in rules.yaml — open at the line">
+                <a className="cite" href={link(file, lines ? rule.line : undefined)} {...target} title="Asserted by a person in rules.yaml">
                   <span className="glyph glyph-rules" />
                   <span className="cite-ref">
                     <bdi>
                       {file}
-                      <span className="cite-line">:{rule.line}</span>
+                      {lines && <span className="cite-line">:{rule.line}</span>}
                     </bdi>
                   </span>
                 </a>
