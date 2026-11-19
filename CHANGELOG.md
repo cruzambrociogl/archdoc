@@ -6,6 +6,11 @@ what is different for a user.
 
 ## Unreleased
 
+- **Signing out says so.** Where a place has accounts, the page that follows says "You've signed
+  out", and a page that needed the account gives way to Start.
+- **Start shows what a signed-in person has**, under the link box, where the place offers it: their
+  spaces with their projects, and making a project — straight there, or asking where.
+
 - **Go is read.** Each program in a Go module — `cmd/api`, `cmd/worker` — is a container of its own,
   with its packages as its parts and what uses what between them. Its HTTP routes (net/http, chi,
   gin, echo, fiber, gorilla/mux), its commands (cobra, urfave/cli, or its own table of them) and its

@@ -85,8 +85,11 @@ export interface Account {
   me(): Promise<SignedIn | null>
   /** Where signing in starts, coming back to `back` — a path of this place. */
   signIn(back: string): string
-  /** Ends this session. */
-  signOut(): Promise<void>
+  /**
+   * Ends this session. Resolves to where to go next, when the page open now needs an account — a
+   * place's own pages — or to nothing, to stay: the page is shown again, signed out.
+   */
+  signOut(): Promise<string | void>
 }
 
 export interface SignedIn {
@@ -97,6 +100,16 @@ export interface SignedIn {
   avatar?: string
   /** The menu under the avatar, in order: Account settings, the person's organisations… */
   links: { label: string; href: string; note?: string }[]
+  /** What Start offers beside its link box, once signed in: the place's own — its spaces, and making a project. */
+  start?: StartOffer
+}
+
+/** A section of Start for someone signed in: what they have, and making something new. */
+export interface StartOffer {
+  heading: string
+  items: { label: string; href: string; note?: string }[]
+  /** Making something new, where they may: one place goes straight there; several are offered to choose from. */
+  create?: { label: string; choices: { label: string; href: string }[] }
 }
 
 /** Home's places, each one's own Source, and remembering that one was opened. */

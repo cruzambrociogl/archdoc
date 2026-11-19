@@ -2,6 +2,28 @@ import { useEffect, useRef, useState } from 'react'
 import type { SignedIn } from '../source'
 import { useSource } from '../source'
 
+// Signing out reloads the page, or leaves it for one that needs no account; this says, on the page
+// that follows, that it worked — the avatar turning into Sign in is easy to miss.
+const signedOutKey = 'archdoc:signed-out'
+
+function remember() {
+  try {
+    sessionStorage.setItem(signedOutKey, '1')
+  } catch {
+    // No storage: signing out still works; it just goes unsaid.
+  }
+}
+
+function justSignedOut(): boolean {
+  try {
+    const was = sessionStorage.getItem(signedOutKey) === '1'
+    sessionStorage.removeItem(signedOutKey)
+    return was
+  } catch {
+    return false
+  }
+}
+
 /**
  * The bar's last item where the place has accounts: Sign in, or the person — their initials, or their
  * picture — and their menu: what the place lists, then Sign out. Where the place has none, nothing.
@@ -10,7 +32,15 @@ export function AccountButton() {
   const account = useSource().account
   const [me, setMe] = useState<SignedIn | null>()
   const [open, setOpen] = useState(false)
+  const [told, setTold] = useState(false)
   const anchor = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!justSignedOut()) return
+    setTold(true)
+    const t = setTimeout(() => setTold(false), 3200)
+    return () => clearTimeout(t)
+  }, [])
 
   useEffect(() => {
     let live = true
@@ -37,13 +67,27 @@ export function AccountButton() {
     }
   }, [open])
 
-  if (!account || me === undefined) return null
+  const toast = told && (
+    <div className="toast" role="status">
+      You’ve signed out.
+    </div>
+  )
+  if (!account || me === undefined) return toast || null
   if (!me) {
     return (
-      <a className="btn btn-outline account-signin" href={account.signIn(location.pathname + location.search + location.hash)}>
-        Sign in
-      </a>
+      <>
+        <a className="btn btn-outline account-signin" href={account.signIn(location.pathname + location.search + location.hash)}>
+          Sign in
+        </a>
+        {toast}
+      </>
     )
+  }
+  const signOut = async () => {
+    const next = await account.signOut()
+    remember()
+    if (next) location.assign(next)
+    else location.reload()
   }
   return (
     <div className="pop-anchor" ref={anchor}>
@@ -62,7 +106,7 @@ export function AccountButton() {
               {l.note && <span className="more-right">{l.note}</span>}
             </a>
           ))}
-          <button className="more-item account-out" onClick={() => account.signOut().then(() => location.reload())}>
+          <button className="more-item account-out" onClick={() => void signOut()}>
             <span className="more-label">Sign out</span>
           </button>
         </div>

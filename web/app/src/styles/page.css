@@ -1774,6 +1774,50 @@ button.runs-row:hover {
   font-size: var(--t-body);
   line-height: 1.5;
 }
+/* Signed in, the place's own beside the box: the person's spaces, and making a project. */
+.start-offer {
+  margin: 28px 0 0;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-box);
+  background: var(--panel);
+}
+.start-offer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.start-offer-title {
+  margin: 0;
+  font: 500 var(--t-body) var(--font-sans);
+}
+.start-offer-pop {
+  width: 260px;
+}
+.start-offer-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.start-offer-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--rule);
+  font-size: var(--t-body);
+}
+.start-offer-list a {
+  color: var(--ink);
+}
+.start-offer-note {
+  font-size: var(--t-small);
+  color: var(--muted);
+  white-space: nowrap;
+}
 .start-note {
   margin: 14px 0 0;
   font-size: var(--t-small);

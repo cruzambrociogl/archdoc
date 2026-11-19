@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Branches, Runs } from '../source'
-import { Refusal } from '../source'
+import type { Branches, Runs, StartOffer } from '../source'
+import { Refusal, useSource } from '../source'
 import { WebsiteBar, engineHome } from '../shell/WebsiteBar'
 
 /**
@@ -98,6 +98,7 @@ export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRu
                   : `archdoc couldn’t take the request: ${refused!.message}`}
             </p>
           )}
+          <Offer />
           <p className="start-note">
             No account needed for public repositories. A branch, tag or commit: paste its GitHub link. On your own machine archdoc has no limits and sends nothing:{' '}
             <a href={engineHome} target="_blank" rel="noopener noreferrer">{engineHome.replace('https://', '')}</a>.
@@ -105,6 +106,78 @@ export function Start(props: { repo?: string; suggest?: string; runs: Runs; onRu
         </div>
       </main>
     </div>
+  )
+}
+
+/** What the place offers someone signed in, under the box: their spaces, and making a project. */
+function Offer() {
+  const account = useSource().account
+  const [offer, setOffer] = useState<StartOffer | null>(null)
+  const [choosing, setChoosing] = useState(false)
+  const anchor = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let live = true
+    account?.me().then(
+      (m) => live && setOffer(m?.start ?? null),
+      () => live && setOffer(null),
+    )
+    return () => {
+      live = false
+    }
+  }, [account])
+  useEffect(() => {
+    if (!choosing) return
+    const away = (e: MouseEvent) => {
+      if (anchor.current && !anchor.current.contains(e.target as Node)) setChoosing(false)
+    }
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setChoosing(false)
+    document.addEventListener('mousedown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [choosing])
+  if (!offer) return null
+  const choices = offer.create?.choices ?? []
+  return (
+    <section className="start-offer" aria-label={offer.heading}>
+      <div className="start-offer-head">
+        <h2 className="start-offer-title">{offer.heading}</h2>
+        {choices.length === 1 && (
+          <a className="btn btn-outline" href={choices[0].href}>
+            {offer.create!.label}
+          </a>
+        )}
+        {choices.length > 1 && (
+          <div className="pop-anchor" ref={anchor}>
+            <button className="btn btn-outline" aria-expanded={choosing} onClick={() => setChoosing(!choosing)}>
+              {offer.create!.label}
+            </button>
+            {choosing && (
+              <div className="pop more-pop start-offer-pop">
+                <div className="account-who">
+                  <span className="more-sub">Create it in</span>
+                </div>
+                {choices.map((c) => (
+                  <a key={c.href} className="more-item" href={c.href}>
+                    <span className="more-label">{c.label}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <ul className="start-offer-list">
+        {offer.items.map((i) => (
+          <li key={i.href}>
+            <a href={i.href}>{i.label}</a>
+            {i.note && <span className="start-offer-note">{i.note}</span>}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

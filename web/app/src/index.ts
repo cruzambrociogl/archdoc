@@ -9,7 +9,7 @@ export { ParentContext } from './shell/parent'
 export type { Crumb, Line } from './shell/parent'
 export { Refusal, SourceProvider } from './source'
 export { staticName } from './staticName'
-export type { Account, At, Branches, Capabilities, Homes, HostedRepository, HostedRun, Place, Runs, SignedIn, Source, Systems } from './source'
+export type { Account, At, Branches, Capabilities, Homes, HostedRepository, HostedRun, Place, Runs, SignedIn, Source, StartOffer, Systems } from './source'
 export type * from './api'
 
 import './styles/fonts.css'
