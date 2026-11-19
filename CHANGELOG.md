@@ -10,6 +10,8 @@ what is different for a user.
   with its packages as its parts and what uses what between them. Its HTTP routes (net/http, chi,
   gin, echo, fiber, gorilla/mux), its commands (cobra, urfave/cli, or its own table of them) and its
   River jobs are read from the code, each at its line, a handler's doc comment as its summary.
+  Each has its flow: the program's calls, followed by the types the code states, to the tables its
+  SQL names (sqlc's queries included), the jobs it queues and the requests it sends.
 - **Test fixtures are left alone.** Nothing under `testdata/` is taken for part of the system.
 
 - **Security updates.** `golang.org/x/image` 0.43, for six advisories in the image and font decoders

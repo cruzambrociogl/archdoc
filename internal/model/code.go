@@ -538,11 +538,11 @@ func goEntries(src core.Source, container string, componentOf map[string]string)
 	for _, f := range src.Files {
 		for _, h := range f.Handles {
 			add(core.Entry{ID: "route:" + local + " " + h.Method + " " + h.Path, Kind: "http", Method: h.Method, Path: h.Path,
-				Handler: h.Handler, Summary: h.Summary, SummaryProv: h.SummaryProv, Prov: h.Prov})
+				Handler: h.Handler, Summary: h.Summary, SummaryProv: h.SummaryProv, Prov: h.Prov, Func: h.Func})
 		}
 		for _, j := range f.Jobs {
 			add(core.Entry{ID: "job:" + local + " " + j.Name, Kind: "job", Method: "JOB", Path: j.Name, Handler: j.Handler,
-				PathNote: "named by its Kind() at " + j.NameProv.String(), Prov: j.Prov})
+				PathNote: "named by its Kind() at " + j.NameProv.String(), Prov: j.Prov, Func: j.Func})
 		}
 	}
 	return out
@@ -577,7 +577,7 @@ func commandsAndJobs(src core.Source, container string, componentOf map[string]s
 	for _, f := range src.Files {
 		rel := strings.TrimPrefix(f.Path, src.Root+"/")
 		for _, c := range f.Commands {
-			add(core.Entry{Kind: "command", Method: "CMD", Path: c.Name, Handler: rel, Summary: c.Summary, SummaryProv: c.SummaryProv, Prov: c.Prov})
+			add(core.Entry{Kind: "command", Method: "CMD", Path: c.Name, Handler: rel, Summary: c.Summary, SummaryProv: c.SummaryProv, Prov: c.Prov, Func: c.Func})
 		}
 		for _, c := range f.Classes {
 			for _, d := range c.Decorators {

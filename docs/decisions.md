@@ -1514,7 +1514,28 @@ for the system. Now:
 - **A module's SQL schema** is a program's when it reaches the package keeping it, or talks to a
   database at all; one that does neither has no tables. Two programs on one database both show them.
 - Every other test subject's model is byte-identical before and after.
-- Not yet: flows through a Go handler's calls; periodic jobs scheduled through a helper; routes
-  mounted from another function (chi's `Mount`, a ServeMux under `StripPrefix`).
+- Not yet: periodic jobs scheduled through a helper; routes mounted from another function (chi's
+  `Mount`, a ServeMux under `StripPrefix`). Flows: the entry below.
 → `internal/extract/golang.go`, `internal/code/golang.go`, `internal/model/code.go` (`goEntries`),
 `internal/model/components.go` (`goPackages`), `internal/model/dependencies.go` (`goRequirement`)
+
+**2026-11-19 — Go flows: calls tied by the types the code states**
+A Go route's, job's or command's flow follows the program's own calls, tied as the compiler ties
+them as far as the code says: s.store.Finish(…) is Store.Finish because s is the receiver, a
+*Service, whose field store is a *store.Store. A local takes the type of what it is given — a value
+made in place, a constructor's first result — an interface the one type of the program with all its
+methods, and a promoted method its embedded type's. What the code does not state (a value from a map,
+a function passed in) is not guessed. Steps end at the tables a function's SQL names — a string of
+SQL, or a constant holding one, as sqlc generates them: INSERT INTO writes, UPDATE updates, DELETE
+FROM deletes, FROM and JOIN read; a WITH's names, functions in FROM and IS DISTINCT FROM are none —
+at the jobs it queues (a River job's arguments made in place; one another program works says
+which), and at requests to an address made at run time. The same tables feed the data view's access.
+- A type is a lifeline, a package's functions share one. A call within a part is a step only if it
+  leads beyond it — a table, a job, a request, another part — so a package's small helpers drop out.
+- A step repeated under the same call is drawn once; under another call it is kept: every query of a
+  sqlc Queries is one lifeline's, and which query reads which table is the point.
+- A function written inside another is its own Func — a route's handler often is — and what it does
+  counts for the one it is written in too: a goroutine's or a transaction's callback is its work.
+- The depth (4) and length (40) are the other languages'. archdoc's own commands run its whole
+  pipeline and reach the length; a service's routes mostly fit.
+→ `internal/code/golang_flow.go`, `internal/model/flows_go.go`; `TestGoFuncsFollowTheTypes`, `TestSQLTables`, `TestAGoFlow`

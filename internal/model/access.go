@@ -34,8 +34,28 @@ func access(m *core.Model, sources []core.Source, componentOf map[string]string)
 		if !ok {
 			continue
 		}
+		hasTables := false
+		for _, n := range m.Nodes {
+			hasTables = hasTables || n.Kind == core.Table && n.Parent == container
+		}
 		for _, f := range src.Files {
-			for _, c := range f.Classes {
+			// A Go function's queries; a function written inside another is counted in that one.
+			var goQueries []core.Query
+			for _, fn := range f.Funcs {
+				if strings.Contains(fn.Key, ".func@") {
+					continue
+				}
+				for _, q := range fn.Queries {
+					if !hasTables || tableOf[container+"\x00"+q.Table] != "" {
+						goQueries = append(goQueries, q)
+					}
+				}
+			}
+			classes := f.Classes
+			if len(goQueries) > 0 {
+				classes = append(append([]core.Class(nil), classes...), core.Class{Methods: []core.Method{{Queries: goQueries}}})
+			}
+			for _, c := range classes {
 				for _, meth := range c.Methods {
 					for _, q := range meth.Queries {
 						name := q.Table

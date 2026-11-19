@@ -55,6 +55,11 @@ func flows(m *core.Model, sources []core.Source, componentOf map[string]string) 
 	}
 	for _, src := range sources {
 		container := containerOf[src.App]
+		if src.Module != "" {
+			// Go: followed through the calls its types tie (flows_go.go).
+			m.Flows = append(m.Flows, goFlows(m, src, container, componentOf, func(t string) string { return tableOf[container+"\x00"+t] })...)
+			continue
+		}
 		classes := map[string]classAt{}
 		for _, f := range src.Files {
 			for _, c := range f.Classes {

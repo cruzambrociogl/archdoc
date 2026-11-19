@@ -318,6 +318,29 @@ type SourceFile struct {
 	// Jobs are the work a file takes from a queue: a River worker's Work method, for the job whose
 	// Kind() names it.
 	Jobs []Job `json:"jobs,omitempty"`
+	// Funcs are a Go file's functions and methods, each with what it does in the order the code does
+	// it: the functions of the program it calls, the tables its SQL names, the jobs it queues.
+	Funcs []Func `json:"funcs,omitempty"`
+}
+
+// Func is one Go function or method of a program, or a function written in place inside one.
+type Func struct {
+	// Key is its package's directory and its name: "internal/store#Store.Finish", "cmd/api#run",
+	// "cmd/api#run.func@150" for the function literal at line 150.
+	Key     string     `json:"key"`
+	Calls   []FuncCall `json:"calls,omitempty"`
+	Queries []Query    `json:"queries,omitempty"`
+	// Queues are the jobs it puts on a queue, by their kind: a River job's arguments made in place.
+	Queues  []Literal  `json:"queues,omitempty"`
+	EndLine int        `json:"end_line,omitempty"`
+	Prov    Provenance `json:"provenance"`
+}
+
+// FuncCall is a call to a function or method of the program, tied by the types the code states:
+// s.store.Finish(…) is Store.Finish, because s is a *Service whose store is a *store.Store.
+type FuncCall struct {
+	To   string     `json:"to"` // the callee's Key
+	Prov Provenance `json:"provenance"`
 }
 
 // Handle is one route a file registers by a call, under the prefix of the group it is registered
@@ -332,13 +355,15 @@ type Handle struct {
 	// describing itself.
 	Summary     string     `json:"summary,omitempty"`
 	SummaryProv Provenance `json:"summary_provenance,omitzero"`
-	Prov        Provenance `json:"provenance"` // the line that registers it
+	Func        string     `json:"func,omitempty"` // the handler's Func key, when it is the program's
+	Prov        Provenance `json:"provenance"`     // the line that registers it
 }
 
 // Job is one kind of work an application takes from a queue.
 type Job struct {
 	Name     string     `json:"name"`    // the job's kind: "build"
 	Handler  string     `json:"handler"` // "build.Worker.Work"
+	Func     string     `json:"func,omitempty"`
 	NameProv Provenance `json:"name_provenance,omitzero"`
 	Prov     Provenance `json:"provenance"` // the handler
 }
@@ -425,6 +450,7 @@ type Command struct {
 	Name        string     `json:"name"`
 	Summary     string     `json:"summary,omitempty"`
 	SummaryProv Provenance `json:"summary_provenance,omitzero"`
+	Func        string     `json:"func,omitempty"` // Go: the function that runs it, as a Func key
 	Prov        Provenance `json:"provenance"`
 }
 

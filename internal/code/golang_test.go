@@ -285,3 +285,124 @@ func main() {
 		t.Errorf("commands %q\n want %q", got, want)
 	}
 }
+
+// A function's calls are tied by the types the code states — a receiver's field, a local made in
+// place or returned by a constructor, an interface's one implementation — and its SQL and the jobs
+// it queues are read with them.
+func TestGoFuncsFollowTheTypes(t *testing.T) {
+	root := tree(t, map[string]string{
+		"go.mod": "module github.com/acme/shop\n",
+		"cmd/api/main.go": `package main
+
+import (
+	"github.com/acme/shop/internal/orders"
+	"github.com/acme/shop/internal/store"
+)
+
+func main() {
+	st := store.New()
+	s := &orders.Service{Store: st}
+	s.Place()
+}
+`,
+		"internal/orders/orders.go": `package orders
+
+import (
+	"github.com/acme/shop/internal/jobs"
+	"github.com/acme/shop/internal/store"
+)
+
+type Saver interface{ Save(id int) }
+
+type Service struct {
+	Store *store.Store
+	saver Saver
+	queue interface{ Insert(args any) }
+}
+
+func (s *Service) Place() {
+	s.Store.Find(1)
+	s.saver.Save(1)
+	s.queue.Insert(jobs.Ship{ID: 1})
+	go func() { s.Store.Find(2) }()
+}
+`,
+		"internal/store/store.go": `package store
+
+import "github.com/jackc/pgx/v5"
+
+type Store struct{ db *pgx.Conn }
+
+func New() *Store { return &Store{} }
+
+const findOrder = ` + "`" + `-- name: FindOrder :one
+SELECT o.id FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.id = $1` + "`" + `
+
+func (s *Store) Find(id int) { s.db.QueryRow(nil, findOrder, id) }
+
+// Save is the one Saver of the program.
+func (s *Store) Save(id int) {
+	s.db.Exec(nil, "UPDATE orders SET placed = true WHERE id = $1", id)
+}
+`,
+		"internal/jobs/jobs.go": "package jobs\n\nimport \"github.com/riverqueue/river\"\n\ntype Ship struct{ ID int }\n\n" +
+			"func (Ship) Kind() string { return \"ship\" }\n\nvar _ river.JobArgs = Ship{}\n",
+	})
+	src, _ := Read(root, core.App{Name: "api", Dir: "cmd/api", Manifest: "go.mod", Language: "Go"}, nil)
+	funcs := map[string]core.Func{}
+	for _, f := range src.Files {
+		for _, fn := range f.Funcs {
+			funcs[fn.Key] = fn
+		}
+	}
+	calls := func(key string) []string {
+		var out []string
+		for _, c := range funcs[key].Calls {
+			out = append(out, c.To)
+		}
+		return out
+	}
+	if got := calls("cmd/api#main"); !slices.Equal(got, []string{"internal/store#New", "internal/orders#Service.Place"}) {
+		t.Errorf("main calls %q — a constructor, and a method on a local made in place", got)
+	}
+	wantPlace := []string{"internal/store#Store.Find", "internal/store#Store.Save", "internal/store#Store.Find"}
+	if got := calls("internal/orders#Service.Place"); !slices.Equal(got, wantPlace) {
+		t.Errorf("Place calls %q\n want %q — a field's method, an interface's one implementation, and what a goroutine does", got, wantPlace)
+	}
+	if lit := funcs["internal/orders#Service.Place.func@20"]; len(lit.Calls) != 1 {
+		t.Errorf("the function written in place is its own Func: %+v", lit)
+	}
+	if q := funcs["internal/orders#Service.Place"].Queues; len(q) != 1 || q[0].Value != "ship" {
+		t.Errorf("queues %+v — the job whose arguments are made in place", q)
+	}
+	var queries []string
+	for _, key := range []string{"internal/store#Store.Find", "internal/store#Store.Save"} {
+		for _, q := range funcs[key].Queries {
+			queries = append(queries, q.Op+" "+q.Table)
+		}
+	}
+	if want := []string{"reads orders", "reads customers", "updates orders"}; !slices.Equal(queries, want) {
+		t.Errorf("queries %q, want %q — a constant's SQL, as sqlc writes it, and a string's", queries, want)
+	}
+}
+
+func TestSQLTables(t *testing.T) {
+	for sql, want := range map[string]string{
+		"SELECT * FROM runs r JOIN repositories p ON p.id = r.repository_id":                                    "reads runs, reads repositories",
+		"INSERT INTO runs (repository_id) VALUES ($1) ON CONFLICT (id) DO UPDATE SET ref = $2":                  "writes runs",
+		"WITH latest AS (SELECT id FROM runs) UPDATE projects SET x = 1 FROM latest WHERE a IS DISTINCT FROM b": "reads runs, updates projects",
+		"DELETE FROM sessions WHERE id IN (SELECT id FROM unnest($1::bigint[]) AS u(id))":                       "deletes sessions",
+		`SELECT "public"."users".id FROM "public"."users"`:                                                      "reads users",
+	} {
+		var got []string
+		for _, r := range sqlTables(sql) {
+			got = append(got, r.op+" "+r.table)
+		}
+		if strings.Join(got, ", ") != want {
+			t.Errorf("%s:\n %q, want %q", sql, strings.Join(got, ", "), want)
+		}
+	}
+	if looksSQL("select a person") || !looksSQL("-- name: X :one\nSELECT 1 FROM t") {
+		t.Error("looksSQL")
+	}
+}

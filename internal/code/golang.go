@@ -47,6 +47,22 @@ type goFile struct {
 	kinds          map[string]core.Literal // a type → what its Kind() returns: a River job's kind
 	works          []goWork
 	workers        []goName // the workers it registers: river.AddWorker(workers, &build.Worker{…})
+
+	// For following calls (golang_flow.go): the tree itself, and what its declarations state.
+	ast       *ast.File
+	fset      *token.FileSet
+	types     map[string]*goTypeDecl // a type it declares → its fields, or its interface's methods
+	results   map[string]ast.Expr    // a function's or method's ("Recv.Name") first result type
+	sqlConsts map[string]string      // a constant or variable holding SQL → the SQL
+}
+
+// goTypeDecl is what a type declaration states: a struct's fields by name and the types it embeds,
+// or an interface's methods.
+type goTypeDecl struct {
+	fields   map[string]ast.Expr
+	embedded []ast.Expr
+	iface    []string
+	isIface  bool
 }
 
 type goImport struct {
@@ -77,6 +93,7 @@ type goHandler struct {
 	method string // s.emailAsk is the method emailAsk
 	on     goName // the type the method is called on, when the function says: s := &orders.Service{}
 	inline string // the function a function literal is written in
+	line   int    // the function literal's line
 	made   string // frontend() makes the handler
 }
 
@@ -245,6 +262,7 @@ func readGo(repo string, app core.App) (core.Source, bool) {
 		}
 	}
 
+	idx := newGoIndex(byDir, reached, pkgOf, dirOf, kinds)
 	var dirs []string
 	for dir := range reached {
 		dirs = append(dirs, dir)
@@ -253,7 +271,7 @@ func readGo(repo string, app core.App) (core.Source, bool) {
 	for _, dir := range dirs {
 		for _, g := range byDir[dir] {
 			f := core.SourceFile{Path: g.path, Language: "Go", Lines: g.lines, Partial: g.partial,
-				Hosts: g.hosts, Calls: g.calls, Commands: g.cmds}
+				Hosts: g.hosts, Calls: g.calls, Commands: append([]core.Command(nil), g.cmds...)}
 			for _, imp := range g.imports {
 				f.Imports = append(f.Imports, resolveGo(g, imp, nameIn(g, imp), dirOf, byDir, declaredIn)...)
 			}
@@ -273,8 +291,13 @@ func readGo(repo string, app core.App) (core.Source, bool) {
 				if !ok || len(registered) > 0 && !registered[goName{dir, w.recv}] {
 					continue // not a job this program takes: another program registers its worker
 				}
-				f.Jobs = append(f.Jobs, core.Job{Name: kind.Value, Handler: g.pkg + "." + w.recv + ".Work", NameProv: kind.Prov, Prov: w.prov})
+				f.Jobs = append(f.Jobs, core.Job{Name: kind.Value, Handler: g.pkg + "." + w.recv + ".Work",
+					Func: dir + "#" + w.recv + ".Work", NameProv: kind.Prov, Prov: w.prov})
 			}
+			for i, c := range f.Commands {
+				f.Commands[i].Func = idx.runnerKey(g, c.Func)
+			}
+			f.Funcs = idx.funcsOf(g)
 			src.Files = append(src.Files, f)
 		}
 	}
@@ -329,6 +352,7 @@ func handleOf(g *goFile, h goHandle, pkgOf map[string]string, funcsIn map[string
 	switch hd := h.handler; {
 	case hd.inline != "":
 		out.Handler = g.pkg + "." + hd.inline + ".func"
+		out.Func = g.dir + "#" + hd.inline + ".func@" + strconv.Itoa(hd.line)
 	case hd.method != "" && hd.on.name != "":
 		// A method on a value whose type the function states: that type's method, in its package.
 		dir, pkg := g.dir, g.pkg
@@ -344,6 +368,7 @@ func handleOf(g *goFile, h goHandle, pkgOf map[string]string, funcsIn map[string
 		for _, fn := range funcsIn[dir][hd.method] {
 			if fn.recv == hd.on.name {
 				describe(fn)
+				out.Func = dir + "#" + hd.on.name + "." + hd.method
 				break
 			}
 		}
@@ -352,6 +377,7 @@ func handleOf(g *goFile, h goHandle, pkgOf map[string]string, funcsIn map[string
 		// A method of this package by that name — one receiver only, or it is ambiguous.
 		if fns := funcsIn[g.dir][hd.method]; len(fns) == 1 && fns[0].recv != "" {
 			out.Handler = g.pkg + "." + fns[0].recv + "." + hd.method
+			out.Func = g.dir + "#" + fns[0].recv + "." + hd.method
 			describe(fns[0])
 		}
 	case hd.ref.name != "":
@@ -369,6 +395,7 @@ func handleOf(g *goFile, h goHandle, pkgOf map[string]string, funcsIn map[string
 		for _, fn := range funcsIn[dir][hd.ref.name] {
 			if fn.recv == "" {
 				describe(fn)
+				out.Func = dir + "#" + hd.ref.name
 				break
 			}
 		}
@@ -401,6 +428,20 @@ func usesDatabase(reached map[string]bool, byDir map[string][]*goFile) bool {
 		}
 	}
 	return false
+}
+
+// enclosingFunc is the name of the function declaration a node sits in — "Recv.Method" or "Func" —
+// from the stack of nodes above it.
+func enclosingFunc(stack []ast.Node) string {
+	for i := len(stack) - 1; i >= 0; i-- {
+		if fd, ok := stack[i].(*ast.FuncDecl); ok {
+			if fd.Recv != nil && len(fd.Recv.List) > 0 {
+				return receiverType(fd.Recv.List[0].Type) + "." + fd.Name.Name
+			}
+			return fd.Name.Name
+		}
+	}
+	return ""
 }
 
 // goModulePath is the module path go.mod declares.
@@ -479,7 +520,8 @@ var (
 // parseGo reads one Go file: its package, imports, declarations, and what it registers and names.
 func parseGo(content []byte, rel string) goFile {
 	g := goFile{path: rel, dir: path.Dir(rel), lines: lines(content), refs: map[string]map[string]bool{},
-		declares: map[string]bool{}, kinds: map[string]core.Literal{}}
+		declares: map[string]bool{}, kinds: map[string]core.Literal{}, types: map[string]*goTypeDecl{},
+		results: map[string]ast.Expr{}, sqlConsts: map[string]string{}}
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, rel, content, parser.ParseComments|parser.SkipObjectResolution)
 	if f == nil {
@@ -488,6 +530,7 @@ func parseGo(content []byte, rel string) goFile {
 	}
 	g.partial = err != nil
 	g.pkg = f.Name.Name
+	g.ast, g.fset = f, fset
 	at := func(p token.Pos) core.Provenance {
 		pos := fset.Position(p)
 		return core.Provenance{File: rel, Line: pos.Line, Column: pos.Column}
@@ -526,6 +569,13 @@ func parseGo(content []byte, rel string) goFile {
 				fn.doc, fn.docProv = docSentence(d.Doc.Text()), at(d.Doc.Pos())
 			}
 			g.funcs = append(g.funcs, fn)
+			if d.Type.Results != nil && len(d.Type.Results.List) > 0 {
+				key := fn.name
+				if fn.recv != "" {
+					key = fn.recv + "." + fn.name
+				}
+				g.results[key] = d.Type.Results.List[0].Type
+			}
 			if fn.recv == "" || !usesRiver {
 				continue
 			}
@@ -559,9 +609,34 @@ func parseGo(content []byte, rel string) goFile {
 				switch sp := sp.(type) {
 				case *ast.TypeSpec:
 					g.declares[sp.Name.Name] = true
+					td := &goTypeDecl{fields: map[string]ast.Expr{}}
+					switch t := sp.Type.(type) {
+					case *ast.StructType:
+						for _, fl := range t.Fields.List {
+							if len(fl.Names) == 0 {
+								td.embedded = append(td.embedded, fl.Type)
+							}
+							for _, n := range fl.Names {
+								td.fields[n.Name] = fl.Type
+							}
+						}
+					case *ast.InterfaceType:
+						td.isIface = true
+						for _, m := range t.Methods.List {
+							for _, n := range m.Names {
+								td.iface = append(td.iface, n.Name)
+							}
+						}
+					}
+					g.types[sp.Name.Name] = td
 				case *ast.ValueSpec:
-					for _, n := range sp.Names {
+					for i, n := range sp.Names {
 						g.declares[n.Name] = true
+						if i < len(sp.Values) {
+							if v, ok := stringLit(sp.Values[i]); ok && looksSQL(v) {
+								g.sqlConsts[n.Name] = v
+							}
+						}
 					}
 				}
 			}
@@ -615,7 +690,7 @@ func parseGo(content []byte, rel string) goFile {
 				}
 			}
 		case *ast.CompositeLit:
-			if c, ok := goCommand(x, parent, at); ok {
+			if c, ok := goCommand(x, parent, at, enclosingFunc(stack), isImport); ok {
 				g.cmds = append(g.cmds, c)
 			}
 		case *ast.SwitchStmt:
@@ -846,7 +921,7 @@ func (r *routeScan) handler(e ast.Expr, enclosing string, depth int) goHandler {
 		}
 		return h
 	case *ast.FuncLit:
-		return goHandler{inline: enclosing}
+		return goHandler{inline: enclosing, line: r.at(x.Pos()).Line}
 	case *ast.UnaryExpr:
 		return r.handler(x.X, enclosing, depth+1)
 	case *ast.CompositeLit:
@@ -979,7 +1054,24 @@ func typeText(e ast.Expr) string {
 // goCommand reads a command declared as a literal: cobra's &cobra.Command{Use: "serve", Short: …},
 // urfave/cli's &cli.Command{Name: …, Usage: …}, or a row of a program's own table of commands —
 // []command{{"init", "<path>", "create .archdoc/…", …}}.
-func goCommand(x *ast.CompositeLit, parent ast.Node, at func(token.Pos) core.Provenance) (core.Command, bool) {
+func goCommand(x *ast.CompositeLit, parent ast.Node, at func(token.Pos) core.Provenance, enclosing string, isImport map[string]bool) (core.Command, bool) {
+	// What runs it, as written — resolved to a Func key by readGo: "ref:name", "ref:pkg.name", or
+	// "lit:<enclosing>@<line>" for a function written in place.
+	runner := func(e ast.Expr) string {
+		switch r := e.(type) {
+		case *ast.Ident:
+			return "ref:" + r.Name
+		case *ast.SelectorExpr:
+			if id, ok := r.X.(*ast.Ident); ok && isImport[id.Name] {
+				return "ref:" + id.Name + "." + r.Sel.Name
+			}
+		case *ast.FuncLit:
+			if enclosing != "" {
+				return "lit:" + enclosing + "@" + strconv.Itoa(at(r.Pos()).Line)
+			}
+		}
+		return ""
+	}
 	isCommand := func(t ast.Expr) bool {
 		if s, ok := t.(*ast.StarExpr); ok {
 			t = s.X
@@ -1019,6 +1111,9 @@ func goCommand(x *ast.CompositeLit, parent ast.Node, at func(token.Pos) core.Pro
 					c.Prov = at(kv.Value.Pos())
 				}
 			}
+			if k.Name == "Run" || k.Name == "RunE" || k.Name == "Action" {
+				c.Func = runner(kv.Value)
+			}
 			summaries[k.Name] = kv.Value
 		}
 		for _, k := range cmdSummaryKeys {
@@ -1040,8 +1135,17 @@ func goCommand(x *ast.CompositeLit, parent ast.Node, at func(token.Pos) core.Pro
 				c.Name, c.Prov = v, at(e.Pos())
 				continue
 			}
-			if strings.Contains(v, " ") && !strings.HasPrefix(v, "<") {
+			if strings.Contains(v, " ") && !strings.HasPrefix(v, "<") && c.Summary == "" {
 				c.Summary, c.SummaryProv = docSentence(v), at(e.Pos())
+			}
+		}
+		// The row's function is what runs the command: the last of its values that names one.
+		for i := len(x.Elts) - 1; i > 0; i-- {
+			if _, isLit := x.Elts[i].(*ast.BasicLit); isLit {
+				continue
+			}
+			if r := runner(x.Elts[i]); r != "" {
+				c.Func = r
 				break
 			}
 		}

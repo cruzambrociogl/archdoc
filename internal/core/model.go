@@ -384,6 +384,9 @@ type Entry struct {
 	// resolved by name, or an expression archdoc could not resolve, kept in braces.
 	PathNote string     `json:"path_note,omitempty"`
 	Prov     Provenance `json:"provenance"`
+	// Func is a Go handler's function, for its flow to start from while the model is derived. Not
+	// part of the model: a flow is what is kept of it.
+	Func string `json:"-"`
 }
 
 // Group is how a feature list groups an entry: a route by the class or module that handles it, a
