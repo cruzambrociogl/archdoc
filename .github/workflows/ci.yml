@@ -212,3 +212,19 @@ jobs:
         env:
           OUTCOME: ${{ steps.stale.outcome }}
         run: test "$OUTCOME" = failure || { echo "the check passed out-of-date documentation"; exit 1; }
+
+  # A dependency gone bad: known vulnerabilities in what the code calls, the standard library included,
+  # and secrets anywhere in the history.
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Known vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
+      - name: Secrets in the history
+        run: docker run --rm -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.28.0 git /repo --redact

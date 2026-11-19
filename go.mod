@@ -2,6 +2,8 @@ module github.com/cruzambrociogl/archdoc
 
 go 1.27.0
 
+toolchain go1.27.4
+
 require (
 	github.com/anthropics/anthropic-sdk-go v1.72.0
 	github.com/compose-spec/compose-go/v2 v2.14.0
@@ -42,10 +44,10 @@ require (
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
-	golang.org/x/image v0.21.0 // indirect
+	golang.org/x/image v0.43.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	modernc.org/libc v1.75.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect

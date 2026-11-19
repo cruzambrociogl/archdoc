@@ -6,6 +6,10 @@ what is different for a user.
 
 ## Unreleased
 
+- **Security updates.** `golang.org/x/image` 0.43, for six advisories in the image and font decoders
+  archdoc's diagrams use; archdoc now builds with Go 1.27.4, for an advisory in `net/http`. CI runs
+  `govulncheck` and a secret scan on every push.
+
 - **Publishing from your own CI.** The Action's `mode: generate` keeps the record of a checkout as an
   artifact of the run; `mode: publish`, in a job of its own, sends it to a project on archdoc's
   website with a token GitHub makes for it. GitLab CI/CD and Bitbucket Pipelines do the same
