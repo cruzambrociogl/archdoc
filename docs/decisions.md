@@ -1491,3 +1491,30 @@ store, a job in its one queue store. `test/explained.browser.mjs` checks it in C
 explanation the server holds.
 → `web/app/src/screens/explained/Explained.tsx`, `web/app/src/explain.ts`, `internal/serve` (`/api/interpretation`)
 
+**2026-11-19 — Go is read: each program a container, each package a part**
+archdoc documented itself as a NestJS shop: its own Go was not read, and its test fixtures were taken
+for the system. Now:
+- **testdata is never the system.** Discovery, the Compose search and the code reader skip it — Go's
+  convention and its tools' — so a fixture's Compose file or manifest no longer names or shapes it.
+- **Each main package is an application**, named by its folder: one module often builds several
+  programs, deployed apart (`cmd/api`, `cmd/worker`). Its role is judged from its own files, each at
+  its line: a command-line framework, a web framework, a server it starts itself, River's jobs, then
+  its arguments. A program under `scripts/`, `tools/`, `hack/`, `docs/` or `experiments/` is tooling.
+  The module stays as a library, for what requires it by its path.
+- **Its code is the main package and every package of the module it imports**, followed by import.
+  A package is a directory, Go's own unit, so each is a part; the root package is named as it is
+  imported. An import is tied to the file declaring what the importer uses of it.
+- **Read with Go's own parser** (`go/parser`), not a tree-sitter grammar: exact, and already in the
+  binary. The go tool's folder rule applies, not the other languages' — a package may be called build.
+- **Routes** from net/http's ServeMux (method patterns included), chi, gin, echo, fiber and
+  gorilla/mux, with group prefixes written in the same function; the handler by package, type and
+  method, its doc comment's first sentence as its summary. **Commands** from cobra, urfave/cli, a
+  table of the program's own and a switch on its first argument. **Jobs** from River: the kind a
+  type's `Kind()` returns, worked by a `Work` method, where the program registers that worker.
+- **A module's SQL schema** is a program's when it reaches the package keeping it, or talks to a
+  database at all; one that does neither has no tables. Two programs on one database both show them.
+- Every other test subject's model is byte-identical before and after.
+- Not yet: flows through a Go handler's calls; periodic jobs scheduled through a helper; routes
+  mounted from another function (chi's `Mount`, a ServeMux under `StripPrefix`).
+→ `internal/extract/golang.go`, `internal/code/golang.go`, `internal/model/code.go` (`goEntries`),
+`internal/model/components.go` (`goPackages`), `internal/model/dependencies.go` (`goRequirement`)

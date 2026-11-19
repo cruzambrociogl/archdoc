@@ -6,6 +6,12 @@ what is different for a user.
 
 ## Unreleased
 
+- **Go is read.** Each program in a Go module — `cmd/api`, `cmd/worker` — is a container of its own,
+  with its packages as its parts and what uses what between them. Its HTTP routes (net/http, chi,
+  gin, echo, fiber, gorilla/mux), its commands (cobra, urfave/cli, or its own table of them) and its
+  River jobs are read from the code, each at its line, a handler's doc comment as its summary.
+- **Test fixtures are left alone.** Nothing under `testdata/` is taken for part of the system.
+
 - **Security updates.** `golang.org/x/image` 0.43, for six advisories in the image and font decoders
   archdoc's diagrams use; archdoc now builds with Go 1.27.4, for an advisory in `net/http`. CI runs
   `govulncheck` and a secret scan on every push.

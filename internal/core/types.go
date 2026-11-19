@@ -253,6 +253,8 @@ type Source struct {
 	Root string `json:"root"` // where its code starts — src/, its Python package, or the directory itself
 	// Framework is what the application's manifest says it is built on: "Next.js", "SvelteKit".
 	Framework string `json:"framework,omitempty"`
+	// Module is a Go program's module path, as go.mod declares it: its packages are named by it.
+	Module string `json:"module,omitempty"`
 	// Loose is set for an application with no manifest: what starts it is read from its files.
 	Loose bool `json:"loose,omitempty"`
 	// Documents are the HTML pages found beside the code of an application with no manifest.
@@ -310,6 +312,35 @@ type SourceFile struct {
 	// names alone — NestJS's export const services = [AlbumService, …]. Such a file wires the program
 	// together, so its imports are not one part using another.
 	Registry *Provenance `json:"registry,omitempty"`
+	// Handles are the routes a file registers by a call — Go's mux.HandleFunc("GET /runs/{id}", h),
+	// chi's r.Get("/runs", h), gin's g.GET("/runs", h) — with the handler each names.
+	Handles []Handle `json:"handles,omitempty"`
+	// Jobs are the work a file takes from a queue: a River worker's Work method, for the job whose
+	// Kind() names it.
+	Jobs []Job `json:"jobs,omitempty"`
+}
+
+// Handle is one route a file registers by a call, under the prefix of the group it is registered
+// in, when the same function names one: chi's r.Route("/runs", …), gin's r.Group("/api").
+type Handle struct {
+	Method string `json:"method"` // "GET"; "ANY" when the pattern names no method
+	Path   string `json:"path"`
+	// Handler is where the work is, qualified by its package: "accounts.Service.emailAsk", or
+	// "main.run.func" for a function written in place.
+	Handler string `json:"handler"`
+	// Summary is the first line of the handler's own doc comment, when it is found: the code
+	// describing itself.
+	Summary     string     `json:"summary,omitempty"`
+	SummaryProv Provenance `json:"summary_provenance,omitzero"`
+	Prov        Provenance `json:"provenance"` // the line that registers it
+}
+
+// Job is one kind of work an application takes from a queue.
+type Job struct {
+	Name     string     `json:"name"`    // the job's kind: "build"
+	Handler  string     `json:"handler"` // "build.Worker.Work"
+	NameProv Provenance `json:"name_provenance,omitzero"`
+	Prov     Provenance `json:"provenance"` // the handler
 }
 
 // Resolution is how an import was tied to what it names (vision D-4: the provenance of a link

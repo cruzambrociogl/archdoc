@@ -80,6 +80,14 @@ func components(m *core.Model, sources []core.Source) map[string]string {
 		// the source root happens to be (F-31): moving src/ is not a new system.
 		_, local, _ := strings.Cut(parent.ID, ":")
 
+		if src.Files[0].Language == "Go" {
+			// A Go package is a directory, and Go's own unit of code: each is a part.
+			for file, id := range emit(m, src, parent.ID, core.Component, "cmp:"+local+"/", goPackages(src), nil) {
+				componentOf[file] = id
+			}
+			continue
+		}
+
 		group, roles := folders, map[string][]string(nil)
 		features, r, ok := slices(src, folders, false)
 		if !ok && !python {
@@ -379,6 +387,8 @@ func emit(m *core.Model, src core.Source, parent string, kind core.Kind, prefix 
 		name := key
 		note := fmt.Sprintf("%d %s in %s", len(p.files), plural(len(p.files), "file", "files"), dir)
 		switch {
+		case key == "." && src.Module != "":
+			name = path.Base(src.Module) // a Go module's root package, by the name it is imported by
 		case key == ".":
 			name = path.Base(src.Root) + " (top level)"
 		case len(p.files) == 1:
@@ -526,6 +536,24 @@ func grouping(src core.Source, python bool) map[string]string {
 	out := make(map[string]string, len(rel))
 	for f, r := range rel {
 		out[f] = keyAt(r, depth[f])
+	}
+	return out
+}
+
+// goPackages assigns each Go file to its package: its directory under the module, "." for the
+// module's root package.
+func goPackages(src core.Source) map[string]string {
+	out := make(map[string]string, len(src.Files))
+	for _, f := range src.Files {
+		dir := path.Dir(f.Path)
+		switch {
+		case dir == src.Root:
+			out[f.Path] = "."
+		case src.Root == ".":
+			out[f.Path] = dir
+		default:
+			out[f.Path] = strings.TrimPrefix(dir, src.Root+"/")
+		}
 	}
 	return out
 }

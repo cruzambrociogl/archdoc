@@ -116,7 +116,7 @@ Packages follow architectural seams, not the capability catalog's chapters. See
 |---|---|
 | `internal/core` | Core types, and the view projections over them. Named `internal/archdoc` until 21 Oct; the public root package is `archdoc` |
 | `internal/extract` | Discovery, and every file archdoc reads |
-| `internal/code` | Source code: parsing (tree-sitter, seven grammars) and imports, called by extract; SQL migrations, Prisma schemas and Java/.NET settings files, read by line |
+| `internal/code` | Source code: parsing (tree-sitter, seven grammars; Go with `go/parser`) and imports, called by extract; SQL migrations, Prisma schemas and Java/.NET settings files, read by line |
 | `internal/model` | Facts → graph |
 | `internal/validate` | The gate — every change to the model passes through it |
 | `internal/rules` | `rules.yaml` — corrections that survive regeneration |

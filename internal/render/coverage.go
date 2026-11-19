@@ -265,7 +265,11 @@ func Coverage(m core.Model, facts core.FactSet, gaps []Gap, meta Meta) string {
 				continue
 			}
 			own := c.Imports[core.ByPath] + c.Imports[core.ByAlias] + c.Imports[core.ByModule] + c.Imports[core.ByName]
-			fmt.Fprintf(&b, "| `%s` | %s | %d | %d | %d | %d own, %d packages | %d | %d |\n", c.Root, c.Language,
+			where := c.Root
+			if c.Language == "Go" {
+				where = c.App // a Go program: its code starts at its main package, wherever the module is
+			}
+			fmt.Fprintf(&b, "| `%s` | %s | %d | %d | %d | %d own, %d packages | %d | %d |\n", where, c.Language,
 				c.Files, c.Lines, c.Components, own, c.Imports[core.ByPackage], len(c.Unresolved), len(c.Partial))
 		}
 		for _, c := range r.Code {
@@ -342,7 +346,11 @@ func sourcesRead(facts core.FactSet) []ReadFile {
 		case !a.Role.Container():
 			why = "not a running part of the system — " + why
 		}
-		out = append(out, ReadFile{File: a.Manifest, Used: a.Role.Container(), Why: why})
+		file := a.Manifest
+		if a.Language == "Go" && a.Prov.File != "" && a.Prov.File != a.Manifest {
+			file = a.Prov.File // one program of a module: the file that says package main
+		}
+		out = append(out, ReadFile{File: file, Used: a.Role.Container(), Why: why})
 	}
 	if in := facts.Interpolation; in != nil {
 		why := "the values Compose's ${VARIABLES} were filled from"

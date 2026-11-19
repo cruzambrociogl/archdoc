@@ -70,6 +70,7 @@ func fromCode(m *core.Model, sources []core.Source, componentOf map[string]strin
 		m.Entries = append(m.Entries, fastapiRoutes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, pages(src, container, componentOf)...)
 		m.Entries = append(m.Entries, commandsAndJobs(src, container, componentOf)...)
+		m.Entries = append(m.Entries, goEntries(src, container, componentOf)...)
 
 		// A configuration file — application.yml, appsettings.json — holds settings and nothing else:
 		// every address in one is an endpoint the application is set up to reach.
@@ -515,6 +516,36 @@ func tanstackPath(p string) string {
 		segs = append(segs, s)
 	}
 	return "/" + strings.Join(segs, "/")
+}
+
+// goEntries are the routes a Go program registers and the jobs it works, as its code read them
+// (internal/code/golang.go): each route at the line that registers it, each job at its worker.
+func goEntries(src core.Source, container string, componentOf map[string]string) []core.Entry {
+	_, local, _ := strings.Cut(container, ":")
+	var out []core.Entry
+	seen := map[string]bool{}
+	add := func(e core.Entry) {
+		if seen[e.ID] {
+			e.ID += " " + e.Handler // two handlers for one route: both are kept, told apart
+		}
+		if seen[e.ID] {
+			return
+		}
+		seen[e.ID] = true
+		e.Container, e.Component = container, componentOf[e.Prov.File]
+		out = append(out, e)
+	}
+	for _, f := range src.Files {
+		for _, h := range f.Handles {
+			add(core.Entry{ID: "route:" + local + " " + h.Method + " " + h.Path, Kind: "http", Method: h.Method, Path: h.Path,
+				Handler: h.Handler, Summary: h.Summary, SummaryProv: h.SummaryProv, Prov: h.Prov})
+		}
+		for _, j := range f.Jobs {
+			add(core.Entry{ID: "job:" + local + " " + j.Name, Kind: "job", Method: "JOB", Path: j.Name, Handler: j.Handler,
+				PathNote: "named by its Kind() at " + j.NameProv.String(), Prov: j.Prov})
+		}
+	}
+	return out
 }
 
 // commandsAndJobs reads the other ways into an application (F-13): the commands it offers on the

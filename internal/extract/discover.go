@@ -16,9 +16,12 @@ import (
 
 // skipDirs are never walked. Not correctness — the survey measured ~17k tracked files on
 // Supabase, and the cost is in the walk rather than the parse.
+//
+// testdata is skipped for what it is: fixtures, small stand-ins for other people's projects (Go's
+// convention, and its tools'). A Compose file there describes a test, never this system.
 var skipDirs = map[string]bool{
 	".git": true, "node_modules": true, "vendor": true, "dist": true,
-	"build": true, ".next": true, "target": true, "__pycache__": true,
+	"build": true, ".next": true, "target": true, "__pycache__": true, "testdata": true,
 }
 
 // Discover finds every Compose file in root and decides which one describes the architecture.
@@ -38,7 +41,7 @@ func Discover(root string) ([]core.Candidate, error) {
 		}
 
 		if d.IsDir() {
-			if skipDirs[d.Name()] {
+			if path != root && skipDirs[d.Name()] {
 				return fs.SkipDir
 			}
 			return nil

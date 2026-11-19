@@ -3,7 +3,7 @@
 //
 // The parser is tree-sitter, run in pure Go (gotreesitter; docs/decisions.md, 5 Oct). Only the
 // grammars archdoc uses are imported — one package each — so the binary carries five grammars,
-// not two hundred.
+// not two hundred. Go is the exception: Go's own parser reads it (golang.go).
 //
 // Reading code is extraction like reading a Compose file: every fact cites a line. What an import
 // names is resolved by path, by a declared alias, or as a module of the application's own package,
@@ -29,7 +29,7 @@ var skipDirs = map[string]bool{
 	"venv": true, "__pycache__": true, "target": true, ".next": true, ".svelte-kit": true,
 	"coverage": true, ".archdoc": true, ".turbo": true, ".cache": true, "out": true,
 	"test": true, "tests": true, "__tests__": true, "__mocks__": true, "test-data": true,
-	"e2e": true, "fixtures": true,
+	"e2e": true, "fixtures": true, "testdata": true,
 }
 
 // servedAsIs are the folders a framework copies to the browser untouched — Next.js's and Vite's
@@ -45,7 +45,7 @@ var dotnetSkip = map[string]bool{"bin": true, "obj": true, "wwwroot": true, "Mig
 // Reads reports whether archdoc reads code in this language.
 func Reads(language string) bool {
 	switch language {
-	case "TypeScript", "JavaScript", "Python", "Dart", "Java", "C#":
+	case "TypeScript", "JavaScript", "Python", "Dart", "Java", "C#", "Go":
 		return true
 	}
 	return false
@@ -60,6 +60,9 @@ func Read(repo string, app core.App, nested []string) (src core.Source, ok bool)
 		// Its code is not read, but what it says its tables are still is.
 		src = core.Source{App: app.Dir, Root: app.Dir, Schemas: schemas(repo, app.Dir)}
 		return src, len(src.Schemas) > 0
+	}
+	if app.Language == "Go" {
+		return readGo(repo, app)
 	}
 	python := app.Language == "Python"
 	dart := app.Language == "Dart"

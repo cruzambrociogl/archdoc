@@ -38,8 +38,11 @@ for its files and imports — with NestJS, Express, FastAPI, SvelteKit, Next.js,
 TanStack Router, Spring and ASP.NET Core understood by their conventions, and tables read from
 TypeORM-style classes, SQLModel, SQLAlchemy, Prisma schemas, JPA entities and EF Core contexts.
 Since 9 October a Java module is found by its `pom.xml` or `build.gradle`, a .NET project by its
-`.csproj`, and both are read with their `application.yml` or `appsettings.json`. What it does not read
-yet it says so, in the coverage report. Where the work stands is in [`PROGRESS.md`](PROGRESS.md);
+`.csproj`, and both are read with their `application.yml` or `appsettings.json`. Since 19 November it
+reads Go, with Go's own parser: each program a module builds is a container, its packages are its
+parts, and its routes (net/http, chi, gin, echo, fiber, gorilla/mux), commands (cobra, urfave/cli, its
+own table) and River jobs are read from the code. What it does not read yet it says so, in the
+coverage report. Where the work stands is in [`PROGRESS.md`](PROGRESS.md);
 the reasoning is in [`docs/vision.md`](docs/vision.md). Delivery is 11 December 2026.
 
 What it does now:

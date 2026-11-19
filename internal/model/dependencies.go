@@ -25,7 +25,7 @@ func dependencies(m *core.Model, f *core.FactSet, componentOf map[string]string)
 	for _, a := range f.Apps {
 		container, ok := containerOf[a.Dir]
 		// Go's requirements are read, Go's code is not: every package would read as never imported.
-		if !ok || len(a.Requires) == 0 || a.Language == "Go" {
+		if !ok || len(a.Requires) == 0 {
 			continue
 		}
 		imports := map[string]int{}
@@ -36,6 +36,9 @@ func dependencies(m *core.Model, f *core.FactSet, componentOf map[string]string)
 					continue
 				}
 				key := normal(imp.Package)
+				if a.Language == "Go" {
+					key = normal(goRequirement(imp.Package, a.Requires))
+				}
 				imports[key]++
 				if c := componentOf[file.Path]; c != "" {
 					if users[key] == nil {
@@ -74,6 +77,19 @@ func manifests(m *core.Model, f *core.FactSet) {
 		m.Manifests = append(m.Manifests, core.Manifest{Package: a.Package, Dir: a.Dir, Language: a.Language, Prov: a.Prov, Requires: a.Requires})
 	}
 	sort.SliceStable(m.Manifests, func(i, j int) bool { return m.Manifests[i].Prov.File < m.Manifests[j].Prov.File })
+}
+
+// goRequirement is the module a Go import is a package of: the longest requirement its path starts
+// with — github.com/go-chi/chi/v5/middleware is of github.com/go-chi/chi/v5.
+func goRequirement(importPath string, requires []core.Requirement) string {
+	best := importPath
+	n := 0
+	for _, r := range requires {
+		if (importPath == r.Name || strings.HasPrefix(importPath, r.Name+"/")) && len(r.Name) > n {
+			best, n = r.Name, len(r.Name)
+		}
+	}
+	return best
 }
 
 func normal(name string) string {

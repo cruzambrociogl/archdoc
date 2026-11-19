@@ -32,6 +32,9 @@ var appSkipDirs = map[string]bool{
 	"node_modules": true, ".git": true, "vendor": true, "dist": true, "build": true, ".venv": true,
 	"venv": true, "__pycache__": true, "target": true, ".next": true, ".svelte-kit": true,
 	"coverage": true, ".dart_tool": true, ".archdoc": true, ".turbo": true, ".cache": true,
+	// Go's convention, and its tools': testdata holds fixtures — small stand-ins for other people's
+	// projects — never a part of this one.
+	"testdata": true,
 }
 
 // frameworks decides a JavaScript or TypeScript package's role by its dependencies, in order:
@@ -93,14 +96,14 @@ func Apps(root string) []core.App {
 		rel = filepath.ToSlash(rel)
 		var app *core.App
 		switch d.Name() {
+		case "go.mod":
+			out = append(out, goModule(root, rel)...)
 		case "package.json":
 			app = packageJSON(root, rel)
 		case "pyproject.toml":
 			app = pyproject(root, rel)
 		case "pubspec.yaml":
 			app = pubspec(root, rel)
-		case "go.mod":
-			app = goMod(root, rel)
 		case "pom.xml":
 			app = pomXML(root, rel)
 		case "build.gradle", "build.gradle.kts":
@@ -572,63 +575,6 @@ func describe(app *core.App, text, file string, line int) {
 	}
 	app.Description = text
 	app.DescProv = core.Provenance{File: file, Line: line}
-}
-
-// goMod reads a Go module. One with a main package at its root or under cmd/ ships a program.
-func goMod(root, rel string) *core.App {
-	content, err := os.ReadFile(filepath.Join(root, rel))
-	if err != nil {
-		return nil
-	}
-	dir := dirOf(rel)
-	name, module := path.Base(dir), ""
-	var requires []core.Requirement
-	inRequire := false
-	for i, raw := range strings.Split(string(content), "\n") {
-		line := strings.TrimSpace(raw)
-		if mod, ok := strings.CutPrefix(line, "module "); ok && module == "" {
-			module = strings.Trim(strings.TrimSpace(mod), `"`)
-			name = path.Base(module)
-			continue
-		}
-		// require x v1 — or a block of them. An indirect one is another package's need, not this one's.
-		spec, single := strings.CutPrefix(line, "require ")
-		switch {
-		case line == "require (":
-			inRequire = true
-			continue
-		case inRequire && line == ")":
-			inRequire = false
-			continue
-		case !inRequire && !single:
-			continue
-		}
-		if !inRequire {
-			line = strings.TrimSpace(spec)
-		}
-		if strings.Contains(line, "// indirect") {
-			continue
-		}
-		if f := strings.Fields(line); len(f) >= 2 && !strings.HasPrefix(f[0], "//") {
-			requires = append(requires, core.Requirement{Name: strings.Trim(f[0], `"`), Version: f[1], Prov: core.Provenance{File: rel, Line: i + 1}})
-		}
-	}
-	app := &core.App{Name: name, Package: module, Dir: dir, Manifest: rel, Language: "Go", Requires: requires,
-		Prov: core.Provenance{File: rel, Line: lineOf(content, "module ")}}
-	if inTestDir(dir) {
-		app.Role, app.Why = core.RoleTest, "lives in a test directory"
-		return app
-	}
-	if _, err := os.Stat(filepath.Join(root, dir, "cmd")); err == nil {
-		app.Role, app.Why = core.RoleService, "a Go program: has a cmd/ directory"
-		return app
-	}
-	if b, err := os.ReadFile(filepath.Join(root, dir, "main.go")); err == nil && strings.Contains(string(b), "package main") {
-		app.Role, app.Why = core.RoleService, "a Go program: has a main package"
-		return app
-	}
-	app.Role, app.Why = core.RoleLibrary, "a Go module with no main package"
-	return app
 }
 
 // sources reads the code of every application that runs as a container (F-03). A package nested
