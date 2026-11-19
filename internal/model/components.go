@@ -540,6 +540,22 @@ func grouping(src core.Source, python bool) map[string]string {
 	return out
 }
 
+// componentsFor is which component each file of one source is in. A Go program shares its module's
+// packages with the module's other programs — internal/queries is the api's and the worker's — so a
+// file is in a component of each, and the repository-wide map, keyed by file, holds only one of them:
+// for Go, the source's own is computed from its package. Every other source's files are its own.
+func componentsFor(src core.Source, container string, componentOf map[string]string) map[string]string {
+	if src.Module == "" {
+		return componentOf
+	}
+	_, local, _ := strings.Cut(container, ":")
+	out := make(map[string]string, len(src.Files))
+	for file, key := range goPackages(src) {
+		out[file] = "cmp:" + local + "/" + key
+	}
+	return out
+}
+
 // goPackages assigns each Go file to its package: its directory under the module, "." for the
 // module's root package.
 func goPackages(src core.Source) map[string]string {

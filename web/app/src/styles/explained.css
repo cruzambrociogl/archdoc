@@ -438,6 +438,22 @@ button.step-dot.now {
 .seq-msg.to-come {
   opacity: 0.5;
 }
+/* The answer coming back: dashed, an open arrowhead, no number. */
+.seq-msg.reply .seq-line {
+  stroke-dasharray: 5 4;
+}
+.seq-open {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.3;
+}
+.seq-msg.now .seq-open {
+  stroke: var(--accent);
+}
+/* A store's lifeline head is rounded, as a store is drawn; a person's has no fill. */
+.seq-lane-caller .seq-head {
+  fill: var(--surface);
+}
 
 /* The dynamic diagram's steps */
 .dynamic-steps {

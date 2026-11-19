@@ -6,6 +6,17 @@ what is different for a user.
 
 ## Unreleased
 
+- **Scenarios are drawn as the design draws them.** *As a sequence* is a UML sequence from the flow
+  the story follows: a lifeline per app or service it crosses — or, where those are too few, the
+  parts of the one app it runs in — a message per call between them with its step's number and what
+  it does ("writes asset", "queues AssetExtractMetadata"), the answer coming back dashed, a part's own
+  work a note, and what runs later in a grey group, dashed. *Played on the parts* frames the parts the
+  story crosses; the arrows its steps used carry their numbers, the current one magenta, moving, with
+  a few words. A job's story is in the background, every step.
+- **How data moves is not drawn** until it is designed; Data opens on what the system stores.
+- **A Go package two programs share is a part of each**, so a program's flows, access and
+  dependencies name its own parts, not another program's.
+
 - **Signing out says so.** Where a place has accounts, the page that follows says "You've signed
   out", and a page that needed the account gives way to Start.
 - **Start shows what a signed-in person has**, under the link box, where the place offers it: their

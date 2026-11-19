@@ -545,6 +545,36 @@
   font-style: italic;
   color: var(--k-slate-ink);
 }
+/* A scenario played on the parts (app-design-screens §9): the arrows its steps used carry their
+   numbers; the current step's is magenta, thicker, and moves along its length; the rest are faint. */
+.explorer-canvas .react-flow__edge-path.route-step {
+  stroke: var(--canvas-ink);
+  stroke-width: 1.6;
+}
+.explorer-canvas .react-flow__edge-path.route-now {
+  stroke: var(--canvas-accent);
+  stroke-width: 2.6;
+  stroke-dasharray: 9 5;
+  animation: route-move 0.9s linear infinite;
+}
+@keyframes route-move {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .explorer-canvas .react-flow__edge-path.route-now {
+    animation: none;
+    stroke-dasharray: none;
+  }
+}
+.route-label-step {
+  font-weight: 600;
+}
+.route-label-now {
+  border-color: var(--canvas-accent);
+  color: var(--canvas-accent);
+}
 .route-label .mark-interpreted {
   display: inline-block;
   width: 5px;

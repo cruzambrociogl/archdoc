@@ -25,6 +25,8 @@ export function ViewDiagram(props: {
   onPick?: (id: string) => void
   /** A small map beside something else: no find box, and less height. */
   small?: boolean
+  /** What the view frames, when not the whole system: the parts a scenario crosses. */
+  frame?: string[]
 }) {
   return (
     <ReactFlowProvider>
@@ -109,7 +111,13 @@ function Diagram(props: Parameters<typeof ViewDiagram>[0]) {
         zoomOnDoubleClick={false}
         fitView
         // A small map frames what it lights, with what is around it; a full one, the whole system.
-        fitViewOptions={props.small && props.highlight ? { nodes: [...props.highlight.lit].map((id) => ({ id })), padding: 1.4 } : { padding: 0.06 }}
+        fitViewOptions={
+          props.frame?.length
+            ? { nodes: props.frame.map((id) => ({ id })), padding: 0.25, maxZoom: 1.2 }
+            : props.small && props.highlight
+              ? { nodes: [...props.highlight.lit].map((id) => ({ id })), padding: 1.4 }
+              : { padding: 0.06 }
+        }
         minZoom={0.1}
         maxZoom={1.6}
         proOptions={{ hideAttribution: true }}

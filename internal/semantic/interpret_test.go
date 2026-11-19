@@ -357,3 +357,31 @@ func TestAnEmptyThesisIsAskedForAgain(t *testing.T) {
 		t.Errorf("twice empty: %v", err)
 	}
 }
+
+// A job's story happens in the background, every step of it: no one waits for a job, whatever the
+// answer's steps were numbered as. A route's own steps stay while you wait.
+func TestAJobsScenarioIsInTheBackground(t *testing.T) {
+	var a stage2Answer
+	if err := json.Unmarshal([]byte(`{"thesis": {"text": "x", "cites": ["svc:worker"]}, "scenarios": [
+		{"title": "A build", "flow": "job:worker build", "steps": [{"text": "It reads the run.", "from": 1}, {"text": "It stores the site.", "from": 2}]},
+		{"title": "An upload", "flow": "route:api POST /runs", "steps": [{"text": "It takes the run.", "from": 1}]}]}`), &a); err != nil {
+		t.Fatal(err)
+	}
+	given := map[string][]givenStep{
+		"job:worker build":     {{elements: []string{"cmp:worker/build"}}, {elements: []string{"cmp:worker/sites"}}},
+		"route:api POST /runs": {{elements: []string{"cmp:api/runs"}}},
+	}
+	ids := map[string]bool{"svc:worker": true, "job:worker build": true, "route:api POST /runs": true}
+	_, scenarios, _, _, _ := fixWriting(a, ids, given, nil, nil)
+	if len(scenarios) != 2 {
+		t.Fatalf("scenarios %+v", scenarios)
+	}
+	for _, st := range scenarios[0].Steps {
+		if !st.Background {
+			t.Errorf("a job's step while you wait: %+v", st)
+		}
+	}
+	if scenarios[1].Steps[0].Background {
+		t.Errorf("a route's own step in the background: %+v", scenarios[1].Steps[0])
+	}
+}

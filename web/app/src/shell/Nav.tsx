@@ -69,7 +69,7 @@ export function Nav(props: { summary: Summary; route: Route; go: (r: Partial<Rou
       label: 'How it’s built',
       entries: [
         { screen: 'architecture', q: 'How is it put together? The C4 diagrams' },
-        ...(cov?.tables ? [{ screen: 'data' as const, q: 'What does it store, and how does data move?' }] : []),
+        ...(cov?.tables ? [{ screen: 'data' as const, q: 'What does it store?' }] : []),
       ],
     },
     {

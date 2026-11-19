@@ -150,26 +150,28 @@ export function RoutedEdge({ id, data, selected }: EdgeProps<FlowEdge<RouteData>
   if (!data) return null
   const e = data.edge
   const interp = e.label_provenance?.origin === 'model'
-  const text = [e.label, e.technology].filter(Boolean).join(' · ')
+  // A scenario's step speaks for the arrow it uses: its numbers, or the current step's words.
+  const step = data.step
+  const text = step ? step.label : [e.label, e.technology].filter(Boolean).join(' · ')
   return (
     <>
       <BaseEdge
         id={id}
         path={data.d}
-        className={`route ${selected ? 'route-selected' : ''} ${data.dim ? 'is-dim' : ''}`}
-        markerEnd={selected ? 'url(#ad-arrow-selected)' : 'url(#ad-arrow)'}
+        className={`route ${selected ? 'route-selected' : ''} ${data.dim ? 'is-dim' : ''} ${step ? 'route-step' : ''} ${step?.now ? 'route-now' : ''}`}
+        markerEnd={selected || step?.now ? 'url(#ad-arrow-selected)' : 'url(#ad-arrow)'}
         interactionWidth={14}
         style={e.weight && e.weight > 1 ? { strokeWidth: Math.min(4, 1.2 + Math.log2(e.weight) * 0.4) } : undefined}
       />
       {text && data.labelAt && (
         <EdgeLabelRenderer>
           <div
-            className={`route-label nodrag nopan ${selected ? 'route-label-selected' : ''} ${data.dim ? 'is-dim' : ''}`}
+            className={`route-label nodrag nopan ${selected ? 'route-label-selected' : ''} ${data.dim ? 'is-dim' : ''} ${step ? 'route-label-step' : ''} ${step?.now ? 'route-label-now' : ''}`}
             style={{ transform: `translate(-50%, -50%) translate(${data.labelAt.x}px, ${data.labelAt.y}px)` }}
           >
             {data.delta && <DeltaTag mark={data.delta} inline />}
-            {interp && <span className="mark mark-interpreted" />}
-            <span className={interp ? 'route-label-interp' : ''}>{text}</span>
+            {interp && !step && <span className="mark mark-interpreted" />}
+            <span className={interp && !step ? 'route-label-interp' : ''}>{text}</span>
           </div>
         </EdgeLabelRenderer>
       )}

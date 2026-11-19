@@ -6,6 +6,7 @@ import { Failure, Loading, TruthMark } from '../../ui/marks'
 import { ViewDiagram } from '../explorer/ViewDiagram'
 import { ReturnVisit } from '../home/ReturnVisit'
 import type { Highlight } from '../explorer/scene'
+import { buildSequence, playedArrows, settle } from '../../sequence'
 import {
   boxesOfAll,
   featureFacts,
@@ -449,7 +450,7 @@ function ScenarioCards({ it, model, go, full }: { it: Interpretation; model: Mod
   const name = (id: string) => (model.nodes ?? []).find((n) => n.id === id)?.name ?? id
   return (
     <div className="scenario-cards">
-      {(it.scenarios ?? []).map((s, i) => (
+      {(it.scenarios ?? []).map((raw, i) => ({ s: settle(raw, model), i })).map(({ s, i }) => (
         <div key={slugs[i]} className="scenario-card">
           <div className="scenario-card-title">{s.title}</div>
           <Dots s={s} />
@@ -513,7 +514,8 @@ export function OneScenario(props: { it?: Interpretation; missing?: string; rout
   const { it, go, route } = props
   const { model, scene, error } = useFacts(props.version)
   const found = it ? scenarioAt(it, route.focus ?? '') : undefined
-  const s = found?.scenario
+  // A job's story happens in the background, every step of it, whatever the explanation marked.
+  const s = found && model ? settle(found.scenario, model) : found?.scenario
   const total = s?.steps.length ?? 0
   const at = Math.min(Math.max((route.step ?? 1) - 1, 0), Math.max(total - 1, 0))
   const way = route.way ?? 'played'
@@ -641,11 +643,21 @@ export function OneScenario(props: { it?: Interpretation; missing?: string; rout
   )
 }
 
-/** Played on the parts: what the story has reached lit, the current step's parts tagged. */
+/**
+ * Played on the parts: Apps and services, framed on the parts the story crosses. What it has reached
+ * is lit and the rest dimmed; the current step's parts are outlined; the arrows the steps used carry
+ * their numbers, the current one magenta and moving, with a few words; unused arrows are faint.
+ */
 function Played({ s, at, model, scene }: { s: Scenario; at: number; model: Model; scene: SceneResponse }) {
   const { reached, current } = scenarioReach(s, at, model)
-  const h: Highlight = { lit: new Set(reached), tags: new Map(current.map((b) => [b, `step ${at + 1}`])), tone: 'interp' }
-  return <ViewDiagram scene={scene} highlight={h} subject={current[0]} find="" onFind={() => {}} />
+  const crossed = useMemo(() => scenarioReach(s, s.steps.length - 1, model).reached, [s, model])
+  const h: Highlight = {
+    lit: new Set(reached),
+    tags: new Map(current.map((b) => [b, `step ${at + 1}`])),
+    tone: 'interp',
+    arrows: playedArrows(s, at, model, scene.model.edges ?? []),
+  }
+  return <ViewDiagram scene={scene} highlight={h} subject={current[0]} frame={crossed} find="" onFind={() => {}} />
 }
 
 /** As steps: the sentences, under While you wait and In the background, each with what it stands for. */
@@ -680,86 +692,84 @@ function AsSteps({ s, at, onPick }: { s: Scenario; at: number; onPick: (i: numbe
 }
 
 /**
- * As a sequence: a lifeline for each part the story crosses, in the order it meets them, and a
- * message for each step — from the part the story was in to the one it reaches, numbered; a step
- * that stays in one part is a note on its lifeline. Background steps sit in a grey group, dashed.
+ * As a sequence (app-design-screens §9): a UML sequence diagram from the flow the story follows
+ * (sequence.ts). A lifeline per part, a numbered message per call between two of them, the answer
+ * dashed and unnumbered, a part's own work a note, the background a grey group with dashed arrows.
+ * The current step's messages are magenta; those to come are at half strength, still readable.
  */
 export function AsSequence({ s, at, model, title }: { s: Scenario; at?: number; model: Model; title: string }) {
-  const nodes = new Map((model.nodes ?? []).map((n) => [n.id, n]))
-  // A story that stays in one part is drawn on the parts inside it: its components and tables.
-  const outer = s.steps.map((x) => boxesOfAll(x.crosses ?? [], model))
-  const inner = s.steps.map((x) => {
-    const out: string[] = []
-    for (const id of x.crosses ?? []) {
-      const e = (model.entries ?? []).find((y) => y.id === id)
-      const lane = e ? e.component ?? e.container : nodes.has(id) ? id : undefined
-      if (lane && !out.includes(lane)) out.push(lane)
-    }
-    return out
-  })
-  const distinct = (per: string[][]) => [...new Set(per.flat())]
-  const inside = distinct(outer).length <= 1 && distinct(inner).length > 1
-  const per = inside ? inner : outer
-  const lanes = distinct(per)
+  const seq = useMemo(() => buildSequence(s, model), [s, model])
+  const { lanes, messages } = seq
   if (!lanes.length) return <p className="muted">The steps of this scenario cross no part archdoc draws.</p>
-  const name = (id: string) => {
-    const n = nodes.get(id)
-    return n ? (n.kind === 'table' ? `table ${n.name}` : n.name) : id.replace(/^[a-z]+:/, '')
+  const CHAR = 6.1
+  const HEAD = 52
+  const ROW = 34
+  const PAD = 22
+  // A lane is as far from the next as the widest message between neighbours needs, within bounds.
+  const index = new Map(lanes.map((l, i) => [l.id, i]))
+  const gap = lanes.map(() => 150)
+  for (const m of messages) {
+    if (m.kind === 'note') continue
+    const a = index.get(m.from) ?? 0
+    const b = index.get(m.to) ?? 0
+    if (Math.abs(a - b) !== 1) continue
+    const need = Math.min(300, (m.label.length + 4) * CHAR + 24)
+    const left = Math.min(a, b)
+    gap[left] = Math.max(gap[left], need)
   }
-  const COL = 150
-  const HEAD = 48
-  const ROW = 40
-  const PAD = 20
-  const x = (b: string) => PAD + lanes.indexOf(b) * COL + COL / 2
-  // Each step's message goes from the part whose code runs it — the first it crosses — to the first
-  // other part it reaches; a step that stays in one part is a note on its lifeline.
-  let last = lanes[0]
-  const msgs = s.steps.map((st, i) => {
-    const boxes = per[i]
-    const from = boxes[0] ?? last
-    const to = boxes.find((b) => b !== from) ?? from
-    last = from
-    return { i, from, to, later: !!st.background, words: `${i + 1} ${st.text.split(/[,.;:]/)[0].split(' ').slice(0, 6).join(' ')}` }
-  })
-  // A note is as wide as its words; the picture is as wide as its widest note.
-  const noteW = (words: string) => Math.max(60, Math.round(words.length * 6.2) + 14)
-  const width = Math.max(PAD * 2 + lanes.length * COL, ...msgs.filter((m) => m.from === m.to).map((m) => x(m.from) + 6 + noteW(m.words) + PAD))
-  const height = HEAD + 20 + msgs.length * ROW + 12
-  const firstLater = msgs.findIndex((m) => m.later)
-  const container = inside ? name(distinct(outer)[0] ?? '') : ''
+  const xs: number[] = []
+  lanes.forEach((_, i) => xs.push(i === 0 ? PAD + 75 : xs[i - 1] + gap[i - 1]))
+  const x = (id: string) => xs[index.get(id) ?? 0]
+  const noteW = (t: string) => Math.max(70, Math.round(t.length * CHAR) + 16)
+  const notes = messages.filter((m) => m.kind === 'note').map((m) => x(m.from) + 8 + noteW(`${m.step + 1} ${m.label}`) + PAD)
+  const width = Math.max(xs[xs.length - 1] + 75 + PAD, ...notes)
+  const height = HEAD + 24 + messages.length * ROW + 16
+  const rowY = (i: number) => HEAD + 30 + i * ROW
+  const firstLater = messages.findIndex((m) => m.later)
+  const lastLater = messages.length - 1 - [...messages].reverse().findIndex((m) => m.later)
+  const fit = (t: string, room: number) => {
+    const n = Math.max(6, Math.floor(room / CHAR))
+    return t.length > n ? t.slice(0, n - 1) + '…' : t
+  }
+  const state = (m: (typeof messages)[number]) => (at === undefined ? '' : m.step === at ? 'now' : m.step > at ? 'to-come' : '')
+  const caption = seq.inside
+    ? `Inside ${seq.inside}: a lifeline per part of it the story crosses`
+    : 'A lifeline per app or service the story crosses'
   return (
     <figure className="sequence scenario-sequence">
       <figcaption className="c4-head-title">
         <span className="c4-title">{title}</span>
-        <span className="c4-plain">
-          {inside ? `Inside ${container}: a box per component or table it crosses` : 'A box per part'} · a solid arrow, while you wait · dashed, in the background
-        </span>
+        <span className="c4-plain">{caption} · solid, while you wait · dashed, in the background or an answer coming back</span>
       </figcaption>
       <svg width={width} height={height} role="img" aria-label={title}>
-        {firstLater >= 0 && <rect x={4} y={HEAD + 8 + firstLater * ROW} width={width - 8} height={(msgs.length - firstLater) * ROW + 4} className="seq-later" />}
         {firstLater >= 0 && (
-          <text x={10} y={HEAD + 22 + firstLater * ROW} className="seq-later-label">
-            In the background
-          </text>
-        )}
-        {lanes.map((b) => (
-          <g key={b}>
-            <rect x={x(b) - COL / 2 + 8} y={6} width={COL - 16} height={30} rx={3} className="seq-head" />
-            <text x={x(b)} y={25} textAnchor="middle" className="seq-head-text">
-              {name(b).length > 20 ? name(b).slice(0, 19) + '…' : name(b)}
+          <>
+            <rect x={4} y={rowY(firstLater) - 22} width={width - 8} height={(lastLater - firstLater) * ROW + 34} className="seq-later" />
+            <text x={10} y={rowY(firstLater) - 9} className="seq-later-label">
+              In the background
             </text>
-            <line x1={x(b)} x2={x(b)} y1={36} y2={height - 4} className="seq-life" />
+          </>
+        )}
+        {lanes.map((l) => (
+          <g key={l.id} className={`seq-lane seq-lane-${l.kind}`}>
+            <rect x={x(l.id) - 68} y={8} width={136} height={32} rx={l.kind === 'store' ? 10 : 3} className="seq-head" />
+            <text x={x(l.id)} y={28} textAnchor="middle" className="seq-head-text">
+              <title>{l.name}</title>
+              {fit(l.name, 124)}
+            </text>
+            <line x1={x(l.id)} x2={x(l.id)} y1={40} y2={height - 6} className="seq-life" />
           </g>
         ))}
-        {msgs.map((m) => {
-          const y = HEAD + 24 + m.i * ROW
-          const cls = `seq-msg ${m.later ? 'later' : ''} ${at === m.i ? 'now' : at !== undefined && m.i > at ? 'to-come' : ''}`
-          if (m.from === m.to) {
+        {messages.map((m, i) => {
+          const y = rowY(i)
+          const text = m.kind === 'reply' ? m.label : `${m.step + 1} ${m.label}`
+          const cls = `seq-msg ${m.later ? 'later' : ''} ${m.kind === 'reply' ? 'reply' : ''} ${state(m)}`
+          if (m.kind === 'note') {
             return (
-              <g key={m.i} className={cls}>
-                <rect x={x(m.from) + 6} y={y - 12} width={noteW(m.words)} height={18} rx={2} className="seq-note" />
-                <text x={x(m.from) + 12} y={y + 1} className="seq-text">
-                  {m.words}
+              <g key={i} className={cls}>
+                <rect x={x(m.from) + 8} y={y - 13} width={noteW(text)} height={19} rx={2} className="seq-note" />
+                <text x={x(m.from) + 15} y={y + 1} className="seq-text">
+                  {text}
                 </text>
               </g>
             )
@@ -768,11 +778,16 @@ export function AsSequence({ s, at, model, title }: { s: Scenario; at?: number; 
           const x2 = x(m.to)
           const dir = x2 > x1 ? 1 : -1
           return (
-            <g key={m.i} className={cls}>
+            <g key={i} className={cls}>
+              <title>{text}</title>
               <line x1={x1} x2={x2 - dir * 6} y1={y} y2={y} className="seq-line" />
-              <path d={`M${x2} ${y} L${x2 - dir * 7} ${y - 4} L${x2 - dir * 7} ${y + 4}z`} className="seq-arrow" />
+              {m.kind === 'reply' ? (
+                <path d={`M${x2 - dir * 8} ${y - 4} L${x2} ${y} L${x2 - dir * 8} ${y + 4}`} className="seq-open" />
+              ) : (
+                <path d={`M${x2} ${y} L${x2 - dir * 7} ${y - 4} L${x2 - dir * 7} ${y + 4}z`} className="seq-arrow" />
+              )}
               <text x={(x1 + x2) / 2} y={y - 6} textAnchor="middle" className="seq-text">
-                {m.words}
+                {fit(text, Math.abs(x2 - x1) - 12)}
               </text>
             </g>
           )

@@ -20,6 +20,7 @@ import (
 // program works is still a step, and says which.
 
 func goFlows(m *core.Model, src core.Source, container string, componentOf map[string]string, table func(string) string) []core.Flow {
+	componentOf = componentsFor(src, container, componentOf) // a shared package is a part of each program
 	funcs := map[string]core.Func{}
 	calls := map[string][]core.Call{} // file → its requests to computed addresses
 	for _, f := range src.Files {

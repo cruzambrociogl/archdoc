@@ -38,6 +38,7 @@ func access(m *core.Model, sources []core.Source, componentOf map[string]string)
 		for _, n := range m.Nodes {
 			hasTables = hasTables || n.Kind == core.Table && n.Parent == container
 		}
+		componentOf := componentsFor(src, container, componentOf)
 		for _, f := range src.Files {
 			// A Go function's queries; a function written inside another is counted in that one.
 			var goQueries []core.Query

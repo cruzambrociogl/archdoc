@@ -64,6 +64,7 @@ func fromCode(m *core.Model, sources []core.Source, componentOf map[string]strin
 		if !ok {
 			continue
 		}
+		componentOf := componentsFor(src, container, componentOf)
 		sdks(m, src, container, has)
 		m.Entries = append(m.Entries, routes(src, container, componentOf)...)
 		m.Entries = append(m.Entries, controllerRoutes(src, container, componentOf)...)

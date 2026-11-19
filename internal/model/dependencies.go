@@ -30,6 +30,7 @@ func dependencies(m *core.Model, f *core.FactSet, componentOf map[string]string)
 		}
 		imports := map[string]int{}
 		users := map[string]map[string]bool{}
+		componentOf := componentsFor(sources[a.Dir], container, componentOf)
 		for _, file := range sources[a.Dir].Files {
 			for _, imp := range file.Imports {
 				if imp.How != core.ByPackage {

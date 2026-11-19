@@ -204,3 +204,39 @@ func (s *Store) Add(id int) {
 		t.Errorf("the store's access to orders: %+v", m.Access)
 	}
 }
+
+// A package two programs share is a part of each: the api's flow goes through the api's queries,
+// not the worker's, and what it writes is the api's access.
+func TestASharedPackageIsEachProgramsPart(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "shop")
+	writeTree(t, root, map[string]string{
+		"go.mod": "module github.com/acme/shop\n\ngo 1.27\n",
+		"cmd/api/main.go": "package main\n\nimport (\n\t\"net/http\"\n\n\t\"github.com/acme/shop/internal/queries\"\n)\n\n" +
+			"func main() {\n\tq := &queries.Queries{}\n\tmux := http.NewServeMux()\n\tmux.HandleFunc(\"POST /orders\", func(w http.ResponseWriter, r *http.Request) { q.AddOrder() })\n" +
+			"\thttp.ListenAndServe(\":8080\", mux)\n}\n",
+		"cmd/worker/main.go": "package main\n\nimport (\n\t\"github.com/acme/shop/internal/queries\"\n\t\"github.com/riverqueue/river\"\n)\n\n" +
+			"func main() { _ = river.NewWorkers; (&queries.Queries{}).AddOrder() }\n",
+		"internal/queries/queries.go": "package queries\n\nimport \"github.com/jackc/pgx/v5\"\n\ntype Queries struct{ db *pgx.Conn }\n\n" +
+			"const addOrder = \"INSERT INTO orders (id) VALUES ($1)\"\n\nfunc (q *Queries) AddOrder() { q.db.Exec(nil, addOrder) }\n",
+		"db/migrations/001.sql": "CREATE TABLE orders (id int PRIMARY KEY);\n",
+	})
+	m, err := archdoc.ReadModel(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range m.Flows {
+		if f.Entry != "route:cmd/api POST /orders" {
+			continue
+		}
+		for _, p := range f.Participants {
+			if p.Kind == "class" && p.Component != "cmp:cmd/api/internal/queries" {
+				t.Errorf("the api's flow through %s, in %q", p.Name, p.Component)
+			}
+		}
+	}
+	for _, a := range m.Access {
+		if a.Container == "app:cmd/api" && a.Component != "cmp:cmd/api/internal/queries" {
+			t.Errorf("the api's access is %q's", a.Component)
+		}
+	}
+}

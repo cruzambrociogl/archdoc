@@ -103,8 +103,10 @@ export function Explorer(props: {
   const whole = useApi<ModelResponse>(offScene ? `/api/model${props.version ? `?version=${props.version}` : ''}` : null)
   const gone = offScene && !!whole.data && !(whole.data.model.nodes ?? []).some((n) => n.id === selected)
 
-  // Data opened with no diagram named opens what the first part with tables stores, else how data moves.
-  const firstData = !props.route.level && props.route.screen === 'data' && scene.data ? (scene.data.data?.[0] ? dataLevel(scene.data.data[0].id) : scene.data.dataflow ? 'dataflow' : undefined) : undefined
+  // Data opened with no diagram named opens what the first part with tables stores. "How data moves"
+  // is not drawn until it is designed (decisions, 19 Nov), so an old link to it opens the same.
+  const unnamed = !props.route.level || props.route.level === 'dataflow'
+  const firstData = unnamed && (props.route.screen === 'data' || props.route.level === 'dataflow') && scene.data?.data?.[0] ? dataLevel(scene.data.data[0].id) : undefined
   useEffect(() => {
     if (firstData) props.go({ screen: 'data', level: firstData }, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,7 +241,6 @@ function Toolbar(props: {
   ]
   const lenses: { id: string; plain: string; term: string; on: () => void }[] = [
     ...(target.data ? [{ id: 'data', plain: 'What it stores', term: 'entities', on: () => props.go({ screen: 'architecture', level: dataLevel(target.data!), from: props.route.from }) }] : []),
-    ...(props.scene?.dataflow ? [{ id: 'dataflow', plain: 'How data moves', term: 'data flow', on: () => props.go({ screen: 'architecture', level: 'dataflow' }, { keep: true }) }] : []),
   ]
   const isData = lens === 'data' || lens === 'dataflow'
   const shownView = props.views.find((v) => v.level === props.level && (v.focus ?? '') === (props.route.focus ?? '') && (v.find ?? '') === (props.route.q ?? '') && !!v.dim === (props.route.dim === '1'))

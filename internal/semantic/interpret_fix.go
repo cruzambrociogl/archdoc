@@ -488,7 +488,9 @@ func fixWriting(a stage2Answer, ids map[string]bool, given map[string][]givenSte
 			if i+1 < len(sc.Steps) {
 				to = sc.Steps[i+1].From - 1
 			}
-			step := ScenarioStep{Text: st.Text, From: st.From, To: to, Background: steps[st.From-1].background}
+			// A job's story happens in the background, all of it: no one waits for a job.
+			later := steps[st.From-1].background || strings.HasPrefix(sc.Flow, "job:")
+			step := ScenarioStep{Text: st.Text, From: st.From, To: to, Background: later}
 			for _, g := range steps[st.From-1 : to] {
 				for _, x := range g.elements {
 					if !contains(step.Crosses, x) {

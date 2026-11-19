@@ -42,6 +42,11 @@ export interface Highlight {
   tone?: Tone
   /** Boxes hatched in grey (rule: the hatch is only for Not read and Partly read, and Down). */
   hatched?: Set<string>
+  /**
+   * A scenario played on the parts: the arrows its steps have used, by edge key, each with what it
+   * says — the numbers of its steps, or the current one's number and words. The others are faint.
+   */
+  arrows?: Map<string, { label: string; now: boolean }>
 }
 
 /** Find a part: the boxes whose name, id or technology holds what was typed; none when nothing was. */
@@ -66,6 +71,8 @@ export interface RouteData extends Record<string, unknown> {
   labelAt?: Point
   dim: boolean
   delta?: Mark
+  /** What a scenario's step puts on the arrow, in place of its label: see Highlight.arrows. */
+  step?: { label: string; now: boolean }
 }
 
 // ——— the change overlay (surface-spec §5.2, §6.7) ———
@@ -230,7 +237,8 @@ export function toFlow(
       data: { edge: e, d: curvePath(p.curve, p.tip), labelAt: p.label_at, dim:
           !lit ||
           (!!found && !found.lit.has(e.from) && !found.lit.has(e.to)) ||
-          (!!shown && !(shown.lit.has(e.from) && shown.lit.has(e.to))), delta: opts.delta?.edges.get(key) } satisfies RouteData,
+          (!!shown?.arrows ? !shown.arrows.has(key) : !!shown && !(shown.lit.has(e.from) && shown.lit.has(e.to))), delta: opts.delta?.edges.get(key),
+        step: shown?.arrows?.get(key) } satisfies RouteData,
       selected: opts.selected === key,
     })
   }
