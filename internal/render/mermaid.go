@@ -226,12 +226,33 @@ func mermaidER(m core.Model) string {
 		}
 		b.WriteString("    }\n")
 	}
+	tables := map[string]core.Node{}
+	for _, n := range m.Nodes {
+		tables[n.ID] = n
+	}
 	for _, e := range m.Edges {
 		shape, label := "}o--||", e.Label
-		switch label {
-		case "relates to":
+		if label == "relates to" {
 			shape = "}o--o{"
-		case "":
+		} else {
+			// The columns that hold the key name the line; when every one of them may be empty, a
+			// row here need not reference one there.
+			var cols []string
+			optional := true
+			for _, c := range tables[e.From].Columns {
+				if c.References == e.To {
+					cols = append(cols, c.Name)
+					optional = optional && c.Nullable
+				}
+			}
+			if len(cols) > 0 {
+				label = strings.Join(cols, ", ")
+				if optional {
+					shape = "}o--o|"
+				}
+			}
+		}
+		if label == "" {
 			label = "references" // Mermaid's ER syntax requires one; a data view draws none
 		}
 		fmt.Fprintf(&b, "    %s %s %s : %q\n", name[e.From], shape, name[e.To], label)

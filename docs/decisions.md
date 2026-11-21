@@ -1540,6 +1540,16 @@ which), and at requests to an address made at run time. The same tables feed the
   pipeline and reach the length; a service's routes mostly fit.
 → `internal/code/golang_flow.go`, `internal/model/flows_go.go`; `TestGoFuncsFollowTheTypes`, `TestSQLTables`, `TestAGoFlow`
 
+**2026-11-19 — A schema several programs read is drawn once, in their database**
+A Go module's migrations are reached by every program that imports the package keeping them — a
+platform's api, worker and seed — and each drew the same tables as its own: three data views of one
+schema. A table read from one file is one table. Its home is the relational store the programs keep
+it in, when every one of them that connects to one connects to the same; else the first program.
+Each program still finds the tables by name, so its flows and queries are unchanged, and its access
+still says which program writes what. The data view's key calls its arrows foreign keys, and its
+Mermaid line names the key's columns, optional when every one of them may be empty.
+→ `internal/model/data.go` (`shareTables`), `internal/render/views.go`, `figure.go`, `mermaid.go`; `TestSharedSchemaIsDrawnOnce`, `TestDataViewKeysAndLines`
+
 **2026-11-19 — A boundary is reshaped by its edge; what is saved is still where the boxes are**
 A sparse component view comes out of the engine as tall columns, and making it wide meant dragging
 every box. Pulling a boundary's side now lays out what it holds again in rows that fit the width
@@ -1550,3 +1560,11 @@ engine's `arrange.Apply` and every renderer are unchanged — a reshape is many 
 step to undo. Rejected: a per-view "left to right" switch, which re-runs the layout — less control,
 and a new saved setting. A data-flow stage is not reshaped: its columns are kept in step.
 → `web/app/src/screens/explorer/scene.ts` (`reshapeStart`, `reshape`), `parts.tsx`, `Explorer.tsx`; `test/reshape.test.ts`
+
+**2026-11-20 — The record's site test leaves out when each was built**
+`TestASiteFromTheRecordIsTheRepositorysSite` failed about one run in two under `-race`: a version's
+model says when it was made — the repository's when the test documented it, the record's when its
+site was built — and the two fell in different seconds. The test already set the timed files aside,
+as "the same content but for when each was built"; a model file's `created_at` is now set aside too.
+No output changed. 0 failures in 12 runs, from 6 in 12.
+→ `record_test.go`

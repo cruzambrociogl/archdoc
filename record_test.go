@@ -219,11 +219,28 @@ func TestASiteFromTheRecordIsTheRepositorysSite(t *testing.T) {
 	if w, g := slices.Sorted(maps.Keys(want.Files)), slices.Sorted(maps.Keys(got.Files)); !slices.Equal(w, g) {
 		t.Fatalf("the sites differ in their files:\nfrom the repository %v\nfrom the record     %v", w, g)
 	}
-	// When each was built: the version's time, and what is measured against it.
+	// When each was built: the version's time, and what is measured against it. A version's model
+	// says when it was made too: the repository's when it was documented, the record's when its site
+	// was built — a second apart, often, under -race.
 	timed := map[string]bool{"data/session.json": true, "data/versions.json": true, "data/completeness.json": true}
+	untimed := func(b []byte) []byte {
+		var v map[string]any
+		if json.Unmarshal(b, &v) != nil {
+			return b
+		}
+		if _, ok := v["created_at"]; !ok {
+			return b
+		}
+		delete(v, "created_at")
+		out, _ := json.Marshal(v)
+		return out
+	}
 	for name, w := range want.Files {
 		if timed[name] {
 			continue
+		}
+		if strings.HasPrefix(name, "data/model") {
+			w, got.Files[name] = untimed(w), untimed(got.Files[name])
 		}
 		if !bytes.Equal(w, got.Files[name]) {
 			t.Errorf("%s differs between the two sites:\nfrom the repository %.400s\nfrom the record     %.400s", name, w, got.Files[name])

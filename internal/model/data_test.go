@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cruzambrociogl/archdoc/internal/core"
@@ -125,5 +126,92 @@ func TestPrismaTables(t *testing.T) {
 	}
 	if c := columns(t, m, "tbl:api/User")["id"]; !c.Primary {
 		t.Errorf("id %+v", c)
+	}
+}
+
+// One schema that several programs read is one set of tables: a Go module's migrations, which its
+// api and its worker both reach. They go to the database the programs keep them in; each program's
+// queries still find them by name.
+func TestSharedSchemaIsDrawnOnce(t *testing.T) {
+	file := "db/migrations/001.sql"
+	sql := core.SourceFile{Path: file, Language: "SQL", Lines: 9, Classes: []core.Class{
+		{Name: "users", Prov: cite(file, 1), Decorators: []core.Decorator{{Name: "Table", Arg: "users", HasArg: true}},
+			Fields: []core.Field{{Name: "id", Prov: cite(file, 2),
+				Decorators: []core.Decorator{{Name: "Column", Options: map[string]string{"type": "bigint", "primary": "true"}}}}}},
+		{Name: "posts", Prov: cite(file, 4), Decorators: []core.Decorator{{Name: "Table", Arg: "posts", HasArg: true}},
+			Fields: []core.Field{{Name: "author_id", Prov: cite(file, 5),
+				Decorators: []core.Decorator{{Name: "Column", Target: "users", Options: map[string]string{"type": "bigint"}}}}}},
+	}}
+	code := func(dir string) []core.SourceFile {
+		p := dir + "/main.go"
+		return []core.SourceFile{{Path: p, Language: "Go", Lines: 5, Funcs: []core.Func{{Key: dir + "#main", Prov: cite(p, 1),
+			Queries: []core.Query{{Table: "users", Op: "reads", Prov: cite(p, 3)}}}}}}
+	}
+	facts := func(store bool) *core.FactSet {
+		fs := &core.FactSet{Name: "x",
+			Apps: []core.App{
+				{Name: "api", Dir: "cmd/api", Manifest: "go.mod", Role: core.RoleService, Language: "Go", Prov: cite("go.mod", 1)},
+				{Name: "worker", Dir: "cmd/worker", Manifest: "go.mod", Role: core.RoleService, Language: "Go", Prov: cite("go.mod", 1)},
+			},
+			Sources: []core.Source{
+				{App: "cmd/api", Root: ".", Module: "x", Files: code("cmd/api"), Schemas: []core.SourceFile{sql}},
+				{App: "cmd/worker", Root: ".", Module: "x", Files: code("cmd/worker"), Schemas: []core.SourceFile{sql}},
+			}}
+		if store {
+			fs.Services = []core.Service{
+				{Name: "worker", Evidence: core.Declared, Prov: at(3), Endpoints: []core.Endpoint{
+					{Var: "DATABASE_URL", Scheme: "postgres", Host: "db", Port: 5432, Prov: at(5)}}},
+				{Name: "db", Image: "postgres:18-alpine", Evidence: core.Declared, Prov: at(8)},
+			}
+			fs.Apps[1].Deployed = &core.Deployment{Service: "worker", Prov: at(3)}
+		}
+		return fs
+	}
+	for _, c := range []struct {
+		store bool
+		owner string
+	}{{true, "svc:db"}, {false, "app:cmd/api"}} {
+		m := Derive(facts(c.store))
+		_, local, _ := strings.Cut(c.owner, ":")
+		var tables []string
+		for _, n := range m.Nodes {
+			if n.Kind == core.Table {
+				tables = append(tables, n.ID)
+				if n.Parent != c.owner {
+					t.Errorf("%s in %s, want %s", n.ID, n.Parent, c.owner)
+				}
+			}
+		}
+		if len(tables) != 2 {
+			t.Errorf("store %v: tables %v, want users and posts once", c.store, tables)
+		}
+		refs := 0
+		for _, e := range m.Edges {
+			if e.Label == "references" {
+				refs++
+				if e.From != "tbl:"+local+"/posts" || e.To != "tbl:"+local+"/users" {
+					t.Errorf("foreign key %s → %s", e.From, e.To)
+				}
+			}
+		}
+		if refs != 1 {
+			t.Errorf("store %v: %d foreign keys, want 1", c.store, refs)
+		}
+		if cols := columns(t, m, "tbl:"+local+"/posts"); cols["author_id"].References != "tbl:"+local+"/users" {
+			t.Errorf("author_id references %q", cols["author_id"].References)
+		}
+		readers := map[string]bool{}
+		for _, a := range m.Access {
+			if a.Element != "tbl:"+local+"/users" {
+				t.Errorf("%s's query of %s found %q", a.Container, a.Table, a.Element)
+			}
+			readers[a.Container] = true
+		}
+		if len(readers) != 2 {
+			t.Errorf("store %v: queries from %v, want both programs", c.store, readers)
+		}
+		if len(m.Datas()) != 1 || m.Datas()[0] != c.owner {
+			t.Errorf("store %v: data views %v, want one, of %s", c.store, m.Datas(), c.owner)
+		}
 	}
 }

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/cruzambrociogl/archdoc/internal/core"
@@ -145,6 +147,126 @@ func tables(m *core.Model, sources []core.Source) {
 			}
 		}
 	}
+}
+
+// shareTables draws a table once when several programs read the schema that declares it: a Go
+// module's migrations, which its api, its worker and its seed all reach. Until here each program has
+// its own copy, which is how its flows and its queries find a table by name; read from one file, they
+// are one table. It goes to the database the programs keep it in — when every one of them that
+// connects to a relational store connects to the same one — or else to the first of them. Run after
+// the connections are known. It returns where each program finds a table by name, for its flows and
+// its queries: program, then name → the table's ID.
+func shareTables(m *core.Model) map[string]string {
+	index := map[string]string{}
+	type copyOf struct{ file, name string }
+	copies := map[copyOf][]int{}
+	var order []copyOf // in the model's order, which is deterministic
+	for i, n := range m.Nodes {
+		if n.Kind == core.Table {
+			index[n.Parent+"\x00"+n.Name] = n.ID
+			k := copyOf{n.Dir, n.Name}
+			if copies[k] == nil {
+				order = append(order, k)
+			}
+			copies[k] = append(copies[k], i)
+		}
+	}
+	stores := map[string]map[string]bool{} // a program → the relational stores it connects to
+	kinds := map[string]core.Node{}
+	for _, n := range m.Nodes {
+		kinds[n.ID] = n
+	}
+	for _, e := range m.Edges {
+		if to, ok := kinds[e.To]; ok && e.Traffic && to.Kind == core.Datastore && core.Relational(to.Technology) {
+			if stores[e.From] == nil {
+				stores[e.From] = map[string]bool{}
+			}
+			stores[e.From][e.To] = true
+		}
+	}
+
+	rename := map[string]string{}
+	drop := map[int]bool{}
+	for _, k := range order {
+		at := copies[k]
+		if len(at) < 2 {
+			continue
+		}
+		var readers []string
+		for _, i := range at {
+			readers = append(readers, m.Nodes[i].Parent)
+		}
+		sort.Strings(readers)
+		owner := readers[0]
+		held := map[string]bool{}
+		for _, r := range readers {
+			for s := range stores[r] {
+				held[s] = true
+			}
+		}
+		if len(held) == 1 {
+			for s := range held {
+				owner = s
+			}
+		}
+		_, local, _ := strings.Cut(owner, ":")
+		id := "tbl:" + local + "/" + k.name
+		for _, i := range at {
+			rename[m.Nodes[i].ID] = id
+		}
+		keep := at[0]
+		m.Nodes[keep].ID, m.Nodes[keep].Parent = id, owner
+		for _, i := range at[1:] {
+			drop[i] = true
+		}
+	}
+	if len(rename) == 0 {
+		return index
+	}
+	to := func(id string) string {
+		if r, ok := rename[id]; ok {
+			return r
+		}
+		return id
+	}
+	nodes := m.Nodes[:0]
+	for i, n := range m.Nodes {
+		if drop[i] {
+			continue
+		}
+		if n.Kind == core.Table {
+			cols := append([]core.Column(nil), n.Columns...)
+			for c := range cols {
+				cols[c].References = to(cols[c].References)
+			}
+			n.Columns = cols
+		}
+		nodes = append(nodes, n)
+	}
+	m.Nodes = nodes
+	// A foreign key each copy declared is one foreign key: the same two tables, cited at the same line.
+	seen := map[string]bool{}
+	edges := m.Edges[:0]
+	for _, e := range m.Edges {
+		_, merged := rename[e.From]
+		e.From, e.To = to(e.From), to(e.To)
+		if merged {
+			key := e.From + "\x00" + e.To + "\x00" + e.Label
+			if len(e.Prov) > 0 {
+				key += "\x00" + e.Prov[0].File + ":" + strconv.Itoa(e.Prov[0].Line)
+			}
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+		}
+		edges = append(edges, e)
+	}
+	m.Edges = edges
+	for k, id := range index {
+		index[k] = to(id)
+	}
+	return index
 }
 
 // tableName says whether a class is a table, and its name.

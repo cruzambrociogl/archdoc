@@ -55,6 +55,17 @@ func (k Kind) Container() bool {
 	return k == Application || k == Datastore || k == Queue
 }
 
+// Relational reports whether a data store's technology is a database that keeps tables.
+func Relational(tech string) bool {
+	t := strings.ToLower(tech)
+	for _, s := range []string{"postgres", "mysql", "mariadb", "sql", "cockroach", "oracle"} {
+		if strings.Contains(t, s) {
+			return true
+		}
+	}
+	return false
+}
+
 // rank orders kinds for output. Not alphabetical: a diagram reads better outside-in, and a
 // provenance table reads better the same way — who uses the system, what it is made of, what it
 // depends on. Alphabetical would put externals in the middle for no reason.

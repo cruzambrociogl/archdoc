@@ -15,13 +15,7 @@ import (
 // accessCites is how many queries an access cites; Count says how many there are.
 const accessCites = 10
 
-func access(m *core.Model, sources []core.Source, componentOf map[string]string) {
-	tableOf := map[string]string{}
-	for _, n := range m.Nodes {
-		if n.Kind == core.Table {
-			tableOf[n.Parent+"\x00"+n.Name] = n.ID
-		}
-	}
+func access(m *core.Model, sources []core.Source, componentOf map[string]string, tableOf map[string]string) {
 	containerOf := map[string]string{}
 	for _, n := range m.Nodes {
 		if n.Dir != "" && n.Kind == core.Application {
@@ -34,10 +28,7 @@ func access(m *core.Model, sources []core.Source, componentOf map[string]string)
 		if !ok {
 			continue
 		}
-		hasTables := false
-		for _, n := range m.Nodes {
-			hasTables = hasTables || n.Kind == core.Table && n.Parent == container
-		}
+		declares := hasTables(tableOf, container)
 		componentOf := componentsFor(src, container, componentOf)
 		for _, f := range src.Files {
 			// A Go function's queries; a function written inside another is counted in that one.
@@ -47,7 +38,7 @@ func access(m *core.Model, sources []core.Source, componentOf map[string]string)
 					continue
 				}
 				for _, q := range fn.Queries {
-					if !hasTables || tableOf[container+"\x00"+q.Table] != "" {
+					if !declares || tableOf[container+"\x00"+q.Table] != "" {
 						goQueries = append(goQueries, q)
 					}
 				}
@@ -103,4 +94,14 @@ func access(m *core.Model, sources []core.Source, componentOf map[string]string)
 		}
 		return a.Op < b.Op
 	})
+}
+
+// hasTables reports whether a container's code declares any table, its own or shared.
+func hasTables(tableOf map[string]string, container string) bool {
+	for k := range tableOf {
+		if strings.HasPrefix(k, container+"\x00") {
+			return true
+		}
+	}
+	return false
 }

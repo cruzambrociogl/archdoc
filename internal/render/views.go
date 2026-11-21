@@ -358,7 +358,13 @@ func structureView(m core.Model, id string) View {
 func dataView(m core.Model, id string) View {
 	view := unlabelled(m.Data(id)) // an arrow between tables is a foreign key; the box says which column
 	view.Boundary = view.Name + " — tables its code declares"
-	if store, ok := storeOf(m, id); ok {
+	if c, ok := m.Node(id); ok && c.Kind == core.Datastore {
+		// Tables several programs' code declares together, kept in the database they share.
+		view.Boundary = view.Name + " — tables the code declares, stored here"
+		if c.Technology != "" {
+			view.Boundary = view.Name + " [" + c.Technology + "] — tables the code declares, stored here"
+		}
+	} else if store, ok := storeOf(m, id); ok {
 		view.Boundary += ", stored in " + store.Name
 		if store.Technology != "" {
 			view.Boundary += " [" + store.Technology + "]"
@@ -433,7 +439,7 @@ func storeOf(m core.Model, container string) (core.Node, bool) {
 			continue
 		}
 		n, ok := m.Node(e.To)
-		if ok && n.Kind == core.Datastore && relational(n.Technology) {
+		if ok && n.Kind == core.Datastore && core.Relational(n.Technology) {
 			found = append(found, n)
 		}
 	}
@@ -441,16 +447,6 @@ func storeOf(m core.Model, container string) (core.Node, bool) {
 		return core.Node{}, false
 	}
 	return found[0], true
-}
-
-func relational(tech string) bool {
-	t := strings.ToLower(tech)
-	for _, s := range []string{"postgres", "mysql", "mariadb", "sql", "cockroach", "oracle"} {
-		if strings.Contains(t, s) {
-			return true
-		}
-	}
-	return false
 }
 
 // ComponentFile reports whether name is a file archdoc writes for a component or a data view.

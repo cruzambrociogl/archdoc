@@ -211,9 +211,10 @@ func Derive(f *core.FactSet) core.Model {
 	starters(&m, f)
 	apiCalls(&m, f)
 	people(&m, f)
-	flows(&m, f.Sources, componentOf)
+	tableOf := shareTables(&m)
+	flows(&m, f.Sources, componentOf, tableOf)
 	pageCalls(&m, f, componentOf)
-	access(&m, f.Sources, componentOf)
+	access(&m, f.Sources, componentOf, tableOf)
 	dependencies(&m, f, componentOf)
 	manifests(&m, f)
 

@@ -174,7 +174,11 @@ func KeyOf(view core.Model) []KeyItem {
 		}
 	}
 	if len(view.Edges) > 0 {
-		out = append(out, KeyItem{"arrow", "Arrow: what one calls or uses, and how"})
+		arrow := "Arrow: what one calls or uses, and how"
+		if len(used) == 1 && used["table"] {
+			arrow = "Arrow: a foreign key, to the table it references"
+		}
+		out = append(out, KeyItem{"arrow", arrow})
 	}
 	if ai {
 		out = append(out, KeyItem{"italic", "Italic words: written by AI"})

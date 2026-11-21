@@ -17,6 +17,9 @@ what is different for a user.
   the documents, the exported site and the explanation's notes leave it out.
 - **A long sequence scrolls in its own box,** its lifelines' heads pinned, and follows the story:
   playing or stepping keeps the current step's messages in view.
+- **A database several programs share is drawn once.** Tables a Go module's migrations declare —
+  read by its api, its worker and its seed — are one schema, in the database they keep it in; each
+  program's flows and access still say what it reads and writes there.
 - **A Go package two programs share is a part of each**, so a program's flows, access and
   dependencies name its own parts, not another program's.
 

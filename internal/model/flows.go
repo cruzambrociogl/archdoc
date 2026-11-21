@@ -40,13 +40,9 @@ type classAt struct {
 	file  string
 }
 
-func flows(m *core.Model, sources []core.Source, componentOf map[string]string) {
-	tableOf := map[string]string{} // table name → node ID, per container
-	for _, n := range m.Nodes {
-		if n.Kind == core.Table {
-			tableOf[n.Parent+"\x00"+n.Name] = n.ID
-		}
-	}
+// tableOf is where each container's code finds a table by name: container, then name → its ID
+// (shareTables).
+func flows(m *core.Model, sources []core.Source, componentOf map[string]string, tableOf map[string]string) {
 	containerOf := map[string]string{}
 	for _, n := range m.Nodes {
 		if n.Dir != "" && n.Kind == core.Application {
@@ -57,7 +53,7 @@ func flows(m *core.Model, sources []core.Source, componentOf map[string]string) 
 		container := containerOf[src.App]
 		if src.Module != "" {
 			// Go: followed through the calls its types tie (flows_go.go).
-			m.Flows = append(m.Flows, goFlows(m, src, container, componentOf, func(t string) string { return tableOf[container+"\x00"+t] })...)
+			m.Flows = append(m.Flows, goFlows(m, src, container, componentOf, hasTables(tableOf, container), func(t string) string { return tableOf[container+"\x00"+t] })...)
 			continue
 		}
 		classes := map[string]classAt{}

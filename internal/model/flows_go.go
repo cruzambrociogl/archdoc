@@ -19,7 +19,7 @@ import (
 // declares any: SQL names columns and functions in places a table could stand. A job another
 // program works is still a step, and says which.
 
-func goFlows(m *core.Model, src core.Source, container string, componentOf map[string]string, table func(string) string) []core.Flow {
+func goFlows(m *core.Model, src core.Source, container string, componentOf map[string]string, hasTables bool, table func(string) string) []core.Flow {
 	componentOf = componentsFor(src, container, componentOf) // a shared package is a part of each program
 	funcs := map[string]core.Func{}
 	calls := map[string][]core.Call{} // file → its requests to computed addresses
@@ -28,10 +28,6 @@ func goFlows(m *core.Model, src core.Source, container string, componentOf map[s
 			funcs[fn.Key] = fn
 		}
 		calls[f.Path] = f.Calls
-	}
-	hasTables := false
-	for _, n := range m.Nodes {
-		hasTables = hasTables || n.Kind == core.Table && n.Parent == container
 	}
 	jobs := map[string]core.Entry{} // a job's kind → its entry, in whichever container works it
 	for _, e := range m.Entries {
